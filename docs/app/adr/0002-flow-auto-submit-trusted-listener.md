@@ -66,7 +66,7 @@ Nguồn chân lý là [`packages/flow-protocol/src/errors.mjs`](../../../package
 ## Hệ quả
 
 - **Rủi ro được chấp nhận:** vi phạm ToS, tài khoản có thể bị khoá. App phải nói rõ điều này khi người dùng bật auto, và tách profile test khỏi profile chính.
-- **Phụ thuộc vào cấu trúc nội bộ của Flow:** cách Angular gắn listener, selector, mã RPC, định dạng response. Flow cập nhật là có thể hỏng. Cần bộ qualification chạy lại được và các tín hiệu tắt auto ở bảng trên.
+- **Phụ thuộc vào cấu trúc nội bộ của Flow:** cách Angular gắn listener, selector, mã RPC, định dạng response. Flow cập nhật là có thể hỏng. Cần bộ qualification chạy lại được ([checklist 04 §7.1](../04-flow-driver.md#71-checklist-qualification-các-bẫy-đã-gặp-ở-spike-01)) và các tín hiệu tắt auto ở bảng trên.
 - Extension khác cài trong cùng profile có thể can thiệp. TobyFlow đổi tên file tải về, nên app phải đọc `actualName` từ `downloads.search`.
 - Script MAIN world phải nạp trước Angular: sau khi cài hoặc cập nhật extension phải reload tab Flow.
 - Mọi quy tắc intent, chống gửi trùng và phục hồi ở [02](../02-domain-and-state.md)/[07](../07-safety-and-recovery.md) vẫn áp dụng như với manual.

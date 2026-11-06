@@ -53,7 +53,7 @@ TF ID được định nghĩa tại [00](00-product-scope.md). Hàng dưới là
 1. **Không provider:** parser/mapping/naming, commands/state/storage/recovery qua public boundary; fake driver ghi số lần side effect. Fake data chỉ là fixture test, không được đưa vào report như response thật.
 2. **Browser fixture:** DOM/SPA/turn lifecycle dựng có kiểm soát, false-positive/ambiguous output/input thất bại; không chứng minh tương thích production.
 3. **Host integration:** connector, permissions, runtime suspend/crash, tải file thực trên host đã chọn; tránh mock tín hiệu thành công cần kiểm.
-4. **Live qualification:** tài khoản/project/browser được người dùng chọn, ngân sách và số lượt rõ, chạy đúng mode được bật. Không có dữ liệu này thì báo chưa kiểm, không thay bằng output giả.
+4. **Live qualification:** tài khoản/project/browser được người dùng chọn, ngân sách và số lượt rõ, chạy đúng mode được bật. Với Flow, dùng [checklist các bẫy ở 04 §7.1](04-flow-driver.md#71-checklist-qualification-các-bẫy-đã-gặp-ở-spike-01). Không có dữ liệu này thì báo chưa kiểm, không thay bằng output giả.
 
 Seam kiểm chính là application command → persisted state/host outputs; đọc driver call ledger để chứng minh không submit lần hai. Chỉ test reducer nội bộ không đủ chống gửi trùng end-to-end.
 

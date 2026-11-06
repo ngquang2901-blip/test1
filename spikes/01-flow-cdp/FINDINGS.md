@@ -129,6 +129,8 @@
 
 ## Những bẫy phát hiện được (đưa thành yêu cầu driver)
 
+Đã gom cùng các bẫy ở những mục khác vào [checklist qualification 04 §7.1](../../docs/app/04-flow-driver.md#71-checklist-qualification-các-bẫy-đã-gặp-ở-spike-01) (Q-01…Q-30).
+
 1. **Overlay che control:** banner cookie che nửa dưới nút Generate. Click vào tâm nút rơi vào banner, không có gì được gửi (đây là `rejected_before_dispatch` thật). → Click phải hit-test bằng `elementFromPoint`. Banner là consent (`CONSENT_REQUIRED`), người dùng tự quyết.
 2. **Pending tile không có `data-media-id`** cho tới gần lúc xong. `aria-label` lúc pending = prompt, nhưng **sau khi xong bị đổi thành tiêu đề do Flow tự sinh** ("Tabby cat sitting on windowsill"). → Không gán chủ output theo label. Cần theo dõi lineage của tile từ lúc pending, hoặc lấy receipt `ogiZ0b`.
 3. **Tile lỗi biến mất khi reload trang.** → Phải ghi journal lỗi ngay lúc quan sát, không đọc lại được sau.
