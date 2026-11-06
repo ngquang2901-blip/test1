@@ -54,6 +54,8 @@ Một output có thể xuất hiện ngay sau submit trước khi từng quan s�
 
 Ghi intent bền vững trước click/manual-submit opportunity. Nếu crash giữa ghi intent và click, chấp nhận false-positive cần kiểm tra để tránh gửi trùng. Nút disabled/editor rỗng chỉ là tín hiệu hỗ trợ; không tự chứng minh có ảnh đúng chủ.
 
+Bản code cho Flow (Item.state + dispatchStage, có test trên fixture thật và fuzz bất biến): [`packages/flow-protocol/src/attempt.mjs`](../../packages/flow-protocol/src/attempt.mjs). Hết deadline khi đã có intent thì luôn ra needs_review, kể cả khi chưa ghi được "đã bấm".
+
 **Retry:** chuẩn bị an toàn có thể thử trong cùng attempt trước intent; một lượt generate mới sau intent/accepted/uncertain phải tạo attempt mới sau xác nhận của người dùng. Giữ đủ lịch sử và cảnh báo khả năng tốn thêm credit.
 
 ## 4. Download.state

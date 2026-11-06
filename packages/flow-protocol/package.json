@@ -3,10 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Parsers and error table for Google Flow web traffic (fixtures from spike 01).",
+  "description": "Parsers, error table, attempt state machine and observer heartbeat for Google Flow web traffic (fixtures from spike 01).",
   "exports": {
     "./parse": "./src/parse.mjs",
-    "./errors": "./src/errors.mjs"
+    "./errors": "./src/errors.mjs",
+    "./attempt": "./src/attempt.mjs",
+    "./heartbeat": "./src/heartbeat.mjs"
   },
   "scripts": {
     "test": "node --test"

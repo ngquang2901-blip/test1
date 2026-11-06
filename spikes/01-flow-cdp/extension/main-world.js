@@ -36,13 +36,14 @@
   // Read-only network observer: keep generation/poll/upload batchexecute exchanges for correlation.
   const RPCS = /rpcids=(ogiZ0b|YhhmEf|eb1hJf|nprQif|MZZa6b|maseQ|jwpduf|as29s)/;
   const net = [];
+  const obs = { id: crypto.randomUUID(), seq: 0, dropped: 0 }; // id changes on page load: buffered records are gone
   const push = (url, body, status, text, phase = 'done') => {
     const m = RPCS.exec(url); if (!m) return;
     // recaptcha tokens / base64 uploads are long: keep head only
     const rec = { t: Date.now(), phase, rpc: m[1], status, req: decodeURIComponent(String(body || '')).replace(/[A-Za-z0-9_\-]{400,}/g, '<long>').slice(0, 3000), res: String(text || '').slice(0, 6000) };
     if (phase === 'sent') rec.raw = String(body || '').slice(0, 400000); // as sent on the wire; redact when saving
-    net.push(rec);
-    if (net.length > 200) net.shift();
+    rec.seq = ++obs.seq; net.push(rec);
+    if (net.length > 200) { net.shift(); obs.dropped++; }
   };
   const xo = XMLHttpRequest.prototype.open, xs = XMLHttpRequest.prototype.send;
   const urls = []; const seen = (u) => { urls.push(String(u).replace(/\?.*?(rpcids=[^&]+).*/, '?$1').slice(0, 140)); if (urls.length > 20) urls.shift(); };
@@ -71,6 +72,6 @@
   nativeAdd.call(document, 'toolflow:ping', () => {
     document.documentElement.setAttribute('data-tf-ping', JSON.stringify({
       xhrSend: XMLHttpRequest.prototype.send === ourSend, xhrOpen: XMLHttpRequest.prototype.open === ourOpen,
-      fetch: window.fetch === ourFetch, buffered: net.length, urls, t: Date.now() }));
+      fetch: window.fetch === ourFetch, buffered: net.length, ...obs, urls, t: Date.now() }));
   });
 })();
