@@ -53,7 +53,7 @@ export function next(s, ev) {
 
     case 'clicked': { // result of the page script: {found, disabled, listeners, called}
       if (!canClick(s)) bad();
-      if (ev.result.called === 0) // fail-closed: no listener ran, nothing can have reached Flow
+      if (!(ev.result.called > 0)) // fail-closed: no listener ran (or no MAIN-world script answered: {noMainWorld}), nothing reached Flow
         return { ...s, item: 'preparing', stage: 'rejected_before_dispatch', error: { code: 'CONFIG_INCOMPLETE', signal: 'SUBMIT_LISTENER_MISSING', result: ev.result }, admission: 'pause' };
       return { ...s, clicked: true };
     }

@@ -87,6 +87,8 @@ test('click with no listener run = rejected before dispatch, pause; prepare agai
   const s = next(toClick('x'), { type: 'clicked', result: { found: true, disabled: false, listeners: 0, called: 0 } });
   assert.deepEqual([s.item, s.stage, s.error.signal, s.admission], ['preparing', 'rejected_before_dispatch', 'SUBMIT_LISTENER_MISSING', 'pause']);
   assert.equal(next(s, { type: 'intent', ping: ping(), now: NOW }).stage, 'intent_recorded');
+  // Q-05: tab loaded before the MAIN-world script existed → the page answers {noMainWorld: true}, no `called`
+  assert.equal(next(toClick('x'), { type: 'clicked', result: { noMainWorld: true } }).error.code, 'CONFIG_INCOMPLETE');
 });
 
 test('dead observer before intent: refuse, stay preparing, no click possible', () => {

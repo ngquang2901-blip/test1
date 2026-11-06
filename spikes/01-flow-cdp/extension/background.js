@@ -71,6 +71,11 @@ async function pageOps(fn, a) {
     case 'radios': { const p = $('flow-prompt-box-settings'); if (!p) return 'no panel';
       return [...p.querySelectorAll('button')].map((b, i) => [i, b.getAttribute('role'), b.innerText.replace(/\s+/g, ' ').trim().slice(0, 30), b.getAttribute('aria-checked')]); }
     case 'click': { const e = document.querySelectorAll(a.sel)[a.idx || 0]; if (!e) return 'NOTFOUND'; e.click(); return 'clicked'; }
+    case 'fill': { const e = $(a.sel); if (!e) return 'NOTFOUND'; e.focus(); e.value = a.text; e.dispatchEvent(new Event('input', { bubbles: true })); await sleep(a.wait || 1500); return 'filled'; }
+    case 'overlay': { $('#tf-overlay')?.remove(); if (a.on) { const d = document.createElement('div'); d.id = 'tf-overlay'; d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.4)'; document.body.append(d); } return !!$('#tf-overlay'); }
+    // Q-01 guard: is the submit button the topmost element at its own centre?
+    case 'hit': { const s = $('flow-prompt-box button[type="submit"]'); if (!s) return null; const r = s.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return { covered: !(e && s.closest('flow-prompt-box').contains(e)), top: e && (e.id || e.tagName.toLowerCase() + '.' + String(e.className).slice(0, 30)) }; }
     case 'submit': { const s = $('flow-prompt-box button[type="submit"]'); if (!s || s.disabled) return 'disabled'; s.click(); return 'clicked'; }
     case 'net': { document.documentElement.removeAttribute('data-tf-net'); document.dispatchEvent(new CustomEvent('toolflow:net')); await sleep(100);
       return JSON.parse(document.documentElement.getAttribute('data-tf-net') || 'null'); }

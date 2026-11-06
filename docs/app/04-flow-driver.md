@@ -78,18 +78,18 @@ Mỗi dòng là một bẫy có thật trong [FINDINGS](../../spikes/01-flow-cdp
 
 | # | Bẫy | Nguồn | Cách kiểm | Đạt khi | Tầng | Tự động |
 |---|---|---|---|---|---|---|
-| Q-01 | Banner cookie/consent che nút Gửi. Gọi listener thì về cơ chế **không bị overlay chặn** (chưa thử live), nên auto có thể gửi phía sau một banner người dùng chưa quyết. | bẫy 1 | Để banner hiện, chạy một item. | Dừng trước intent với `CONSENT_REQUIRED`; 0 request generate. | 2, 4 | ⬜ |
+| Q-01 | Banner cookie/consent che nút Gửi. Gọi listener thì về cơ chế **không bị overlay chặn** (lượt 36: đúng vậy), nên auto có thể gửi phía sau một banner người dùng chưa quyết. | bẫy 1 | Để banner hiện, chạy một item. | Dừng trước intent với `CONSENT_REQUIRED`; 0 request generate. | 2, 4 | ⬜ banner thật · ✅ live lượt 36: lớp che toàn màn hình vẫn để gửi (`ogiZ0b` 200) ⇒ bẫy có thật; phép kiểm `elementFromPoint` ở tâm nút Gửi phải nằm trong `flow-prompt-box`, đúng cả 3 trạng thái (không che / che / mở cài đặt) |
 | Q-02 | Lệnh "đọc trạng thái" bấm Gửi thật. | 29b | Composer có prompt; gọi mọi lệnh đọc (state, ping, net, list) nhiều lần. | Ledger của driver đếm 0 lần submit; chỉ `canClick()` mở được lệnh bấm. | 1, 4 | ✅ cổng `canClick` (`attempt.test`) · ⬜ ledger |
-| Q-03 | Đổi mode xong, composer giữ text cũ nên prep gõ chồng. | 30 | Gõ prompt A, đổi Image ↔ Video, prep prompt B. | Composer được xoá; text đọc lại đúng nguyên văn B; sai thì `prep_failed`, không gửi. | 4 | ⬜ |
+| Q-03 | Đổi mode xong, composer giữ text cũ nên prep gõ chồng. | 30 | Gõ prompt A, đổi Image ↔ Video, prep prompt B. | Composer được xoá; text đọc lại đúng nguyên văn B; sai thì `prep_failed`, không gửi. | 4 | ✅ live lượt 36: đổi Ảnh↔Video giữ text; không xoá thì ra "A…B", đọc lại `textMatches:false`; `clear-button` rồi gõ thì đúng |
 | Q-04 | Tab nền: nút Gửi còn `disabled` vài giây, settings panel render chậm hơn 1 s. | `multitab.py`, `flow.py` | Prep và gửi ở tab không focus. | Chờ có giới hạn rồi gửi, hoặc `rejected_before_dispatch`; không fallback `click()`/Enter. | 4 | ⬜ |
-| Q-05 | Script MAIN world nạp sau Angular (vừa cài/cập nhật extension mà chưa reload tab) nên không bắt được listener. | ADR-0002 Hệ quả | Cập nhật extension, không reload tab, chạy một item. | `listeners: 0, called: 0` → `CONFIG_INCOMPLETE`; app nhắc reload tab; 0 request. | 3, 4 | ✅ nhánh `called: 0` · ⬜ live |
+| Q-05 | Script MAIN world nạp sau Angular (vừa cài/cập nhật extension mà chưa reload tab) nên không bắt được listener. | ADR-0002 Hệ quả | Cập nhật extension, không reload tab, chạy một item. | `listeners: 0, called: 0` → `CONFIG_INCOMPLETE`; app nhắc reload tab; 0 request. | 3, 4 | ✅ nhánh `called: 0` và `{noMainWorld}` (lượt 36 sửa: trước đó `{noMainWorld}` bị coi là đã bấm) · ⬜ live cài mới |
 | Q-06 | CDP bị gắn cờ `UNUSUAL_ACTIVITY` cả khi người bấm; event tổng hợp bị bỏ qua. | 1–9, dòng `—` | Kiểm manifest và mọi đường gửi. | Không có quyền `debugger`; không có đường fallback nào ngoài listener. | 1 | ⬜ |
 
 **Observer và bằng chứng gửi**
 
 | # | Bẫy | Nguồn | Cách kiểm | Đạt khi | Tầng | Tự động |
 |---|---|---|---|---|---|---|
-| Q-07 | Observer network chết lặng lẽ sau khi reload extension. | 30–31 | Reload extension, không reload tab, rồi ping. | Intent bị từ chối `OBSERVER_DEAD` (`hook_*`/`old_observer`/`stale`). | 1, 4 | ✅ `heartbeat.test`, `attempt.test` · ⬜ live |
+| Q-07 | Observer network chết lặng lẽ sau khi reload extension. | 30–31 | Reload extension, không reload tab, rồi ping. | Intent bị từ chối `OBSERVER_DEAD` (`hook_*`/`old_observer`/`stale`). | 1, 4 | ✅ `heartbeat.test`, `attempt.test` · live lượt 36: **không tái hiện** (lần 2, sau lượt 32): reload extension không reload tab, observer id giữ nguyên, bắt đủ request/response |
 | Q-08 | Tab reload giữa lúc bấm và lúc có receipt làm mất bộ đệm. | — | Bấm rồi reload tab trước khi response về (tốn 1 lượt). | `page_reloaded` → `SUBMIT_UNCERTAIN`; không gửi lại; đối soát grid. | 1, 4 | ✅ · ⬜ live |
 | Q-09 | Lượt bị xếp `uncertain` (không thấy request) thật ra đã gửi và render. Heartbeat lúc trang rảnh không chứng minh observer sẽ thấy request kế. | 30 | Fake observer bỏ record `sent`; live: đối chiếu grid sau deadline. | Deadline → `SUBMIT_UNCERTAIN`, không gửi lại; receipt về muộn gỡ được; lỗi từ chối về muộn chỉ chốt lỗi. | 1, 4 | ✅ |
 | Q-10 | Bộ đệm vòng của observer tràn khi nhiều tab/poll. | — | Đẩy hơn 200 record giữa hai ping. | `records_dropped` → `SUBMIT_UNCERTAIN`. | 1 | ✅ |
@@ -111,7 +111,7 @@ Mỗi dòng là một bẫy có thật trong [FINDINGS](../../spikes/01-flow-cdp
 |---|---|---|---|---|---|---|
 | Q-17 | Danh sách asset sắp xếp lại khi có kết quả mới nên chọn theo index là gắn nhầm. | 17B | Chọn ref trong lúc lượt khác vừa xong. | Chọn theo media id; chip lệch id → `SETTINGS_NOT_APPLIED`, không gửi. | 4 | ⬜ |
 | Q-18 | Response upload chỉ lặp **tên file**, không lặp UUID nào. | 34 | Upload 2 ảnh giống hệt nhau. | Tên file duy nhất cho mỗi upload; media id ghép theo tên. | 1, 4 | ✅ parser · ⬜ live |
-| Q-19 | Chip ref paste mất khi reload tab; ảnh vẫn nằm trong thư viện. | 34 | Paste ref, reload tab, chạy tiếp. | Kiểm lại chip trước intent; gắn lại từ thư viện theo tên file, không upload lần hai. | 4 | ⬜ |
+| Q-19 | Chip ref paste mất khi reload tab; ảnh vẫn nằm trong thư viện. | 34 | Paste ref, reload tab, chạy tiếp. | Kiểm lại chip trước intent; gắn lại từ thư viện theo tên file, không upload lần hai. | 4 | ✅ live lượt 36: reload mất chip; tìm theo tên file trong ô tìm kiếm thư viện, bấm mục → chip đúng media cũ, 0 `maseQ` mới |
 | Q-20 | `paste` vừa upload vừa gắn chip; `drop` chỉ upload. Mỗi lần gọi là một upload thật. | kết luận (Upload) | Đếm upload theo `maseQ`. | Đúng 1 upload mỗi asset; journal chống upload trùng. | 4 | ⬜ |
 
 **Lỗi, giới hạn và credit**
@@ -132,6 +132,10 @@ Mỗi dòng là một bẫy có thật trong [FINDINGS](../../spikes/01-flow-cdp
 | Q-27 | Extension khác trong profile đổi tên file tải (TobyFlow → `<mediaId>.jpeg`, `videoplayback.mp4`). | 13–14, 32 | Tải khi có extension khác cài cùng profile. | `actualName` lấy từ `downloads.search`; kiểm magic bytes. | 3 | ⬜ |
 | Q-28 | Nhiều tab cùng một project. | bẫy 5 | 2 tab cùng project. | Target bind theo tabId; lệnh không lọt sang tab khác. | 3 | ⬜ |
 | Q-29 | Kết quả phụ thuộc mạng/IP (lượt 1 không VPN thì fail). | 1, bẫy 5 | Ghi mạng dùng khi qualify. | Biên bản có mạng; không xoay IP/VPN để né giới hạn. | 4 | — |
-| Q-30 | Danh sách model và option đổi theo thời gian. | 15–17 | Quét menu model và settings lúc chạy. | Chỉ bật option nhìn thấy và đọc lại được; không hard-code model. | 4 | ⬜ |
+| Q-30 | Danh sách model và option đổi theo thời gian. | 15–17 | Quét menu model và settings lúc chạy. | Chỉ bật option nhìn thấy và đọc lại được; không hard-code model. | 4 | ✅ live lượt 36: ảnh có Nano Banana Pro / 2 Lite / 2.1; video có Omni 1.2 Flash, Omni 1.1 Flash, Veo 3.1 Lite/Fast/Quality, 360p/720p, 4–10 giây (khác lúc spike) |
+| Q-31 | Đổi mode Video → Ảnh thì tỉ lệ khung tự nhảy (1:1 thành 16:9). | 36 | Chọn 1:1, đổi sang Video rồi về Ảnh, đọc settings. | Sau mỗi lần đổi mode đọc lại mọi option trước intent; lệch thì chọn lại hoặc `prep_failed`. | 4 | ⬜ (thấy live lượt 36) |
+| Q-32 | Paste ảnh: upload `maseQ` 200 nhưng **không gắn chip** (lượt 34 thì có). | 36 | Paste ref, đọc chip. | Sau paste kiểm chip theo media id từ receipt upload; thiếu thì gắn từ thư viện theo tên file (Q-19), không upload lại. | 4 | ⬜ (thấy live lượt 36) |
+| Q-33 | Thư viện trong menu Thêm chỉ hiện 15 mục gần nhất; nút `detail-add-to-prompt-btn` đã bỏ, bấm mục là gắn luôn. | 36 | Mở menu Thêm, tìm tên file. | Tìm bằng `input.search-input`; selector nằm trong profile có version (D-06), lệch thì `PROTOCOL_DRIFT`. | 4 | ⬜ (thấy live lượt 36) |
+| Q-34 | Cập nhật extension mà không reload tab: script MAIN world **bản cũ** vẫn chạy. | 36 | Reload extension, ping. | Ping trả version script; khác version extension thì nhắc reload tab, chặn intent. | 3, 4 | ⬜ (cần thêm version vào ping) |
 
 **Nguồn:** [Flow DOM](../research/04-google-flow-dom-v1.md), [config/runtime](../research/16-flow-gpt-runtime-findings.md). Nghiên cứu cho thấy các control/selector tồn tại ở snapshot, chưa chứng minh driver ToolFlow hoạt động. [Native RPC](../research/17-flow-native-public-frontend.md) chỉ lưu làm tham khảo ngoài scope.
