@@ -48,10 +48,12 @@ Nguồn chân lý là [`packages/flow-protocol/src/errors.mjs`](../../../package
 | `button.prompt-warning-button` "không đủ tín dụng" | RATE_LIMIT | chưa gửi gì; pause các mode tốn credit |
 | Mã lạ, listener ≠ 1, observer chết, `ProtocolDrift` | PROVIDER_ERROR_UNKNOWN / CONFIG_INCOMPLETE | tắt auto, cần qualification lại |
 
-### Mặc định song song (ĐỀ XUẤT, theo số đo của 1 tài khoản Pro)
+### Mặc định song song (XÁC NHẬN 06/11/2026, D-18; số đo của 1 tài khoản Pro)
 
 - Mỗi tab gửi lần lượt: chờ receipt rồi mới gửi lượt kế tiếp. Riêng video, Flow client tự xếp hàng khoảng 6 giây mỗi lượt.
-- Mặc định 1 tab; video tối đa 8 đang render, ảnh tối đa 12 đang chạy và tối đa 1 ảnh/s. Người dùng mới được mở thêm tab.
+- Mặc định **sát trần**: 4 tab, tối đa 20 video đang render và 30 ảnh đang chạy; dựa vào backoff khi bị chặn. Người dùng chỉnh được trong app.
+- Bị throttle thì giảm một nửa số đang chạy và gửi lại đúng lượt đó theo ngoại lệ [07 §3](../07-safety-and-recovery.md); gửi trót lọt thì tăng dần lại tới trần.
+- Trần 30 ảnh gần vùng bị chặn đã đo (dồn 35–45 ảnh trong 13–20 s), nên với ảnh sẽ gặp backoff thường xuyên hơn video.
 - Trần đã đo: video khoảng 25–28 đang render; ảnh dồn khoảng 35–45 ảnh thì bị throttle. Đây là số đo, không phải giới hạn được Google công bố.
 
 ## Phương án đã cân nhắc
@@ -65,7 +67,7 @@ Nguồn chân lý là [`packages/flow-protocol/src/errors.mjs`](../../../package
 
 ## Hệ quả
 
-- **Rủi ro được chấp nhận:** vi phạm ToS, tài khoản có thể bị khoá. App phải nói rõ điều này khi người dùng bật auto, và tách profile test khỏi profile chính.
+- **Rủi ro được chấp nhận:** vi phạm ToS, tài khoản có thể bị khoá. Auto bật mặc định cho mọi tài khoản, có công tắc tắt từng tài khoản (D-19). Vì vậy app phải cảnh báo rủi ro ngay lần đầu chạy auto trên một tài khoản, và khuyên tách profile test khỏi profile chính.
 - **Phụ thuộc vào cấu trúc nội bộ của Flow:** cách Angular gắn listener, selector, mã RPC, định dạng response. Flow cập nhật là có thể hỏng. Cần bộ qualification chạy lại được ([checklist 04 §7.1](../04-flow-driver.md#71-checklist-qualification-các-bẫy-đã-gặp-ở-spike-01)) và các tín hiệu tắt auto ở bảng trên.
 - Extension khác cài trong cùng profile có thể can thiệp. TobyFlow đổi tên file tải về, nên app phải đọc `actualName` từ `downloads.search`.
 - Script MAIN world phải nạp trước Angular: sau khi cài hoặc cập nhật extension phải reload tab Flow.

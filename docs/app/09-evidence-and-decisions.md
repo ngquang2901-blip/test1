@@ -29,6 +29,8 @@ Phân biệt bốn nhãn:
 | D-15 | XÁC NHẬN | (05/11/2026) Lần phát hành đầu bắt buộc có: Flow ảnh từ prompt, Flow ảnh có ref, Flow video (từ prompt / khung đầu). | ChatGPT ảnh sang phase sau (P4); docs 05 giữ làm đặc tả cho phase đó. |
 | D-16 | XÁC NHẬN | (05–06/11/2026) Gửi: "Cả hai: tự động, có đường thủ công dự phòng"; Flow auto theo D-12. Nhịp chạy: "B nhưng đặt giới hạn số lượt chạy cùng lúc". | Gửi xong lượt này thì chuẩn bị ngay lượt sau, nhiều lượt chạy song song, có trần. Con số mặc định của trần vẫn là ĐỀ XUẤT ở [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md). |
 | D-17 | XÁC NHẬN | (05/11/2026) Kiểm thử dùng Chrome profile và project do người dùng chỉ định, "được phép tiêu thoải mái credit cho kiểm thử k cần xin". Từ lượt 10 đổi sang Profile 2 theo yêu cầu người dùng. | Không dùng tài khoản chính cho auto; ghi mọi lượt vào sổ spike/qualification. |
+| D-18 | XÁC NHẬN | (06/11/2026) Trần song song mặc định của Flow: "Sát trần: 4 tab, 20 video / 30 ảnh, dựa vào backoff khi bị chặn". | Thay số ĐỀ XUẤT cũ (1 tab, 8/12) trong [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md). Người dùng chỉnh được trong app; throttle → giảm một nửa rồi tăng dần. |
+| D-19 | XÁC NHẬN | (06/11/2026) "Mọi tài khoản auto mặc định, có công tắc tắt". | Không có bước bật auto riêng cho từng tài khoản; app cảnh báo rủi ro ToS/khoá ở lần chạy auto đầu tiên trên mỗi tài khoản. |
 
 D-02 xác nhận việc gác Bridge; quyết định mở rộng việc gác sang tự gọi native RPC trong bản đầu là định hướng thiết kế ở bộ docs này, không khẳng định người dùng đã bác vĩnh viễn native API.
 
@@ -42,7 +44,7 @@ D-02 xác nhận việc gác Bridge; quyết định mở rộng việc gác san
 | O-04 | Hình thức UI, ngôn ngữ. Mức tự động đã chốt ở D-16. | Mockup chi tiết và acceptance UX. Chưa có layout/brand được duyệt. |
 | O-05 | ~~Tài khoản test và ngân sách~~ **Đã chốt: D-17.** Còn chọn: tài khoản nào dùng cho qualification bản phát hành (gói có thể khác trần). | Live qualification. Không tự mua gói. |
 | O-06 | Retention, quyền đọc file và nơi lưu đầu ra mong muốn | Tính năng quản lý file và diagnostic export. |
-| O-07 | Repo GitHub cụ thể và quyền tạo/push/merge. Đã có Git repo local; chưa có remote. | Chỉ push khi người dùng tạo/chọn repo private và đã rà riêng tư. |
+| O-07 | Repo GitHub cụ thể và quyền tạo/push/merge. Đã có Git repo local; chưa có remote. Người dùng chọn **chưa push, giữ local** (06/11/2026). | Mọi phase làm trên branch local; push/PR chỉ khi người dùng đổi quyết định. |
 
 ## 4. Bảng truy vết nghiên cứu → app
 
