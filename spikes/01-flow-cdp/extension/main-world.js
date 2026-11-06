@@ -34,13 +34,14 @@
   });
 
   // Read-only network observer: keep generation/poll/upload batchexecute exchanges for correlation.
-  const RPCS = /rpcids=(ogiZ0b|YhhmEf|eb1hJf|nprQif|MZZa6b|maseQ|jwpduf|as29s)/;
+  const RPCS = /rpcids=(ogiZ0b|YhhmEf|eb1hJf|nprQif|MZZa6b|maseQ|jwpduf|as29s|Zzl0ze|nzlxg|bOKtO)/;
+  const BIG = /^(Zzl0ze|bOKtO)$/; // project/media listings for reconciliation: keep the whole body
   const net = [];
   const obs = { id: crypto.randomUUID(), seq: 0, dropped: 0 }; // id changes on page load: buffered records are gone
   const push = (url, body, status, text, phase = 'done') => {
     const m = RPCS.exec(url); if (!m) return;
     // recaptcha tokens / base64 uploads are long: keep head only
-    const rec = { t: Date.now(), phase, rpc: m[1], status, req: decodeURIComponent(String(body || '')).replace(/[A-Za-z0-9_\-]{400,}/g, '<long>').slice(0, 3000), res: String(text || '').slice(0, 6000) };
+    const rec = { t: Date.now(), phase, rpc: m[1], status, req: decodeURIComponent(String(body || '')).replace(/[A-Za-z0-9_\-]{400,}/g, '<long>').slice(0, 3000), res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000) };
     if (phase === 'sent') rec.raw = String(body || '').slice(0, 400000); // as sent on the wire; redact when saving
     rec.seq = ++obs.seq; net.push(rec);
     if (net.length > 200) { net.shift(); obs.dropped++; }

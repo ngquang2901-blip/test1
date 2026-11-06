@@ -14,9 +14,11 @@ Bản ghi network **thật** do observer MAIN-world của spike 01 chụp trên 
 | `poll-succeeded-2.json` | 17 | `jwpduf`: 2 video đã xong (status 3) |
 | `throttled-ogiZ0b.json` | 25 | ảnh bị `PUBLIC_ERROR_USER_REQUESTS_THROTTLED` |
 | `throttled-YhhmEf.json` | 28 | video bị `PUBLIC_ERROR_USER_REQUESTS_THROTTLED` |
+| `project-Zzl0ze.json` | 35 | `Zzl0ze` danh sách project lúc nạp trang (280 workflow, 280 media: prompt gốc, seed, batch UUID, thời điểm tạo); nguồn cho job đối soát D-11 |
 
 **Đã chỉnh trước khi lưu:**
 - Token `at=` (XSRF) thay bằng `<redacted>`. `Signature` trong URL ảnh ký sẵn thay bằng `<redacted>`.
+- `project-Zzl0ze.json` (lượt 35, danh sách project): URL nội dung `lh3.googleusercontent.com/...` và `flow-content.google/...` thay bằng `<redacted>`, vì mở được media mà không cần đăng nhập.
 - Token reCAPTCHA thay bằng `<long>`. Với body thô, chỉ thay phần token đứng ngay sau `%22` (giữ nguyên dấu nháy đã encode), nên body vẫn decode và parse được.
 - Request `req` lưu ở dạng **đã decode** (`decodeURIComponent`); riêng `raw` giữ nguyên dạng trên dây. Upload: base64 ảnh (219 200 ký tự) đã bỏ, giữ cấu trúc.
 - Response giữ nguyên văn, đủ cả envelope `)]}'` và frame `["e",…]` cuối.

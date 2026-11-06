@@ -99,9 +99,9 @@ Mỗi dòng là một bẫy có thật trong [FINDINGS](../../spikes/01-flow-cdp
 | # | Bẫy | Nguồn | Cách kiểm | Đạt khi | Tầng | Tự động |
 |---|---|---|---|---|---|---|
 | Q-11 | Prompt trùng nhau trong cùng lô. | 16 | Fixture lượt 16; live 3 prompt giống hệt. | Mỗi request ghép đúng một receipt theo batch UUID + seed; receipt của request khác → `RESULT_OWNERSHIP_AMBIGUOUS`. | 1, 4 | ✅ |
-| Q-12 | Tile pending không có media id; xong rồi `aria-label` đổi thành tiêu đề Flow tự đặt. | bẫy 2 | Theo dõi tile từ pending tới xong. | Không gán chủ theo label/tile; chỉ theo response. | 4 | ⬜ |
+| Q-12 | Tile pending không có media id; xong rồi `aria-label` đổi thành tiêu đề Flow tự đặt. | bẫy 2 | Theo dõi tile từ pending tới xong. | Không gán chủ theo label/tile; chỉ theo response, hoặc theo danh sách `Zzl0ze` (có prompt gốc, seed, batch UUID; lượt 35). | 4 | ⬜ |
 | Q-13 | Grid của tab A không cập nhật job do tab B gửi (vẫn `pending`). | 22–23 | 2 tab cùng project, mỗi tab 1 video. | Trạng thái lấy từ poll; không đọc grid của tab khác. | 4 | ⬜ |
-| Q-14 | Tile video không có media id trong DOM. | kết luận (Identity) | Tải video vừa xong. | Bind theo operation/media id trong response; tải từ thumbnail `asb` + `=mm,22,15`. | 4 | ⬜ |
+| Q-14 | Tile video không có media id trong DOM. | kết luận (Identity) | Tải video vừa xong. | Bind theo operation/media id trong response, hoặc theo `Zzl0ze` khi mất response (operation id = media id trong danh sách); tải từ thumbnail `asb` + `=mm,22,15`. | 4 | ⬜ |
 | Q-15 | Trường sau seed là mã tỉ lệ; regex cứng làm mất seed. | 32–33 | Fixture từng tỉ lệ và xN. | Parse theo vị trí; lệch mẫu → `PROTOCOL_DRIFT`. Mới có fixture 1:1, 9:16; **16:9, 4:3, 3:4 chưa kiểm**. | 1 | ✅ một phần |
 | Q-16 | Request đọc từ body thô; bước che token làm hỏng body. | 34 | Fixture body thô. | `f.req` đọc qua `URLSearchParams`, prompt tiếng Việt nguyên văn. | 1 | ✅ |
 

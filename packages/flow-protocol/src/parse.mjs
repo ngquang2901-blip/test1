@@ -17,7 +17,7 @@ const isInt = Number.isInteger;
 const isArr = Array.isArray;
 const isUuid = (v) => isStr(v) && UUID.test(v);
 
-function at(root, path, check, where) {
+export function at(root, path, check, where) {
   let v = root;
   for (const k of path) {
     if (!isArr(v) || k >= v.length) throw new ProtocolDrift(where, path);
@@ -28,7 +28,7 @@ function at(root, path, check, where) {
 }
 
 // Optional fields: absent or wrong type gives null, so harmless additions do not break parsing.
-function opt(root, path, check) {
+export function opt(root, path, check) {
   try { return at(root, path, check, ''); } catch { return null; }
 }
 
