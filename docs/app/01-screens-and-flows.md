@@ -87,7 +87,7 @@ Chọn phiên GPT → nhập prompt ảnh/ref → preview → chạy → tạo c
 
 Thông báo gồm lý do, provider, tab đích, item/attempt, thao tác được phép. **Mở đúng tab** → người dùng tự xử lý → **Kiểm tra lại**. Chỉ hết challenge chưa đủ để tự gửi lại; runner phải đọc dispatch stage.
 
-Với Flow, gửi tự động là đường chính ([ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md)). Màn hình này chỉ hiện khi auto không chạy được: người dùng tắt auto, có banner consent, listener/observer không đạt (fail-closed), hoặc `UNUSUAL_ACTIVITY` làm dừng auto cả profile. ChatGPT ở phase sau dùng manual theo [ADR-0001](adr/0001-manual-submit-khi-auto-chua-qualify.md) cho tới khi có auto được qualify.
+Với Flow, gửi tự động là đường chính ([ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md)) nhưng **mặc định tắt**: người dùng bật trong cài đặt tài khoản sau khi đọc cảnh báo rủi ro (D-19). Màn hình này hiện khi auto không chạy được: auto chưa bật hoặc bị tắt, có banner consent, listener/observer không đạt (fail-closed), hoặc `UNUSUAL_ACTIVITY` làm dừng auto cả profile. ChatGPT ở phase sau dùng manual theo [ADR-0001](adr/0001-manual-submit-khi-auto-chua-qualify.md) cho tới khi có auto được qualify.
 
 Với manual submit: chuẩn bị và baseline trước, ghi intent, mới cho người dùng bấm trên provider. Một nút "Tôi đã bấm" chỉ kích hoạt đối soát, không được coi là provider xác nhận.
 

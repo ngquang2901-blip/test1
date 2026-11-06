@@ -16,11 +16,15 @@ export class IllegalTransition extends Error {
 export const initial = (prompt) => ({
   item: 'queued', stage: 'not_started', prompt, clicked: false, baseline: null,
   request: null, operations: null, outputs: null, resubmits: 0, retryAt: null,
-  error: null, admission: 'continue', stopRequested: false,
+  error: null, admission: 'continue', stopRequested: false, creditSpent: false,
 });
 
 const fail = (s, e) => ({ ...s, item: 'failed', stage: 'outcome_known', error: e, admission: e.admission ?? 'continue' });
-const review = (s, code, extra = {}) => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, ...extra }, admission: 'pause' });
+// D-11: an uncertain attempt always counts as credit spent, whatever is decided later.
+const review = (s, code, extra = {}) => {
+  const stage = s.stage === 'accepted' ? 'accepted' : 'uncertain';
+  return { ...s, item: 'needs_review', stage, error: { code, ...extra }, admission: 'pause', creditSpent: s.creditSpent || stage === 'uncertain' };
+};
 // A generate request was seen and no response yet; a late response is evidence even after SUBMIT_UNCERTAIN.
 const awaitingReceipt = (s) => !!s.request && (s.item === 'submitting' || (s.item === 'needs_review' && s.stage === 'uncertain' && s.error?.code === 'SUBMIT_UNCERTAIN' && !s.error.double));
 const notSent = (s) => s.stage === 'not_started' || s.stage === 'rejected_before_dispatch';
@@ -101,13 +105,18 @@ export function next(s, ev) {
       if (s.item === 'generating') return review(s, 'PROVIDER_ERROR_UNKNOWN', { why: 'no terminal poll before deadline' });
       return bad();
 
+    case 'restart': // D-04: after a restart every intent without a receipt is uncertain, never resent
+      return s.item === 'submitting' ? review(s, 'SUBMIT_UNCERTAIN', { why: 'restart' }) : s;
+
     case 'stop':
       if (['ready', 'failed', 'cancelled'].includes(s.item)) return s;
       if (notSent(s) && s.item !== 'submitting') return { ...s, item: 'cancelled', stopRequested: true, retryAt: null };
       return { ...s, stopRequested: true }; // possibly sent: observe to an outcome, never fake "cancelled"
 
     case 'resolve': // needs_review → outcome, only with evidence (07 §4); never back to submitting
-      if (s.item !== 'needs_review' || !ev.evidence || !['ready', 'failed'].includes(ev.to)) bad();
+      if (s.item !== 'needs_review' || !ev.evidence || !['ready', 'failed', 'sent', 'not_sent'].includes(ev.to)) bad();
+      if (ev.to === 'sent' || ev.to === 'not_sent') // D-11 user confirmation: settles and unblocks, never reruns
+        return { ...s, item: 'failed', stage: 'outcome_known', error: { ...s.error, resolution: ev.to, userConfirmed: true, evidence: ev.evidence } };
       return { ...s, item: ev.to, stage: 'outcome_known', error: ev.to === 'failed' ? { ...s.error, evidence: ev.evidence } : null, evidence: ev.evidence };
 
     default:

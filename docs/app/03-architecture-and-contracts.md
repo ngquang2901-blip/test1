@@ -81,6 +81,7 @@ Event gửi UI có eventId, entityRevision, attemptId. UI bỏ bản cũ theo re
 
 ## 6. Cấu hình driver độc lập
 
+- **Profile có version (D-06):** selector, RPC id và layout payload của mỗi provider nằm trong một profile có số version, đi kèm bản app. Mở app thì self-check profile với trang đang mở; lệch thì `PROTOCOL_DRIFT`, tắt auto và dừng thao tác có rủi ro.
 - Selector/config do ToolFlow tự viết, version trong source; chỉ các giá trị đã kiểm trên trang được bật. Không gọi backend bên thứ ba để boot hay lấy entitlement.
 - Registry ghi provider, origin allowlist, schemaVersion, version, selectors theo thao tác, tín hiệu xác nhận, timeout profile và qualification record.
 - Validate syntax/schema, required operation keys, loại selector và version trước áp dụng. Config là dữ liệu, không JavaScript được eval từ remote.

@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-11-06T11:01:36.810005+00:00",
+  "checked_at": "2026-11-06T15:04:32.639199+00:00",
   "status": "PASS",
   "scope": "DOCUMENTS_ONLY",
   "markdown_files_checked": 16,
   "app_chapters": 10,
   "local_links_checked": 158,
   "requirements": 22,
-  "acceptance_cases_specified": 35,
+  "acceptance_cases_specified": 36,
   "requirements_without_acceptance": [],
   "coverage": {
     "TF-01": [
@@ -33,7 +33,8 @@
       "AC-29",
       "AC-30",
       "AC-34",
-      "AC-35"
+      "AC-35",
+      "AC-36"
     ],
     "TF-07": [
       "AC-07",
@@ -53,7 +54,8 @@
       "AC-25",
       "AC-29",
       "AC-30",
-      "AC-34"
+      "AC-34",
+      "AC-36"
     ],
     "TF-11": [
       "AC-11"
@@ -102,7 +104,8 @@
       "AC-28"
     ],
     "TF-22": [
-      "AC-22"
+      "AC-22",
+      "AC-36"
     ]
   },
   "scope_checks": {
@@ -119,22 +122,22 @@
   "provider_generation": "NOT RUN",
   "file_sha256": {
     "docs/app/00-product-scope.md": "127250e96ba15dfecf5722e8bf5844344eeec99bd68fd8f5da8155df243f80a9",
-    "docs/app/01-screens-and-flows.md": "98b75bd65c0a9a1786160210a2e214fd1640c7633c985f6aa018080d74b8e0bc",
-    "docs/app/02-domain-and-state.md": "b1e8f030469fda73e89b1f5220ec7400a8916587870c77180f48242e3637bcef",
-    "docs/app/03-architecture-and-contracts.md": "3f1ed6230f64678fa5b3f835ef38fd1b3472fc20926c8559f16f904be9006e1e",
+    "docs/app/01-screens-and-flows.md": "97f55b8f6e7183c96d14d4d10024a2d7d63c6d4dda5894c30edad48f070ccfcf",
+    "docs/app/02-domain-and-state.md": "8196d75d85b96b7aeaa45779fe331230e99436bcdd040d248f6b2f2328b59227",
+    "docs/app/03-architecture-and-contracts.md": "c3456baafe07a7702b4881ba8cf9bee451f37ed138e43b00302c9e771be5092a",
     "docs/app/04-flow-driver.md": "3e8d8f67bbe1ffc9fbaef743d2aacec2c862512cca6bb0e5a58bd0387793df63",
-    "docs/app/05-chatgpt-driver.md": "dc49abac2398046513d45d6d07ba240694aaa8b6e3453577487e62898817375f",
+    "docs/app/05-chatgpt-driver.md": "f0cf4ac20123da109220236574f41220e83c33f1a0c5f5b253b71d7c888d7569",
     "docs/app/06-assets-and-downloads.md": "a5dd30f52f5a4f8c024828a69d20d6bb9c59c7d869d788ddef568a7dad0da19e",
-    "docs/app/07-safety-and-recovery.md": "b808bd68c51b1737d4ecc6fd19a31fee6592dd478d28ceb70505b4f7134537cd",
-    "docs/app/08-acceptance-and-delivery.md": "117e6c643616b8e475843a31646478bfce9d3b7c159a6745d5d475df2b24f3f8",
-    "docs/app/09-evidence-and-decisions.md": "f4585881bbae444aff8fbfdea2fd73d99b32582e5cf9de1e64d84c14e1307695",
+    "docs/app/07-safety-and-recovery.md": "8de30c78b5d970f1b79924dcd37b8aadfd5fe43b263d487699f99648a4ffea75",
+    "docs/app/08-acceptance-and-delivery.md": "f6d9aee540a0615de49446b4e8d6b7bfe48832c68e01948020cb3f4992735f98",
+    "docs/app/09-evidence-and-decisions.md": "5a0297b161ed36142484ca9cc4614ec8c2bf2c20376196d4b469acebe6fe228a",
     "docs/app/README.md": "b8c4ec523701896429331fe3f6edc2ec97c92e5cb890d402da3f379ccb7886b2",
     "docs/app/adr/0001-manual-submit-khi-auto-chua-qualify.md": "3e22f596fa3ce2b913bcd868b99765d691ce8f87ada190ab6685411a442e651b",
-    "docs/app/adr/0002-flow-auto-submit-trusted-listener.md": "45807e691e81f26d97eaeb58ed03404bafe1ca3e2f3bcdc3336202bc75985b51",
+    "docs/app/adr/0002-flow-auto-submit-trusted-listener.md": "10989c526fd429155b5e1ba36288cc3e0c7d200b31bf6b05c0da5460939ef112",
     "docs/app/evidence/PARENT-DISPOSITION.md": "9a12a4c19db611048b4eaa12f20e67747785dcc4ea647ce0956ff6c999cbfe18",
     "README.md": "5504086409950b067549be148675003b85fbdd4c1b4e0d8d4b167f778e3a1c10",
     "docs/research/README.md": "955e1c34b0751f94675a4a3089119c1f34f41adeb047c2c60a932024277a132c",
-    "docs/app/verify-docs.py": "c7f2c5c80f1309da04211551be80a16d416184c65c1c502ffb2f1710eeda043a"
+    "docs/app/verify-docs.py": "9cf4f8f31b6c32d01907f33478634550db2f83614bcd5da9d1ebd4bfdebe5eda"
   },
   "limits": "Checks file/link existence, IDs, coverage and selected text assertions only; no semantic proof, external-link verification or live provider compatibility."
 }

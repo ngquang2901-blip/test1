@@ -90,7 +90,7 @@ Download auto tắt không là download bắt buộc. Mặc định một output
 - Enqueue batch, settings snapshot và item trong một transaction. Không có batch "đã thêm" nhưng thiếu item sau crash.
 - Runner claim khoá toàn cục MVP và khoá target; nhận epoch mới. Mọi lệnh ghi kèm epoch và entityRevision; stale response chỉ là evidence phụ, không được mutate trạng thái đang sở hữu bởi owner khác.
 - Ghi intent trước side effect, receipt/output binding sau quan sát. Transaction hoàn thành phải có ý nghĩa durability được storage/nền tảng chứng minh; không coi một Promise resolve hoặc đổi tên file đơn thuần là mọi kiểu mất điện đều an toàn.
-- Sau crash, runtime mới chặn admission, đọc intent/receipt/transfers và đối soát. Lease cũ hết hạn cho phép takeover để đọc/recover, không cho phép replay hoặc mở batch mới trên target còn bị attempt bất định chặn.
+- Sau crash, runtime mới chặn admission, đọc intent/receipt/transfers và đối soát. **Mọi intent chưa có receipt là uncertain** (D-04), kể cả khi journal chưa ghi "đã bấm"; không gửi lại. Lease cũ hết hạn cho phép takeover để đọc/recover, không cho phép replay hoặc mở batch mới trên target còn bị attempt bất định chặn.
 - recoveryDisposition không được dùng làm tắt lease tự động. Sau archive, target tombstone vẫn tồn tại qua restart; phản hồi cũ không được gán sang batch mới. Chỉ đối soát có bằng chứng mới được xoá blocker của target cũ.
 - Manual close UI không xoá ownership. Không giữ job state độc quyền trong component UI hay bộ nhớ của một cửa sổ.
 - Cấu hình/target snapshot của attempt giữ nguyên khi selector được cập nhật; không hot-swap driver giữa một hành động đã bắt đầu. Recovery có thể dùng reader mới đã validate để đọc, không biến nó thành quyền submit.

@@ -112,6 +112,25 @@ test('crash between intent and a journaled click: deadline → needs_review, nev
   assert.deepEqual([s.item, s.stage, s.error.code, canClick(s)], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', false]);
 });
 
+test('D-04 restart: intent without receipt → uncertain, credit counted; receipt-backed attempts keep going', () => {
+  const s = next(next(toClick('x'), { type: 'clicked', result: CLICK_OK }), { type: 'restart' });
+  assert.deepEqual([s.item, s.stage, s.error.why, s.creditSpent, canClick(s)], ['needs_review', 'uncertain', 'restart', true, false]);
+  assert.equal(next(toClick('x'), { type: 'restart' }).item, 'needs_review', 'intent recorded, click not journaled');
+  const gen = next(toSent(vidReq), { type: 'receipt', receipt: vidRec });
+  assert.equal(next(gen, { type: 'restart' }), gen);
+  assert.equal(next(initial('x'), { type: 'restart' }).item, 'queued');
+});
+
+test('D-11 user confirms sent / not sent: attempt settles, credit stays spent, nothing is requeued', () => {
+  const u = next(next(toClick('x'), { type: 'clicked', result: CLICK_OK }), { type: 'deadline' });
+  for (const to of ['sent', 'not_sent']) {
+    const s = next(u, { type: 'resolve', to, evidence: 'user' });
+    assert.deepEqual([s.item, s.stage, s.error.resolution, s.error.userConfirmed, s.creditSpent], ['failed', 'outcome_known', to, true, true]);
+    assert.throws(() => next(s, { type: 'prepare', now: NOW }), IllegalTransition);
+  }
+  assert.throws(() => next(u, { type: 'resolve', to: 'not_sent' }), IllegalTransition, 'evidence required');
+});
+
 test('two generate requests for one click → needs_review that a single receipt cannot clear', () => {
   const s = next(toSent(imgReq), { type: 'sent', request: imgReq });
   assert.equal(s.error.double, true);

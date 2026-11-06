@@ -12,7 +12,7 @@ TobyFlow tự động hoá Flow bằng cách gọi thẳng hàm xử lý click m
 
 ## Quyết định
 
-Với Flow, auto-submit là đường chính và manual là dự phòng. Cơ chế:
+Với Flow, auto-submit là đường chính và manual là dự phòng. Auto **mặc định tắt**; người dùng tự bật sau khi đọc cảnh báo rủi ro (D-19). Cơ chế:
 
 1. Một script ở **MAIN world, `document_start`** ghi lại các listener `click` mà trang gắn lên `<button>`.
 2. Khi runner đã ghi intent, script gọi đúng listener của `flow-prompt-box button[type=submit]` với `Proxy(MouseEvent)` báo `isTrusted:true`.
@@ -31,6 +31,7 @@ Với Flow, auto-submit là đường chính và manual là dự phòng. Cơ ch�
 | Parse response theo vị trí có kiểm tra; sai mẫu thì báo `PROTOCOL_DRIFT` và dừng. Parser và fixture: [`packages/flow-protocol`](../../../packages/flow-protocol/src/parse.mjs). | Lượt 32: regex cứng làm mất seed (field sau seed là mã tỉ lệ: 1 = 1:1, 2 = 9:16, xác nhận ở lượt 33). |
 | Bấm rồi mà không thấy request (`SUBMIT_UNCERTAIN`) thì **không tự gửi lại**; đối soát grid/server trước. | Lượt 30: một lượt "uncertain" thực ra đã render. |
 | Upload ref: đặt **tên file duy nhất** cho mỗi upload (ví dụ theo assetId). Media id lấy từ response upload, so với tên file. | Lượt 34: response `maseQ` không lặp UUID nào của request, chỉ lặp tên file. |
+| Selector và RPC gom vào một **profile có version**. Mở app thì self-check profile với trang đang mở (selector có mặt, listener nút Gửi = 1, observer bắt đúng RPC); lệch thì `PROTOCOL_DRIFT`, tắt auto và dừng (D-06). | Lượt 32: parser cứng lệch mẫu mà không báo. |
 | Phân loại lỗi theo mã trong response, không theo chữ trên tile. | `USER_REQUESTS_THROTTLED` hiện chữ "Flow đang có lượng truy cập cao". |
 
 ### Phân loại lỗi và hành động
@@ -51,9 +52,10 @@ Nguồn chân lý là [`packages/flow-protocol/src/errors.mjs`](../../../package
 ### Mặc định song song (XÁC NHẬN 06/11/2026, D-18; số đo của 1 tài khoản Pro)
 
 - Mỗi tab gửi lần lượt: chờ receipt rồi mới gửi lượt kế tiếp. Riêng video, Flow client tự xếp hàng khoảng 6 giây mỗi lượt.
-- Mặc định **sát trần**: 4 tab, tối đa 20 video đang render và 30 ảnh đang chạy; dựa vào backoff khi bị chặn. Người dùng chỉnh được trong app.
+- **Mặc định:** 1 tab, tối đa 8 video đang render và 12 ảnh đang chạy.
+- **Tuỳ chọn "Nhanh":** 4 tab, tối đa 20 video và 30 ảnh, dựa vào backoff khi bị chặn. Người dùng tự chọn trong app.
 - Bị throttle thì giảm một nửa số đang chạy và gửi lại đúng lượt đó theo ngoại lệ [07 §3](../07-safety-and-recovery.md); gửi trót lọt thì tăng dần lại tới trần.
-- Trần 30 ảnh gần vùng bị chặn đã đo (dồn 35–45 ảnh trong 13–20 s), nên với ảnh sẽ gặp backoff thường xuyên hơn video.
+- Ở mức "Nhanh", trần 30 ảnh gần vùng bị chặn đã đo (dồn 35–45 ảnh trong 13–20 s), nên với ảnh sẽ gặp backoff thường xuyên hơn video.
 - Trần đã đo: video khoảng 25–28 đang render; ảnh dồn khoảng 35–45 ảnh thì bị throttle. Đây là số đo, không phải giới hạn được Google công bố.
 
 ## Phương án đã cân nhắc
@@ -67,7 +69,7 @@ Nguồn chân lý là [`packages/flow-protocol/src/errors.mjs`](../../../package
 
 ## Hệ quả
 
-- **Rủi ro được chấp nhận:** vi phạm ToS, tài khoản có thể bị khoá. Auto bật mặc định cho mọi tài khoản, có công tắc tắt từng tài khoản (D-19). Vì vậy app phải cảnh báo rủi ro ngay lần đầu chạy auto trên một tài khoản, và khuyên tách profile test khỏi profile chính.
+- **Rủi ro được chấp nhận:** vi phạm ToS, tài khoản có thể bị khoá. Auto mặc định tắt (D-19). Muốn bật, người dùng phải đọc cảnh báo rủi ro và tự bật cho từng tài khoản; app ghi lại thời điểm xác nhận và khuyên tách profile test khỏi profile chính.
 - **Phụ thuộc vào cấu trúc nội bộ của Flow:** cách Angular gắn listener, selector, mã RPC, định dạng response. Flow cập nhật là có thể hỏng. Cần bộ qualification chạy lại được ([checklist 04 §7.1](../04-flow-driver.md#71-checklist-qualification-các-bẫy-đã-gặp-ở-spike-01)) và các tín hiệu tắt auto ở bảng trên.
 - Extension khác cài trong cùng profile có thể can thiệp. TobyFlow đổi tên file tải về, nên app phải đọc `actualName` từ `downloads.search`.
 - Script MAIN world phải nạp trước Angular: sau khi cài hoặc cập nhật extension phải reload tab Flow.

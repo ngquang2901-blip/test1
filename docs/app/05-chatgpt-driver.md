@@ -12,7 +12,7 @@
 
 ## 2. Conversation isolation
 
-Chiến lược đề xuất: **một conversation mới cho mỗi batch**, các item thành các lượt tuần tự trong conversation đó. Lưu conversation identity và baseline từng turn.
+Chiến lược (XÁC NHẬN, D-09): **một conversation mới cho mỗi batch**, các item thành các lượt tuần tự trong conversation đó, **tối đa 15 lượt mỗi conversation**; quá thì mở conversation mới. Ghép kết quả theo **message id** của turn người dùng và turn trả lời. Lưu conversation identity và baseline từng turn.
 
 - Không xoá hay tái sử dụng conversation đang chứa việc khác mà không có user action.
 - Nếu UI chưa tạo conversation identity cho tới lượt đầu, giữ tab binding + new-chat baseline; sau acceptance bind identity được quan sát, không tự coi navigation do app tạo là account change.

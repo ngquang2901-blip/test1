@@ -64,8 +64,8 @@ def check(base=BASE, project=PROJECT):
         errors.append("Requirements must define TF-01 through TF-22 exactly once")
     if any(n != 1 for n in Counter(cases).values()):
         errors.append("Duplicate acceptance case ID")
-    if set(cases) != {f"AC-{i:02d}" for i in range(1, 36)}:
-        errors.append("Acceptance cases must define AC-01 through AC-35")
+    if set(cases) != {f"AC-{i:02d}" for i in range(1, 37)}:
+        errors.append("Acceptance cases must define AC-01 through AC-36")
     coverage = {req: [] for req in reqs}
     for case, field in rows:
         refs = re.findall(r"TF-\d+", field)
