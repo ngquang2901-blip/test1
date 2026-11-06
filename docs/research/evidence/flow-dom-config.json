@@ -1,0 +1,1866 @@
+{
+  "observed_at": "2026-11-04T18:30:16.564Z",
+  "extension_version": "1.3.138",
+  "source": "CDP Runtime.evaluate, read existing ProviderConfigManager memory after normal sidebar boot",
+  "plan": "free",
+  "data": {
+    "name": "Flow",
+    "status": "active",
+    "base_url": "https://flow.google.com",
+    "config_version": 273,
+    "meta": {
+      "version": 273
+    },
+    "selectors": {
+      "tile_container": {
+        "selectors": [
+          "flow-grid-tile-container:has([data-media-id])",
+          "[data-tile-id]"
+        ],
+        "attribute": "data-tile-id",
+        "priority": "P0"
+      },
+      "tile_image": {
+        "selectors": [
+          "img[src*=\"flow.google.com/asb/\"]",
+          "img[src*=\"getMediaUrlRedirect\"]",
+          "img[src*=\"googleusercontent.com\"]"
+        ],
+        "attribute": "src",
+        "priority": "P0"
+      },
+      "tile_video": {
+        "selectors": [
+          "video[src*=\"flow.google.com/asb/\"]",
+          "video[src*=\"getMediaUrlRedirect\"]",
+          "video"
+        ],
+        "attribute": "src",
+        "priority": "P0"
+      },
+      "warning_icon": {
+        "selectors": [
+          ".google-symbols",
+          "i[class*=\"icon\"]"
+        ],
+        "text_match": "warning",
+        "priority": "P0"
+      },
+      "slate_editor": {
+        "selectors": [
+          "div[data-slate-editor=\"true\"]",
+          "[data-slate-node=\"value\"]",
+          "[role=\"textbox\"][aria-multiline=\"true\"]",
+          "[contenteditable=\"true\"]"
+        ],
+        "priority": "P0"
+      },
+      "submit_button": {
+        "selectors": [
+          "button:has(i.google-symbols)",
+          "button[type=\"submit\"]"
+        ],
+        "icon_text": "arrow_forward",
+        "button_text": [
+          "Tạo",
+          "Create"
+        ],
+        "priority": "P0"
+      },
+      "mode_tab_image": {
+        "selectors": [
+          "button[id$=\"-trigger-IMAGE\"]",
+          "button[role=\"tab\"][aria-controls*=\"IMAGE\"]"
+        ],
+        "attribute": "aria-selected",
+        "priority": "P0"
+      },
+      "mode_tab_video": {
+        "selectors": [
+          "button[id$=\"-trigger-VIDEO\"]:not([id*=\"VIDEO_\"])",
+          "button[role=\"tab\"][aria-controls*=\"VIDEO\"]:not([aria-controls*=\"VIDEO_\"])"
+        ],
+        "attribute": "aria-selected",
+        "priority": "P0"
+      },
+      "video_mode_frames": {
+        "selectors": [
+          "button[id$=\"-trigger-VIDEO_FRAMES\"]",
+          "button[role=\"tab\"][aria-controls*=\"VIDEO_FRAMES\"]"
+        ],
+        "attribute": "aria-selected",
+        "text_match": [
+          "frames",
+          "khung hình",
+          "khung"
+        ],
+        "priority": "P0"
+      },
+      "video_mode_ingredients": {
+        "selectors": [
+          "button[id$=\"-trigger-VIDEO_REFERENCES\"]",
+          "button[role=\"tab\"][aria-controls*=\"VIDEO_REFERENCES\"]"
+        ],
+        "attribute": "aria-selected",
+        "text_match": [
+          "ingredients",
+          "thành phần",
+          "thanh phan"
+        ],
+        "priority": "P0"
+      },
+      "settings_button": {
+        "selectors": [
+          "button.settings-trigger-button",
+          "button[aria-haspopup=\"menu\"]",
+          "button[id^=\"radix-:\"]",
+          "button[aria-haspopup=\"dialog\"]"
+        ],
+        "icon_text": "crop_",
+        "icon_texts": [
+          "settings_2"
+        ],
+        "priority": "P0"
+      },
+      "settings_panel_candidates": {
+        "selectors": [
+          ".cdk-overlay-pane",
+          "[role=\"dialog\"]",
+          "[data-radix-popper-content-wrapper]",
+          "[role=\"menu\"]"
+        ],
+        "priority": "P0"
+      },
+      "settings_panel_marker": {
+        "selectors": [
+          "button[role=\"tab\"][id*=\"-trigger-\"]"
+        ],
+        "priority": "P0"
+      },
+      "icon_element": {
+        "selectors": [
+          "i.google-symbols",
+          "i[class*=\"icon\"]",
+          "span[class*=\"material-symbol\"]"
+        ],
+        "priority": "P0"
+      },
+      "project_link": {
+        "selectors": [
+          "a[href*=\"/project/\"]"
+        ],
+        "attribute": "href",
+        "priority": "P1"
+      },
+      "context_menu": {
+        "selectors": [
+          "[role=\"menu\"]",
+          "[role=\"menu\"][data-state=\"open\"]"
+        ],
+        "priority": "P1"
+      },
+      "menu_item": {
+        "selectors": [
+          "[role=\"menuitem\"]"
+        ],
+        "priority": "P1"
+      },
+      "model_menu_item": {
+        "selectors": [
+          "[role=\"menuitem\"]",
+          "[role=\"menuitemradio\"]",
+          "[role=\"option\"]"
+        ],
+        "priority": "P1"
+      },
+      "edit_link": {
+        "selectors": [
+          "a[href*=\"/edit/\"]"
+        ],
+        "attribute": "href",
+        "priority": "P1"
+      },
+      "download_menu_trigger": {
+        "selectors": [
+          "[role=\"menuitem\"][aria-haspopup=\"menu\"]"
+        ],
+        "icon_text": "download",
+        "button_text": [
+          "Tải xuống",
+          "Download",
+          "ดาวน์โหลด",
+          "ダウンロード"
+        ],
+        "priority": "P1"
+      },
+      "download_submenu": {
+        "selectors": [
+          "[role=\"menu\"][data-state=\"open\"]",
+          "[data-radix-popper-content-wrapper] [role=\"menu\"]"
+        ],
+        "attribute": "aria-controls",
+        "priority": "P1"
+      },
+      "download_submenu_item": {
+        "selectors": [
+          "[role=\"menuitem\"]"
+        ],
+        "priority": "P1"
+      },
+      "tile_retry_button": {
+        "selectors": [
+          "button:has(i.google-symbols)"
+        ],
+        "icon_text": "refresh",
+        "button_text": [
+          "Retry",
+          "Thử lại",
+          "再試行",
+          "ลองอีกครั้ง"
+        ],
+        "priority": "P1"
+      },
+      "project_name_input": {
+        "selectors": [
+          "input[aria-label=\"Văn bản có thể chỉnh sửa\"]",
+          "input[aria-label=\"Editable text\"]",
+          "input[aria-label=\"ข้อความที่แก้ไขได้\"]",
+          "input[aria-label=\"編集可能なテキスト\"]"
+        ],
+        "aria_labels": [
+          "Văn bản có thể chỉnh sửa",
+          "Editable text",
+          "ข้อความที่แก้ไขได้",
+          "編集可能なテキスト"
+        ],
+        "priority": "P1"
+      },
+      "add_to_prompt_menu_item": {
+        "selectors": [
+          "[role=\"menuitem\"]"
+        ],
+        "text_match": [
+          "Thêm vào câu lệnh",
+          "Add to prompt",
+          "เพิ่มในข้อความ",
+          "プロンプトに追加"
+        ],
+        "priority": "P1"
+      },
+      "model_picker_button": {
+        "selectors": [
+          "button[aria-haspopup=\"menu\"]",
+          "button[id^=\"radix-:\"][aria-haspopup=\"menu\"]"
+        ],
+        "priority": "P1"
+      },
+      "tab_button_generic": {
+        "selectors": [
+          "button[role=\"tab\"]"
+        ],
+        "priority": "P1"
+      },
+      "flow_tab_slider_trigger": {
+        "selectors": [
+          ".flow_tab_slider_trigger"
+        ],
+        "priority": "P1"
+      },
+      "flow_modal_dialog": {
+        "selectors": [
+          "[role=\"dialog\"]",
+          "[role=\"alertdialog\"]"
+        ],
+        "priority": "P1"
+      },
+      "flow_scroll_container": {
+        "selectors": [
+          "[class*=\"sc-\"]"
+        ],
+        "closest_attribute": "[style*=\"overflow\"]",
+        "priority": "P1"
+      },
+      "grid_view_tab": {
+        "selectors": [
+          ".flow_tab_slider_trigger",
+          "button[role=\"tab\"]"
+        ],
+        "aria_labels": [
+          "Grid",
+          "Lưới",
+          "グリッド",
+          "กริด"
+        ],
+        "priority": "P1"
+      },
+      "video_duration_tab": {
+        "selectors": [
+          "button[role=\"tab\"].flow_tab_slider_trigger"
+        ],
+        "text_match": [
+          "4s",
+          "6s",
+          "8s",
+          "10s"
+        ],
+        "priority": "P1"
+      },
+      "new_project_button": {
+        "selectors": [
+          "button",
+          "[role=\"button\"]"
+        ],
+        "text_match": [
+          "New project",
+          "Dự án mới",
+          "Create new project",
+          "Tạo dự án",
+          "新しいプロジェクト",
+          "โปรเจกต์ใหม่"
+        ],
+        "icon_text": [
+          "add_2",
+          "add",
+          "add_circle"
+        ],
+        "priority": "P1"
+      },
+      "composer_advanced_menu_button": {
+        "selectors": [
+          "button:has(i.google-symbols)"
+        ],
+        "icon_text": "add_2",
+        "scope_hint": "composer",
+        "priority": "P1"
+      },
+      "advanced_menu_voices_tab": {
+        "selectors": [
+          "button[role=\"tab\"]:has(i.google-symbols)"
+        ],
+        "icon_text": "voice_selection",
+        "priority": "P1"
+      },
+      "advanced_menu_search_input": {
+        "selectors": [
+          "input[data-testid=\"search-input\"]",
+          "input[placeholder*=\"search\" i]"
+        ],
+        "priority": "P1"
+      },
+      "advanced_menu_voice_option": {
+        "selectors": [
+          "[role=\"option\"]:has(i.google-symbols)"
+        ],
+        "icon_text": "voice_selection",
+        "priority": "P1"
+      },
+      "advanced_menu_voice_name_div": {
+        "selectors": [
+          ":scope > div:nth-child(2) > div:nth-child(1)",
+          ":scope > div:nth-child(2) > div:first-child"
+        ],
+        "extraction": "textContent",
+        "priority": "P1"
+      },
+      "advanced_menu_add_to_prompt_button": {
+        "selectors": [
+          "button"
+        ],
+        "button_text": [
+          "Thêm vào câu lệnh",
+          "Add To Prompt",
+          "Add to prompt",
+          "เพิ่มในข้อความ",
+          "プロンプトに追加"
+        ],
+        "priority": "P1"
+      },
+      "prompt_selected_voice_button": {
+        "selectors": [
+          "button:has(> i.google-symbols)"
+        ],
+        "icon_text": "voice_selection",
+        "priority": "P1"
+      },
+      "flow_agent_toggle_button": {
+        "selectors": [
+          "button[aria-pressed]"
+        ],
+        "button_text": [
+          "Tác nhân",
+          "Agent",
+          "エージェント",
+          "ตัวแทน"
+        ],
+        "aria_pressed_on": "true",
+        "priority": "P1"
+      },
+      "flow_credit_limit_alert": {
+        "selectors": [
+          "img[src*=\"flow_alert_sphere\"]",
+          "img[src*=\"alert_sphere\"]"
+        ],
+        "priority": "P1"
+      },
+      "flow_chat_agent_close_button": {
+        "selectors": [
+          "button"
+        ],
+        "icon_text": "close",
+        "button_text": [
+          "Đóng",
+          "Close",
+          "閉じる",
+          "ปิด"
+        ],
+        "sibling_icon_text": "edit_square",
+        "sibling_button_text": [
+          "Phiên mới",
+          "New session",
+          "新しいセッション",
+          "เซสชันใหม่"
+        ],
+        "priority": "P1"
+      },
+      "flow_agent_instruction_done_button": {
+        "button_text": [
+          "Xong",
+          "Done",
+          "Save",
+          "Finish",
+          "OK",
+          "完了",
+          "保存",
+          "เสร็จสิ้น",
+          "บันทึก"
+        ],
+        "panel_label_text": [
+          "Hướng dẫn cho tác nhân",
+          "Instructions for agent",
+          "Agent instructions",
+          "Instructions",
+          "エージェントの指示",
+          "エージェント手順",
+          "คำสั่งสำหรับเอเจนต์",
+          "คำสั่งเอเจนต์"
+        ],
+        "anchor_walk_depth": 6,
+        "priority": "P1"
+      },
+      "project_error_indicator": {
+        "selectors": [
+          "#__next a[href$=\"/tools/flow\"]",
+          "a[href$=\"/tools/flow\"] i.material-icons"
+        ],
+        "priority": "P1"
+      },
+      "advanced_menu_characters_tab": {
+        "selectors": [
+          "button[role=\"tab\"]:has(i.google-symbols)"
+        ],
+        "icon_text": "accessibility_new",
+        "priority": "P1"
+      },
+      "advanced_menu_character_option": {
+        "selectors": [
+          "[role=\"option\"]:has(img)"
+        ],
+        "priority": "P1"
+      },
+      "advanced_menu_character_name_div": {
+        "selectors": [
+          ":scope > div:nth-child(2)",
+          ":scope div.sc-b0e5-12",
+          ":scope > div:last-child"
+        ],
+        "extraction": "textContent",
+        "priority": "P1"
+      },
+      "prompt_selected_character_button": {
+        "selectors": [
+          "button:has(> i.google-symbols)"
+        ],
+        "icon_text": "accessibility_new",
+        "priority": "P1"
+      },
+      "mention_menu_search_input": {
+        "selectors": [
+          "#add-menu-input"
+        ],
+        "priority": "P1"
+      },
+      "mention_menu_option": {
+        "selectors": [
+          "[role=\"option\"]"
+        ],
+        "priority": "P1"
+      },
+      "mention_menu_tab": {
+        "selectors": [
+          "nav[role=\"tablist\"] button[role=\"tab\"]"
+        ],
+        "icon_text_voice": "voice_selection",
+        "icon_text_char": "accessibility_new",
+        "priority": "P1"
+      },
+      "mention_inline_chip": {
+        "selectors": [
+          "span[data-slate-node=\"element\"][data-slate-inline=\"true\"][data-slate-void=\"true\"]"
+        ],
+        "priority": "P1"
+      },
+      "video_upload_confirm": {
+        "selectors": [
+          "[role=\"dialog\"] button"
+        ],
+        "text_match": [
+          "Tôi đồng ý, không hiện lại",
+          "I agree, Do not show again",
+          "Tôi đồng ý",
+          "I agree"
+        ],
+        "priority": "P1"
+      },
+      "add_menu_upload_tab": {
+        "selectors": [
+          "nav[role=\"tablist\"] button[role=\"tab\"]"
+        ],
+        "icon_text": "drive_folder_upload",
+        "priority": "P1"
+      },
+      "add_menu_upload_media_button": {
+        "selectors": [
+          "[role=\"dialog\"] button"
+        ],
+        "icon_text": "upload",
+        "icon_text_alt": "upload_file",
+        "button_text": [
+          "Tải nội dung nghe nhìn lên",
+          "Upload media"
+        ],
+        "priority": "P1"
+      },
+      "signed_out_indicator": {
+        "text_match": "Get started | Try in Google Flow | Create with Google Flow | Sign in to Flow",
+        "priority": "P1"
+      },
+      "video_resolution_tab": {
+        "selectors": [
+          "button[role=\"tab\"].flow_tab_slider_trigger"
+        ],
+        "text_match": [
+          "360p",
+          "720p"
+        ],
+        "priority": "P1"
+      },
+      "show_tile_details_setting": {
+        "selectors": [
+          "[role=\"menu\"] div"
+        ],
+        "text_match": [
+          "Hiện thông tin chi tiết về ô",
+          "Show tile details",
+          "แสดงรายละเอียดของแผ่น",
+          "タイルの詳細を表示"
+        ],
+        "priority": "P2"
+      },
+      "toggle_state_button": {
+        "selectors": [
+          ".flow_tab_slider_trigger"
+        ],
+        "aria_labels_on": [
+          "Đang bật",
+          "On",
+          "เปิด",
+          "オン"
+        ],
+        "aria_labels_off": [
+          "Đang tắt",
+          "Off",
+          "ปิด",
+          "オフ"
+        ],
+        "priority": "P2"
+      },
+      "advanced_menu_voice_description_div": {
+        "selectors": [
+          ":scope > div:nth-child(2) > div:nth-child(2)"
+        ],
+        "extraction": "textContent",
+        "priority": "P2"
+      },
+      "upload_consent_confirm": {
+        "selectors": [
+          "[role=\"dialog\"][data-state=\"open\"] button",
+          "[role=\"dialog\"] button"
+        ],
+        "text_match": "Tôi đồng ý | I agree, Do not show again | I agree",
+        "priority": "P2"
+      },
+      "grid_size_small_button": {
+        "selectors": [
+          "button[id$=\"-trigger-SMALL\"]",
+          "button[aria-controls$=\"-content-SMALL\"]"
+        ],
+        "priority": "P2"
+      },
+      "tile_display_name": {
+        "selectors": [
+          ".sc-cb61226a-2"
+        ],
+        "attribute": "textContent",
+        "priority": "P2"
+      }
+    },
+    "profiles": {
+      "legacy": {
+        "key": "legacy",
+        "host_patterns": [
+          "https://labs.google"
+        ],
+        "version": 273,
+        "selectors": {
+          "tile_container": {
+            "selectors": [
+              "flow-grid-tile-container:has([data-media-id])",
+              "[data-tile-id]"
+            ],
+            "attribute": "data-tile-id",
+            "priority": "P0"
+          },
+          "tile_image": {
+            "selectors": [
+              "img[src*=\"flow.google.com/asb/\"]",
+              "img[src*=\"getMediaUrlRedirect\"]",
+              "img[src*=\"googleusercontent.com\"]"
+            ],
+            "attribute": "src",
+            "priority": "P0"
+          },
+          "tile_video": {
+            "selectors": [
+              "video[src*=\"flow.google.com/asb/\"]",
+              "video[src*=\"getMediaUrlRedirect\"]",
+              "video"
+            ],
+            "attribute": "src",
+            "priority": "P0"
+          },
+          "warning_icon": {
+            "selectors": [
+              ".google-symbols",
+              "i[class*=\"icon\"]"
+            ],
+            "text_match": "warning",
+            "priority": "P0"
+          },
+          "slate_editor": {
+            "selectors": [
+              "div[data-slate-editor=\"true\"]",
+              "[data-slate-node=\"value\"]",
+              "[role=\"textbox\"][aria-multiline=\"true\"]",
+              "[contenteditable=\"true\"]"
+            ],
+            "priority": "P0"
+          },
+          "submit_button": {
+            "selectors": [
+              "button:has(i.google-symbols)",
+              "button[type=\"submit\"]"
+            ],
+            "icon_text": "arrow_forward",
+            "button_text": [
+              "Tạo",
+              "Create"
+            ],
+            "priority": "P0"
+          },
+          "mode_tab_image": {
+            "selectors": [
+              "button[id$=\"-trigger-IMAGE\"]",
+              "button[role=\"tab\"][aria-controls*=\"IMAGE\"]"
+            ],
+            "attribute": "aria-selected",
+            "priority": "P0"
+          },
+          "mode_tab_video": {
+            "selectors": [
+              "button[id$=\"-trigger-VIDEO\"]:not([id*=\"VIDEO_\"])",
+              "button[role=\"tab\"][aria-controls*=\"VIDEO\"]:not([aria-controls*=\"VIDEO_\"])"
+            ],
+            "attribute": "aria-selected",
+            "priority": "P0"
+          },
+          "video_mode_frames": {
+            "selectors": [
+              "button[id$=\"-trigger-VIDEO_FRAMES\"]",
+              "button[role=\"tab\"][aria-controls*=\"VIDEO_FRAMES\"]"
+            ],
+            "attribute": "aria-selected",
+            "text_match": [
+              "frames",
+              "khung hình",
+              "khung"
+            ],
+            "priority": "P0"
+          },
+          "video_mode_ingredients": {
+            "selectors": [
+              "button[id$=\"-trigger-VIDEO_REFERENCES\"]",
+              "button[role=\"tab\"][aria-controls*=\"VIDEO_REFERENCES\"]"
+            ],
+            "attribute": "aria-selected",
+            "text_match": [
+              "ingredients",
+              "thành phần",
+              "thanh phan"
+            ],
+            "priority": "P0"
+          },
+          "settings_button": {
+            "selectors": [
+              "button.settings-trigger-button",
+              "button[aria-haspopup=\"menu\"]",
+              "button[id^=\"radix-:\"]",
+              "button[aria-haspopup=\"dialog\"]"
+            ],
+            "icon_text": "crop_",
+            "icon_texts": [
+              "settings_2"
+            ],
+            "priority": "P0"
+          },
+          "settings_panel_candidates": {
+            "selectors": [
+              ".cdk-overlay-pane",
+              "[role=\"dialog\"]",
+              "[data-radix-popper-content-wrapper]",
+              "[role=\"menu\"]"
+            ],
+            "priority": "P0"
+          },
+          "settings_panel_marker": {
+            "selectors": [
+              "button[role=\"tab\"][id*=\"-trigger-\"]"
+            ],
+            "priority": "P0"
+          },
+          "icon_element": {
+            "selectors": [
+              "i.google-symbols",
+              "i[class*=\"icon\"]",
+              "span[class*=\"material-symbol\"]"
+            ],
+            "priority": "P0"
+          },
+          "project_link": {
+            "selectors": [
+              "a[href*=\"/project/\"]"
+            ],
+            "attribute": "href",
+            "priority": "P1"
+          },
+          "context_menu": {
+            "selectors": [
+              "[role=\"menu\"]",
+              "[role=\"menu\"][data-state=\"open\"]"
+            ],
+            "priority": "P1"
+          },
+          "menu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]"
+            ],
+            "priority": "P1"
+          },
+          "model_menu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]",
+              "[role=\"menuitemradio\"]",
+              "[role=\"option\"]"
+            ],
+            "priority": "P1"
+          },
+          "edit_link": {
+            "selectors": [
+              "a[href*=\"/edit/\"]"
+            ],
+            "attribute": "href",
+            "priority": "P1"
+          },
+          "download_menu_trigger": {
+            "selectors": [
+              "[role=\"menuitem\"][aria-haspopup=\"menu\"]"
+            ],
+            "icon_text": "download",
+            "button_text": [
+              "Tải xuống",
+              "Download",
+              "ดาวน์โหลด",
+              "ダウンロード"
+            ],
+            "priority": "P1"
+          },
+          "download_submenu": {
+            "selectors": [
+              "[role=\"menu\"][data-state=\"open\"]",
+              "[data-radix-popper-content-wrapper] [role=\"menu\"]"
+            ],
+            "attribute": "aria-controls",
+            "priority": "P1"
+          },
+          "download_submenu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]"
+            ],
+            "priority": "P1"
+          },
+          "tile_retry_button": {
+            "selectors": [
+              "button:has(i.google-symbols)"
+            ],
+            "icon_text": "refresh",
+            "button_text": [
+              "Retry",
+              "Thử lại",
+              "再試行",
+              "ลองอีกครั้ง"
+            ],
+            "priority": "P1"
+          },
+          "project_name_input": {
+            "selectors": [
+              "input[aria-label=\"Văn bản có thể chỉnh sửa\"]",
+              "input[aria-label=\"Editable text\"]",
+              "input[aria-label=\"ข้อความที่แก้ไขได้\"]",
+              "input[aria-label=\"編集可能なテキスト\"]"
+            ],
+            "aria_labels": [
+              "Văn bản có thể chỉnh sửa",
+              "Editable text",
+              "ข้อความที่แก้ไขได้",
+              "編集可能なテキスト"
+            ],
+            "priority": "P1"
+          },
+          "add_to_prompt_menu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]"
+            ],
+            "text_match": [
+              "Thêm vào câu lệnh",
+              "Add to prompt",
+              "เพิ่มในข้อความ",
+              "プロンプトに追加"
+            ],
+            "priority": "P1"
+          },
+          "model_picker_button": {
+            "selectors": [
+              "button[aria-haspopup=\"menu\"]",
+              "button[id^=\"radix-:\"][aria-haspopup=\"menu\"]"
+            ],
+            "priority": "P1"
+          },
+          "tab_button_generic": {
+            "selectors": [
+              "button[role=\"tab\"]"
+            ],
+            "priority": "P1"
+          },
+          "flow_tab_slider_trigger": {
+            "selectors": [
+              ".flow_tab_slider_trigger"
+            ],
+            "priority": "P1"
+          },
+          "flow_modal_dialog": {
+            "selectors": [
+              "[role=\"dialog\"]",
+              "[role=\"alertdialog\"]"
+            ],
+            "priority": "P1"
+          },
+          "flow_scroll_container": {
+            "selectors": [
+              "[class*=\"sc-\"]"
+            ],
+            "closest_attribute": "[style*=\"overflow\"]",
+            "priority": "P1"
+          },
+          "grid_view_tab": {
+            "selectors": [
+              ".flow_tab_slider_trigger",
+              "button[role=\"tab\"]"
+            ],
+            "aria_labels": [
+              "Grid",
+              "Lưới",
+              "グリッド",
+              "กริด"
+            ],
+            "priority": "P1"
+          },
+          "video_duration_tab": {
+            "selectors": [
+              "button[role=\"tab\"].flow_tab_slider_trigger"
+            ],
+            "text_match": [
+              "4s",
+              "6s",
+              "8s",
+              "10s"
+            ],
+            "priority": "P1"
+          },
+          "new_project_button": {
+            "selectors": [
+              "button",
+              "[role=\"button\"]"
+            ],
+            "text_match": [
+              "New project",
+              "Dự án mới",
+              "Create new project",
+              "Tạo dự án",
+              "新しいプロジェクト",
+              "โปรเจกต์ใหม่"
+            ],
+            "icon_text": [
+              "add_2",
+              "add",
+              "add_circle"
+            ],
+            "priority": "P1"
+          },
+          "composer_advanced_menu_button": {
+            "selectors": [
+              "button:has(i.google-symbols)"
+            ],
+            "icon_text": "add_2",
+            "scope_hint": "composer",
+            "priority": "P1"
+          },
+          "advanced_menu_voices_tab": {
+            "selectors": [
+              "button[role=\"tab\"]:has(i.google-symbols)"
+            ],
+            "icon_text": "voice_selection",
+            "priority": "P1"
+          },
+          "advanced_menu_search_input": {
+            "selectors": [
+              "input[data-testid=\"search-input\"]",
+              "input[placeholder*=\"search\" i]"
+            ],
+            "priority": "P1"
+          },
+          "advanced_menu_voice_option": {
+            "selectors": [
+              "[role=\"option\"]:has(i.google-symbols)"
+            ],
+            "icon_text": "voice_selection",
+            "priority": "P1"
+          },
+          "advanced_menu_voice_name_div": {
+            "selectors": [
+              ":scope > div:nth-child(2) > div:nth-child(1)",
+              ":scope > div:nth-child(2) > div:first-child"
+            ],
+            "extraction": "textContent",
+            "priority": "P1"
+          },
+          "advanced_menu_add_to_prompt_button": {
+            "selectors": [
+              "button"
+            ],
+            "button_text": [
+              "Thêm vào câu lệnh",
+              "Add To Prompt",
+              "Add to prompt",
+              "เพิ่มในข้อความ",
+              "プロンプトに追加"
+            ],
+            "priority": "P1"
+          },
+          "prompt_selected_voice_button": {
+            "selectors": [
+              "button:has(> i.google-symbols)"
+            ],
+            "icon_text": "voice_selection",
+            "priority": "P1"
+          },
+          "flow_agent_toggle_button": {
+            "selectors": [
+              "button[aria-pressed]"
+            ],
+            "button_text": [
+              "Tác nhân",
+              "Agent",
+              "エージェント",
+              "ตัวแทน"
+            ],
+            "aria_pressed_on": "true",
+            "priority": "P1"
+          },
+          "flow_credit_limit_alert": {
+            "selectors": [
+              "img[src*=\"flow_alert_sphere\"]",
+              "img[src*=\"alert_sphere\"]"
+            ],
+            "priority": "P1"
+          },
+          "flow_chat_agent_close_button": {
+            "selectors": [
+              "button"
+            ],
+            "icon_text": "close",
+            "button_text": [
+              "Đóng",
+              "Close",
+              "閉じる",
+              "ปิด"
+            ],
+            "sibling_icon_text": "edit_square",
+            "sibling_button_text": [
+              "Phiên mới",
+              "New session",
+              "新しいセッション",
+              "เซสชันใหม่"
+            ],
+            "priority": "P1"
+          },
+          "flow_agent_instruction_done_button": {
+            "button_text": [
+              "Xong",
+              "Done",
+              "Save",
+              "Finish",
+              "OK",
+              "完了",
+              "保存",
+              "เสร็จสิ้น",
+              "บันทึก"
+            ],
+            "panel_label_text": [
+              "Hướng dẫn cho tác nhân",
+              "Instructions for agent",
+              "Agent instructions",
+              "Instructions",
+              "エージェントの指示",
+              "エージェント手順",
+              "คำสั่งสำหรับเอเจนต์",
+              "คำสั่งเอเจนต์"
+            ],
+            "anchor_walk_depth": 6,
+            "priority": "P1"
+          },
+          "project_error_indicator": {
+            "selectors": [
+              "#__next a[href$=\"/tools/flow\"]",
+              "a[href$=\"/tools/flow\"] i.material-icons"
+            ],
+            "priority": "P1"
+          },
+          "advanced_menu_characters_tab": {
+            "selectors": [
+              "button[role=\"tab\"]:has(i.google-symbols)"
+            ],
+            "icon_text": "accessibility_new",
+            "priority": "P1"
+          },
+          "advanced_menu_character_option": {
+            "selectors": [
+              "[role=\"option\"]:has(img)"
+            ],
+            "priority": "P1"
+          },
+          "advanced_menu_character_name_div": {
+            "selectors": [
+              ":scope > div:nth-child(2)",
+              ":scope div.sc-b0e5-12",
+              ":scope > div:last-child"
+            ],
+            "extraction": "textContent",
+            "priority": "P1"
+          },
+          "prompt_selected_character_button": {
+            "selectors": [
+              "button:has(> i.google-symbols)"
+            ],
+            "icon_text": "accessibility_new",
+            "priority": "P1"
+          },
+          "mention_menu_search_input": {
+            "selectors": [
+              "#add-menu-input"
+            ],
+            "priority": "P1"
+          },
+          "mention_menu_option": {
+            "selectors": [
+              "[role=\"option\"]"
+            ],
+            "priority": "P1"
+          },
+          "mention_menu_tab": {
+            "selectors": [
+              "nav[role=\"tablist\"] button[role=\"tab\"]"
+            ],
+            "icon_text_voice": "voice_selection",
+            "icon_text_char": "accessibility_new",
+            "priority": "P1"
+          },
+          "mention_inline_chip": {
+            "selectors": [
+              "span[data-slate-node=\"element\"][data-slate-inline=\"true\"][data-slate-void=\"true\"]"
+            ],
+            "priority": "P1"
+          },
+          "video_upload_confirm": {
+            "selectors": [
+              "[role=\"dialog\"] button"
+            ],
+            "text_match": [
+              "Tôi đồng ý, không hiện lại",
+              "I agree, Do not show again",
+              "Tôi đồng ý",
+              "I agree"
+            ],
+            "priority": "P1"
+          },
+          "add_menu_upload_tab": {
+            "selectors": [
+              "nav[role=\"tablist\"] button[role=\"tab\"]"
+            ],
+            "icon_text": "drive_folder_upload",
+            "priority": "P1"
+          },
+          "add_menu_upload_media_button": {
+            "selectors": [
+              "[role=\"dialog\"] button"
+            ],
+            "icon_text": "upload",
+            "icon_text_alt": "upload_file",
+            "button_text": [
+              "Tải nội dung nghe nhìn lên",
+              "Upload media"
+            ],
+            "priority": "P1"
+          },
+          "signed_out_indicator": {
+            "text_match": "Get started | Try in Google Flow | Create with Google Flow | Sign in to Flow",
+            "priority": "P1"
+          },
+          "video_resolution_tab": {
+            "selectors": [
+              "button[role=\"tab\"].flow_tab_slider_trigger"
+            ],
+            "text_match": [
+              "360p",
+              "720p"
+            ],
+            "priority": "P1"
+          },
+          "show_tile_details_setting": {
+            "selectors": [
+              "[role=\"menu\"] div"
+            ],
+            "text_match": [
+              "Hiện thông tin chi tiết về ô",
+              "Show tile details",
+              "แสดงรายละเอียดของแผ่น",
+              "タイルの詳細を表示"
+            ],
+            "priority": "P2"
+          },
+          "toggle_state_button": {
+            "selectors": [
+              ".flow_tab_slider_trigger"
+            ],
+            "aria_labels_on": [
+              "Đang bật",
+              "On",
+              "เปิด",
+              "オン"
+            ],
+            "aria_labels_off": [
+              "Đang tắt",
+              "Off",
+              "ปิด",
+              "オフ"
+            ],
+            "priority": "P2"
+          },
+          "advanced_menu_voice_description_div": {
+            "selectors": [
+              ":scope > div:nth-child(2) > div:nth-child(2)"
+            ],
+            "extraction": "textContent",
+            "priority": "P2"
+          },
+          "upload_consent_confirm": {
+            "selectors": [
+              "[role=\"dialog\"][data-state=\"open\"] button",
+              "[role=\"dialog\"] button"
+            ],
+            "text_match": "Tôi đồng ý | I agree, Do not show again | I agree",
+            "priority": "P2"
+          },
+          "grid_size_small_button": {
+            "selectors": [
+              "button[id$=\"-trigger-SMALL\"]",
+              "button[aria-controls$=\"-content-SMALL\"]"
+            ],
+            "priority": "P2"
+          },
+          "tile_display_name": {
+            "selectors": [
+              ".sc-cb61226a-2"
+            ],
+            "attribute": "textContent",
+            "priority": "P2"
+          }
+        }
+      },
+      "v2": {
+        "key": "v2",
+        "host_patterns": [
+          "https://flow.google.com"
+        ],
+        "version": 273,
+        "selectors": {
+          "icon_element": {
+            "selectors": [
+              "mat-icon[data-mat-icon-type=\"font\"]"
+            ],
+            "priority": "P0"
+          },
+          "tile_container": {
+            "selectors": [
+              "flow-grid-tile-container"
+            ],
+            "attribute": "data-media-id",
+            "persistent_id_attribute": "data-media-id",
+            "display_name_attribute": "aria-label",
+            "identity_scope": "descendant",
+            "priority": "P0"
+          },
+          "tile_image": {
+            "selectors": [
+              "flow-image-tile img[data-media-id]",
+              "flow-grid-tile-container img[data-media-id]"
+            ],
+            "attribute": "src",
+            "persistent_id_attribute": "data-media-id",
+            "priority": "P0"
+          },
+          "tile_video": {
+            "selectors": [
+              "flow-video-tile video[src]",
+              "flow-grid-tile-container flow-video-tile video[src]"
+            ],
+            "attribute": "src",
+            "identity_stability": "session",
+            "poster_transform_pattern": "=(?:s\\d+(?:-[a-z]+)*|mm,\\d+,\\d+)$",
+            "playback_url_suffix": "=mm,22,15",
+            "poster_url_suffix": "=s1920-rw",
+            "thumbnail_url_suffix": "=s512-rw",
+            "priority": "P0"
+          },
+          "tile_video_owner": {
+            "selectors": [
+              "flow-video-tile"
+            ],
+            "priority": "P0"
+          },
+          "tile_pending": {
+            "selectors": [
+              "flow-pending-tile"
+            ],
+            "progress_selectors": [
+              ".loading-percentage"
+            ],
+            "video_icon_text": "play_circle",
+            "priority": "P0"
+          },
+          "tile_error_owner": {
+            "selectors": [
+              "flow-error-tile"
+            ],
+            "priority": "P0"
+          },
+          "slate_editor": {
+            "selectors": [
+              "flow-prompt-box .ProseMirror[contenteditable=\"true\"]"
+            ],
+            "editor_kind": "prosemirror",
+            "priority": "P0"
+          },
+          "submit_button": {
+            "selectors": [
+              "flow-prompt-box button[type=\"submit\"]"
+            ],
+            "disabled_attributes": [
+              "disabled",
+              "aria-disabled"
+            ],
+            "priority": "P0"
+          },
+          "settings_button": {
+            "selectors": [
+              "flow-prompt-box button.settings-trigger-button"
+            ],
+            "icon_text": "crop_",
+            "priority": "P0"
+          },
+          "settings_panel_candidates": {
+            "selectors": [
+              ".cdk-overlay-pane"
+            ],
+            "priority": "P0"
+          },
+          "settings_panel_marker": {
+            "selectors": [
+              "flow-prompt-box-settings"
+            ],
+            "priority": "P0"
+          },
+          "mode_tab_image": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "icon_text": "image",
+            "attribute_selected": "aria-checked",
+            "priority": "P0"
+          },
+          "mode_tab_video": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "icon_text": "videocam",
+            "attribute_selected": "aria-checked",
+            "priority": "P0"
+          },
+          "ratio_button": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "ratio_icons": {
+              "16:9": "crop_16_9",
+              "4:3": "crop_landscape",
+              "1:1": "crop_square",
+              "3:4": "crop_portrait",
+              "9:16": "crop_9_16"
+            },
+            "attribute_selected": "aria-checked",
+            "priority": "P0"
+          },
+          "quantity_button": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "text_format": "x{value}",
+            "attribute_selected": "aria-checked",
+            "priority": "P0"
+          },
+          "download_menu_trigger": {
+            "selectors": [
+              "[role=\"menuitem\"][aria-haspopup=\"menu\"]",
+              "flow-mobile-long-press-menu [role=\"menuitem\"]"
+            ],
+            "icon_text": "download",
+            "attribute_id": "aria-controls",
+            "priority": "P0"
+          },
+          "context_menu": {
+            "selectors": [
+              "flow-image-context-menu-items",
+              "flow-video-context-menu-items",
+              "flow-mobile-long-press-menu [role=\"menu\"]"
+            ],
+            "priority": "P0"
+          },
+          "download_image_menu": {
+            "selectors": [
+              "flow-image-context-menu-items",
+              "flow-mobile-long-press-menu [role=\"menu\"]"
+            ],
+            "priority": "P0"
+          },
+          "download_video_menu": {
+            "selectors": [
+              "flow-video-context-menu-items",
+              "flow-mobile-long-press-menu [role=\"menu\"]"
+            ],
+            "priority": "P0"
+          },
+          "composer_advanced_menu_button": {
+            "selectors": [
+              "flow-add-menu button.add-menu-trigger"
+            ],
+            "icon_text": "add",
+            "icon_text_open": "close",
+            "priority": "P0"
+          },
+          "add_component_root": {
+            "selectors": [
+              "flow-add-menu-popover-content",
+              "flow-mobile-add-menu"
+            ],
+            "priority": "P0"
+          },
+          "add_component_voice_tab": {
+            "selectors": [
+              "mat-list-item[role=\"tab\"]",
+              "button[role=\"option\"]"
+            ],
+            "icon_text": "voice_selection",
+            "attribute_selected": "aria-selected",
+            "priority": "P0"
+          },
+          "add_component_character_tab": {
+            "selectors": [
+              "mat-list-item[role=\"tab\"]",
+              "button[role=\"option\"]"
+            ],
+            "icon_text": "accessibility_new",
+            "attribute_selected": "aria-selected",
+            "priority": "P0"
+          },
+          "agent_mode_active": {
+            "selectors": [
+              "flow-agent-mode-toggle-chip button[aria-pressed=\"true\"]"
+            ],
+            "priority": "P0"
+          },
+          "agent_panel_owner": {
+            "selectors": [
+              "flow-agent-panel"
+            ],
+            "priority": "P0"
+          },
+          "agent_instruction_dialog": {
+            "selectors": [
+              "flow-agent-instructions-view"
+            ],
+            "priority": "P0"
+          },
+          "add_menu_upload_tab": {
+            "selectors": [
+              "mat-nav-list[role=\"tablist\"] mat-list-item[role=\"tab\"]"
+            ],
+            "icon_text": "drive_folder_upload",
+            "attribute_selected": "aria-selected",
+            "priority": "P0"
+          },
+          "add_menu_upload_media_button": {
+            "selectors": [
+              "button.sidebar-upload-btn",
+              "flow-mobile-add-menu-header button.upload-button"
+            ],
+            "icon_text": "upload",
+            "priority": "P0"
+          },
+          "upload_consent_confirm": {
+            "selectors": [
+              "flow-upload-consent-dialog button"
+            ],
+            "text_match": [
+              "Tôi đồng ý, không hiện lại",
+              "Tôi đồng ý",
+              "I agree, Do not show again",
+              "I agree"
+            ],
+            "priority": "P0"
+          },
+          "video_upload_confirm": {
+            "selectors": [
+              "flow-upload-consent-dialog button"
+            ],
+            "text_match": [
+              "Tôi đồng ý, không hiện lại",
+              "I agree, Do not show again",
+              "Tôi đồng ý",
+              "I agree"
+            ],
+            "priority": "P0"
+          },
+          "tile_video_poster": {
+            "selectors": [
+              "flow-video-tile img.thumbnail[src]"
+            ],
+            "attribute": "src",
+            "priority": "P0"
+          },
+          "add_component_mobile_filter_trigger": {
+            "selectors": [
+              "flow-mobile-add-menu-header button.filter-trigger[aria-haspopup=\"true\"]"
+            ],
+            "priority": "P0"
+          },
+          "add_component_mobile_filter_list": {
+            "selectors": [
+              "div[role=\"listbox\"].filter-panel"
+            ],
+            "priority": "P0"
+          },
+          "add_component_mobile_close": {
+            "selectors": [
+              "flow-mobile-add-menu-header button.close-button"
+            ],
+            "icon_text": "close",
+            "priority": "P0"
+          },
+          "blocking_dialog_owner": {
+            "selectors": [
+              "[role=\"dialog\"]",
+              "[role=\"alertdialog\"]"
+            ],
+            "priority": "P0"
+          },
+          "signed_out_indicator": {
+            "selectors": [
+              "body:has(flow-landing-page) a[aria-label=\"Sign in\"]"
+            ],
+            "priority": "P0"
+          },
+          "prompt_clear_button": {
+            "selectors": [
+              "flow-prompt-box .top-right-actions button.clear-button",
+              "flow-prompt-box button[aria-label=\"Clear prompt\"]"
+            ],
+            "icon_text": "close",
+            "priority": "P0"
+          },
+          "flow_credit_limit_alert": {
+            "selectors": [
+              "flow-prompt-box flow-credit-warning-button",
+              "flow-prompt-box img[src*=\"flow_alert_sphere\"]"
+            ],
+            "priority": "P0"
+          },
+          "project_all_media_navigation": {
+            "selectors": [
+              "[flow-sidenav-top] mat-list-item"
+            ],
+            "icon_text": "dashboard",
+            "priority": "P0"
+          },
+          "media_url_variants": {
+            "thumbnail_url_suffix": "=s512-rw",
+            "image_url_suffix": "=s1920-rw",
+            "playback_url_suffix": "=mm,22,15",
+            "transform_pattern": "=(?:s\\d+(?:-[a-z]+)*|mm,\\d+,\\d+)$",
+            "priority": "P0"
+          },
+          "tile_error_message": {
+            "selectors": [
+              ".error-message-text"
+            ],
+            "priority": "P1"
+          },
+          "tile_retry_button": {
+            "selectors": [
+              "flow-error-tile button"
+            ],
+            "icon_text": "refresh",
+            "priority": "P1"
+          },
+          "video_mode_frames": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "icon_text": "crop_free",
+            "attribute_selected": "aria-checked",
+            "priority": "P1"
+          },
+          "video_mode_ingredients": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "icon_text": "chrome_extension",
+            "attribute_selected": "aria-checked",
+            "priority": "P1"
+          },
+          "video_resolution_tab": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "attribute_selected": "aria-checked",
+            "label_selector": ".toggle-text",
+            "priority": "P1"
+          },
+          "video_duration_tab": {
+            "selectors": [
+              "button[role=\"radio\"]",
+              "button[role=\"tab\"]"
+            ],
+            "numeric_text": true,
+            "attribute_selected": "aria-checked",
+            "label_selector": ".toggle-text",
+            "priority": "P1"
+          },
+          "model_picker_button": {
+            "selectors": [
+              "flow-prompt-box-settings button[aria-haspopup=\"menu\"]"
+            ],
+            "attribute_id": "aria-controls",
+            "priority": "P1"
+          },
+          "model_picker_panel": {
+            "selectors": [
+              ".flow-model-picker-panel"
+            ],
+            "priority": "P1"
+          },
+          "model_picker_item": {
+            "selectors": [
+              "flow-menu-item > button[role=\"menuitem\"]"
+            ],
+            "class_selected": "selected",
+            "selected_owner": "flow-menu-item",
+            "priority": "P1"
+          },
+          "menu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]"
+            ],
+            "priority": "P1"
+          },
+          "add_to_prompt_menu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]"
+            ],
+            "icon_text": "add_2",
+            "text_match": "Thêm vào câu lệnh | Add to prompt | เพิ่มในข้อความ | プロンプトに追",
+            "priority": "P1"
+          },
+          "download_submenu": {
+            "selectors": [
+              ".cdk-overlay-pane [role=\"menu\"]"
+            ],
+            "attribute": "aria-controls",
+            "attribute_id": "aria-controls",
+            "priority": "P1"
+          },
+          "download_submenu_item": {
+            "selectors": [
+              "[role=\"menuitem\"]"
+            ],
+            "disabled_attributes": [
+              "disabled",
+              "aria-disabled"
+            ],
+            "class_disabled": "mat-mdc-menu-item-disabled",
+            "priority": "P1"
+          },
+          "page_settings_root": {
+            "selectors": [
+              ".cdk-overlay-pane flow-tile-view-settings"
+            ],
+            "priority": "P1"
+          },
+          "page_settings_trigger": {
+            "selectors": [
+              "button[aria-haspopup=\"menu\"]"
+            ],
+            "icon_text": "settings_2",
+            "attribute_id": "aria-controls",
+            "priority": "P1"
+          },
+          "page_settings_radio": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "attribute_selected": "aria-checked",
+            "priority": "P1"
+          },
+          "page_settings_grid_view": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "icon_text": "dashboard",
+            "attribute_selected": "aria-checked",
+            "priority": "P1"
+          },
+          "page_settings_grid_size": {
+            "selectors": [
+              "button[role=\"radio\"]"
+            ],
+            "attribute_selected": "aria-checked",
+            "values": {
+              "small": [
+                "N",
+                "S"
+              ],
+              "medium": [
+                "TB",
+                "M"
+              ],
+              "large": [
+                "L"
+              ]
+            },
+            "first_item_fallback": {
+              "enabled": true,
+              "value": "small",
+              "group_selectors": [
+                "flow-toggles[aria-label=\"Grid size toggle\"] [role=\"radiogroup\"]"
+              ]
+            },
+            "priority": "P1"
+          },
+          "show_tile_details_setting": {
+            "selectors": [
+              "button[role=\"switch\"][name=\"show-tile-details\"]"
+            ],
+            "attribute_selected": "aria-checked",
+            "priority": "P1"
+          },
+          "add_component_tab": {
+            "selectors": [
+              "mat-nav-list[role=\"tablist\"] mat-list-item[role=\"tab\"]"
+            ],
+            "attribute_selected": "aria-selected",
+            "priority": "P1"
+          },
+          "add_component_listbox": {
+            "selectors": [
+              "flow-add-menu-asset-list cdk-virtual-scroll-viewport[role=\"listbox\"]"
+            ],
+            "priority": "P1"
+          },
+          "add_component_option": {
+            "selectors": [
+              "button[role=\"option\"]"
+            ],
+            "priority": "P1"
+          },
+          "add_component_title": {
+            "selectors": [
+              "flow-add-menu-asset-item .asset-title"
+            ],
+            "priority": "P1"
+          },
+          "add_component_detail": {
+            "selectors": [
+              "flow-add-menu-detail-pane"
+            ],
+            "priority": "P1"
+          },
+          "add_component_apply_button": {
+            "selectors": [
+              "button.detail-add-to-prompt-btn"
+            ],
+            "priority": "P1"
+          },
+          "ingredient_bar": {
+            "selectors": [
+              "flow-prompt-box flow-ingredient-bar"
+            ],
+            "priority": "P1"
+          },
+          "ingredient_image_chip": {
+            "selectors": [
+              "flow-image-ingredient-chip"
+            ],
+            "priority": "P1"
+          },
+          "ingredient_video_chip": {
+            "selectors": [
+              "flow-video-ingredient-chip"
+            ],
+            "priority": "P1"
+          },
+          "ingredient_voice_chip": {
+            "selectors": [
+              "flow-audio-ingredient-chip"
+            ],
+            "priority": "P1"
+          },
+          "ingredient_character_chip": {
+            "selectors": [
+              "flow-character-ingredient-chip"
+            ],
+            "priority": "P1"
+          },
+          "ingredient_remove_button": {
+            "selectors": [
+              "button"
+            ],
+            "icon_text": "cancel",
+            "priority": "P1"
+          },
+          "agent_panel_close": {
+            "selectors": [
+              ".agent-panel-header button"
+            ],
+            "icon_text": "close",
+            "priority": "P1"
+          },
+          "agent_instruction_done": {
+            "selectors": [
+              "button.done-button"
+            ],
+            "priority": "P1"
+          },
+          "mention_inline_chip": {
+            "selectors": [
+              "span.mention-chip[data-reference-type]"
+            ],
+            "voice_id_attribute": "data-audio-id",
+            "character_id_attribute": "data-entity-id",
+            "priority": "P1"
+          },
+          "project_link": {
+            "selectors": [
+              "flow-project-card a[href^=\"/project/\"]"
+            ],
+            "attribute": "href",
+            "priority": "P1"
+          },
+          "project_card": {
+            "selectors": [
+              "flow-project-card"
+            ],
+            "priority": "P1"
+          },
+          "project_title": {
+            "selectors": [
+              ".project-title-label"
+            ],
+            "priority": "P1"
+          },
+          "projects_page": {
+            "selectors": [
+              "flow-projects-page"
+            ],
+            "priority": "P1"
+          },
+          "compact_layout_marker": {
+            "selectors": [
+              "flow-rich-text-editor.prompt-input.mobile"
+            ],
+            "priority": "P1"
+          },
+          "add_component_description": {
+            "selectors": [
+              "flow-add-menu-asset-item .asset-description"
+            ],
+            "priority": "P2"
+          },
+          "new_project_button": {
+            "selectors": [
+              "flow-projects-page button.new-project-button"
+            ],
+            "icon_text": "add",
+            "priority": "P2"
+          }
+        }
+      }
+    }
+  }
+}

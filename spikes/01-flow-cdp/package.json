@@ -1,0 +1,16 @@
+{
+  "name": "01-flow-cdp",
+  "version": "1.0.0",
+  "description": "Mục đích duy nhất: chứng minh/bác bỏ cách A (extension mỏng + chrome.debugger, desktop giữ logic) trên Flow thật trước khi viết thiết kế. Không phải mã sản phẩm, không có test.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "ws": "^8.22.1"
+  }
+}

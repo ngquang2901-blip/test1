@@ -1,0 +1,57 @@
+[
+ {
+  "base_url": "https://flow.google.com",
+  "config_version": 273,
+  "description": "Google DeepMind Flow - AI image/video generation",
+  "icon": null,
+  "name": "Flow",
+  "slug": "flow",
+  "sort_order": 1,
+  "status": "active",
+  "updated_at": "2026-11-01T10:37:17.000000Z"
+ },
+ {
+  "base_url": "https://chatgpt.com",
+  "config_version": 87,
+  "description": "OpenAI ChatGPT với DALL-E image generation",
+  "icon": null,
+  "name": "ChatGPT",
+  "slug": "chatgpt",
+  "sort_order": 2,
+  "status": "active",
+  "updated_at": "2026-10-15T03:35:28.000000Z"
+ },
+ {
+  "base_url": "https://x.com/i/grok",
+  "config_version": 65,
+  "description": "xAI Grok với Aurora image/video generation",
+  "icon": null,
+  "name": "Grok",
+  "slug": "grok",
+  "sort_order": 3,
+  "status": "active",
+  "updated_at": "2026-10-10T08:01:18.000000Z"
+ },
+ {
+  "base_url": "https://gemini.google.com",
+  "config_version": 34,
+  "description": "Google Gemini AI assistant",
+  "icon": null,
+  "name": "Gemini",
+  "slug": "gemini",
+  "sort_order": 4,
+  "status": "active",
+  "updated_at": "2026-08-24T15:22:24.000000Z"
+ },
+ {
+  "base_url": "https://muse.ai",
+  "config_version": 41,
+  "description": "Muse AI image and video generation",
+  "icon": null,
+  "name": "Muse",
+  "slug": "muse",
+  "sort_order": 5,
+  "status": "active",
+  "updated_at": "2026-10-19T03:53:08.000000Z"
+ }
+]

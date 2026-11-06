@@ -1,0 +1,1955 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "00745895d834ca31a2c1e4d4f994fbdbd9c4d162169abb3c4aa727d6e72ea7a6",
+ "entries": 25,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:00:50.278Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/auth/me",
+   "mime": "application/json",
+   "size": 2664,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "id": 16624,
+     "name": "Quang Ng",
+     "email": "[EMAIL]",
+     "country_code": "JP",
+     "locale": "ja",
+     "preferred_currency": null,
+     "registration_ip": "103.125.235.26",
+     "last_login_ip": "103.125.235.26",
+     "google_id": "109495293421528434798",
+     "email_verified_at": "2026-11-05T17:14:22.000000Z",
+     "created_at": "2026-11-05T17:14:22.000000Z",
+     "updated_at": "2026-11-05T17:14:22.000000Z",
+     "avatar_url": null,
+     "role": "user",
+     "plan_slug": "free",
+     "plan_activated_at": "2026-11-05T17:14:22.000000Z",
+     "plan_expires_at": null,
+     "entitlements_version": 1,
+     "plan_billing_cycle": null,
+     "renewal_email_sent_at_d7": null,
+     "renewal_email_sent_at_d3": null,
+     "is_active": true,
+     "referral_code": "kCjjWNlx",
+     "referred_by": null,
+     "last_login_at": "2026-11-05T17:14:22.000000Z",
+     "plan": {
+      "id": 2,
+      "name": "Free",
+      "slug": "free",
+      "description": "Full Feature Experience",
+      "content": "[REDACTED len=1193]",
+      "price": "0.00",
+      "price_monthly": null,
+      "price_yearly": null,
+      "price_lifetime": null,
+      "price_usd_monthly": null,
+      "price_usd_yearly": null,
+      "price_usd_lifetime": null,
+      "discount_percent": 0,
+      "discount_starts_at": null,
+      "discount_ends_at": null,
+      "price_type": "free",
+      "lemonsqueezy_variant_id": null,
+      "is_active": true,
+      "is_public": true,
+      "display_order": 2,
+      "upgrade_rank": 2,
+      "extension_scope": "all",
+      "created_at": "2026-03-22T23:55:07.000000Z",
+      "updated_at": "2026-05-29T04:08:14.000000Z",
+      "product_id": null,
+      "access_tier": null
+     }
+    }
+   }
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:00:50.279Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/config/versions",
+   "mime": "application/json",
+   "size": 275,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "system_settings": 535,
+     "providers": {
+      "flow": 273,
+      "chatgpt": 87,
+      "grok": 65,
+      "gemini": 34,
+      "muse": 41
+     },
+     "provider_models": 111,
+     "node_types": 73,
+     "validation_rules": 7,
+     "default_settings": 68,
+     "i18n": {
+      "vi": 252,
+      "en": 269,
+      "ja": 230,
+      "th": 230
+     },
+     "announcement": 1793891301418524
+    }
+   }
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:00:50.280Z",
+   "method": "POST",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/sse/ticket",
+   "mime": "application/json",
+   "size": 252,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "SSE_REQUIRES_PAID",
+     "message": "Realtime SSE chỉ dành cho gói trả phí. Free user vui lòng dùng polling."
+    },
+    "data": {
+     "fallback_url": "/api/v1/events/poll",
+     "fallback_interval_ms": 30000
+    }
+   }
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:00:50.282Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "41d5d97b-7df2-46fd-82e1-dea99e0c9d99",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:00:51.038Z",
+   "method": "GET",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/tools/motion-studio/projects?[query-stripped]",
+   "mime": "application/json",
+   "size": 104,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "MOTION_ENTITLEMENT_DENIED",
+     "message": "Motion Studio is unavailable."
+    }
+   }
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:00:53.797Z",
+   "method": "POST",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/sse/ticket",
+   "mime": "application/json",
+   "size": 252,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "SSE_REQUIRES_PAID",
+     "message": "Realtime SSE chỉ dành cho gói trả phí. Free user vui lòng dùng polling."
+    },
+    "data": {
+     "fallback_url": "/api/v1/events/poll",
+     "fallback_interval_ms": 30000
+    }
+   }
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:00:53.804Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "856ec842-035a-4e89-82a3-144ef2b3951e",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:00:56.720Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/execution/request",
+   "mime": "application/json",
+   "size": 173,
+   "req_json": {
+    "action": "generate",
+    "prompt_count": 1,
+    "metadata": {
+     "owner": "prompts",
+     "label": "Auto Gen",
+     "provider": "flow",
+     "media_type": "video",
+     "has_ref": false,
+     "ref_count": 0
+    }
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "allowed": true,
+     "execution_token": "tok_[REDACTED]",
+     "expires_in": 300,
+     "remaining": 16,
+     "remaining_module": 16,
+     "remaining_global": 96
+    }
+   }
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:00:57.056Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/extension-config/system-config/execution",
+   "mime": "application/json",
+   "size": 1651,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "history": {
+      "chain_options_supported": true,
+      "stage_reason_supported": true
+     },
+     "workflow": {
+      "delay_nodes_sec": 3,
+      "max_retries": 1,
+      "timeout_sec": 180,
+      "on_error": "continue",
+      "flow_api_enabled": true
+     },
+     "queue": {
+      "batch_size": 6,
+      "max_monitor": 6,
+      "video_max_monitor": 4,
+      "rest_min_sec": 5,
+      "rest_max_sec": 15
+     },
+     "flow_recovery": {
+      "captcha_recovery_mode": "pause_resume",
+      "session_refresh_enabled": false,
+      "session_refresh_interval_min": 120,
+      "auto_recovery_enabled": true,
+      "consecutive_fail_threshold": 2,
+      "backoff_base_sec": 30,
+      "backoff_max_sec": 300,
+      "backoff_jitter_percent": 20,
+      "chunk_mode_enabled": true,
+      "chunk_size": 40
+     },
+     "timing": {
+      "delay_between_prompts_sec": 3
+     },
+     "parallel": {
+      "web_resubmit_enabled": true,
+      "flow_v2_web_enabled": true,
+      "provider_web_enabled": true,
+      "provider_web_workflow_enabled": true,
+      "provider_web_motion_enabled": true,
+      "provider_web_mcp_direct_enabled": true,
+      "provider_web_max_concurrent_workers": 2,
+      "provider_web_muse_startup_timeout_ms": 60000,
+      "provider_web_chatgpt_startup_timeout_ms": 60000,
+      "provider_web_gemini_startup_timeout_ms": 60000,
+      "provider_web_enabled_providers": [
+       "muse",
+       "gemini",
+       "chatgpt"
+      ]
+     },
+     "flow_api": {
+      "driver": "v2",
+      "v2_enabled": true,
+      "v2_generation_transport": "fetch_request",
+      "v2_upload_enabled": true,
+      "v2_canary_percent": 0,
+      "v2_surfaces": [
+       "gen",
+       "task",
+       "workflow"
+      ],
+      "v2_media_types": [
+       "image",
+       "video"
+      ],
+      "auto_primary": "v2",
+      "auto_fallback": "v1",
+      "v2_config_revision": 1
+     }
+    },
+    "cached_at": "2026-11-05T18:01:05+00:00",
+    "meta": {
+     "access": {
+      "contract": "device-v1",
+      "user_id": 16624,
+      "client_id": "34b3e25129e0dbe117aac8edd296a186",
+      "product_id": 1,
+      "key_id": "ffa531694d18673be4d55197df9a7b708d98ef206eb18d3b39954cb539d5eaa8",
+      "key_revision": 1,
+      "authorization_ttl_sec": 300
+     }
+    }
+   }
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:01:07.061Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:01:15+00:00"
+    }
+   }
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:01:20.770Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/telegram/executor-heartbeat",
+   "mime": "application/json",
+   "size": 49,
+   "req_json": {
+    "queue_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html"
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "active_extended": false
+    }
+   }
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:01:20.774Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "c9999abc-2e4f-4156-8f97-47396aaea02c",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:01:37.059Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:01:46+00:00"
+    }
+   }
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:01:45.508Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 60,
+   "req_json": {
+    "events": [
+     {
+      "event": "gen_start",
+      "metadata": {
+       "prompt_count": 1,
+       "has_ref": false,
+       "pipeline": true
+      },
+      "timestamp": "2026-11-05T18:00:57.045Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "job_admitted",
+       "job_hash": "session:fc039bd1",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "expected": 1,
+       "prompts": 1
+      },
+      "timestamp": "2026-11-05T18:00:57.288Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "observer_preflight",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:57.377Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "text_insert",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.349Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "editor_verified",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.856Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "snapshot",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.870Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "reference_final_verify",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.874Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_armed",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "surface": "gen",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.884Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "arm",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.884Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "journal",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.887Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "verify_passed",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.914Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_presubmit_verified",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:58.914Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "click_ack",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:00:59.428Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_request_seen",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:00.032Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "pending_owners_observed",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:05.948Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_response_seen",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:05.949Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_poll_seen",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:10.120Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_poll_seen",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:45.505Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "pending_owners_observed",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:45.505Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_result_seen",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:45.505Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 20,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:01:45.536Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/execution/complete",
+   "mime": "application/json",
+   "size": 61,
+   "req_json": {
+    "token": "tok_[REDACTED]",
+    "status": "success"
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "status": "success",
+     "refund_count": 0
+    }
+   }
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:01:45.755Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/entitlements",
+   "mime": "application/json",
+   "size": 12735,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "plan": {
+      "slug": "free",
+      "name": "Free",
+      "expires_at": null
+     },
+     "features": {
+      "gen_enabled": {
+       "key": "gen_enabled",
+       "name": "Generate Module",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "tasks_enabled": {
+       "key": "tasks_enabled",
+       "name": "Tasks Module",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "workflows_enabled": {
+       "key": "workflows_enabled",
+       "name": "Workflows Module",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "angles_enabled": {
+       "key": "angles_enabled",
+       "name": "Angles Module",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_templates_enabled": {
+       "key": "prompt_templates_enabled",
+       "name": "Prompt Templates",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "workflow_templates_enabled": {
+       "key": "workflow_templates_enabled",
+       "name": "Workflow Templates",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "history_enabled": {
+       "key": "history_enabled",
+       "name": "Generation History",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "premium_templates": {
+       "key": "premium_templates",
+       "name": "Premium Templates Access",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "gen_run_max": {
+       "key": "gen_run_max",
+       "name": "Generate Runs Per Day",
+       "type": "quota",
+       "category": "core",
+       "value": "20",
+       "has_override": false,
+       "used_today": 3,
+       "usage_today": 3,
+       "limit": 20,
+       "remaining": 17
+      },
+      "tasks_run_max": {
+       "key": "tasks_run_max",
+       "name": "Task Runs Per Day",
+       "type": "quota",
+       "category": "core",
+       "value": "15",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 15,
+       "remaining": 15
+      },
+      "workflows_run_max": {
+       "key": "workflows_run_max",
+       "name": "Workflow Runs Per Day",
+       "type": "quota",
+       "category": "core",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "angles_run_max": {
+       "key": "angles_run_max",
+       "name": "Angles Runs Per Day",
+       "type": "quota",
+       "category": "advanced",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "effects_enabled": {
+       "key": "effects_enabled",
+       "name": "Image Effects",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "effects_run_max": {
+       "key": "effects_run_max",
+       "name": "Image Effects Runs Per Day",
+       "type": "quota",
+       "category": "advanced",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "image_remove_watermark_enabled": {
+       "key": "image_remove_watermark_enabled",
+       "name": "Image Post-Processing",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "video_remove_watermark_enabled": {
+       "key": "video_remove_watermark_enabled",
+       "name": "Video Post-Processing",
+       "type": "boolean",
+       "category": "advanced",
+       "value": null,
+       "has_override": false
+      },
+      "prompts_per_batch": {
+       "key": "prompts_per_batch",
+       "name": "Prompts Per Batch",
+       "type": "quota",
+       "category": "core",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "gen_batch_queue_max": {
+       "key": "gen_batch_queue_max",
+       "name": "Queued Flow Batches Per Project",
+       "type": "quota",
+       "category": "core",
+       "value": "3",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 3,
+       "remaining": 3
+      },
+      "tasks_max": {
+       "key": "tasks_max",
+       "name": "Maximum Tasks",
+       "type": "quota",
+       "category": "core",
+       "value": "2",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 2,
+       "remaining": 2
+      },
+      "workflows_max": {
+       "key": "workflows_max",
+       "name": "Maximum Workflows",
+       "type": "quota",
+       "category": "core",
+       "value": "2",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 2,
+       "remaining": 2
+      },
+      "workflows_nodes_max": {
+       "key": "workflows_nodes_max",
+       "name": "Maximum Workflow Nodes",
+       "type": "quota",
+       "category": "core",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "snippets_max": {
+       "key": "snippets_max",
+       "name": "Maximum Snippets",
+       "type": "quota",
+       "category": "core",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "workflow_share_enabled": {
+       "key": "workflow_share_enabled",
+       "name": "Workflow Sharing",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "history_max": {
+       "key": "history_max",
+       "name": "Maximum History Records",
+       "type": "quota",
+       "category": "core",
+       "value": "20",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 20,
+       "remaining": 20
+      },
+      "workflow_import": {
+       "key": "workflow_import",
+       "name": "Workflow Import",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "workflow_export": {
+       "key": "workflow_export",
+       "name": "Workflow Export",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "addon_prompt_enabled": {
+       "key": "addon_prompt_enabled",
+       "name": "Custom Style Prompts",
+       "type": "boolean",
+       "category": "core",
+       "value": "0",
+       "has_override": false
+      },
+      "addon_prompt_max": {
+       "key": "addon_prompt_max",
+       "name": "Maximum Custom Styles",
+       "type": "quota",
+       "category": "core",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "flow_api_enabled": {
+       "key": "flow_api_enabled",
+       "name": "API Flow Mode",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "auto_download": {
+       "key": "auto_download",
+       "name": "Auto Download",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "retry_on_fail": {
+       "key": "retry_on_fail",
+       "name": "Retry on Fail",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "ref_images": {
+       "key": "ref_images",
+       "name": "Reference Images",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "pipeline_queue_enabled": {
+       "key": "pipeline_queue_enabled",
+       "name": "Pipeline Queue",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_submit_max": {
+       "key": "prompt_submit_max",
+       "name": "Prompt Submit Limit",
+       "type": "quota",
+       "category": "core",
+       "value": "100",
+       "has_override": false,
+       "used_today": 3,
+       "usage_today": 3,
+       "limit": 100,
+       "remaining": 97
+      },
+      "agent_bot_enabled": {
+       "key": "agent_bot_enabled",
+       "name": "AI Agent / Bot",
+       "type": "boolean",
+       "category": "agent",
+       "value": "1",
+       "has_override": false
+      },
+      "telegram_enabled": {
+       "key": "telegram_enabled",
+       "name": "Telegram Bot",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "telegram_rate_hour": {
+       "key": "telegram_rate_hour",
+       "name": "Telegram Rate/Hour",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "telegram_rate_day": {
+       "key": "telegram_rate_day",
+       "name": "Telegram Rate/Day",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "telegram_queue_max": {
+       "key": "telegram_queue_max",
+       "name": "Telegram Queue Max",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "telegram_ref_image": {
+       "key": "telegram_ref_image",
+       "name": "Telegram Ref Image",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "telegram_workflow": {
+       "key": "telegram_workflow",
+       "name": "Telegram Workflow",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "telegram_custom_bot": {
+       "key": "telegram_custom_bot",
+       "name": "Telegram Custom Bot",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "gemini_ref_images": {
+       "key": "gemini_ref_images",
+       "name": "Gemini Reference Images",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "chatgpt_enabled": {
+       "key": "chatgpt_enabled",
+       "name": "ChatGPT Provider",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "grok_enabled": {
+       "key": "grok_enabled",
+       "name": "Grok Module",
+       "type": "boolean",
+       "category": "grok",
+       "value": "1",
+       "has_override": false
+      },
+      "muse_ref_images": {
+       "key": "muse_ref_images",
+       "name": "Muse Reference Images",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "chatgpt_run_max": {
+       "key": "chatgpt_run_max",
+       "name": "ChatGPT Runs Per Day",
+       "type": "quota",
+       "category": "chat_ai",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "grok_run_max": {
+       "key": "grok_run_max",
+       "name": "Grok Generate Runs Per Day",
+       "type": "quota",
+       "category": "grok",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "chatgpt_ref_images": {
+       "key": "chatgpt_ref_images",
+       "name": "ChatGPT Reference Images",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "gemini_enabled": {
+       "key": "gemini_enabled",
+       "name": "Gemini Provider",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "gemini_run_max": {
+       "key": "gemini_run_max",
+       "name": "Gemini Runs Per Day",
+       "type": "quota",
+       "category": "chat_ai",
+       "value": "15",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 15,
+       "remaining": 15
+      },
+      "prompt_node_enabled": {
+       "key": "prompt_node_enabled",
+       "name": "Prompt Node",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_enhancer_enabled": {
+       "key": "prompt_enhancer_enabled",
+       "name": "Prompt Enhancer (Legacy)",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "0",
+       "has_override": false
+      },
+      "ai_agent_enabled": {
+       "key": "ai_agent_enabled",
+       "name": "AI Agent",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "0",
+       "has_override": false
+      },
+      "i2p_enabled": {
+       "key": "i2p_enabled",
+       "name": "Image to Prompt",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_assistant_enabled": {
+       "key": "prompt_assistant_enabled",
+       "name": "Prompt Assistant",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "mcp_enabled": {
+       "key": "mcp_enabled",
+       "name": "MCP AI Integration",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "muse_enabled": {
+       "key": "muse_enabled",
+       "name": "Muse Module",
+       "type": "boolean",
+       "category": "muse",
+       "value": "1",
+       "has_override": false
+      },
+      "chatgpt_mcp_enabled": {
+       "key": "chatgpt_mcp_enabled",
+       "name": "MCP via ChatGPT",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "muse_run_max": {
+       "key": "muse_run_max",
+       "name": "Muse Runs Per Day",
+       "type": "quota",
+       "category": "muse",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "grok_mcp_enabled": {
+       "key": "grok_mcp_enabled",
+       "name": "MCP via Grok",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "muse_mcp_enabled": {
+       "key": "muse_mcp_enabled",
+       "name": "MCP via Muse",
+       "type": "boolean",
+       "category": "muse",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_rate_hour": {
+       "key": "mcp_rate_hour",
+       "name": "MCP Rate/Hour",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_rate_day": {
+       "key": "mcp_rate_day",
+       "name": "MCP Rate/Day",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_queue_max": {
+       "key": "mcp_queue_max",
+       "name": "MCP Queue Max",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_max_tokens": {
+       "key": "mcp_max_tokens",
+       "name": "MCP Max Tokens",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_workflow_enabled": {
+       "key": "mcp_workflow_enabled",
+       "name": "MCP Create Workflow",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_workflow_create_rate_day": {
+       "key": "mcp_workflow_create_rate_day",
+       "name": "MCP Workflow Create/Day",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "gemini_mcp_enabled": {
+       "key": "gemini_mcp_enabled",
+       "name": "MCP via Gemini",
+       "type": "boolean",
+       "category": "mcp",
+       "value": "0",
+       "has_override": false
+      },
+      "grok_telegram_enabled": {
+       "key": "grok_telegram_enabled",
+       "name": "Grok Telegram Module",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "grok_telegram_rate_hour": {
+       "key": "grok_telegram_rate_hour",
+       "name": "Grok Telegram Limit Per Hour",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "grok_telegram_rate_day": {
+       "key": "grok_telegram_rate_day",
+       "name": "Grok Telegram Limit Per Day",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "motion_tool_enabled": {
+       "key": "motion_tool_enabled",
+       "name": "Motion Studio",
+       "type": "boolean",
+       "category": "advanced",
+       "value": null,
+       "has_override": false
+      },
+      "motion_tool_max": {
+       "key": "motion_tool_max",
+       "name": "Maximum Motion Projects",
+       "type": "quota",
+       "category": "advanced",
+       "value": null,
+       "has_override": false
+      },
+      "api_rate_limit_per_minute": {
+       "key": "api_rate_limit_per_minute",
+       "name": "API Rate Limit (per minute)",
+       "type": "quota",
+       "category": "limits",
+       "value": "3000",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 3000,
+       "remaining": 3000
+      },
+      "workflow_execution_history_max": {
+       "key": "workflow_execution_history_max",
+       "name": "Workflow Execution History Max",
+       "type": "quota",
+       "category": "limits",
+       "value": "20",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 20,
+       "remaining": 20
+      },
+      "extension_device_max": {
+       "key": "extension_device_max",
+       "name": "Extension Devices",
+       "type": "quota",
+       "category": "limits",
+       "value": "1",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 1,
+       "remaining": 1
+      }
+     },
+     "email_verified": true
+    },
+    "meta": {
+     "version": 1
+    }
+   }
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:01:45.757Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 59,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:45.518Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "item_terminal",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "state": "COMPLETED",
+       "duration_ms": 46614,
+       "output_count": 1,
+       "prompt_index": 0,
+       "retry_count": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:45.529Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 2,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:01:46.095Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 59,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:01:45.885Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 1,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:01:46.100Z",
+   "method": "GET",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/tools/motion-studio/projects?[query-stripped]",
+   "mime": "application/json",
+   "size": 104,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "MOTION_ENTITLEMENT_DENIED",
+     "message": "Motion Studio is unavailable."
+    }
+   }
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:01:57.048Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 59,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:4561db53",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 1
+      },
+      "timestamp": "2026-11-05T18:01:51.619Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "job_terminal",
+       "job_hash": "session:fc039bd1",
+       "mode": "web",
+       "duration_ms": 54568,
+       "output_count": 1,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 1,
+       "prompts": 1
+      },
+      "timestamp": "2026-11-05T18:01:51.620Z"
+     },
+     {
+      "event": "gen_complete",
+      "metadata": {
+       "success_count": 1,
+       "fail_count": 0
+      },
+      "timestamp": "2026-11-05T18:01:51.623Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 3,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:02:01.627Z",
+   "method": "POST",
+   "status": 201,
+   "url": "https://labs.toby.vn/api/v1/history",
+   "mime": "application/json",
+   "size": 3104,
+   "req_json": {
+    "prompt": "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+    "media_type": "Video",
+    "model": "Veo 3.1 - Lite",
+    "ratio": "9:16",
+    "prompt_count": 1,
+    "quantity": 1,
+    "ref_file_ids": "",
+    "ref_thumbnails": {},
+    "ref_flow_file_ids": [],
+    "result_file_ids": "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+    "result_flow_file_ids": [],
+    "result_thumbnails": [
+     {
+      "file_name": "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A",
+      "media_uuid": "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      "thumbnail": "https://flow.google.com/asb/[REDACTED-signed]",
+      "source_thumbnail": "https://flow.google.com/asb/[REDACTED-signed]",
+      "video_url": "https://flow.google.com/asb/[REDACTED-signed]",
+      "thumb_is_poster": true,
+      "type": "video",
+      "phaseRDownloadName": "tobyflow_output/tobyflow-01/001_A_paper_kite_floats_slowly_across_a_pale_2026-11-05.mp4",
+      "phaseROutputIndex": 0,
+      "playback_url_source": "configured_transform",
+      "persistent_media_id": "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A",
+      "identity_durability": "durable",
+      "display_name": "Paper kite floats across sky",
+      "identity_aliases": [
+       "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+       "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A"
+      ],
+      "image_url": null,
+      "identity_kind": "flow-v2-asb"
+     }
+    ],
+    "result_file_names": {
+     "5a2522f2-8722-4b4f-a329-16fb2fa284e4": "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A"
+    },
+    "source": "gen",
+    "source_context": null,
+    "submit_mode": "auto",
+    "source_id": "",
+    "status": "success",
+    "error_reason": null,
+    "duration_ms": 54568,
+    "stop_origin": null,
+    "error_details": [],
+    "diagnostics": {
+     "version": 2,
+     "summary": {
+      "total": 1,
+      "completed": 1,
+      "failed": 0,
+      "partial": 0,
+      "cancelled": 0,
+      "unfinished": 0
+     },
+     "failedPromptCount": 0,
+     "omittedFailedPrompts": 0,
+     "runContext": {
+      "surface": "gen",
+      "batchId": null,
+      "runId": "05357a22-091a-489e-b673-2038bb148d8f",
+      "batchName": null,
+      "runAction": "GEN_TAB_RUN",
+      "stopSource": null,
+      "runMode": "parallel",
+      "usePreviousResultAsReference": false,
+      "useLastFrame": false
+     },
+     "firstDecision": null,
+     "failures": [],
+     "firstError": null,
+     "droppedEvents": 0,
+     "events": []
+    },
+    "provider": "flow",
+    "gen_mode": "web",
+    "flow_api_version": null,
+    "initial_gen_mode": "web",
+    "fallback_reason": null,
+    "bridge_version": null,
+    "project_id": "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+    "auto_download": true
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "provider": "flow",
+     "prompt": "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+     "media_type": "Video",
+     "model": "Veo 3.1 - Lite",
+     "ratio": "9:16",
+     "prompt_count": 1,
+     "quantity": 1,
+     "ref_file_ids": null,
+     "ref_thumbnails": [],
+     "result_file_ids": "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+     "result_thumbnails": [
+      {
+       "file_name": "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A",
+       "media_uuid": "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+       "thumbnail": "https://flow.google.com/asb/[REDACTED-signed]",
+       "source_thumbnail": "https://flow.google.com/asb/[REDACTED-signed]",
+       "video_url": "https://flow.google.com/asb/[REDACTED-signed]",
+       "thumb_is_poster": true,
+       "type": "video",
+       "phaseRDownloadName": "tobyflow_output/tobyflow-01/001_A_paper_kite_floats_slowly_across_a_pale_2026-11-05.mp4",
+       "phaseROutputIndex": 0,
+       "playback_url_source": "configured_transform",
+       "persistent_media_id": "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A",
+       "identity_durability": "durable",
+       "display_name": "Paper kite floats across sky",
+       "identity_aliases": [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "ANqvLOZhVUjX_jLSq0cOqlYMJMZVvA7_cgXqHTiZmM_MsT0AyESb_rfONZt7lXuQF-XOmI0_nwOQ4l9A0aDWJBqOMNHeT_I82LPXQDylyMkEziVckedJAtiTI07w8znpra-P6GwifcL5ZCp7QvxEiS_dTZ-7AiRQERkqKL6PlwhQ2A"
+       ],
+       "image_url": null,
+       "identity_kind": "flow-v2-asb"
+      }
+     ],
+     "source": "gen",
+     "source_context": null,
+     "submit_mode": "auto",
+     "source_id": null,
+     "status": "success",
+     "error_reason": null,
+     "error_details": [],
+     "diagnostics": {
+      "version": 2,
+      "summary": {
+       "total": 1,
+       "completed": 1,
+       "failed": 0,
+       "partial": 0,
+       "cancelled": 0,
+       "unfinished": 0
+      },
+      "failedPromptCount": 0,
+      "omittedFailedPrompts": 0,
+      "runContext": {
+       "surface": "gen",
+       "batchId": null,
+       "runId": "05357a22-091a-489e-b673-2038bb148d8f",
+       "batchName": null,
+       "runAction": "GEN_TAB_RUN",
+       "stopSource": null,
+       "runMode": "parallel",
+       "usePreviousResultAsReference": false,
+       "useLastFrame": false
+      },
+      "firstDecision": null,
+      "failures": [],
+      "firstError": null,
+      "droppedEvents": 0,
+      "events": []
+     },
+     "duration_ms": 54568,
+     "stop_origin": null,
+     "gen_mode": "web",
+     "flow_api_version": null,
+     "bridge_version": null,
+     "initial_gen_mode": "web",
+     "fallback_reason": null,
+     "project_id": "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+     "ref_flow_file_ids": [],
+     "result_flow_file_ids": [],
+     "auto_download": true,
+     "app_version": "1.3.142",
+     "extension_client_id": 36609,
+     "product_id": 1,
+     "product_slug": "tobyflow",
+     "user_id": 16624,
+     "created_at": "2026-11-05T18:02:10.000000Z",
+     "id": 2661
+    }
+   }
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:02:05.771Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/telegram/executor-heartbeat",
+   "mime": "application/json",
+   "size": 49,
+   "req_json": {
+    "queue_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html"
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "active_extended": false
+    }
+   }
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:02:05.773Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "861087f5-0fbe-4c10-830e-55f105444df4",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:02:07.060Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:02:15+00:00"
+    }
+   }
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T18:02:07.775Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/notifications/unread-count",
+   "mime": "application/json",
+   "size": 35,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "count": 0
+    }
+   }
+  }
+ ]
+}

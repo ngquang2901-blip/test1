@@ -1,0 +1,422 @@
+{
+  "observed_at": "2026-11-04T18:30:16.564Z",
+  "extension_version": "1.3.138",
+  "source": "CDP Runtime.evaluate, read existing ProviderConfigManager memory after normal sidebar boot",
+  "plan": "free",
+  "data": {
+    "ratios": {
+      "image": [
+        "16:9",
+        "4:3",
+        "1:1",
+        "3:4",
+        "9:16"
+      ],
+      "video": [
+        "16:9",
+        "9:16"
+      ]
+    },
+    "download_resolutions": {
+      "image": [
+        {
+          "value": "1k",
+          "label": "1K",
+          "menu_label": "1K",
+          "pixel_width": 1024,
+          "route": "native"
+        },
+        {
+          "value": "2k",
+          "label": "2K",
+          "menu_label": "2K",
+          "pixel_width": 2048,
+          "route": "upscale"
+        },
+        {
+          "value": "4k",
+          "label": "4K (Ultra)",
+          "menu_label": "4K",
+          "pixel_width": 4096,
+          "route": "upscale"
+        }
+      ],
+      "video": [
+        {
+          "value": "360p",
+          "label": "360p",
+          "menu_label": "360p",
+          "route": "native"
+        },
+        {
+          "value": "720p",
+          "label": "720p",
+          "menu_label": "720p",
+          "route": "native"
+        },
+        {
+          "value": "1080p",
+          "label": "1080p",
+          "menu_label": "1080p",
+          "route": "upscale"
+        },
+        {
+          "value": "4k",
+          "label": "4K (Ultra)",
+          "menu_label": "4K",
+          "route": "upscale"
+        }
+      ],
+      "image_fallback_chain": [
+        "4K",
+        "2K",
+        "1K"
+      ],
+      "video_fallback_chain": [
+        "4K",
+        "1080p",
+        "720p",
+        "360p"
+      ]
+    },
+    "max_ref_images": {
+      "image": 10,
+      "video_ingredients": 5
+    },
+    "supports": {
+      "ratio": true,
+      "quantity": true,
+      "video": true,
+      "ref_image": true,
+      "auto_download": true,
+      "humanized": true,
+      "image_mode": false
+    },
+    "urls": {
+      "base": "https://flow.google.com",
+      "tab_query_patterns": [
+        "https://flow.google.com/*"
+      ],
+      "tab_query": "https://flow.google.com/*",
+      "create_url": "https://flow.google.com/"
+    },
+    "image_url_pattern": {
+      "url_substring": "getMediaUrlRedirect",
+      "uuid_regex": "^[a-f0-9-]{8,}$",
+      "known_routes": [
+        "/fx/api/trpc/media.getMediaUrlRedirect"
+      ],
+      "description": "Flow tRPC route serving generated media. URL format: /fx/api/trpc/media.getMediaUrlRedirect?name=UUID hoặc ?input={\"json\":{\"name\":\"UUID\"}}"
+    },
+    "radix_trigger_button_pattern": "button[id$=\"-trigger-{suffix}\"]",
+    "quantity_range": {
+      "min": 1,
+      "max": 4
+    },
+    "video_durations": {
+      "default": [
+        "4s",
+        "6s",
+        "8s"
+      ],
+      "advanced": [
+        "4s",
+        "6s",
+        "8s",
+        "10s"
+      ],
+      "fixed": [
+        "8s"
+      ]
+    },
+    "error_patterns": {
+      "upload_blocked_text": "we do not allow|do not allow uploads|sexual content|inappropriate|prohibited|not allowed|violat|unsafe|không cho phép|không phù hợp|Unsupported image format",
+      "captcha_text": "hoạt động bất thường|unusual activity|unusual traffic|detected unusual",
+      "rate_limit_text": "tốc độ yêu cầu|quá nhanh|too fast|too many requests|thử lại sau vài phút|đang bị quá tải|overloaded",
+      "quota_text": "đạt đến hạn mức|hết hạn mức|quota|quay lại vào ngày mai|usage limit|reached your limit",
+      "policy_text": "người nổi tiếng|nội dung gây hại|không tạo được nội dung bạn yêu cầu|bên thứ ba|prominent people|harmful content",
+      "recovery_codes": {
+        "policy": [
+          "SEXUALLY_EXPLICIT",
+          "CHILD_SAFETY"
+        ]
+      },
+      "image_load_failed_text": "Failed to load image."
+    },
+    "chain_config": {
+      "enabled": true,
+      "batch_sections_enabled": true,
+      "recovery_enabled": true,
+      "image_enabled": true,
+      "video_enabled": true,
+      "image_web_chain_enabled": true,
+      "video_web_chain_enabled": true,
+      "max_image_segments": 300,
+      "max_video_segments": 300,
+      "warning_segments": 10,
+      "estimated_seconds_per_image": 45,
+      "estimated_seconds_per_video": 180,
+      "checkpoint_ttl_minutes": 480,
+      "history_max_sessions": 10,
+      "history_max_projects": 5,
+      "history_max_items_per_session": 200
+    },
+    "flow_home_url": "https://labs.google/fx/tools/flow",
+    "tab_url_patterns": [
+      "https://labs.google/fx/*"
+    ],
+    "project_url_patterns": [
+      "https://labs.google/fx/tools/flow/project/*"
+    ],
+    "project_id_regex": "^https://labs\\.google/fx/tools/flow/project/([^/?#]+)",
+    "execution_policy": {
+      "default_mode": "api",
+      "dom_fallback_enabled": true,
+      "fallback_on": [
+        "server_unavailable",
+        "captcha_failed",
+        "media_expired"
+      ],
+      "never_fallback_on": [
+        "quota_exceeded",
+        "content_blocked",
+        "tier_restricted",
+        "schema_changed",
+        "unknown_submission",
+        "unknown"
+      ],
+      "voice_not_found": "fail_item",
+      "character_not_found": "fail_item"
+    },
+    "api_runtime_limits": {
+      "request_timeout_ms": 30000,
+      "operation_deadline_ms": 900000,
+      "poll_interval_ms": 5000,
+      "upload_concurrency_min": 1,
+      "upload_concurrency_max": 3,
+      "pacing_ms": 350,
+      "retry_max_attempts": 3,
+      "retry_base_delay_ms": 1000,
+      "retry_max_delay_ms": 10000,
+      "dom_poll_interval_ms": 200,
+      "component_search_max_scrolls": 40,
+      "component_scroll_step_px": 320
+    },
+    "reference_assignment_modes": {
+      "allowed": [
+        "all",
+        "mention",
+        "sequential",
+        "none"
+      ],
+      "default": "all"
+    },
+    "video_reference_limits": {
+      "Frames": 2
+    },
+    "dom_ratio_suffix_mapping": {
+      "9:16": "PORTRAIT",
+      "16:9": "LANDSCAPE",
+      "1:1": "SQUARE",
+      "4:3": "LANDSCAPE_4_3",
+      "3:4": "PORTRAIT_3_4"
+    },
+    "dom_quantity_max": 4,
+    "video_status_aliases": {
+      "success": [
+        "MEDIA_GENERATION_STATUS_SUCCESSFUL"
+      ],
+      "failure": [
+        "MEDIA_GENERATION_STATUS_FAILED"
+      ]
+    },
+    "tracker_policy": {
+      "ttl_hours": 168,
+      "max_records": 200
+    },
+    "realtime_policy": {
+      "poll_interval_ms": 30000
+    },
+    "flow_v2_driver": {
+      "enabled": true,
+      "messages": {
+        "vi": {
+          "title": "Flow V2 đang tạm dừng",
+          "desc": "Quản trị viên đã tạm dừng Flow V2. Vui lòng thử lại sau.",
+          "retry": "Thử lại"
+        },
+        "en": {
+          "title": "Flow V2 is paused",
+          "desc": "The administrator has temporarily paused Flow V2. Please try again later.",
+          "retry": "Retry"
+        },
+        "ja": {
+          "title": "Flow V2 は一時停止中です",
+          "desc": "管理者が Flow V2 を一時停止しました。後でもう一度お試しください。",
+          "retry": "再試行"
+        },
+        "th": {
+          "title": "Flow V2 หยุดชั่วคราว",
+          "desc": "ผู้ดูแลระบบหยุด Flow V2 ชั่วคราว โปรดลองอีกครั้งภายหลัง",
+          "retry": "ลองอีกครั้ง"
+        }
+      }
+    },
+    "flow_v2_web_correlation": {
+      "schema_version": 1,
+      "observation_only": false,
+      "allowed_surfaces": [
+        "gen",
+        "task",
+        "workflow"
+      ],
+      "allowed_media_types": [
+        "image",
+        "video"
+      ],
+      "parallel_surfaces": [
+        "gen",
+        "task",
+        "workflow"
+      ],
+      "parallel_media_types": [
+        "video",
+        "image"
+      ],
+      "parallel_max_quantity": {
+        "image": 16,
+        "video": 16
+      },
+      "max_active_operations": 16,
+      "observer_ack_timeout_ms": 10000,
+      "receipt_timeout_ms": 90000,
+      "attempt_ttl_ms": 900000,
+      "request_bind_timeout_ms": 300000
+    },
+    "native_project_media_identity": {
+      "version": 1,
+      "enabled": true,
+      "collection_path": [
+        2
+      ],
+      "uuid_path": [
+        0
+      ],
+      "project_path": [
+        1
+      ],
+      "generation_path": [
+        2
+      ],
+      "details_path": [
+        5
+      ],
+      "media_types": [
+        {
+          "type": "video",
+          "rules": [
+            {
+              "all": [
+                {
+                  "path": [
+                    7,
+                    1,
+                    0
+                  ],
+                  "kind": "positive_integer"
+                },
+                {
+                  "path": [
+                    7,
+                    1,
+                    1
+                  ],
+                  "kind": "positive_integer"
+                }
+              ]
+            },
+            {
+              "all": [
+                {
+                  "path": [
+                    5,
+                    6,
+                    1,
+                    0,
+                    0
+                  ],
+                  "kind": "string"
+                },
+                {
+                  "path": [
+                    5,
+                    8,
+                    0
+                  ],
+                  "kind": "integer"
+                }
+              ]
+            }
+          ],
+          "asb_url_paths": [
+            [
+              5,
+              5
+            ],
+            [
+              5,
+              10
+            ],
+            [
+              7,
+              4,
+              2
+            ]
+          ]
+        },
+        {
+          "type": "image",
+          "rules": [
+            {
+              "all": [
+                {
+                  "path": [
+                    6,
+                    2
+                  ],
+                  "kind": "positive_integer_pair"
+                }
+              ]
+            }
+          ],
+          "asb_url_paths": [
+            [
+              5,
+              5
+            ],
+            [
+              5,
+              10
+            ],
+            [
+              6,
+              0,
+              13
+            ],
+            [
+              6,
+              1,
+              3
+            ]
+          ]
+        }
+      ]
+    },
+    "flow_v2_observer_transport": {
+      "version": 1,
+      "paths": [
+        "/_/AiSandboxAngularFrontend/data/batchexecute"
+      ]
+    }
+  }
+}

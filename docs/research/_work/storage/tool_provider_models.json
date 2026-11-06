@@ -1,0 +1,529 @@
+{
+ "data": [
+  {
+   "config": {
+    "dom_aliases": [
+     "Omni 1.1 Flash",
+     "Omni Flash 1.1",
+     "Omni Flash"
+    ],
+    "duration_overrides": [
+     {
+      "force_duration": "10s",
+      "reason": "Omni Flash + ref video → 10s",
+      "when": {
+       "has_ref_video": true
+      }
+     }
+    ],
+    "duration_tier": "advanced",
+    "generation_resolutions": {
+     "default": "720p",
+     "enabled": true,
+     "options": [
+      {
+       "api_model_key_suffix": "_360p",
+       "api_value": "VIDEO_RESOLUTION_360P",
+       "dom_value": "VIDEO_RESOLUTION_360P",
+       "label": "360p",
+       "value": "360p"
+      },
+      {
+       "api_value": "VIDEO_RESOLUTION_720P",
+       "dom_value": "VIDEO_RESOLUTION_720P",
+       "label": "720p",
+       "value": "720p"
+      }
+     ]
+    },
+    "max_ref_images": {
+     "image": 7,
+     "total": 7,
+     "video": 1
+    },
+    "supports_character": true,
+    "supports_frames": true,
+    "supports_ref_video": true,
+    "supports_voice": true
+   },
+   "description": "Latest Gemini video model. Supports 10s clips, Frames, Ingredients, audio, image refs.",
+   "id": 6,
+   "is_default": true,
+   "is_premium": false,
+   "media_type": "video",
+   "min_extension_version": null,
+   "name": "Omni 1.1 Flash",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 0,
+   "value": "Omni 1.1 Flash"
+  },
+  {
+   "config": {
+    "dom_aliases": [
+     "Nano Banana 2"
+    ],
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 0
+    },
+    "supports_character": true
+   },
+   "description": "Nano Banana 2.1",
+   "id": 2,
+   "is_default": true,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "🍌 Nano Banana 2.1",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 1,
+   "value": "Nano Banana 2.1"
+  },
+  {
+   "config": {
+    "duration_overrides": [
+     {
+      "force_duration": "8s",
+      "reason": "Có ref → auto bump 8s",
+      "when": {
+       "has_ref": true
+      }
+     }
+    ],
+    "duration_tier": "default",
+    "max_ref_images": {
+     "image": 3,
+     "video": 0
+    },
+    "ref_support_overrides": [
+     {
+      "supported": false,
+      "when": {
+       "input_type": "Ingredients"
+      }
+     }
+    ],
+    "supports_character": true,
+    "supports_frames": true,
+    "supports_ref_video": false,
+    "supports_voice": true
+   },
+   "description": "Lite version, lower quality nhưng nhanh hơn",
+   "id": 4,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "video",
+   "min_extension_version": null,
+   "name": "Veo 3.1 - Lite",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 1,
+   "value": "Veo 3.1 - Lite"
+  },
+  {
+   "config": null,
+   "description": "GPT-5.5 Instant — gen ảnh nhanh (mặc định)",
+   "id": 8,
+   "is_default": true,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "Instant",
+   "provider": "chatgpt",
+   "required_feature_key": null,
+   "sort_order": 1,
+   "value": "Instant"
+  },
+  {
+   "config": {
+    "dom_identity": {
+     "name_pattern": "^(?:Gemini\\s+)?(?:[0-9]+(?:\\.[0-9]+)*\\s+)?Flash$",
+     "text": "3.7 Flash"
+    },
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 1
+    },
+    "shared_media": [
+     "image",
+     "video"
+    ]
+   },
+   "description": "Gemini Flash shared model for image/video via bard mode menu.",
+   "id": 13,
+   "is_default": true,
+   "is_premium": false,
+   "media_type": "both",
+   "min_extension_version": null,
+   "name": "3.8 Flash",
+   "provider": "gemini",
+   "required_feature_key": null,
+   "sort_order": 1,
+   "value": "Flash"
+  },
+  {
+   "config": {
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 1
+    },
+    "shared_media": [
+     "image",
+     "video"
+    ]
+   },
+   "description": "Default Muse web generation engine for image and video.",
+   "id": 17,
+   "is_default": true,
+   "is_premium": false,
+   "media_type": "both",
+   "min_extension_version": null,
+   "name": "Spark 1.3",
+   "provider": "muse",
+   "required_feature_key": null,
+   "sort_order": 1,
+   "value": "spark"
+  },
+  {
+   "config": {
+    "max_ref_images": {
+     "image": 5
+    },
+    "shared_media": [
+     "image",
+     "video"
+    ],
+    "video_input_types": [
+     {
+      "label": "Ingredients",
+      "max_ref_images": 5,
+      "role_selectors": [
+       "ref_role_option"
+      ],
+      "value": "Ingredients"
+     },
+     {
+      "label": "Frames",
+      "max_ref_images": 2,
+      "role_selectors": [
+       "ref_role_first_frame",
+       "ref_role_last_frame"
+      ],
+      "value": "Frames"
+     }
+    ]
+   },
+   "description": "Grok Imagine web engine and reference-input capabilities.",
+   "id": 18,
+   "is_default": true,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "Grok Imagine",
+   "provider": "grok",
+   "required_feature_key": null,
+   "sort_order": 1,
+   "value": "grok-imagine"
+  },
+  {
+   "config": {
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 0
+    },
+    "supports_character": true
+   },
+   "description": "High quality image generation model from Google Flow",
+   "id": 1,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "🍌 Nano Banana Pro",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 2,
+   "value": "Nano Banana Pro"
+  },
+  {
+   "config": {
+    "duration_overrides": [
+     {
+      "force_duration": "8s",
+      "reason": "Có ref → auto bump 8s",
+      "when": {
+       "has_ref": true
+      }
+     }
+    ],
+    "duration_tier": "default",
+    "max_ref_images": {
+     "image": 3,
+     "video": 0
+    },
+    "ref_support_overrides": [
+     {
+      "supported": false,
+      "when": {
+       "input_type": "Ingredients"
+      }
+     }
+    ],
+    "supports_character": true,
+    "supports_frames": true,
+    "supports_ref_video": false,
+    "supports_voice": true
+   },
+   "description": "Fast video generation",
+   "id": 3,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "video",
+   "min_extension_version": null,
+   "name": "Veo 3.1 - Fast",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 2,
+   "value": "Veo 3.1 - Fast"
+  },
+  {
+   "config": null,
+   "description": "GPT-5.5 Thinking — suy luận sâu hơn, chậm hơn",
+   "id": 9,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "Medium",
+   "provider": "chatgpt",
+   "required_feature_key": null,
+   "sort_order": 2,
+   "value": "Medium"
+  },
+  {
+   "config": {
+    "dom_identity": {
+     "name_pattern": "^(?:Gemini\\s+)?(?:[0-9]+(?:\\.[0-9]+)*\\s+)?Pro$",
+     "text": "3.1 Pro"
+    },
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 1
+    },
+    "shared_media": [
+     "image",
+     "video"
+    ]
+   },
+   "description": "Gemini Pro shared model for image/video via bard mode menu.",
+   "id": 14,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "both",
+   "min_extension_version": null,
+   "name": "3.1 Pro",
+   "provider": "gemini",
+   "required_feature_key": null,
+   "sort_order": 2,
+   "value": "Pro"
+  },
+  {
+   "config": {
+    "duration_tier": "default",
+    "max_ref_images": {
+     "image": 2,
+     "video": 0
+    },
+    "ref_support_overrides": [
+     {
+      "reason": "Veo 3.1 Quality + Ingredients does not support reference images (Flow silently drops them)",
+      "supported": false,
+      "when": {
+       "input_type": "Ingredients"
+      }
+     }
+    ],
+    "supports_character": false,
+    "supports_frames": true,
+    "supports_ref_video": false,
+    "supports_voice": false
+   },
+   "description": "Highest quality, chậm hơn. Supports 4s/6s/8s durations.",
+   "id": 5,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "video",
+   "min_extension_version": null,
+   "name": "Veo 3.1 - Quality",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 3,
+   "value": "Veo 3.1 - Quality"
+  },
+  {
+   "config": {
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 0
+    }
+   },
+   "description": "Nano Banana 2 Lite",
+   "id": 10,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "🍌 Nano Banana 2 Lite",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 3,
+   "value": "Nano Banana 2 Lite"
+  },
+  {
+   "config": null,
+   "description": null,
+   "id": 11,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "High",
+   "provider": "chatgpt",
+   "required_feature_key": null,
+   "sort_order": 3,
+   "value": "High"
+  },
+  {
+   "config": {
+    "dom_identity": {
+     "name_pattern": "^(?:Gemini\\s+)?(?:[0-9]+(?:\\.[0-9]+)*\\s+)?Argon$",
+     "text": "4 Argon"
+    },
+    "max_ref_images": {
+     "image": 10,
+     "total": 10,
+     "video": 1
+    },
+    "shared_media": [
+     "image",
+     "video"
+    ]
+   },
+   "description": null,
+   "id": 19,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "both",
+   "min_extension_version": null,
+   "name": "4 Argon",
+   "provider": "gemini",
+   "required_feature_key": null,
+   "sort_order": 3,
+   "value": "Argon"
+  },
+  {
+   "config": {
+    "duration_overrides": [
+     {
+      "force_duration": "8s",
+      "reason": "Có ref → auto bump 8s",
+      "when": {
+       "has_ref": true
+      }
+     }
+    ],
+    "duration_tier": "default",
+    "max_ref_images": {
+     "image": 3,
+     "video": 0
+    },
+    "ref_support_overrides": [
+     {
+      "supported": false,
+      "when": {
+       "input_type": "Ingredients"
+      }
+     }
+    ],
+    "supports_character": true,
+    "supports_frames": true,
+    "supports_ref_video": false,
+    "supports_voice": true
+   },
+   "description": "Veo 3.1 - Lite [Lower Priority]",
+   "id": 7,
+   "is_default": false,
+   "is_premium": true,
+   "media_type": "video",
+   "min_extension_version": "1.1.4",
+   "name": "Veo 3.1 - Lite [Lower Priority]",
+   "provider": "flow",
+   "required_feature_key": null,
+   "sort_order": 4,
+   "value": "Veo 3.1 - Lite [Lower Priority]"
+  },
+  {
+   "config": null,
+   "description": "ChatGPT Extra High reasoning effort.",
+   "id": 20,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "Extra High",
+   "provider": "chatgpt",
+   "required_feature_key": null,
+   "sort_order": 4,
+   "value": "Extra High"
+  },
+  {
+   "config": null,
+   "description": "Pro",
+   "id": 12,
+   "is_default": false,
+   "is_premium": false,
+   "media_type": "image",
+   "min_extension_version": null,
+   "name": "Pro",
+   "provider": "chatgpt",
+   "required_feature_key": null,
+   "sort_order": 5,
+   "value": "Pro"
+  }
+ ],
+ "expiresAt": 1793817356117.0,
+ "fetchedAt": 1793813756117.0,
+ "meta": {
+  "access": {
+   "authorization_ttl_sec": 300,
+   "client_id": "<redacted>",
+   "contract": "device-v1",
+   "key_id": "<redacted>",
+   "key_revision": 1,
+   "product_id": 1,
+   "user_id": 16510
+  },
+  "version": 111
+ },
+ "scope": {
+  "audience": "https://labs.tool.vn/api/v1",
+  "auth_epoch": 76,
+  "authorization_ttl_sec": 300,
+  "authorized_at": 1793813756117.0,
+  "client_id": "<redacted>",
+  "contract": "device-v1",
+  "key_id": "<redacted>",
+  "key_revision": 1,
+  "product_id": 1,
+  "token_hash": "<redacted>",
+  "user_id": 16510
+ }
+}

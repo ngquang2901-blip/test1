@@ -1,0 +1,14 @@
+{
+  "name": "@toolflow/flow-protocol",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Parsers and error table for Google Flow web traffic (fixtures from spike 01).",
+  "exports": {
+    "./parse": "./src/parse.mjs",
+    "./errors": "./src/errors.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,4398 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "215415a6731e771f0592f05938ed43825cdff54b9b73beb6c8a163885ae5c4df",
+ "entries": 53,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:07:34.472Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:07:34.486Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/jpeg",
+   "size": 21365
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:07:34.487Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1030,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "d9ce2371-ec1e-4042-bdb2-c9899c055adf",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b5e945b5-8ebd-4bed-8e71-b9d0a0339bee",
+      null,
+      null,
+      [
+       [
+        1793901443,
+        684664000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        null,
+        null,
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]",
+       null,
+       null,
+       26053
+      ],
+      [
+       null,
+       [
+        null,
+        null,
+        null,
+        "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]",
+        0,
+        null,
+        "image/jpeg"
+       ],
+       [
+        720,
+        1280
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:07:34.571Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4844,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:07:34.843Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:07:34.844Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:07:34.847Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:07:34.851Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:07:34.854Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:07:34.856Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=MZZa6b",
+   "mime": "application/json",
+   "size": 1474,
+   "req": [
+    {
+     "rpc": "MZZa6b",
+     "args": [
+      [
+       [
+        [
+         null,
+         null,
+         [
+          [
+           [
+            "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+         ],
+         [
+          null,
+          "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+         ]
+        ],
+        "veo_3_1_r2v_fast_portrait",
+        1,
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         "246FBB4E-C2FF-4018-B1E2-16E8DEB6FE3D",
+         "179DEEE4-6287-4012-93DB-2BEFA37DE8D0"
+        ]
+       ]
+      ],
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2660]",
+        1
+       ]
+      ],
+      [
+       "D9BAA707-0E04-4333-896E-C3FBDA8FE7CA",
+       2
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "MZZa6b",
+     "data": [
+      null,
+      988,
+      [
+       [
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         "Red boat and icon on lake…",
+         [
+          1793902063,
+          557140000
+         ],
+         null,
+         null,
+         "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+         "D9BAA707-0E04-4333-896E-C3FBDA8FE7CA",
+         [
+          1793902066,
+          397975000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ],
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          6
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:07:34.865Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:07:35.543Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 26053
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:07:39.370Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1203,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:07:44.368Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1203,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:07:49.371Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1204,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:07:54.374Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1203,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:07:55.904Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 140,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_CONTEXT_MENU",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902053,
+          594000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_ACTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ADD_TO_PROMPT"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ADD_REFERENCE_INGREDIENT",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902053,
+          607000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "ADD_REFERENCE_INGREDIENT_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_TILE_REFERENCE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "FLOW_CONTEXT_MENU",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902053,
+          642000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_ACTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ADD_TO_PROMPT"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ADD_REFERENCE_INGREDIENT",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902053,
+          649000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "ADD_REFERENCE_INGREDIENT_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_TILE_REFERENCE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902054,
+          832000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "video"
+            ]
+           ]
+          ],
+          [
+           "AUDIO_FAILURE_PREFERENCE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"videoModelKey\":\"veo_3_1_r2v_fast_portrait\",\"aspectRatio\":1,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:07:59.378Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1203,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:08:04.383Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1204,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:08:09.383Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1275,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      988,
+      [
+       [
+        "ac1e94e5-3f15-40f2-93de-70f452a08e09",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "1db96575-cb55-4f8e-812a-cac13cd47ad9",
+        null,
+        null,
+        [
+         [
+          1793902063,
+          557140000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          4,
+          [
+           3,
+           "PUBLIC_ERROR_AUDIO_FILTERED"
+          ],
+          [
+           "AUDIO_GENERATION_FILTERED"
+          ],
+          [
+           1
+          ]
+         ],
+         4
+        ],
+        null,
+        [
+         [
+          null,
+          988081,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:08:10.042Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=nzlxg",
+   "mime": "application/json",
+   "size": 184,
+   "req": [
+    {
+     "rpc": "nzlxg",
+     "args": []
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "nzlxg",
+     "data": [
+      1008,
+      1,
+      2,
+      2,
+      null,
+      1008,
+      [
+       1795075087,
+       909787000
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:08:12.106Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:08:12.141Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=nzlxg",
+   "mime": "application/json",
+   "size": 185,
+   "req": [
+    {
+     "rpc": "nzlxg",
+     "args": []
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "nzlxg",
+     "data": [
+      1008,
+      1,
+      2,
+      2,
+      null,
+      1008,
+      [
+       1795075087,
+       909787000
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:08:12.218Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4801,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T18:08:12.571Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 25,
+   "t_utc": "2026-11-05T18:08:12.572Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 26,
+   "t_utc": "2026-11-05T18:08:12.577Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 27,
+   "t_utc": "2026-11-05T18:08:12.580Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 28,
+   "t_utc": "2026-11-05T18:08:12.583Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 29,
+   "t_utc": "2026-11-05T18:08:12.585Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=MZZa6b",
+   "mime": "application/json",
+   "size": 1468,
+   "req": [
+    {
+     "rpc": "MZZa6b",
+     "args": [
+      [
+       [
+        [
+         null,
+         null,
+         [
+          [
+           [
+            "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+         ],
+         [
+          null,
+          "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+         ]
+        ],
+        "veo_3_1_r2v_fast_portrait",
+        1,
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         "DF3EA3A0-4B69-48A3-844A-971E2B226C4A",
+         "14204355-536B-47B0-BDED-7E57DEA469E3"
+        ]
+       ]
+      ],
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2617]",
+        1
+       ]
+      ],
+      [
+       "71DF8E05-3756-457B-B8D5-DD2840C212D5",
+       2
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "MZZa6b",
+     "data": [
+      null,
+      988,
+      [
+       [
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         "Red paper boat on lake",
+         [
+          1793902101,
+          290496000
+         ],
+         null,
+         null,
+         "8905f112-6700-4873-ab97-230cad0500f1",
+         "71DF8E05-3756-457B-B8D5-DD2840C212D5",
+         [
+          1793902104,
+          340332000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ],
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          6
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 30,
+   "t_utc": "2026-11-05T18:08:12.589Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 31,
+   "t_utc": "2026-11-05T18:08:16.043Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=nzlxg",
+   "mime": "application/json",
+   "size": 182,
+   "req": [
+    {
+     "rpc": "nzlxg",
+     "args": []
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "nzlxg",
+     "data": [
+      988,
+      1,
+      2,
+      2,
+      null,
+      988,
+      [
+       1795075087,
+       909787000
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 32,
+   "t_utc": "2026-11-05T18:08:16.973Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1204,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 33,
+   "t_utc": "2026-11-05T18:08:21.436Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 34,
+   "t_utc": "2026-11-05T18:08:21.974Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1202,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 35,
+   "t_utc": "2026-11-05T18:08:26.486Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_CONTEXT_MENU",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902091,
+          172000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_ACTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ADD_TO_PROMPT"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ADD_REFERENCE_INGREDIENT",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902091,
+          181000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "ADD_REFERENCE_INGREDIENT_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_TILE_REFERENCE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "FLOW_CONTEXT_MENU",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902091,
+          212000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_ACTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ADD_TO_PROMPT"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ADD_REFERENCE_INGREDIENT",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902091,
+          222000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "ADD_REFERENCE_INGREDIENT_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_TILE_REFERENCE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902092,
+          562000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "video"
+            ]
+           ]
+          ],
+          [
+           "AUDIO_FAILURE_PREFERENCE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"videoModelKey\":\"veo_3_1_r2v_fast_portrait\",\"aspectRatio\":1,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "PINHOLE_CREDITS_REFUND_CHECK",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902096,
+          427000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "CREDITS_BALANCE_BEFORE",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             988
+            ]
+           ]
+          ],
+          [
+           "GENERATION_FAILURE_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_POLL"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ac1e94e5-3f15-40f2-93de-70f452a08e09"
+            ]
+           ]
+          ],
+          [
+           "CREDITS_BALANCE_AFTER",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             988
+            ]
+           ]
+          ],
+          [
+           "CREDITS_REFUND_OBSERVED",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 36,
+   "t_utc": "2026-11-05T18:08:26.975Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1203,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 37,
+   "t_utc": "2026-11-05T18:08:31.975Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1203,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 38,
+   "t_utc": "2026-11-05T18:08:36.976Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1204,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 39,
+   "t_utc": "2026-11-05T18:08:41.976Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1204,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 40,
+   "t_utc": "2026-11-05T18:08:46.977Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1200,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      988,
+      [
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "8a390692-806c-48c8-aebd-108fbb0b63c1",
+        null,
+        null,
+        [
+         [
+          1793902101,
+          290496000
+         ],
+         "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_r2v_fast_portrait",
+            3,
+            [
+             5
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             4,
+             "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+            ],
+            [
+             null,
+             4,
+             "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          3
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          737097,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_r2v_fast_portrait",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "8905f112-6700-4873-ab97-230cad0500f1"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 41,
+   "t_utc": "2026-11-05T18:08:47.697Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 42,
+   "t_utc": "2026-11-05T18:08:47.711Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1853,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "8905f112-6700-4873-ab97-230cad0500f1",
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "8905f112-6700-4873-ab97-230cad0500f1",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "8a390692-806c-48c8-aebd-108fbb0b63c1",
+      null,
+      null,
+      [
+       [
+        1793902101,
+        290496000
+       ],
+       "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_r2v_fast_portrait",
+          3,
+          [
+           5
+          ],
+          null,
+          1,
+          1
+         ],
+         [
+          [
+           null,
+           4,
+           "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+          ],
+          [
+           null,
+           4,
+           "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+       []
+      ],
+      null,
+      [
+       [
+        null,
+        737097,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+        null,
+        null,
+        null,
+        "veo_3_1_r2v_fast_portrait",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ],
+       null,
+       null,
+       [
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 43,
+   "t_utc": "2026-11-05T18:08:48.448Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/jpeg",
+   "size": 21955
+  },
+  {
+   "i": 44,
+   "t_utc": "2026-11-05T18:08:49.001Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/webp",
+   "size": 8472
+  },
+  {
+   "i": 45,
+   "t_utc": "2026-11-05T18:08:49.017Z",
+   "method": "GET",
+   "status": 302,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "text/html",
+   "size": 0
+  },
+  {
+   "i": 46,
+   "t_utc": "2026-11-05T18:08:49.175Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1998,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "8905f112-6700-4873-ab97-230cad0500f1"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "8905f112-6700-4873-ab97-230cad0500f1",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "8a390692-806c-48c8-aebd-108fbb0b63c1",
+      null,
+      null,
+      [
+       [
+        1793902101,
+        290496000
+       ],
+       "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_r2v_fast_portrait",
+          3,
+          [
+           5
+          ],
+          null,
+          1,
+          1
+         ],
+         [
+          [
+           null,
+           4,
+           "ecd1ccd8-7c1e-4237-bb06-52082997ae2d"
+          ],
+          [
+           null,
+           4,
+           "e7aaac2c-026f-451c-88c2-e7bed77ae4d6"
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://flow-content.google/image/8905f112-6700-4873-ab97-230cad0500f1?[query-stripped]",
+       [],
+       null,
+       1088362
+      ],
+      null,
+      [
+       [
+        null,
+        737097,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A red paper boat and a green tree icon together on a calm blue lake, slow gentle camera drift.</prompt>\n  </instruction>\n</root>",
+        "https://flow-content.google/video/8905f112-6700-4873-ab97-230cad0500f1?[query-stripped]",
+        null,
+        null,
+        null,
+        "veo_3_1_r2v_fast_portrait",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "8905f112-6700-4873-ab97-230cad0500f1"
+       ],
+       null,
+       null,
+       [
+        null,
+        [
+         "https://flow-content.google/video/8905f112-6700-4873-ab97-230cad0500f1?[query-stripped]",
+         "https://flow-content.google/image/8905f112-6700-4873-ab97-230cad0500f1?[query-stripped]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 47,
+   "t_utc": "2026-11-05T18:08:49.536Z",
+   "method": "GET",
+   "status": 206,
+   "url": "https://rr5---sn-ajoguc-cb.googlevideo.com/videoplayback?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 32768
+  },
+  {
+   "i": 48,
+   "t_utc": "2026-11-05T18:08:50.396Z",
+   "method": "GET",
+   "status": 206,
+   "url": "https://rr5---sn-ajoguc-cb.googlevideo.com/videoplayback?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 7018
+  },
+  {
+   "i": 49,
+   "t_utc": "2026-11-05T18:08:50.857Z",
+   "method": "GET",
+   "status": 206,
+   "url": "https://rr5---sn-ajoguc-cb.googlevideo.com/videoplayback?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 1055594
+  },
+  {
+   "i": 50,
+   "t_utc": "2026-11-05T18:08:53.583Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/video/8905f112-6700-4873-ab97-230cad0500f1?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 1088362
+  },
+  {
+   "i": 51,
+   "t_utc": "2026-11-05T18:08:56.943Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 140,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902134,
+          197000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "8905f112-6700-4873-ab97-230cad0500f1"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "VIDEO_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_VIDEO"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902134,
+          208000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "8905f112-6700-4873-ab97-230cad0500f1"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 52,
+   "t_utc": "2026-11-05T18:08:59.209Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  }
+ ]
+}

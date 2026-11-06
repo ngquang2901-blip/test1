@@ -1,0 +1,13 @@
+{
+ "audience": "https://labs.tool.vn/api/v1",
+ "auth_epoch": 76,
+ "authorization_ttl_sec": 300,
+ "authorized_at": 1793813759337.0,
+ "client_id": "<redacted>",
+ "contract": "device-v1",
+ "key_id": "<redacted>",
+ "key_revision": 1,
+ "product_id": 1,
+ "token_hash": "<redacted>",
+ "user_id": 16510
+}

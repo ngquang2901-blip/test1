@@ -1,0 +1,2453 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "174e3fb51adfc5796c5b7cdeeacaf42df6248205055947c5433ab3517d11d466",
+ "entries": 24,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:10:37.061Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:10:46+00:00"
+    }
+   }
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:10:37.081Z",
+   "method": "POST",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/sse/ticket",
+   "mime": "application/json",
+   "size": 252,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "SSE_REQUIRES_PAID",
+     "message": "Realtime SSE chỉ dành cho gói trả phí. Free user vui lòng dùng polling."
+    },
+    "data": {
+     "fallback_url": "/api/v1/events/poll",
+     "fallback_interval_ms": 30000
+    }
+   }
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:10:37.095Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "92d7c92d-aca7-4fe0-8845-ac47401a8cda",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:10:40.607Z",
+   "method": "POST",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/sse/ticket",
+   "mime": "application/json",
+   "size": 252,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "SSE_REQUIRES_PAID",
+     "message": "Realtime SSE chỉ dành cho gói trả phí. Free user vui lòng dùng polling."
+    },
+    "data": {
+     "fallback_url": "/api/v1/events/poll",
+     "fallback_interval_ms": 30000
+    }
+   }
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:10:40.618Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "09f46932-f3dc-4d4a-a7ab-3b110c719e56",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:10:50.256Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/execution/request",
+   "mime": "application/json",
+   "size": 173,
+   "req_json": {
+    "action": "generate",
+    "prompt_count": 3,
+    "metadata": {
+     "owner": "prompts",
+     "label": "Auto Gen",
+     "provider": "flow",
+     "media_type": "image",
+     "has_ref": false,
+     "ref_count": 0
+    }
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "allowed": true,
+     "execution_token": "tok_[REDACTED]",
+     "expires_in": 645,
+     "remaining": 13,
+     "remaining_module": 13,
+     "remaining_global": 91
+    }
+   }
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:10:50.512Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/extension-config/system-config/execution",
+   "mime": "application/json",
+   "size": 1651,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "history": {
+      "chain_options_supported": true,
+      "stage_reason_supported": true
+     },
+     "workflow": {
+      "delay_nodes_sec": 3,
+      "max_retries": 1,
+      "timeout_sec": 180,
+      "on_error": "continue",
+      "flow_api_enabled": true
+     },
+     "queue": {
+      "batch_size": 6,
+      "max_monitor": 6,
+      "video_max_monitor": 4,
+      "rest_min_sec": 5,
+      "rest_max_sec": 15
+     },
+     "flow_recovery": {
+      "captcha_recovery_mode": "pause_resume",
+      "session_refresh_enabled": false,
+      "session_refresh_interval_min": 120,
+      "auto_recovery_enabled": true,
+      "consecutive_fail_threshold": 2,
+      "backoff_base_sec": 30,
+      "backoff_max_sec": 300,
+      "backoff_jitter_percent": 20,
+      "chunk_mode_enabled": true,
+      "chunk_size": 40
+     },
+     "timing": {
+      "delay_between_prompts_sec": 3
+     },
+     "parallel": {
+      "web_resubmit_enabled": true,
+      "flow_v2_web_enabled": true,
+      "provider_web_enabled": true,
+      "provider_web_workflow_enabled": true,
+      "provider_web_motion_enabled": true,
+      "provider_web_mcp_direct_enabled": true,
+      "provider_web_max_concurrent_workers": 2,
+      "provider_web_muse_startup_timeout_ms": 60000,
+      "provider_web_chatgpt_startup_timeout_ms": 60000,
+      "provider_web_gemini_startup_timeout_ms": 60000,
+      "provider_web_enabled_providers": [
+       "muse",
+       "gemini",
+       "chatgpt"
+      ]
+     },
+     "flow_api": {
+      "driver": "v2",
+      "v2_enabled": true,
+      "v2_generation_transport": "fetch_request",
+      "v2_upload_enabled": true,
+      "v2_canary_percent": 0,
+      "v2_surfaces": [
+       "gen",
+       "task",
+       "workflow"
+      ],
+      "v2_media_types": [
+       "image",
+       "video"
+      ],
+      "auto_primary": "v2",
+      "auto_fallback": "v1",
+      "v2_config_revision": 1
+     }
+    },
+    "cached_at": "2026-11-05T18:10:59+00:00",
+    "meta": {
+     "access": {
+      "contract": "device-v1",
+      "user_id": 16624,
+      "client_id": "34b3e25129e0dbe117aac8edd296a186",
+      "product_id": 1,
+      "key_id": "ffa531694d18673be4d55197df9a7b708d98ef206eb18d3b39954cb539d5eaa8",
+      "key_revision": 1,
+      "authorization_ttl_sec": 300
+     }
+    }
+   }
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:11:03.350Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 60,
+   "req_json": {
+    "events": [
+     {
+      "event": "gen_start",
+      "metadata": {
+       "prompt_count": 3,
+       "has_ref": false,
+       "pipeline": true
+      },
+      "timestamp": "2026-11-05T18:10:50.501Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "job_admitted",
+       "job_hash": "session:373fd705",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "expected": 3,
+       "prompts": 3
+      },
+      "timestamp": "2026-11-05T18:10:50.784Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "observer_preflight",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:50.841Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "text_insert",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:51.794Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "editor_verified",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.299Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "snapshot",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.310Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "reference_final_verify",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.312Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_armed",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "surface": "gen",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.317Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "arm",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.318Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "journal",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.321Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "verify_passed",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.362Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_presubmit_verified",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.362Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "click_ack",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:52.843Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_request_seen",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:10:53.015Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "observer_preflight",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:02.153Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "text_insert",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.010Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "pending_owners_observed",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.329Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_response_seen",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.329Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.341Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "item_terminal",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "state": "COMPLETED",
+       "duration_ms": 10985,
+       "output_count": 1,
+       "prompt_index": 0,
+       "retry_count": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.347Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 20,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:11:04.110Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 59,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "editor_verified",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.514Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "snapshot",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.527Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "reference_final_verify",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.529Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_armed",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "surface": "gen",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.544Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "arm",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.544Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "journal",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.548Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "verify_passed",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.551Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_presubmit_verified",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:03.552Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "click_ack",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:04.073Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 9,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:11:04.358Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 59,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_request_seen",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:04.319Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 1,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:11:05.770Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/telegram/executor-heartbeat",
+   "mime": "application/json",
+   "size": 49,
+   "req_json": {
+    "queue_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html"
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "active_extended": false
+    }
+   }
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:11:05.772Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "a51cfd45-cd4e-4eb9-8e8c-bb56739e5686",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:11:07.061Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:11:15+00:00"
+    }
+   }
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:11:07.775Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/notifications/unread-count",
+   "mime": "application/json",
+   "size": 35,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:11:29.869Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 60,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "pending_owners_observed",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:14.583Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_response_seen",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:14.583Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:14.590Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "item_terminal",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "state": "COMPLETED",
+       "duration_ms": 11042,
+       "output_count": 1,
+       "prompt_index": 1,
+       "retry_count": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:14.594Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "observer_preflight",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:17.303Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "text_insert",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.156Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "editor_verified",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.662Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "snapshot",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.673Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "reference_final_verify",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.677Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_armed",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "surface": "gen",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.683Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "arm",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.683Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "journal",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.687Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "verify_passed",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.690Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_presubmit_verified",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:18.690Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "presubmit_stage",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "stage": "click_ack",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:19.210Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_request_seen",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:19.421Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "pending_owners_observed",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:29.854Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "correlation_response_seen",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 0,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:29.854Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:29.863Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "item_terminal",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "state": "COMPLETED",
+       "duration_ms": 11177,
+       "output_count": 1,
+       "prompt_index": 2,
+       "retry_count": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:29.867Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 20,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:11:29.872Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/execution/complete",
+   "mime": "application/json",
+   "size": 61,
+   "req_json": {
+    "token": "tok_[REDACTED]",
+    "status": "success"
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "status": "success",
+     "refund_count": 0
+    }
+   }
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:11:30.628Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/entitlements",
+   "mime": "application/json",
+   "size": 12735,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "plan": {
+      "slug": "free",
+      "name": "Free",
+      "expires_at": null
+     },
+     "features": {
+      "gen_enabled": {
+       "key": "gen_enabled",
+       "name": "Generate Module",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "tasks_enabled": {
+       "key": "tasks_enabled",
+       "name": "Tasks Module",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "workflows_enabled": {
+       "key": "workflows_enabled",
+       "name": "Workflows Module",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "angles_enabled": {
+       "key": "angles_enabled",
+       "name": "Angles Module",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_templates_enabled": {
+       "key": "prompt_templates_enabled",
+       "name": "Prompt Templates",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "workflow_templates_enabled": {
+       "key": "workflow_templates_enabled",
+       "name": "Workflow Templates",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "history_enabled": {
+       "key": "history_enabled",
+       "name": "Generation History",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "premium_templates": {
+       "key": "premium_templates",
+       "name": "Premium Templates Access",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "gen_run_max": {
+       "key": "gen_run_max",
+       "name": "Generate Runs Per Day",
+       "type": "quota",
+       "category": "core",
+       "value": "20",
+       "has_override": false,
+       "used_today": 7,
+       "usage_today": 7,
+       "limit": 20,
+       "remaining": 13
+      },
+      "tasks_run_max": {
+       "key": "tasks_run_max",
+       "name": "Task Runs Per Day",
+       "type": "quota",
+       "category": "core",
+       "value": "15",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 15,
+       "remaining": 15
+      },
+      "workflows_run_max": {
+       "key": "workflows_run_max",
+       "name": "Workflow Runs Per Day",
+       "type": "quota",
+       "category": "core",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "angles_run_max": {
+       "key": "angles_run_max",
+       "name": "Angles Runs Per Day",
+       "type": "quota",
+       "category": "advanced",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "effects_enabled": {
+       "key": "effects_enabled",
+       "name": "Image Effects",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "effects_run_max": {
+       "key": "effects_run_max",
+       "name": "Image Effects Runs Per Day",
+       "type": "quota",
+       "category": "advanced",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "image_remove_watermark_enabled": {
+       "key": "image_remove_watermark_enabled",
+       "name": "Image Post-Processing",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "video_remove_watermark_enabled": {
+       "key": "video_remove_watermark_enabled",
+       "name": "Video Post-Processing",
+       "type": "boolean",
+       "category": "advanced",
+       "value": null,
+       "has_override": false
+      },
+      "prompts_per_batch": {
+       "key": "prompts_per_batch",
+       "name": "Prompts Per Batch",
+       "type": "quota",
+       "category": "core",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "gen_batch_queue_max": {
+       "key": "gen_batch_queue_max",
+       "name": "Queued Flow Batches Per Project",
+       "type": "quota",
+       "category": "core",
+       "value": "3",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 3,
+       "remaining": 3
+      },
+      "tasks_max": {
+       "key": "tasks_max",
+       "name": "Maximum Tasks",
+       "type": "quota",
+       "category": "core",
+       "value": "2",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 2,
+       "remaining": 2
+      },
+      "workflows_max": {
+       "key": "workflows_max",
+       "name": "Maximum Workflows",
+       "type": "quota",
+       "category": "core",
+       "value": "2",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 2,
+       "remaining": 2
+      },
+      "workflows_nodes_max": {
+       "key": "workflows_nodes_max",
+       "name": "Maximum Workflow Nodes",
+       "type": "quota",
+       "category": "core",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "snippets_max": {
+       "key": "snippets_max",
+       "name": "Maximum Snippets",
+       "type": "quota",
+       "category": "core",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "workflow_share_enabled": {
+       "key": "workflow_share_enabled",
+       "name": "Workflow Sharing",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "history_max": {
+       "key": "history_max",
+       "name": "Maximum History Records",
+       "type": "quota",
+       "category": "core",
+       "value": "20",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 20,
+       "remaining": 20
+      },
+      "workflow_import": {
+       "key": "workflow_import",
+       "name": "Workflow Import",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "workflow_export": {
+       "key": "workflow_export",
+       "name": "Workflow Export",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "addon_prompt_enabled": {
+       "key": "addon_prompt_enabled",
+       "name": "Custom Style Prompts",
+       "type": "boolean",
+       "category": "core",
+       "value": "0",
+       "has_override": false
+      },
+      "addon_prompt_max": {
+       "key": "addon_prompt_max",
+       "name": "Maximum Custom Styles",
+       "type": "quota",
+       "category": "core",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "flow_api_enabled": {
+       "key": "flow_api_enabled",
+       "name": "API Flow Mode",
+       "type": "boolean",
+       "category": "core",
+       "value": null,
+       "has_override": false
+      },
+      "auto_download": {
+       "key": "auto_download",
+       "name": "Auto Download",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "retry_on_fail": {
+       "key": "retry_on_fail",
+       "name": "Retry on Fail",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "ref_images": {
+       "key": "ref_images",
+       "name": "Reference Images",
+       "type": "boolean",
+       "category": "core",
+       "value": "1",
+       "has_override": false
+      },
+      "pipeline_queue_enabled": {
+       "key": "pipeline_queue_enabled",
+       "name": "Pipeline Queue",
+       "type": "boolean",
+       "category": "advanced",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_submit_max": {
+       "key": "prompt_submit_max",
+       "name": "Prompt Submit Limit",
+       "type": "quota",
+       "category": "core",
+       "value": "100",
+       "has_override": false,
+       "used_today": 9,
+       "usage_today": 9,
+       "limit": 100,
+       "remaining": 91
+      },
+      "agent_bot_enabled": {
+       "key": "agent_bot_enabled",
+       "name": "AI Agent / Bot",
+       "type": "boolean",
+       "category": "agent",
+       "value": "1",
+       "has_override": false
+      },
+      "telegram_enabled": {
+       "key": "telegram_enabled",
+       "name": "Telegram Bot",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "telegram_rate_hour": {
+       "key": "telegram_rate_hour",
+       "name": "Telegram Rate/Hour",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "telegram_rate_day": {
+       "key": "telegram_rate_day",
+       "name": "Telegram Rate/Day",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "telegram_queue_max": {
+       "key": "telegram_queue_max",
+       "name": "Telegram Queue Max",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "telegram_ref_image": {
+       "key": "telegram_ref_image",
+       "name": "Telegram Ref Image",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "telegram_workflow": {
+       "key": "telegram_workflow",
+       "name": "Telegram Workflow",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "telegram_custom_bot": {
+       "key": "telegram_custom_bot",
+       "name": "Telegram Custom Bot",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "gemini_ref_images": {
+       "key": "gemini_ref_images",
+       "name": "Gemini Reference Images",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "chatgpt_enabled": {
+       "key": "chatgpt_enabled",
+       "name": "ChatGPT Provider",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "grok_enabled": {
+       "key": "grok_enabled",
+       "name": "Grok Module",
+       "type": "boolean",
+       "category": "grok",
+       "value": "1",
+       "has_override": false
+      },
+      "muse_ref_images": {
+       "key": "muse_ref_images",
+       "name": "Muse Reference Images",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "chatgpt_run_max": {
+       "key": "chatgpt_run_max",
+       "name": "ChatGPT Runs Per Day",
+       "type": "quota",
+       "category": "chat_ai",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "grok_run_max": {
+       "key": "grok_run_max",
+       "name": "Grok Generate Runs Per Day",
+       "type": "quota",
+       "category": "grok",
+       "value": "10",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 10,
+       "remaining": 10
+      },
+      "chatgpt_ref_images": {
+       "key": "chatgpt_ref_images",
+       "name": "ChatGPT Reference Images",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "gemini_enabled": {
+       "key": "gemini_enabled",
+       "name": "Gemini Provider",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "gemini_run_max": {
+       "key": "gemini_run_max",
+       "name": "Gemini Runs Per Day",
+       "type": "quota",
+       "category": "chat_ai",
+       "value": "15",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 15,
+       "remaining": 15
+      },
+      "prompt_node_enabled": {
+       "key": "prompt_node_enabled",
+       "name": "Prompt Node",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_enhancer_enabled": {
+       "key": "prompt_enhancer_enabled",
+       "name": "Prompt Enhancer (Legacy)",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "0",
+       "has_override": false
+      },
+      "ai_agent_enabled": {
+       "key": "ai_agent_enabled",
+       "name": "AI Agent",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "0",
+       "has_override": false
+      },
+      "i2p_enabled": {
+       "key": "i2p_enabled",
+       "name": "Image to Prompt",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "prompt_assistant_enabled": {
+       "key": "prompt_assistant_enabled",
+       "name": "Prompt Assistant",
+       "type": "boolean",
+       "category": "chat_ai",
+       "value": "1",
+       "has_override": false
+      },
+      "mcp_enabled": {
+       "key": "mcp_enabled",
+       "name": "MCP AI Integration",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "muse_enabled": {
+       "key": "muse_enabled",
+       "name": "Muse Module",
+       "type": "boolean",
+       "category": "muse",
+       "value": "1",
+       "has_override": false
+      },
+      "chatgpt_mcp_enabled": {
+       "key": "chatgpt_mcp_enabled",
+       "name": "MCP via ChatGPT",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "muse_run_max": {
+       "key": "muse_run_max",
+       "name": "Muse Runs Per Day",
+       "type": "quota",
+       "category": "muse",
+       "value": "5",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 5,
+       "remaining": 5
+      },
+      "grok_mcp_enabled": {
+       "key": "grok_mcp_enabled",
+       "name": "MCP via Grok",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "muse_mcp_enabled": {
+       "key": "muse_mcp_enabled",
+       "name": "MCP via Muse",
+       "type": "boolean",
+       "category": "muse",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_rate_hour": {
+       "key": "mcp_rate_hour",
+       "name": "MCP Rate/Hour",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_rate_day": {
+       "key": "mcp_rate_day",
+       "name": "MCP Rate/Day",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_queue_max": {
+       "key": "mcp_queue_max",
+       "name": "MCP Queue Max",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_max_tokens": {
+       "key": "mcp_max_tokens",
+       "name": "MCP Max Tokens",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_workflow_enabled": {
+       "key": "mcp_workflow_enabled",
+       "name": "MCP Create Workflow",
+       "type": "boolean",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "mcp_workflow_create_rate_day": {
+       "key": "mcp_workflow_create_rate_day",
+       "name": "MCP Workflow Create/Day",
+       "type": "quota",
+       "category": "mcp",
+       "value": null,
+       "has_override": false
+      },
+      "gemini_mcp_enabled": {
+       "key": "gemini_mcp_enabled",
+       "name": "MCP via Gemini",
+       "type": "boolean",
+       "category": "mcp",
+       "value": "0",
+       "has_override": false
+      },
+      "grok_telegram_enabled": {
+       "key": "grok_telegram_enabled",
+       "name": "Grok Telegram Module",
+       "type": "boolean",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false
+      },
+      "grok_telegram_rate_hour": {
+       "key": "grok_telegram_rate_hour",
+       "name": "Grok Telegram Limit Per Hour",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "grok_telegram_rate_day": {
+       "key": "grok_telegram_rate_day",
+       "name": "Grok Telegram Limit Per Day",
+       "type": "quota",
+       "category": "telegram",
+       "value": "0",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 0,
+       "remaining": 0
+      },
+      "motion_tool_enabled": {
+       "key": "motion_tool_enabled",
+       "name": "Motion Studio",
+       "type": "boolean",
+       "category": "advanced",
+       "value": null,
+       "has_override": false
+      },
+      "motion_tool_max": {
+       "key": "motion_tool_max",
+       "name": "Maximum Motion Projects",
+       "type": "quota",
+       "category": "advanced",
+       "value": null,
+       "has_override": false
+      },
+      "api_rate_limit_per_minute": {
+       "key": "api_rate_limit_per_minute",
+       "name": "API Rate Limit (per minute)",
+       "type": "quota",
+       "category": "limits",
+       "value": "3000",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 3000,
+       "remaining": 3000
+      },
+      "workflow_execution_history_max": {
+       "key": "workflow_execution_history_max",
+       "name": "Workflow Execution History Max",
+       "type": "quota",
+       "category": "limits",
+       "value": "20",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 20,
+       "remaining": 20
+      },
+      "extension_device_max": {
+       "key": "extension_device_max",
+       "name": "Extension Devices",
+       "type": "quota",
+       "category": "limits",
+       "value": "1",
+       "has_override": false,
+       "used_today": 0,
+       "usage_today": 0,
+       "limit": 1,
+       "remaining": 1
+      }
+     },
+     "email_verified": true
+    },
+    "meta": {
+     "version": 1
+    }
+   }
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:11:30.862Z",
+   "method": "GET",
+   "status": 403,
+   "url": "https://labs.toby.vn/api/v1/tools/motion-studio/projects?[query-stripped]",
+   "mime": "application/json",
+   "size": 104,
+   "resp_json": {
+    "success": false,
+    "error": {
+     "code": "MOTION_ENTITLEMENT_DENIED",
+     "message": "Motion Studio is unavailable."
+    }
+   }
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:11:37.059Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:11:45+00:00"
+    }
+   }
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:11:48.947Z",
+   "method": "POST",
+   "status": 201,
+   "url": "https://labs.toby.vn/api/v1/history",
+   "mime": "application/json",
+   "size": 4161,
+   "req_json": {
+    "prompt": "A single red apple on a white table, flat illustration.\n\nA blue bicycle leaning on a brick wall, flat illustration.\n\nA small green cactus in a clay pot, flat illustration.",
+    "media_type": "Image",
+    "model": "Nano Banana 2 Lite",
+    "ratio": "9:16",
+    "prompt_count": 3,
+    "quantity": 1,
+    "ref_file_ids": "",
+    "ref_thumbnails": {},
+    "ref_flow_file_ids": [],
+    "result_file_ids": "94fdec99-2737-4c40-ac93-ae73cb59149f, 8fd7f981-034c-4563-bb02-7b445e339369, eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+    "result_flow_file_ids": [],
+    "result_thumbnails": [
+     {
+      "file_name": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+      "media_uuid": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+      "thumbnail": "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+      "source_thumbnail": "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+      "video_url": null,
+      "thumb_is_poster": false,
+      "type": "image",
+      "phaseRDownloadName": "tobyflow_output/tobyflow-01/001_A_single_red_apple_on_a_white_table_fla_2026-11-05.png",
+      "phaseROutputIndex": 0,
+      "persistent_media_id": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+      "identity_durability": "durable",
+      "display_name": "Red apple on table",
+      "image_url": null,
+      "identity_aliases": [
+       "94fdec99-2737-4c40-ac93-ae73cb59149f"
+      ]
+     },
+     {
+      "file_name": "8fd7f981-034c-4563-bb02-7b445e339369",
+      "media_uuid": "8fd7f981-034c-4563-bb02-7b445e339369",
+      "thumbnail": "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+      "source_thumbnail": "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+      "video_url": null,
+      "thumb_is_poster": false,
+      "type": "image",
+      "phaseRDownloadName": "tobyflow_output/tobyflow-01/002_A_blue_bicycle_leaning_on_a_brick_wall_2026-11-05.png",
+      "phaseROutputIndex": 0,
+      "persistent_media_id": "8fd7f981-034c-4563-bb02-7b445e339369",
+      "identity_durability": "durable",
+      "display_name": "Blue bicycle leaning on wall",
+      "image_url": null,
+      "identity_aliases": [
+       "8fd7f981-034c-4563-bb02-7b445e339369"
+      ]
+     },
+     {
+      "file_name": "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+      "media_uuid": "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+      "thumbnail": "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+      "source_thumbnail": "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+      "video_url": null,
+      "thumb_is_poster": false,
+      "type": "image",
+      "phaseRDownloadName": "tobyflow_output/tobyflow-01/003_A_small_green_cactus_in_a_clay_pot_flat_2026-11-05.png",
+      "phaseROutputIndex": 0,
+      "persistent_media_id": "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+      "identity_durability": "durable",
+      "display_name": "Cactus in clay pot",
+      "image_url": null,
+      "identity_aliases": [
+       "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+      ]
+     }
+    ],
+    "result_file_names": {
+     "94fdec99-2737-4c40-ac93-ae73cb59149f": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+     "8fd7f981-034c-4563-bb02-7b445e339369": "8fd7f981-034c-4563-bb02-7b445e339369",
+     "eb8e0596-4459-4fae-baaf-b4f2398f91b6": "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+    },
+    "source": "gen",
+    "source_context": null,
+    "submit_mode": "auto",
+    "source_id": "",
+    "status": "success",
+    "error_reason": null,
+    "duration_ms": 48433,
+    "stop_origin": null,
+    "error_details": [],
+    "diagnostics": {
+     "version": 2,
+     "summary": {
+      "total": 3,
+      "completed": 3,
+      "failed": 0,
+      "partial": 0,
+      "cancelled": 0,
+      "unfinished": 0
+     },
+     "failedPromptCount": 0,
+     "omittedFailedPrompts": 0,
+     "runContext": {
+      "surface": "gen",
+      "batchId": null,
+      "runId": "2ecf0fa1-c21e-4d1e-b7ba-ae83b9881923",
+      "batchName": null,
+      "runAction": "GEN_TAB_RUN",
+      "stopSource": null,
+      "runMode": "parallel",
+      "usePreviousResultAsReference": false,
+      "useLastFrame": false
+     },
+     "firstDecision": null,
+     "failures": [],
+     "firstError": null,
+     "droppedEvents": 0,
+     "events": []
+    },
+    "provider": "flow",
+    "gen_mode": "web",
+    "flow_api_version": null,
+    "initial_gen_mode": "web",
+    "fallback_reason": null,
+    "bridge_version": null,
+    "project_id": "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+    "auto_download": true
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "provider": "flow",
+     "prompt": "A single red apple on a white table, flat illustration.\n\nA blue bicycle leaning on a brick wall, flat illustration.\n\nA small green cactus in a clay pot, flat illustration.",
+     "media_type": "Image",
+     "model": "Nano Banana 2 Lite",
+     "ratio": "9:16",
+     "prompt_count": 3,
+     "quantity": 1,
+     "ref_file_ids": null,
+     "ref_thumbnails": [],
+     "result_file_ids": "94fdec99-2737-4c40-ac93-ae73cb59149f, 8fd7f981-034c-4563-bb02-7b445e339369, eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+     "result_thumbnails": [
+      {
+       "file_name": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+       "media_uuid": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+       "thumbnail": "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+       "source_thumbnail": "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+       "video_url": null,
+       "thumb_is_poster": false,
+       "type": "image",
+       "phaseRDownloadName": "tobyflow_output/tobyflow-01/001_A_single_red_apple_on_a_white_table_fla_2026-11-05.png",
+       "phaseROutputIndex": 0,
+       "persistent_media_id": "94fdec99-2737-4c40-ac93-ae73cb59149f",
+       "identity_durability": "durable",
+       "display_name": "Red apple on table",
+       "image_url": null,
+       "identity_aliases": [
+        "94fdec99-2737-4c40-ac93-ae73cb59149f"
+       ]
+      },
+      {
+       "file_name": "8fd7f981-034c-4563-bb02-7b445e339369",
+       "media_uuid": "8fd7f981-034c-4563-bb02-7b445e339369",
+       "thumbnail": "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+       "source_thumbnail": "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+       "video_url": null,
+       "thumb_is_poster": false,
+       "type": "image",
+       "phaseRDownloadName": "tobyflow_output/tobyflow-01/002_A_blue_bicycle_leaning_on_a_brick_wall_2026-11-05.png",
+       "phaseROutputIndex": 0,
+       "persistent_media_id": "8fd7f981-034c-4563-bb02-7b445e339369",
+       "identity_durability": "durable",
+       "display_name": "Blue bicycle leaning on wall",
+       "image_url": null,
+       "identity_aliases": [
+        "8fd7f981-034c-4563-bb02-7b445e339369"
+       ]
+      },
+      {
+       "file_name": "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+       "media_uuid": "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+       "thumbnail": "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+       "source_thumbnail": "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+       "video_url": null,
+       "thumb_is_poster": false,
+       "type": "image",
+       "phaseRDownloadName": "tobyflow_output/tobyflow-01/003_A_small_green_cactus_in_a_clay_pot_flat_2026-11-05.png",
+       "phaseROutputIndex": 0,
+       "persistent_media_id": "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+       "identity_durability": "durable",
+       "display_name": "Cactus in clay pot",
+       "image_url": null,
+       "identity_aliases": [
+        "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+       ]
+      }
+     ],
+     "source": "gen",
+     "source_context": null,
+     "submit_mode": "auto",
+     "source_id": null,
+     "status": "success",
+     "error_reason": null,
+     "error_details": [],
+     "diagnostics": {
+      "version": 2,
+      "summary": {
+       "total": 3,
+       "completed": 3,
+       "failed": 0,
+       "partial": 0,
+       "cancelled": 0,
+       "unfinished": 0
+      },
+      "failedPromptCount": 0,
+      "omittedFailedPrompts": 0,
+      "runContext": {
+       "surface": "gen",
+       "batchId": null,
+       "runId": "2ecf0fa1-c21e-4d1e-b7ba-ae83b9881923",
+       "batchName": null,
+       "runAction": "GEN_TAB_RUN",
+       "stopSource": null,
+       "runMode": "parallel",
+       "usePreviousResultAsReference": false,
+       "useLastFrame": false
+      },
+      "firstDecision": null,
+      "failures": [],
+      "firstError": null,
+      "droppedEvents": 0,
+      "events": []
+     },
+     "duration_ms": 48433,
+     "stop_origin": null,
+     "gen_mode": "web",
+     "flow_api_version": null,
+     "bridge_version": null,
+     "initial_gen_mode": "web",
+     "fallback_reason": null,
+     "project_id": "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+     "ref_flow_file_ids": [],
+     "result_flow_file_ids": [],
+     "auto_download": true,
+     "app_version": "1.3.142",
+     "extension_client_id": 36609,
+     "product_id": 1,
+     "product_slug": "tobyflow",
+     "user_id": 16624,
+     "created_at": "2026-11-05T18:11:58.000000Z",
+     "id": 2683
+    }
+   }
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:11:50.503Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/usage/events",
+   "mime": "application/json",
+   "size": 59,
+   "req_json": {
+    "events": [
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:33.289Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:38fc5fb7",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 0,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 1
+      },
+      "timestamp": "2026-11-05T18:11:34.851Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:35.052Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:ea36af48",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 1,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 1
+      },
+      "timestamp": "2026-11-05T18:11:36.771Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 0
+      },
+      "timestamp": "2026-11-05T18:11:36.973Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "download_transition",
+       "attempt_hash": "session:87e98a9a",
+       "page_driver": "flow_v2",
+       "mode": "web",
+       "prompt_index": 2,
+       "expected": 1,
+       "completed": 1,
+       "failed": 0,
+       "downloaded": 1
+      },
+      "timestamp": "2026-11-05T18:11:38.941Z"
+     },
+     {
+      "event": "flow_api_lifecycle",
+      "metadata": {
+       "lifecycle_event": "job_terminal",
+       "job_hash": "session:373fd705",
+       "mode": "web",
+       "duration_ms": 48433,
+       "output_count": 3,
+       "expected": 3,
+       "completed": 3,
+       "failed": 0,
+       "downloaded": 3,
+       "prompts": 3
+      },
+      "timestamp": "2026-11-05T18:11:38.942Z"
+     },
+     {
+      "event": "gen_complete",
+      "metadata": {
+       "success_count": 3,
+       "fail_count": 0
+      },
+      "timestamp": "2026-11-05T18:11:38.944Z"
+     }
+    ]
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "accepted": 8,
+     "is_anonymous": false
+    }
+   }
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:11:50.769Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/telegram/executor-heartbeat",
+   "mime": "application/json",
+   "size": 49,
+   "req_json": {
+    "queue_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html"
+   },
+   "resp_json": {
+    "success": true,
+    "data": {
+     "active_extended": false
+    }
+   }
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:11:50.773Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/mcp/executor-heartbeat",
+   "mime": "application/json",
+   "size": 99,
+   "req_json": {
+    "runner_id": "11776cb0-0aee-4442-b155-c32ae2381846",
+    "label": "Google Chrome - Linux",
+    "job_id": null,
+    "stage": "ready",
+    "context": "/sidebar.html",
+    "request_nonce": "28027891-1bf5-464c-8790-c54b174cdeaa",
+    "workflow_scoped_execution": true,
+    "workflow_data_access": true,
+    "batch_data_access": true,
+    "flow_batch_control": true,
+    "active_workflow": null
+   },
+   "resp_json": {
+    "success": true,
+    "active_extended": false,
+    "data": {
+     "active_extended": false,
+     "recoverable_job_id": null
+    }
+   }
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:12:07.060Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://labs.toby.vn/api/v1/events/poll",
+   "mime": "application/json",
+   "size": 106,
+   "resp_json": {
+    "success": true,
+    "data": {
+     "events": [],
+     "last_event_id": "",
+     "count": 0,
+     "polled_at": "2026-11-05T18:12:16+00:00"
+    }
+   }
+  }
+ ]
+}

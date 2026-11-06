@@ -1,0 +1,17 @@
+{
+ "source": "Lượt 17B: video Thành phần Veo 3.1 Lite, 1 ref",
+ "records": [
+  {
+   "phase": "sent",
+   "rpc": "MZZa6b",
+   "status": 0,
+   "req": "f.req=[[[\"MZZa6b\",\"[[[[null,null,[[[\\\"Chiếc xe Cub này nổ máy rồi chạy chầm chậm ra khỏi khung hình, máy quay đứng yên\\\"]]]],[[null,\\\"63c75619-658a-48a3-9fc3-9d7c7d83220c\\\"]],\\\"veo_3_1_r2v_lite\\\",1,null,[null,null,null,null,\\\"9C4BC1A3-BEC5-4F1D-946D-F171A123FF3B\\\",\\\"446B012F-6572-4279-A777-3F563CCBEDFE\\\"]]],[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[\\\"C3A1603F-2029-4522-8174-6FC17817150D\\\",2]]\",null,\"generic\"]]]&at=<redacted>&"
+  },
+  {
+   "phase": "done",
+   "rpc": "MZZa6b",
+   "status": 200,
+   "res": ")]}'\n\n1139\n[[\"wrb.fr\",\"MZZa6b\",\"[null,948,[[\\\"89dd9868-8400-4394-956e-a5e6e4fc1c8b\\\",null,null,[\\\"Cub starts and drives away\\\",[1793946083,883609000],null,null,\\\"7342ed92-97ef-4bca-9819-ca4abc0568e6\\\",\\\"C3A1603F-2029-4522-8174-6FC17817150D\\\",[1793946087,98053000]],\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\"]],[[\\\"7342ed92-97ef-4bca-9819-ca4abc0568e6\\\",\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",\\\"89dd9868-8400-4394-956e-a5e6e4fc1c8b\\\",null,null,[[1793946083,883609000],\\\"Chiếc xe Cub này nổ máy rồi chạy chầm chậm ra khỏi khung hình, máy quay đứng yên\\\",null,null,null,null,[null,[[\\\"veo_3_1_r2v_lite\\\",3,[5],null,1,1],[[null,4,\\\"63c75619-658a-48a3-9fc3-9d7c7d83220c\\\"]]],[[null,null,[[[\\\"Chiếc xe Cub này nổ máy rồi chạy chầm chậm ra khỏi khung hình, máy quay đứng yên\\\"]]]]],null,1],null,[6],1],null,[[null,874765,null,null,null,null,null,\\\"This Cub motorcycle starts its engine and slowly drives out of the frame, the camera remains still\\\",null,null,null,null,\\\"veo_3_1_r2v_lite\\\",\\\"\\\",null,false,1],[null,null,[8]],[\\\"7342ed92-97ef-4bca-9819-ca4abc0568e6\\\"]]]]]\",null,null,null,\"generic\"],[\"di\",6099],[\"af.httprm\",6099,\"-1737717577693424390\",1]]\n26\n[[\"e\",4,null,null,1221]]\n"
+  }
+ ]
+}

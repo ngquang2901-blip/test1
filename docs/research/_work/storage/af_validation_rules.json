@@ -1,0 +1,6 @@
+{
+ "prompt_max_length": "40000",
+ "quantity_max": "4",
+ "quantity_min": "1",
+ "workflow_max_run_duration_sec": "3600"
+}

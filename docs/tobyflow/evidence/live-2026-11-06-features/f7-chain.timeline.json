@@ -1,0 +1,2942 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "99c48d4adef27d5da4cab518c087eca2eefbdc831c0bc872cdcbcbcf541d3816",
+ "entries": 40,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:14:18.127Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=UpteDb",
+   "mime": "application/json",
+   "size": 719,
+   "req": [
+    {
+     "rpc": "UpteDb",
+     "args": [
+      "projects/*",
+      21,
+      null,
+      null,
+      null,
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "UpteDb",
+     "data": [
+      [
+       [
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        [
+         "Tháng 11 05 - 23:34",
+         null,
+         [
+          1793896494,
+          477784000
+         ],
+         "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+         "fbea4a87-1b17-4a1f-b696-946fedfdb36b",
+         [
+          "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:14:18.149Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/8905f112-6700-4873-ab97-230cad0500f1?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 26421
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:14:18.149Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/105ec071-c62a-49a5-ba39-c919c854cec0?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 25400
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:14:18.150Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 2656,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+      null,
+      null,
+      [
+       [
+        1793901669,
+        253043000
+       ],
+       "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_t2v_lite",
+          1,
+          null,
+          null,
+          1,
+          1
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "[REDACTED len=575]",
+       [],
+       null,
+       1721774
+      ],
+      null,
+      [
+       [
+        null,
+        175494,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://flow-content.google/video/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+        null,
+        null,
+        null,
+        "veo_3_1_t2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ],
+       null,
+       null,
+       [
+        null,
+        [
+         "https://flow-content.google/video/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+         "[REDACTED len=575]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:14:18.151Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 2832,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "827ca4d4-7890-468d-aae0-c4971a02b3d2"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "827ca4d4-7890-468d-aae0-c4971a02b3d2",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "28884322-e93b-466b-82ef-e24b6cdd037a",
+      null,
+      null,
+      [
+       [
+        1793900094,
+        772888000
+       ],
+       "The red paper boat drifts slowly to the right across calm blue water, gentle ripples, soft morning light, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_i2v_lite",
+          2,
+          [
+           1
+          ],
+          null,
+          1,
+          1
+         ],
+         [
+          [
+           null,
+           1,
+           "b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae",
+           [
+            null,
+            null,
+            1,
+            1
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "The red paper boat drifts slowly to the right across calm blue water, gentle ripples, soft morning light, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "[REDACTED len=563]",
+       [],
+       null,
+       1256130
+      ],
+      null,
+      [
+       [
+        null,
+        111319,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, gentle ripples, soft morning light, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://flow-content.google/video/827ca4d4-7890-468d-aae0-c4971a02b3d2?[query-stripped]",
+        null,
+        null,
+        null,
+        "veo_3_1_i2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "827ca4d4-7890-468d-aae0-c4971a02b3d2"
+       ],
+       null,
+       null,
+       [
+        null,
+        [
+         "https://flow-content.google/video/827ca4d4-7890-468d-aae0-c4971a02b3d2?[query-stripped]",
+         "[REDACTED len=563]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:14:18.302Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:14:18.326Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1690,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+      null,
+      null,
+      [
+       [
+        1793901669,
+        253043000
+       ],
+       "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_t2v_lite",
+          1,
+          null,
+          null,
+          1,
+          1
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+       [],
+       null,
+       1721774
+      ],
+      null,
+      [
+       [
+        null,
+        175494,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+        null,
+        null,
+        null,
+        "veo_3_1_t2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ],
+       null,
+       null,
+       [
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:14:18.327Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "bc52c218-6371-4f0c-9d12-c7724eb4b85d"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": null
+    }
+   ]
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:14:18.451Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4870,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:14:18.795Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:14:18.804Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=maseQ",
+   "mime": "application/json",
+   "size": 666,
+   "req": [
+    {
+     "rpc": "maseQ",
+     "args": [
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2681]",
+        1
+       ]
+      ],
+      "[REDACTED len=13408]",
+      "image/png",
+      1,
+      null,
+      null,
+      null,
+      null,
+      "toby_8de05a2d-ae78-83c8-a2d2-2caba1568a10.png",
+      null,
+      "D1F793DA-D255-4598-8EF8-97EDA7DF41E4",
+      "FA274687-83F4-468B-8A97-59B71E7F968B"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "maseQ",
+     "data": [
+      [
+       "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       "459d1e96-2363-46ce-8d0a-278615b5552a",
+       null,
+       null,
+       [
+        [
+         1793902467,
+         580883000
+        ],
+        null,
+        null,
+        null,
+        null,
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         1
+        ],
+        null,
+        null,
+        1,
+        null,
+        null,
+        null,
+        69640
+       ],
+       [
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         0,
+         null,
+         "image/jpeg"
+        ],
+        [
+         720,
+         1280
+        ]
+       ]
+      ],
+      [
+       "459d1e96-2363-46ce-8d0a-278615b5552a",
+       null,
+       null,
+       [
+        "toby_8de05a2d-ae78-83c8-a2d2-2caba1568a10.png",
+        [
+         1793902467,
+         580883000
+        ],
+        null,
+        null,
+        "bc52c218-6371-4f0c-9d12-c7724eb4b85d"
+       ],
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:14:19.234Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://storage.googleapis.com/ai-sandbox-videofx/image/827ca4d4-7890-468d-aae0-c4971a02b3d2?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 24437
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:14:19.296Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://storage.googleapis.com/ai-sandbox-videofx/image/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 20323
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:14:23.804Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:14:25.953Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=UpteDb",
+   "mime": "application/json",
+   "size": 719,
+   "req": [
+    {
+     "rpc": "UpteDb",
+     "args": [
+      "projects/*",
+      21,
+      null,
+      null,
+      null,
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "UpteDb",
+     "data": [
+      [
+       [
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        [
+         "Tháng 11 05 - 23:34",
+         null,
+         [
+          1793896494,
+          477784000
+         ],
+         "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+         "fbea4a87-1b17-4a1f-b696-946fedfdb36b",
+         [
+          "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:14:25.953Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:14:25.969Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1031,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "bc52c218-6371-4f0c-9d12-c7724eb4b85d"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "459d1e96-2363-46ce-8d0a-278615b5552a",
+      null,
+      null,
+      [
+       [
+        1793902467,
+        580883000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        null,
+        null,
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]",
+       null,
+       null,
+       69640
+      ],
+      [
+       null,
+       [
+        null,
+        null,
+        null,
+        "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]",
+        0,
+        null,
+        "image/jpeg"
+       ],
+       [
+        720,
+        1280
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:14:28.411Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 69640
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:14:28.588Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_UPLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902458,
+          796000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_UPLOAD_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_UPLOAD_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "FILE_PICKER"
+            ]
+           ]
+          ],
+          [
+           "FLOW_UPLOAD_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"mimeType\":\"image/png\",\"dimensions\":{\"width\":720,\"height\":1280},\"aspectRatio\":0.5625,\"isHidden\":false,\"isCropped\":false}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:14:32.445Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4806,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:14:32.787Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:14:32.788Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:14:32.793Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:14:32.796Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T18:14:32.800Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 25,
+   "t_utc": "2026-11-05T18:14:32.802Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=eb1hJf",
+   "mime": "application/json",
+   "size": 1386,
+   "req": [
+    {
+     "rpc": "eb1hJf",
+     "args": [
+      [
+       [
+        [
+         null,
+         null,
+         [
+          [
+           [
+            "The red paper boat drifts slowly to the right across calm blue water, static camera."
+           ]
+          ]
+         ]
+        ],
+        "veo_3_1_i2v_lite",
+        1,
+        null,
+        [
+         null,
+         "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+         null,
+         null,
+         null,
+         [
+          null,
+          null,
+          1,
+          1
+         ]
+        ],
+        [
+         null,
+         null,
+         null,
+         null,
+         "5E0F0831-FA51-4C19-B8C2-AA938F2FBF71",
+         "30B3C7A0-20EB-41DD-A160-E04BE39E3F49"
+        ]
+       ]
+      ],
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2617]",
+        1
+       ]
+      ],
+      [
+       "5A81DC8F-E830-4AE4-989A-3AAF65B56855",
+       2
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "eb1hJf",
+     "data": [
+      null,
+      978,
+      [
+       [
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         "Red paper boat drifting",
+         [
+          1793902481,
+          514814000
+         ],
+         null,
+         null,
+         "31895334-d003-4da7-a1cf-3761facdaf63",
+         "5A81DC8F-E830-4AE4-989A-3AAF65B56855",
+         [
+          1793902484,
+          539277000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ],
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          6
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 26,
+   "t_utc": "2026-11-05T18:14:32.808Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 27,
+   "t_utc": "2026-11-05T18:14:37.228Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1121,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 28,
+   "t_utc": "2026-11-05T18:14:42.228Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1121,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 29,
+   "t_utc": "2026-11-05T18:14:47.230Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1122,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 30,
+   "t_utc": "2026-11-05T18:14:52.230Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1121,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 31,
+   "t_utc": "2026-11-05T18:14:57.231Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1121,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 32,
+   "t_utc": "2026-11-05T18:14:58.996Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_CONTEXT_MENU",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902471,
+          522000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_ACTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ADD_TO_PROMPT"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ADD_REFERENCE_INGREDIENT",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902471,
+          529000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "ADD_REFERENCE_INGREDIENT_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_TILE_REFERENCE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902472,
+          778000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "video"
+            ]
+           ]
+          ],
+          [
+           "AUDIO_FAILURE_PREFERENCE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[REDACTED len=449]"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 33,
+   "t_utc": "2026-11-05T18:15:02.236Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1121,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 34,
+   "t_utc": "2026-11-05T18:15:07.237Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1122,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 35,
+   "t_utc": "2026-11-05T18:15:12.237Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1121,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 36,
+   "t_utc": "2026-11-05T18:15:17.238Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1142,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      978,
+      [
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+        null,
+        null,
+        [
+         [
+          1793902481,
+          514814000
+         ],
+         "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_i2v_lite",
+            2,
+            [
+             1
+            ],
+            null,
+            1,
+            1
+           ],
+           [
+            [
+             null,
+             1,
+             "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+             [
+              null,
+              null,
+              1,
+              1
+             ]
+            ]
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "The red paper boat drifts slowly to the right across calm blue water, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          3
+         ],
+         1,
+         null,
+         null,
+         null,
+         1519983
+        ],
+        null,
+        [
+         [
+          null,
+          608994,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_i2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "31895334-d003-4da7-a1cf-3761facdaf63"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 37,
+   "t_utc": "2026-11-05T18:15:17.941Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 38,
+   "t_utc": "2026-11-05T18:15:17.954Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1786,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "31895334-d003-4da7-a1cf-3761facdaf63",
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "31895334-d003-4da7-a1cf-3761facdaf63",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+      null,
+      null,
+      [
+       [
+        1793902481,
+        514814000
+       ],
+       "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_i2v_lite",
+          2,
+          [
+           1
+          ],
+          null,
+          1,
+          1
+         ],
+         [
+          [
+           null,
+           1,
+           "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+           [
+            null,
+            null,
+            1,
+            1
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "The red paper boat drifts slowly to the right across calm blue water, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+       [],
+       null,
+       1519983
+      ],
+      null,
+      [
+       [
+        null,
+        608994,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+        null,
+        null,
+        null,
+        "veo_3_1_i2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ],
+       null,
+       null,
+       [
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 39,
+   "t_utc": "2026-11-05T18:15:18.480Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/jpeg",
+   "size": 20184
+  }
+ ]
+}

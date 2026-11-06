@@ -1,0 +1,38 @@
+{
+  "recorded_at": "2026-11-04T18:35:42.500312+00:00",
+  "extension_version": "1.3.138",
+  "source_sha256": {
+    "manifest.json": "95761368bf255152456cc148df602fe2918b970bb7713a13470b809545cf5c02",
+    "src/core/ProviderConfigManager.js": "d32599b8a0bae29e991e7e05cf5e529737f0834abded4f26cfc36b111137495e",
+    "src/core/BridgeClient.js": "33150894361e61bdfd0a8229c6f9f25d509c1d91e58e5f18a59893404cde84a4",
+    "src/core/flow-api/FlowApiV2Driver.js": "30f9c6e3b6450dc703ad790af45f9a2022834479094a484036fb95349826a193",
+    "settings-page.js": "0b6a8579e5e4f59cde0218f9f9312b5bbf4bee6975303bf71a1e068c8ad9131b",
+    "flow-v2-correlation-observer.js": "ed8a3a6735415423f9006e609d23d870d24f3f45d79c2b3c05a00df7337e75c2",
+    "chat-content-chatgpt.js": "b66ecaa013a3e808682cff28d4c33a88d504ffadde44869d87d17f8d7155956b"
+  },
+  "artifacts_sha256": {
+    "runtime-config-receipt.json": "e7d962a4a4b613910cb0e77cf1ee05915631843758d106850a24f99578177c0b",
+    "flow-dom-config.json": "a73e0b48394108b07c0f10c6836dfddcc2ad7d6f4f6a751e253951df110150d3",
+    "chatgpt-private-config.json": "86cb1c2e87c81a536e309a6790f34f55e0acb31c438af30311e77668de3aca11",
+    "flow-api-public-config.json": "d0105721304f6da9d181b64da8fe7b1e0393a85caa0feeb8e1aa39c6dccfc20f",
+    "chatgpt-config-contract.json": "a659de8f10f974d09cc906201d79d03efdab06c8b6ad5884a4a0374d8236418d",
+    "chatgpt-dom-config.json": "b9317e2ca0c5cd87751c18dd767a12dbc1e4ca39091092e2ddc57acc46a62194"
+  },
+  "public_website_asset": {
+    "url": "https://labs.tool.vn/build/assets/app-Df8g310R.js",
+    "sha256": "1a9f74d1caba7dd784ff19da82ec8a914c6e6e6670b3140a41257ca85c4d4964",
+    "bytes": 4336536
+  },
+  "bridge_distribution_checks": [
+    {
+      "source": "Google public CRX update endpoint with exact Bridge ID",
+      "result": "HTTP 404: error-unknownApplication"
+    },
+    {
+      "source": "bridge_download_url placeholder in public website bundle",
+      "url": "https://labs.tool.vn/downloads/toolbridge-latest.zip",
+      "result": "HTTP 404: Not Found",
+      "warning": "placeholder only; not an observed assigned download URL"
+    }
+  ]
+}

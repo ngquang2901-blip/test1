@@ -1,0 +1,17 @@
+{
+ "source": "Lượt 17A: text→video Veo 3.1 Lite 9:16 8 s",
+ "records": [
+  {
+   "phase": "sent",
+   "rpc": "YhhmEf",
+   "status": 0,
+   "req": "f.req=[[[\"YhhmEf\",\"[[[[null,null,[[[\\\"Mưa rào bất chợt trên phố cổ Hội An, người đi đường kéo áo mưa chạy vội, máy quay đứng yên\\\"]]]],\\\"veo_3_1_t2v_lite\\\",1,null,[null,null,null,null,\\\"B5C79A6F-45DB-40C1-8F1E-306C68728B49\\\",\\\"82A8040F-7D5C-47FB-BD98-E18EFDD671CD\\\"]]],[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[\\\"DC165F2A-3307-4102-8DE5-68E9FBBDC69D\\\",2]]\",null,\"generic\"]]]&at=<redacted>&"
+  },
+  {
+   "phase": "done",
+   "rpc": "YhhmEf",
+   "status": 200,
+   "res": ")]}'\n\n1129\n[[\"wrb.fr\",\"YhhmEf\",\"[null,958,[[\\\"46f8cb34-0ba4-44f4-abbc-5ba5a6557c0e\\\",null,null,[\\\"Mưa rào phố cổ Hội An…\\\",[1793946064,734886000],null,null,\\\"877ac18e-f606-43e7-8290-fd8f8df6b903\\\",\\\"DC165F2A-3307-4102-8DE5-68E9FBBDC69D\\\",[1793946067,669131000]],\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\"]],[[\\\"877ac18e-f606-43e7-8290-fd8f8df6b903\\\",\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",\\\"46f8cb34-0ba4-44f4-abbc-5ba5a6557c0e\\\",null,null,[[1793946064,734886000],\\\"Mưa rào bất chợt trên phố cổ Hội An, người đi đường kéo áo mưa chạy vội, máy quay đứng yên\\\",null,null,null,null,[null,[[\\\"veo_3_1_t2v_lite\\\",1,null,null,1,1]],[[null,null,[[[\\\"Mưa rào bất chợt trên phố cổ Hội An, người đi đường kéo áo mưa chạy vội, máy quay đứng yên\\\"]]]]],null,1],null,[6],1],null,[[null,183487,null,null,null,null,null,\\\"Sudden rain shower in the ancient streets of Hoi An, pedestrians pull on raincoats and hurry away, the camera stands still\\\",null,null,null,null,\\\"veo_3_1_t2v_lite\\\",\\\"\\\",null,false,1],[null,null,[8]],[\\\"877ac18e-f606-43e7-8290-fd8f8df6b903\\\"]]]]]\",null,null,null,\"generic\"],[\"di\",5525],[\"af.httprm\",5524,\"-5747017268393214732\",1]]\n26\n[[\"e\",4,null,null,1243]]\n"
+  }
+ ]
+}

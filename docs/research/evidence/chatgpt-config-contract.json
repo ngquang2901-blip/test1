@@ -1,0 +1,2411 @@
+{
+ "schema": "toolflow.chatgpt-config-contract/1",
+ "scope": "ChatGPT only; static analysis of extension 1.3.138 plus parent-collected runtime config evidence; this analysis branch made no network/browser calls, changed no auth or entitlement, and did not exercise provider generation",
+ "offset_unit": "0-based character index into the file decoded as UTF-8 (the shipped files are minified; line numbers are meaningless). anchor must be found at offset.",
+ "evidence_levels": {
+  "QS": "read directly in shipped code or snapshot",
+  "SL": "inferred",
+  "?": "unknown"
+ },
+ "extension_files": {
+  "content": {
+   "path": "chat-content-chatgpt.js",
+   "bytes": 148340,
+   "chars": 148330,
+   "sha256": "b66ecaa013a3e808682cff28d4c33a88d504ffadde44869d87d17f8d7155956b"
+  },
+  "adapter": {
+   "path": "src/core/providers/ChatGPTAdapter.js",
+   "bytes": 12348,
+   "chars": 12348,
+   "sha256": "2d65b5788f429d196c92eafb81f05dee2ae6efa403bdc8040310bdabe642c317"
+  },
+  "session": {
+   "path": "src/core/ChatGPTSession.js",
+   "bytes": 15319,
+   "chars": 15319,
+   "sha256": "539a29ee012e3de21da1e16a10c1c0398ce17c9c2de452fdd2855d30e871d167"
+  },
+  "config": {
+   "path": "src/core/ChatGPTConfig.js",
+   "bytes": 1312,
+   "chars": 1312,
+   "sha256": "36d8c1fa748b3ecb3c7fe542ab728e412bed86fe127b63d763a8b3ff8ffe1292"
+  },
+  "pcm": {
+   "path": "src/core/ProviderConfigManager.js",
+   "bytes": 30715,
+   "chars": 30715,
+   "sha256": "d32599b8a0bae29e991e7e05cf5e529737f0834abded4f26cfc36b111137495e"
+  },
+  "bridge": {
+   "path": "src/core/MessageBridge.js",
+   "bytes": 124860,
+   "chars": 124860,
+   "sha256": "207c1752af1a56c30370be9b40b00a67057a9ff162233c40273be9559fefcf74"
+  },
+  "csa": {
+   "path": "src/core/ConfigSnapshotAccess.js",
+   "bytes": 11418,
+   "chars": 11418,
+   "sha256": "54c4a0610ca41b9b9a2386e0ae247c528f0a12a30e4c752d363a24f7d332e01e"
+  },
+  "bg": {
+   "path": "background.js",
+   "bytes": 521791,
+   "chars": 521791,
+   "sha256": "3c45bf527a6bff6f65e651ffc55ef2fbd2bb6bd0c26fe333bd9a9d4da493c315"
+  },
+  "aia": {
+   "path": "src/core/providers/AIProviderAdapter.js",
+   "bytes": 807,
+   "chars": 807,
+   "sha256": "faf3cb217633a0e6947628136f72ae9378107bea35dc4cf1493ddeb005ad3f90"
+  }
+ },
+ "snapshot_files": {
+  "tool_provider_configs.json": "f92a96c44e1f19d65b0ea0c59f4b465df20fa94c2e754538215f3f4877ec19b9",
+  "tool_provider_api_configs.json": "f6ec8893dbc5bb403c6ca683acd309559180034a2d15c81c9ea1bc9c6737ea76",
+  "tool_provider_models.json": "be646cfba8b7aab25854c88964bf13a8e4e4a1db6eb23e7f221e32f32170698d",
+  "af_entitlements.json": "91106a55736a3707140b9d62c78e7710aadad7a97fe45238aa9502c3f33b6865",
+  "af_system_settings.json": "67b12f9ff0b8d8e16472faf261911d0155c55e65746b2cc8467cbc446d48d9b8",
+  "af_settings.json": "475eb40f8cdf15c752c3ac69ce9810ef3254e3c4a2b1b7daef7f58efb8653fe9",
+  "af_execution_config.json": "c090431e17596871cad6a0d4ed0b01bccba9b7d65ed299a51627616bdd773f3f"
+ },
+ "layers": {
+  "L1_selectors": {
+   "store": "tool_provider_configs.data.chatgpt.selectors",
+   "engine": {
+    "reader": {
+     "file": "chat-content-chatgpt.js",
+     "symbol": "_getDynamicSelector",
+     "offset": 4695,
+     "anchor": "function _getDynamicSelector(key)"
+    },
+    "store": "chrome.storage.local tool_provider_configs.data.chatgpt.selectors[key] via ConfigSnapshotAccess.read",
+    "cache_ttl_ms": 30000,
+    "cache_ttl_offset": 2078,
+    "query_with_fallback": {
+     "file": "chat-content-chatgpt.js",
+     "symbol": "_queryWithFallback",
+     "offset": 6426,
+     "anchor": "function _queryWithFallback(key,defaultSelectors=null"
+    },
+    "ordering": "selectors[] tried in array order with querySelector; first hit wins",
+    "hardcoded_fallback": "none: every literal call passes defaultSelectors=null (checked by regex over 40 literal keys, 0 non-null defaults)",
+    "rendered_control_keys": [
+     "composer",
+     "model_switcher_button",
+     "plus_button",
+     "submit_button",
+     "stop_button",
+     "ratio_button"
+    ],
+    "rendered_control_offset": 7144,
+    "priority_field": "present in every snapshot entry, never read (PRIORITY unused)",
+    "text_match_present_in_snapshot": [],
+    "field_read_offsets": {
+     "selectors": 8105,
+     "exclude_if_aria_contains": 6904,
+     "attribute": 10541,
+     "identity_attributes": 9192,
+     "role_attributes": 9668,
+     "text_fallback": 10664,
+     "text_match": 24460
+    },
+    "failure_report": {
+     "symbol": "ProviderConfigManager.reportFailure",
+     "offset": 26530,
+     "note": "POST analytics/selector-failure, throttle 5 min; NOT called by chat-content-chatgpt.js (0 hits for reportFailure) [QS bounded grep]"
+    }
+   },
+   "keys": {
+    "assistant_turn": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-content-search-unit-key^=\"fallback-turn-\"][data-content-search-unit-key$=\":assistant\"]",
+       "div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+       "[data-testid^=\"conversation-turn-\"][data-turn=\"assistant\"]",
+       "[data-chatgpt-search-unit-key$=\":assistant\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 95276,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "audio_attachment_remove_button": {
+     "tier": "T2_reference_upload",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-composer-attachments] span[class~=\"group/composer-attachment\"] > button[aria-label]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 57080,
+     "consumer_file": "chat-content-chatgpt.js",
+     "hard_fail_if_missing": {
+      "error": "UPLOAD_SELECTOR_CONFIG_MISSING",
+      "when": "images attached (audio -> audio_attachment_remove_button)",
+      "offset": 57278
+     }
+    },
+    "auth_link": {
+     "tier": "T5_challenge_auth",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "a[href*=\"/auth/login\"]",
+       "a[href*=\"/auth/signin\"]"
+      ]
+     },
+     "hardcoded_fallback": "n/a",
+     "extra_fields_present": [],
+     "consumer_file": "background.js",
+     "first_read_offset_bg": 404581,
+     "consumer_symbol": "background.js > chatgpt:checkLogin"
+    },
+    "cdn_image": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "img[src*=\"estuary/content\"]",
+       "img[src*=\"oaiusercontent\"]",
+       "img[src*=\"sandboxed.openai\"]",
+       "img[src*=\"/backend-api/\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 11306,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "challenge_overlay": {
+     "tier": "T5_challenge_auth",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[role=\"dialog\"][data-state=\"open\"]",
+       "div[role=\"dialog\"]",
+       "[role=\"alertdialog\"]",
+       "dialog[open]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 16132,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "chat_history_home_link": {
+     "tier": "T4_new_chat_cleanup",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "attribute": "href",
+      "priority": "P2",
+      "selectors": [
+       "nav[aria-label=\"Chat history\"] a[href=\"/\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [
+      "attribute"
+     ],
+     "first_read_offset_content": 31194,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "cloudflare_iframe": {
+     "tier": "T5_challenge_auth",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       "iframe[src*=\"challenges.cloudflare.com\"]",
+       "iframe[src*=\"turnstile\"]",
+       ".cf-turnstile",
+       "[data-cf-turnstile]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 24245,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "completed_text_response": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-talvt-turn-state=\"complete\"] [data-chatgpt-search-unit-key$=\":assistant\"]:has([data-markdown-text-style=\"assistant-message\"]):not(:has(img, video, audio, canvas, iframe, object, embed))"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 104179,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "composer": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       "#prompt-textarea",
+       "div.ProseMirror[role=\"textbox\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 7167,
+     "consumer_file": "chat-content-chatgpt.js",
+     "hard_fail_if_missing": {
+      "error": "SELECTOR_CONFIG_UNAVAILABLE",
+      "where": "background.js chatgpt:checkLogin",
+      "offset": 147873
+     }
+    },
+    "composer_mode_radio": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P2",
+      "selectors": [
+       "[role=\"group\"] button[role=\"radio\"][data-radix-collection-item]",
+       "button[role=\"radio\"][data-radix-collection-item]",
+       "button[role=\"radio\"]",
+       "header [role=\"group\"]:has(> button[aria-pressed]) > button[aria-pressed]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 27879,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "conversation_options_button": {
+     "tier": "T4_new_chat_cleanup",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-testid=\"conversation-options-button\"]",
+       "button[aria-label=\"Open conversation options\"]",
+       "button[aria-label*=\"conversation options\"]",
+       "[data-testid=\"app-shell-header-context-menu-surface\"] button[aria-haspopup=\"menu\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 13246,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "conversation_options_menu": {
+     "tier": "T4_new_chat_cleanup",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+       "[role=\"menu\"][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+       "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([role=\"menuitem\"].text-danger)"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 14961,
+     "consumer_file": "chat-content-chatgpt.js",
+     "note": "read through a variable/array, not a direct _queryWithFallback literal"
+    },
+    "conversation_turn": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "attribute": "data-testid",
+      "identity_attributes": [
+       "data-turn-id",
+       "data-testid",
+       "data-turn-key",
+       "data-content-search-unit-key",
+       "data-chatgpt-search-unit-key",
+       "data-chatgpt-search-message-ids"
+      ],
+      "priority": "P0",
+      "role_attributes": [
+       "data-turn",
+       "data-message-author-role",
+       "data-conversation-role",
+       "data-content-search-unit-key",
+       "data-chatgpt-search-unit-key"
+      ],
+      "selectors": [
+       "[data-content-search-unit-key^=\"fallback-turn-\"], div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+       "[data-testid^=\"conversation-turn-\"]",
+       "[data-turn-id]",
+       "[data-turn-key]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [
+      "attribute",
+      "identity_attributes",
+      "role_attributes"
+     ],
+     "first_read_offset_content": 8898,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "create_image_menu_item": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       ".__menu-item:has(use[href*=\"#create-image-plugin\"])"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 46355,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "delete_chat_menu_item": {
+     "tier": "T4_new_chat_cleanup",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-testid=\"delete-chat-menu-item\"]",
+       "[role=\"menuitem\"][data-color=\"danger\"]",
+       "[role=\"menuitem\"].text-danger"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 15443,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "delete_confirm_button": {
+     "tier": "T4_new_chat_cleanup",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "button[data-testid=\"delete-conversation-confirm-button\"]",
+       "button[data-testid=\"delete-confirm-button\"]",
+       "button.btn-danger",
+       "form button[type=\"submit\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 15979,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "file_input": {
+     "tier": "T2_reference_upload",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "#upload-photos",
+       "input[type=\"file\"][accept*=\"image\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 55529,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "generated_image": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "attribute": "src",
+      "priority": "P0",
+      "selectors": [
+       "[data-testid=\"generated-image-gallery\"] [data-testid=\"generated-image-preview\"] img[src^=\"blob:\"]",
+       "img[alt^=\"Generated image\"]:not([aria-hidden])"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [
+      "attribute"
+     ],
+     "first_read_offset_content": 11399,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "generating_indicator": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       "[data-testid=\"image-gen-loading-game-board\"]",
+       "[data-testid=\"image-gen-loading-state\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 10219,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "generation_error_alert": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       "[data-turn-key] [role=\"alert\"]",
+       "[data-turn-id] [role=\"alert\"]",
+       "[data-testid^=\"conversation-turn-\"] [role=\"alert\"]",
+       "[data-content-search-turn-key] [role=\"alert\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 91012,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "image_action_buttons": {
+     "tier": "T6_diagnostic",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[aria-label=\"Like this image\"]",
+       "[aria-label=\"Edit image\"]",
+       "[aria-label=\"Dislike this image\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 105931,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "image_generation_progress": {
+     "tier": "T6_diagnostic",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "attribute": "aria-valuenow",
+      "priority": "P2",
+      "selectors": [
+       "[data-testid=\"image-gen-loading-game-board\"] + div > span:last-child",
+       "[data-testid=\"image-gen-loading-progress\"]"
+      ],
+      "text_fallback": true
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [
+      "attribute",
+      "text_fallback"
+     ],
+     "first_read_offset_content": 10411,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "image_mode_pill": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-system-hint-type=\"picture_v2\"]",
+       "[data-inline-selection-pill][data-id=\"picture_v2\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 35621,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "login_button": {
+     "tier": "T5_challenge_auth",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       "[data-testid=\"login-button\"]",
+       "button[data-testid*=\"login\"]"
+      ]
+     },
+     "hardcoded_fallback": "n/a",
+     "extra_fields_present": [],
+     "consumer_file": "background.js",
+     "first_read_offset_bg": 404527,
+     "consumer_symbol": "background.js > chatgpt:checkLogin"
+    },
+    "mention_menu": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       ".popover.shadow-long:has(.__menu-item)",
+       ".popover:has(.__menu-item)"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 45810,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "menu_items": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "button[data-list-navigation-item=\"true\"]",
+       ".__menu-item",
+       "[role=\"menuitemradio\"]",
+       "[role=\"menuitem\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 36953,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "message_author": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "attribute": "data-message-author-role",
+      "priority": "P1",
+      "selectors": [
+       "[data-message-author-role]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [
+      "attribute"
+     ],
+     "first_read_offset_content": 9567,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "mode_menu_item": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[role=\"menuitemradio\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 42998,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "model_effort_slider": {
+     "tier": "T3_model_select",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-reasoning-slider=\"true\"] [role=\"slider\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 40435,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "model_effort_slider_control": {
+     "tier": "T3_model_select",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-reasoning-slider=\"true\"][aria-keyshortcuts*=\"ArrowRight\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 40510,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "model_switcher_button": {
+     "tier": "T3_model_select",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "form[data-type=\"unified-composer\"] [data-composer-transition-slot=\"trailing\"] button.__composer-pill",
+       "button.__composer-pill[aria-haspopup=\"menu\"]",
+       "button[data-codex-intelligence-trigger=\"true\"][data-composer-navigation-target=\"reasoning\"]",
+       "button[data-composer-navigation-target=\"reasoning\"][aria-haspopup=\"menu\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 7178,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "new_chat_button": {
+     "tier": "T4_new_chat_cleanup",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "a[data-testid=\"create-new-chat-button\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 31129,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "open_menu": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[data-composer-overlay-floating-ui=\"true\"]",
+       "[popover]:popover-open:has(.__menu-item)",
+       "[popover]:popover-open",
+       "[data-radix-popper-content-wrapper]",
+       "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]",
+       "div[role=\"menu\"][data-state=\"open\"]",
+       "[role=\"menu\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 14989,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "pa_source_text_file": {
+     "tier": "T2_reference_upload",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[role=\"group\"][aria-label$=\".txt\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 95702,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "paragen_container": {
+     "tier": "T6_diagnostic",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "[class*=\"image-paragen-multigen\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 113188,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "plus_button": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "form button[data-composer-navigation-target=\"add-context\"]",
+       "#composer-plus-btn",
+       "[data-testid=\"composer-plus-btn\"]",
+       "button[data-composer-navigation-target=\"add-context\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 7202,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "ratio_button": {
+     "tier": "T1_image_mode_ratio",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "button[aria-label=\"Choose image aspect ratio\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 7246,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "ref_upload_pending": {
+     "tier": "T2_reference_upload",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "form[data-type=\"unified-composer\"] [role=\"group\"] .cursor-wait",
+       "div[data-default-action] .cursor-wait"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 11716,
+     "consumer_file": "chat-content-chatgpt.js",
+     "hard_fail_if_missing": {
+      "error": "UPLOAD_SELECTOR_CONFIG_MISSING",
+      "when": "images attached (audio -> audio_attachment_remove_button)",
+      "offset": 57278
+     }
+    },
+    "remove_ref_image_button": {
+     "tier": "T2_reference_upload",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "form[data-type=\\\"unified-composer\\\"] div[role=\\\"group\\\"] button:not([aria-haspopup])",
+       "button[aria-label^=\"Remove file\"]",
+       "button[aria-label^=\\\"Xóa tệp\\\"]",
+       "[data-composer-body] [role=\"button\"][class*=\"composer-attachment\"] > button[aria-label]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 23273,
+     "consumer_file": "chat-content-chatgpt.js",
+     "note": "read through a variable/array, not a direct _queryWithFallback literal",
+     "hard_fail_if_missing": {
+      "error": "UPLOAD_SELECTOR_CONFIG_MISSING",
+      "when": "images attached (audio -> audio_attachment_remove_button)",
+      "offset": 57278
+     }
+    },
+    "response_text_content": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       ".markdown.prose",
+       "[data-markdown-text-style=\"assistant-message\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 99054,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "stop_button": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P0",
+      "selectors": [
+       "button[aria-label=\"Ngừng\"]",
+       "[aria-label=\"Stop generating\"]",
+       "[data-testid=\"stop-button\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 7232,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "submit_button": {
+     "tier": "T0_submit_and_read",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "exclude_if_aria_contains": [
+       "thoại",
+       "đọc chính tả",
+       "voice",
+       "dictat"
+      ],
+      "priority": "P0",
+      "selectors": [
+       "#composer-submit-button",
+       "button[data-testid=\"send-button\"]",
+       "button.composer-submit-button-color",
+       "button[aria-label=\"Send prompt\"]",
+       "form:has(div.ProseMirror[role=\"textbox\"]) button[type=\"submit\"]",
+       "form[data-thread-find-composer=\"true\"] button[type=\"submit\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [
+      "exclude_if_aria_contains"
+     ],
+     "first_read_offset_content": 7216,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "text_file_tile": {
+     "tier": "T2_reference_upload",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       "button[name=\"expand-file-tile\"]"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 69142,
+     "consumer_file": "chat-content-chatgpt.js"
+    },
+    "thinking_indicator": {
+     "tier": "T6_diagnostic",
+     "evidence_value": "QS (public snapshot tool_provider_configs.data.chatgpt.selectors)",
+     "value": {
+      "priority": "P1",
+      "selectors": [
+       ".result-thinking",
+       ".result-streaming"
+      ]
+     },
+     "hardcoded_fallback": "none",
+     "extra_fields_present": [],
+     "first_read_offset_content": 98755,
+     "consumer_file": "chat-content-chatgpt.js"
+    }
+   }
+  },
+  "L2_public_api_config": {
+   "store": "tool_provider_api_configs.data.chatgpt.configs",
+   "observed": {},
+   "readers": "none for chatgpt: PCM routes chatgpt to the private store (_PRIVATE_PROVIDERS)",
+   "note": "public layer is an observed empty object, NOT a contract source",
+   "runtime_note": "api-configs HTTP 200; chatgpt.configs still {} in the stored snapshot; all chatgpt runtime values come from the private scope"
+  },
+  "L3_private_config": {
+   "store": "private scope data.chatgpt.configs",
+   "transport": {
+    "content_reader": {
+     "file": "chat-content-chatgpt.js",
+     "symbol": "_getChatGPTApiConfig",
+     "offset": 37571,
+     "anchor": "async function _getChatGPTApiConfig(key)"
+    },
+    "csa_privateApi": {
+     "file": "src/core/ConfigSnapshotAccess.js",
+     "symbol": "ConfigSnapshotAccess.privateApi",
+     "offset": 7227,
+     "anchor": "async function privateApi(providerSlug)"
+    },
+    "csa_provider_allowlist": [
+     "chatgpt",
+     "grok",
+     "gemini"
+    ],
+    "csa_rpc": "chrome.runtime.sendMessage({action:'getProviderPrivateConfigs', provider})",
+    "bg_handler": {
+     "file": "background.js",
+     "symbol": "background.js getProviderPrivateConfigs",
+     "offset": 216160,
+     "anchor": "message.action===\"getProviderPrivateConfigs\""
+    },
+    "response_shape": "{success, data: <data.chatgpt blob>, meta:{access}}; consumers read data.configs[key]",
+    "returns_null_when": [
+     "provider != started provider",
+     "ensure() false",
+     "lease expired",
+     "epoch changed",
+     "meta.access != lease.access"
+    ],
+    "pcm_fetch": {
+     "file": "src/core/ProviderConfigManager.js",
+     "symbol": "ProviderConfigManager.fetchPrivateConfigs",
+     "offset": 17829,
+     "anchor": "static async fetchPrivateConfigs(force=false)"
+    },
+    "pcm_private_ttl_ms": 3600000,
+    "pcm_private_ttl_offset": 30342,
+    "pcm_private_providers_offset": 28947,
+    "pcm_gated_keys_offset": 29542,
+    "pcm_gated_keys_note": "prompt_prefixes / watermark_removal / api_endpoints are in _GATED_API_CONFIG_KEYS but the private-provider branch of getApiConfigValueSync returns before the gate; ChatGPT code never reads them",
+    "chatgpt_config_class": {
+     "file": "src/core/ChatGPTConfig.js",
+     "symbol": "ChatGPTConfig._doFetch",
+     "offset": 762,
+     "returns": "{...error_patterns, ...ui_text_patterns} (flat merge; ui_text_patterns wins)",
+     "cache_key": "af_chatgpt_config",
+     "cache_ttl_ms": 3600000,
+     "note": "_CACHE_KEY/_CACHE_TTL_MS are declared but _doFetch never writes the cache (only clearCache removes it); content script does NOT use this class and re-reads privateApi itself"
+    },
+    "pattern_wait": {
+     "max_ms": 10000,
+     "interval_ms": 500,
+     "offset": 88751,
+     "ready_when": "any of rateLimit/contentBlocked/imageGenFailed/network/textOnly/cloudflare non-empty",
+     "on_timeout": "continue; error detection degraded; tracker shows TIMEOUT instead of exact code",
+     "reload_trigger": {
+      "file": "chat-content-chatgpt.js",
+      "symbol": "chrome.storage.onChanged listener",
+      "offset": 90184,
+      "anchor": "changes.tool_provider_api_configs"
+     }
+    }
+   },
+   "keys": [
+    {
+     "key": "error_patterns.rate_limit_error_text|ui_text_patterns.rate_limit_error_text",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).rate_limit_error_text",
+     "type": "string 'a|b|c'",
+     "parse": "string split(\"|\") -> trim -> lowercase -> filter(Boolean); substring match on turn.innerText.toLowerCase()",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88032,
+       "anchor": "_activePatterns.rateLimit=_parsePatternString(cfg.rate_limit_error_text)"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "detectError",
+       "offset": 90333,
+       "anchor": "_activePatterns.rateLimit.some("
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty list -> RATE_LIMIT never detected; submit still proceeds (degraded)",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_group": "error_patterns",
+     "runtime_value": "You've reached your limit|you've hit the plus plan limit|rate limit|too many requests|please upgrade|limit will reset|limit resets in|daily limit|reached the daily maximum|generating images too quickly|create more images when the limit|You’re out of uploads|upgrade to ChatGPT|Unable to upload|Max 0 uploads at a time",
+     "parsed_list": [
+      "you've reached your limit",
+      "you've hit the plus plan limit",
+      "rate limit",
+      "too many requests",
+      "please upgrade",
+      "limit will reset",
+      "limit resets in",
+      "daily limit",
+      "reached the daily maximum",
+      "generating images too quickly",
+      "create more images when the limit",
+      "you’re out of uploads",
+      "upgrade to chatgpt",
+      "unable to upload",
+      "max 0 uploads at a time"
+     ],
+     "parsed_count": 15,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "content_blocked_text",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).content_blocked_text",
+     "type": "string 'a|b|c'",
+     "parse": "string split(\"|\") -> trim -> lowercase -> filter(Boolean); substring match on turn.innerText.toLowerCase()",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88105,
+       "anchor": "_activePatterns.contentBlocked=_parsePatternString(cfg.content_blocked_text)"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "detectError",
+       "offset": 90407,
+       "anchor": "_activePatterns.contentBlocked.some("
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty list -> CONTENT_BLOCKED never detected",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_group": "error_patterns",
+     "runtime_value": "can't create|cannot generate|can't generate|content policy|violates our content polic|violates our usage polic|this request violates|request violates generation policy|safety system|not allowed by our safety system|unable to create|unable to generate images for that request|unable to generate the requested image|may violate our content polic|prompt may violate|violate our guardrails|We’re so sorry|please retry|edit your prompt|content policies|may violate",
+     "parsed_list": [
+      "can't create",
+      "cannot generate",
+      "can't generate",
+      "content policy",
+      "violates our content polic",
+      "violates our usage polic",
+      "this request violates",
+      "request violates generation policy",
+      "safety system",
+      "not allowed by our safety system",
+      "unable to create",
+      "unable to generate images for that request",
+      "unable to generate the requested image",
+      "may violate our content polic",
+      "prompt may violate",
+      "violate our guardrails",
+      "we’re so sorry",
+      "please retry",
+      "edit your prompt",
+      "content policies",
+      "may violate"
+     ],
+     "parsed_count": 21,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "image_gen_failed_text",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).image_gen_failed_text",
+     "type": "string 'a|b|c'",
+     "parse": "string split(\"|\") -> trim -> lowercase -> filter(Boolean); substring match on turn.innerText.toLowerCase()",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88182,
+       "anchor": "_activePatterns.imageGenFailed=_parsePatternString(cfg.image_gen_failed_text)"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "detectError",
+       "offset": 90491,
+       "anchor": "_activePatterns.imageGenFailed.some("
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty list -> IMAGE_GEN_FAILED never detected",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_group": "error_patterns",
+     "runtime_value": "experienced an error when generating image|something went wrong while generating your image|couldn't generate the image|couldn't generate that image|couldn't create the image|couldn't create that image|trouble generating that image|trouble generating the image|error generating image|error creating images|error creating message|failed to generate the image|failed to generate image|unable to generate the image|unable to generate that image|unable to generate images directly|can't generate images at the moment|contact us through our help center|không tạo|thất bại|Something went wrong",
+     "parsed_list": [
+      "experienced an error when generating image",
+      "something went wrong while generating your image",
+      "couldn't generate the image",
+      "couldn't generate that image",
+      "couldn't create the image",
+      "couldn't create that image",
+      "trouble generating that image",
+      "trouble generating the image",
+      "error generating image",
+      "error creating images",
+      "error creating message",
+      "failed to generate the image",
+      "failed to generate image",
+      "unable to generate the image",
+      "unable to generate that image",
+      "unable to generate images directly",
+      "can't generate images at the moment",
+      "contact us through our help center",
+      "không tạo",
+      "thất bại",
+      "something went wrong"
+     ],
+     "parsed_count": 21,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "network_error_text",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).network_error_text",
+     "type": "string 'a|b|c'",
+     "parse": "string split(\"|\") -> trim -> lowercase -> filter(Boolean); substring match on turn.innerText.toLowerCase()",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88260,
+       "anchor": "_activePatterns.network=_parsePatternString(cfg.network_error_text)"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "detectError",
+       "offset": 90576,
+       "anchor": "_activePatterns.network.some("
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty list -> NETWORK never detected",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_group": "error_patterns",
+     "runtime_value": "network error|something went wrong|connection error|please check your internet|we are currently processing too many requests||help.openai.com|Failed to fetch",
+     "parsed_list": [
+      "network error",
+      "something went wrong",
+      "connection error",
+      "please check your internet",
+      "we are currently processing too many requests",
+      "help.openai.com",
+      "failed to fetch"
+     ],
+     "parsed_count": 7,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "text_only_pattern",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).text_only_pattern",
+     "type": "string 'a|b|c'",
+     "parse": "same split/lowercase; substring match against turn text",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88328,
+       "anchor": "_activePatterns.textOnly=_parsePatternString(cfg.text_only_pattern)"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "waitForImageResult",
+       "offset": 117752,
+       "anchor": "matchesConfiguredTextOnly=(_activePatterns.textOnly"
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty -> matchesConfiguredTextOnly=false; TEXT_ONLY relies on other conditions in the same branch",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_group": "error_patterns",
+     "runtime_value": "i'm sorry, but i|i apologize, but|i'm unable to|i cannot|unfortunately, i|i'm not able to|as an ai|as a language model|i don't have the ability|i can't directly|instead of generating|rather than creating an image|let me describe|here's a description|i'll describe|instead, i can|however, i can|but i can help|i can help you with|let me help you|i can assist",
+     "parsed_list": [
+      "i'm sorry, but i",
+      "i apologize, but",
+      "i'm unable to",
+      "i cannot",
+      "unfortunately, i",
+      "i'm not able to",
+      "as an ai",
+      "as a language model",
+      "i don't have the ability",
+      "i can't directly",
+      "instead of generating",
+      "rather than creating an image",
+      "let me describe",
+      "here's a description",
+      "i'll describe",
+      "instead, i can",
+      "however, i can",
+      "but i can help",
+      "i can help you with",
+      "let me help you",
+      "i can assist"
+     ],
+     "parsed_count": 21,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "cloudflare_challenge_text",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).cloudflare_challenge_text",
+     "type": "string 'a|b|c'",
+     "parse": "same split/lowercase",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88396,
+       "anchor": "_activePatterns.cloudflare=_parsePatternString(cfg.cloudflare_challenge_text)"
+      }
+     ],
+     "required": "optional",
+     "fallback": "no reader",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "note": "Assigned and counted in the 'any error pattern loaded' readiness check, but _activePatterns.cloudflare is never read by a detector in this file (1 occurrence). detectChatGPTChallenge uses challenge_overlay.text_match + hardcoded 'verifying'/'cloudflare' instead. Corrects doc 06 section 7 row 'Mau text lay tu dau'.",
+     "runtime_group": "error_patterns",
+     "runtime_value": "making sure you're human|verify you are human|verifying cloudflare",
+     "parsed_list": [
+      "making sure you're human",
+      "verify you are human",
+      "verifying cloudflare"
+     ],
+     "parsed_count": 3,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "generated_image_alt_text",
+     "path": "private.data.chatgpt.configs.(error_patterns|ui_text_patterns).generated_image_alt_text",
+     "type": "string 'a|b|c' (alt PREFIXES)",
+     "parse": "same split/lowercase; alt.trim().toLowerCase().startsWith(prefix)",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_loadPatternsFromPrivateConfig",
+       "offset": 88474,
+       "anchor": "_activePatterns.generatedImageAlt=_parsePatternString(cfg.generated_image_alt_text)"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "isGeneratedImageAlt",
+       "offset": 92027,
+       "anchor": "_activePatterns.generatedImageAlt.some(prefix=>normalized.startsWith(prefix))"
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty -> alt-prefix classification false; generated_image selector (img[alt^=\"Generated image\"]) still matches by selector",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "note": "Not counted by the readiness check (errorPatternKeys excludes it).",
+     "runtime_group": "ui_text_patterns",
+     "runtime_value": "generated image|ảnh đã tạo|ảnh được tạo",
+     "parsed_list": [
+      "generated image",
+      "ảnh đã tạo",
+      "ảnh được tạo"
+     ],
+     "parsed_count": 3,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "create_image_menu_text",
+     "path": "private.data.chatgpt.configs.ui_text_patterns.create_image_menu_text",
+     "type": "string 'a|b'",
+     "parse": "split('|') trim lowercase; menu item innerText must include/match",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_getCreateImagePatterns",
+       "offset": 37740,
+       "anchor": "async function _getCreateImagePatterns()"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "_getCreateImagePatterns",
+       "offset": 37844,
+       "anchor": "raw=cfg?.create_image_menu_text||\"create image|create an image\""
+      }
+     ],
+     "required": "optional",
+     "fallback": "HARD-CODED default 'create image|create an image' (English only)",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_group": "ui_text_patterns",
+     "runtime_value": "create image|create an image|tạo hình ảnh|tạo ảnh",
+     "parsed_list": [
+      "create image",
+      "create an image",
+      "tạo hình ảnh",
+      "tạo ảnh"
+     ],
+     "parsed_count": 4,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "not_logged_in_text",
+     "path": "private.data.chatgpt.configs.ui_text_patterns.not_logged_in_text",
+     "type": "string 'a|b'",
+     "parse": "split('|') trim lowercase; matches visible <button> text of length<=30",
+     "sites": [
+      {
+       "file": "background.js",
+       "symbol": "background.js > chatgpt:checkLogin",
+       "offset": 404747,
+       "anchor": "privateConfig?.data?.chatgpt?.configs?.ui_text_patterns?.not_logged_in_text"
+      }
+     ],
+     "required": "optional",
+     "fallback": "empty -> only login_button / auth_link selectors detect NOT_LOGGED_IN",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "note": "Supplemental: background.js is outside the requested file list; read via ProtectedConfigClient.fetch('private',{provider:'chatgpt'}).",
+     "runtime_group": "error_patterns",
+     "runtime_value": "log in|sign in|sign up|đăng nhập|đăng ký",
+     "parsed_list": [
+      "log in",
+      "sign in",
+      "sign up",
+      "đăng nhập",
+      "đăng ký"
+     ],
+     "parsed_count": 5,
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "chatgpt_model_labels",
+     "path": "private.data.chatgpt.configs.chatgpt_model_labels",
+     "type": "object {modelValue: 'labelA|labelB'}",
+     "parse": "labels=String(map[model]??model).split('|')...; menu item text equals/contains label",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "selectChatGPTModelBestEffort",
+       "offset": 38320,
+       "anchor": "_getChatGPTApiConfig(\"chatgpt_model_labels\")"
+      }
+     ],
+     "required": "optional (best effort)",
+     "fallback": "label = the model value itself (e.g. 'Instant'); empty targets -> finish(false,'labels_missing'), submit continues",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_value": {
+      "Instant": "Instant|Tức thì",
+      "Medium": "Medium|Trung bình|Vừa",
+      "High": "High|Cao",
+      "Pro": "Pro",
+      "Extra High": "Extra High|Chuyên sâu"
+     },
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "chatgpt_model_slider_values",
+     "path": "private.data.chatgpt.configs.chatgpt_model_slider_values",
+     "type": "object {modelValue: integer}",
+     "parse": "Number(v) must be safe integer within slider aria-valuemin..aria-valuemax (range<=10)",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "selectChatGPTModelBestEffort",
+       "offset": 40115,
+       "anchor": "_getChatGPTApiConfig(\"chatgpt_model_slider_values\")"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "selectChatGPTModelBestEffort",
+       "offset": 42686,
+       "anchor": "const target=configuredValue===void 0||configuredValue===null?NaN:Number(configuredValue)"
+      }
+     ],
+     "required": "optional (best effort)",
+     "fallback": "falls back to menu item label match when target is NaN/out of range",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "runtime_value": {
+      "Instant": 0,
+      "Medium": 1,
+      "High": 2
+     },
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "reference_upload_timings",
+     "path": "private.data.chatgpt.configs.reference_upload_timings",
+     "type": "object {preview_timeout_ms, completion_timeout_ms, settle_ms, poll_interval_ms}: safe integers",
+     "parse": "bounds: preview>=1000; completion>=preview and <=600000; 100<=settle<completion; 50<=poll<=2000",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "injectRefImages",
+       "offset": 56502,
+       "anchor": "_getChatGPTApiConfig(\"reference_upload_timings\")"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "injectRefImages",
+       "offset": 57004,
+       "anchor": "return fail(\"UPLOAD_TIMINGS_CONFIG_MISSING\")"
+      },
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "useUploadBudget",
+       "offset": 74067,
+       "anchor": "_getChatGPTApiConfig(\"reference_upload_timings\")"
+      }
+     ],
+     "required": "required ONLY when sending reference images or a file-backed prompt",
+     "fallback": "none: fail-fast UPLOAD_TIMINGS_CONFIG_MISSING (injectRefImages) / thrown error (submit gate)",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "note": "Submit-gate only needs completion_timeout_ms (1000..600000) and only after _isRefUploading() or fileBackedPrompt.",
+     "runtime_value": {
+      "preview_timeout_ms": 60000,
+      "completion_timeout_ms": 120000,
+      "settle_ms": 1000,
+      "poll_interval_ms": 300
+     },
+     "runtime_present_for_free": true
+    },
+    {
+     "key": "ai_agent_prefix",
+     "path": "private.data.chatgpt.configs.ai_agent_prefix",
+     "type": "object {locale: string}",
+     "parse": "prefixMap[af_locale] ?? prefixMap.en ?? null",
+     "sites": [
+      {
+       "file": "chat-content-chatgpt.js",
+       "symbol": "getEnhancePrefix",
+       "offset": 55050,
+       "anchor": "configs?.ai_agent_prefix"
+      }
+     ],
+     "required": "optional; only text/AI-agent path (submitText)",
+     "fallback": "null -> no prefix, warn 'ai_agent_prefix config missing'",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime (chatgpt-private-config.json, plan=free)",
+     "note": "Free entitlements show ai_agent_enabled=0 and prompt_enhancer_enabled=0 (doc 03 3.9.2); call-site gating not verified here.",
+     "runtime_value": {
+      "en": "Respond directly to the request below. Return ONLY plain text as a normal inline chat message — do NOT use Canvas, do NOT open a document/editor/immersive view, do NOT place the answer in a textbox, code block, or collapsible panel. No markdown formatting, no preamble (like \"Here is...\", \"Sure,...\"), no quotation marks wrapping the answer, no image/file generation. Keep the TOTAL response under 20000 characters — be concise; if the content would exceed this, tighten it to fit rather than truncating mid-sentence. Keep the user intent without adding commentary.\n\n---REQUEST---",
+      "vi": "Phản hồi trực tiếp yêu cầu bên dưới. Chỉ trả về plain text dưới dạng tin nhắn chat thông thường — KHÔNG dùng Canvas, KHÔNG format đặt biệt, KHÔNG mở tài liệu/trình soạn thảo/chế độ immersive, KHÔNG đặt câu trả lời trong textbox, code block hay khung thu gọn. KHÔNG markdown, KHÔNG preamble (như \"Đây là...\", \"Để tôi...\", \"Sure,...\"), KHÔNG dấu ngoặc kép bao quanh response, KHÔNG tạo ảnh/file. Giữ TỔNG độ dài response DƯỚI 20000 ký tự — ngắn gọn; nếu nội dung vượt quá thì rút gọn cho vừa, KHÔNG cắt ngang câu. Giữ đúng intent yêu cầu bên dưới, không thêm bình luận.\n\n---YÊU CẦU---"
+     },
+     "runtime_present_for_free": true
+    }
+   ],
+   "capability_keys_via_ProviderConfigManager": [
+    {
+     "key": "supports",
+     "type": "object<bool>: ratio, quantity, video, ref_image, auto_download, humanized, image_mode",
+     "consumer": {
+      "file": "src/core/providers/ChatGPTAdapter.js",
+      "symbol": "ChatGPTAdapter.capabilities",
+      "offset": 596,
+      "anchor": "pcm?.safeGetSupportsSync?.(\"chatgpt\")"
+     },
+     "pcm": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getSupportsSync",
+      "offset": 10217,
+      "anchor": "static getSupportsSync(slug)"
+     },
+     "fallback": "{} -> every supportsX=false",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime",
+     "store_switch": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "_providerApiConfigs",
+      "offset": 330
+     },
+     "runtime_value": {
+      "ratio": true,
+      "quantity": false,
+      "video": false,
+      "ref_image": true,
+      "auto_download": true,
+      "humanized": true,
+      "image_mode": true
+     }
+    },
+    {
+     "key": "max_ref_images",
+     "type": "object<int>: image",
+     "consumer": {
+      "file": "src/core/providers/ChatGPTAdapter.js",
+      "symbol": "ChatGPTAdapter.capabilities",
+      "offset": 656,
+      "anchor": "safeGetMaxRefImagesSync?.(\"chatgpt\",\"image\")"
+     },
+     "pcm": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getMaxRefImagesSync",
+      "offset": 9411,
+      "anchor": "static getMaxRefImagesSync(slug,mode="
+     },
+     "fallback": "0 (null when ConfigRequiredError); submitText slices refs to this value",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime",
+     "store_switch": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "_providerApiConfigs",
+      "offset": 330
+     },
+     "runtime_value": {
+      "image": 10
+     }
+    },
+    {
+     "key": "ratios",
+     "type": "{image: [{ui_name, value}]}",
+     "consumer": {
+      "file": "src/core/providers/ChatGPTAdapter.js",
+      "symbol": "ChatGPTAdapter.capabilities",
+      "offset": 854,
+      "anchor": "safeGetRatiosSync?.(\"chatgpt\",\"image\")"
+     },
+     "pcm": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getRatiosSync",
+      "offset": 7284,
+      "anchor": "static getRatiosSync"
+     },
+     "fallback": "[]",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime",
+     "store_switch": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "_providerApiConfigs",
+      "offset": 330
+     },
+     "runtime_value": {
+      "image": [
+       {
+        "ui_name": "story",
+        "value": "9:16"
+       },
+       {
+        "ui_name": "portrait",
+        "value": "3:4"
+       },
+       {
+        "ui_name": "square",
+        "value": "1:1"
+       },
+       {
+        "ui_name": "landscape",
+        "value": "4:3"
+       },
+       {
+        "ui_name": "widescreen",
+        "value": "16:9"
+       }
+      ]
+     }
+    },
+    {
+     "key": "ratio_ui_map",
+     "type": "object<string,string>",
+     "consumer": {
+      "file": "src/core/providers/ChatGPTAdapter.js",
+      "symbol": "ChatGPTAdapter.capabilities",
+      "offset": 726,
+      "anchor": "safeGetRatioUiMapSync?.(\"chatgpt\")"
+     },
+     "pcm": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getRatioUiMapSync",
+      "offset": 12644,
+      "anchor": "static getRatioUiMapSync(slug)"
+     },
+     "fallback": "derived from ratios[].ui_name->value, else {}",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime: key ABSENT; fallback derived from ratios",
+     "store_switch": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "_providerApiConfigs",
+      "offset": 330
+     },
+     "runtime_value": null,
+     "derived_from_runtime_ratios": {
+      "story": "9:16",
+      "portrait": "3:4",
+      "square": "1:1",
+      "landscape": "4:3",
+      "widescreen": "16:9"
+     }
+    },
+    {
+     "key": "ratio_aria_labels",
+     "type": "object<string,string>",
+     "consumer": {
+      "file": "src/core/providers/ChatGPTAdapter.js",
+      "symbol": "ChatGPTAdapter.capabilities",
+      "offset": 792,
+      "anchor": "safeGetRatioAriaLabelsSync?.(\"chatgpt\")"
+     },
+     "pcm": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getRatioAriaLabelsSync",
+      "offset": 13015,
+      "anchor": "static getRatioAriaLabelsSync(slug)"
+     },
+     "fallback": "derived 'Ui_name value' from ratios, else {}; content script ignores it and uses its own RATIO_ARIA_MAP",
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime: key ABSENT; fallback derived from ratios",
+     "store_switch": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "_providerApiConfigs",
+      "offset": 330
+     },
+     "runtime_value": null,
+     "derived_from_runtime_ratios": {
+      "story": "Story 9:16",
+      "portrait": "Portrait 3:4",
+      "square": "Square 1:1",
+      "landscape": "Landscape 4:3",
+      "widescreen": "Widescreen 16:9"
+     }
+    },
+    {
+     "key": "urls.tab_query / urls.tab_query_patterns / urls.create_url / urls.cdn_patterns",
+     "type": "string | string[]",
+     "consumer": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getTabQuery",
+      "offset": 3925,
+      "anchor": "static getTabQuery(slug)"
+     },
+     "pcm": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "getCreateUrl",
+      "offset": 4707,
+      "anchor": "static getCreateUrl(slug)"
+     },
+     "fallback": "_BOOTSTRAP_URLS.chatgpt = {base:'https://chatgpt.com', tabQuery:'*://chatgpt.com/*'}; isCdnUrl -> false when absent",
+     "bootstrap_offset": 29304,
+     "evidence_key": "QS (code reads it)",
+     "evidence_value": "QS-runtime",
+     "store_switch": {
+      "file": "src/core/ProviderConfigManager.js",
+      "symbol": "_providerApiConfigs",
+      "offset": 330
+     },
+     "runtime_value": {
+      "base": "https://chatgpt.com",
+      "tab_query_patterns": [
+       "*://chatgpt.com/*"
+      ],
+      "tab_query": "*://chatgpt.com/*",
+      "create_url": "https://chatgpt.com/"
+     }
+    }
+   ]
+  }
+ },
+ "hardcoded_in_code": [
+  {
+   "name": "create_image default",
+   "value": "create image|create an image",
+   "offset": 37848
+  },
+  {
+   "name": "image limit phrase",
+   "value": "reached your image creation limit",
+   "offset": 84124,
+   "default_message": "You've reached your image creation limit on the free plan.",
+   "symbol": "checkImageLimitAlert -> LIMIT_ALERT",
+   "limit_alert_offset": 128230
+  },
+  {
+   "name": "RATIO_ARIA_MAP",
+   "value": {
+    "story": "Story 9:16",
+    "portrait": "Portrait 3:4",
+    "square": "Square 1:1",
+    "landscape": "Landscape 4:3",
+    "widescreen": "Widescreen 16:9"
+   },
+   "offset": 51698
+  },
+  {
+   "name": "ratioToPromptSuffix",
+   "value": "\\n\\nGenerate the image in <label> aspect ratio.",
+   "offset": 45119
+  },
+  {
+   "name": "fallbackPrefix default",
+   "value": "Generate an image of: ",
+   "offset": 12278,
+   "setting": "af_settings.chatgptFallbackPrefix (snapshot value 'Generate an image of:' without trailing space)"
+  },
+  {
+   "name": "POST_COMPLETE_GRACE_MS",
+   "value": 5000,
+   "offset": 103208
+  },
+  {
+   "name": "message.timeout default",
+   "value": 300000,
+   "source": "SystemConfig chatgpt_timeout_ms=300000 in af_system_settings (QS); adapter fails with CHATGPT_TIMEOUT_CONFIG_UNAVAILABLE if absent",
+   "offset": 5015
+  },
+  {
+   "name": "bridge timeout fallback",
+   "value": 120000,
+   "offset": 91946
+  },
+  {
+   "name": "startup editor wait",
+   "value": 60000,
+   "source": "af_execution_config.parallel.provider_web_chatgpt_startup_timeout_ms (QS)",
+   "offset": 3274
+  },
+  {
+   "name": "challenge wait",
+   "value": 120000,
+   "offset": 108273
+  }
+ ],
+ "public_values_observed": {
+  "tool_provider_configs": {
+   "config_version": 87,
+   "base_url": "https://chatgpt.com",
+   "status": "active",
+   "selector_keys": 44,
+   "scope_fields": [
+    "audience",
+    "auth_epoch",
+    "authorization_ttl_sec",
+    "authorized_at",
+    "client_id",
+    "contract",
+    "key_id",
+    "key_revision",
+    "product_id",
+    "token_hash",
+    "user_id"
+   ],
+   "plan_in_scope": false
+  },
+  "tool_provider_api_configs.chatgpt": {
+   "config_version": 87,
+   "configs": {}
+  },
+  "tool_provider_models.chatgpt": [
+   {
+    "value": "Instant",
+    "is_premium": false,
+    "required_feature_key": null,
+    "media_type": "image",
+    "is_default": true
+   },
+   {
+    "value": "Medium",
+    "is_premium": false,
+    "required_feature_key": null,
+    "media_type": "image",
+    "is_default": false
+   },
+   {
+    "value": "High",
+    "is_premium": false,
+    "required_feature_key": null,
+    "media_type": "image",
+    "is_default": false
+   },
+   {
+    "value": "Extra High",
+    "is_premium": false,
+    "required_feature_key": null,
+    "media_type": "image",
+    "is_default": false
+   },
+   {
+    "value": "Pro",
+    "is_premium": false,
+    "required_feature_key": null,
+    "media_type": "image",
+    "is_default": false
+   }
+  ],
+  "af_settings": {
+   "chatgptAutoClose": false,
+   "chatgptDefaultRatio": "story",
+   "chatgptDeleteAfterGen": true,
+   "chatgptFallbackPrefix": "Generate an image of:",
+   "chatgptModel": "Instant",
+   "inputTimeout": 1000
+  },
+  "af_system_settings": {
+   "chatgpt_scroll_during_gen": true,
+   "chatgpt_timeout_ms": 300000
+  },
+  "af_execution_config.parallel": {
+   "provider_web_chatgpt_startup_timeout_ms": 60000,
+   "provider_web_enabled": true,
+   "provider_web_enabled_providers": [
+    "muse",
+    "chatgpt",
+    "gemini"
+   ],
+   "provider_web_max_concurrent_workers": 2,
+   "provider_web_mcp_direct_enabled": true,
+   "provider_web_motion_enabled": true,
+   "provider_web_workflow_enabled": true
+  },
+  "af_entitlements(Free)": {
+   "plan": "free",
+   "chatgpt_enabled": {
+    "value": "1",
+    "limit": null
+   },
+   "chatgpt_ref_images": {
+    "value": "1",
+    "limit": null
+   },
+   "chatgpt_run_max": {
+    "value": "10",
+    "limit": 10
+   },
+   "chatgpt_mcp_enabled": {
+    "value": null,
+    "limit": null
+   },
+   "ai_agent_enabled": {
+    "value": "0",
+    "limit": null
+   },
+   "prompt_enhancer_enabled": {
+    "value": "0",
+    "limit": null
+   },
+   "motion_tool_enabled": {
+    "value": null,
+    "limit": null
+   }
+  }
+ },
+ "absent_in_chatgpt_code (bounded search over 5 files)": {
+  "generation_monitor": "0 hits in chat-content-chatgpt.js, ChatGPTSession.js, ChatGPTConfig.js, ChatGPTAdapter.js",
+  "media_allowed_hosts": "0 hits in chat-content-chatgpt.js, ChatGPTSession.js, ChatGPTConfig.js, ChatGPTAdapter.js",
+  "media_mode_prompt_prefixes": "0 hits in chat-content-chatgpt.js, ChatGPTSession.js, ChatGPTConfig.js, ChatGPTAdapter.js",
+  "watermark_removal": "0 hits in chat-content-chatgpt.js, ChatGPTSession.js, ChatGPTConfig.js, ChatGPTAdapter.js"
+ },
+ "prompt_prefixes": "0 hits in ChatGPT files; only appears in ProviderConfigManager _GATED_API_CONFIG_KEYS (generic list). Not a ChatGPT contract key.",
+ "paid_analysis": {
+  "no_tool_paid_needed (observed on Free account)": [
+   {
+    "item": "ALL 11 private keys + 44 DOM selectors",
+    "evidence": "QS-runtime: plan=free, privateLoaded=true, private-configs HTTP 200, dom-selectors 200; keys: ai_agent_prefix,chatgpt_model_labels,chatgpt_model_slider_values,error_patterns,max_ref_images,ratios,reference_upload_timings,supports,timeouts,ui_text_patterns,urls"
+   },
+   {
+    "item": "provider switch chatgpt_enabled",
+    "evidence": "af_entitlements chatgpt_enabled=1; AIProviderAdapter.isEnabled -> featureGate.canUse",
+    "gate_site": {
+     "file": "src/core/providers/AIProviderAdapter.js",
+     "symbol": "AIProviderAdapter.isEnabled",
+     "offset": 570,
+     "anchor": "isEnabled(){if(!window.featureGate)return true;try{return!!window.featureGate.canUse(this.featureKey)}"
+    },
+    "feature_key_site": {
+     "file": "src/core/providers/ChatGPTAdapter.js",
+     "symbol": "ChatGPTAdapter ctor",
+     "offset": 115,
+     "anchor": "this.featureKey=\"chatgpt_enabled\""
+    }
+   },
+   {
+    "item": "reference images",
+    "evidence": "chatgpt_ref_images=1 (Free)"
+   },
+   {
+    "item": "daily runs up to 10",
+    "evidence": "chatgpt_run_max limit 10 (Free); enforced server-side through execution action chatgpt_run (doc 02), not re-verified in this pass",
+    "action_site": {
+     "file": "src/core/providers/ChatGPTAdapter.js",
+     "symbol": "ChatGPTAdapter ctor",
+     "offset": 149,
+     "anchor": "this.executionAction=\"chatgpt_run\""
+    }
+   },
+   {
+    "item": "all 5 model values",
+    "evidence": "tool_provider_models chatgpt: is_premium=false, required_feature_key=null"
+   },
+   {
+    "item": "selectors (44 keys) delivery",
+    "evidence": "tool_provider_configs scope has no plan field: contract/client_id/key_id/user_id/product_id/token_hash; fetched for Free account"
+   },
+   {
+    "item": "worker/parallel admission",
+    "evidence": "af_execution_config.parallel (global, no plan key); no entitlement key for parallel found in the Free entitlement keys filtered by 'parallel|worker|concurrent' (0 hits)"
+   }
+  ],
+  "paid_or_plan_linked": [
+   {
+    "item": "runs above 10/day",
+    "evidence": "quota value comes from the plan (doc 03 3.9.1/3.9.2: Pro/Premium 'unlimited' for ChatGPT)"
+   },
+   {
+    "item": "text / AI-agent path (submitText, ai_agent_prefix)",
+    "evidence": "Free: ai_agent_enabled=0, prompt_enhancer_enabled=0; Premium lists Workflow AI Agent",
+    "confidence": "SL: gate call site not verified in this scope"
+   },
+   {
+    "item": "MCP via ChatGPT / Motion",
+    "evidence": "Free: chatgpt_mcp_enabled=null, motion_tool_enabled=null (doc 03: Premium only)"
+   },
+   {
+    "item": "live config push (SSE)",
+    "evidence": "doc 03: Free gets SSE_REQUIRES_PAID and falls back to polling; affects freshness of selectors, not availability"
+   }
+  ],
+  "openai_side_not_tool (third party account plan)": [
+   {
+    "item": "image creation limit",
+    "evidence": "hardcoded phrase 'reached your image creation limit' and default message '...on the free plan' (checkImageLimitAlert)",
+    "offset": 84479
+   },
+   {
+    "item": "Pro / Extra High / Medium(Thinking) model labels",
+    "confidence": "SL: Tool has no gate; whether the OpenAI account can pick them depends on the user's OpenAI plan; code tolerates failure (best effort)"
+   }
+  ],
+  "unknown": [
+   "server-side enforcement of chatgpt_run_max",
+   "whether Pro/Premium private body differs (only Free observed)",
+   "ai_agent gate call site"
+  ],
+  "runtime_negative_checks": {
+   "sse_subscribe_token_ticket": "403 (receipt) -> Free falls back to polling",
+   "motion_studio_projects": "403 (receipt)",
+   "events_poll": "200"
+  }
+ },
+ "minimal_contract_proposal": {
+  "goal": "smallest config a ToolFlow ChatGPT image driver needs; design choice, not an observation",
+  "must_have": {
+   "selectors": [
+    "composer",
+    "submit_button",
+    "conversation_turn",
+    "assistant_turn",
+    "message_author",
+    "generated_image",
+    "generating_indicator",
+    "cdn_image",
+    "stop_button",
+    "generation_error_alert",
+    "response_text_content",
+    "completed_text_response",
+    "create_image_menu_item",
+    "image_mode_pill",
+    "new_chat_button"
+   ],
+   "private": [],
+   "hardcode_locally": [
+    "create_image_menu_text default",
+    "fallbackPrefix",
+    "ratio suffix map",
+    "RATIO_ARIA_MAP",
+    "timeouts 300000/120000"
+   ]
+  },
+  "add_when_refs": {
+   "selectors": [
+    "file_input",
+    "remove_ref_image_button",
+    "ref_upload_pending"
+   ],
+   "private": [
+    "reference_upload_timings"
+   ]
+  },
+  "add_when_model_pick": {
+   "selectors": [
+    "model_switcher_button",
+    "model_effort_slider",
+    "model_effort_slider_control"
+   ],
+   "private": [
+    "chatgpt_model_labels",
+    "chatgpt_model_slider_values"
+   ]
+  },
+  "add_when_cleanup": {
+   "selectors": [
+    "new_chat_button",
+    "chat_history_home_link",
+    "conversation_options_button",
+    "conversation_options_menu",
+    "delete_chat_menu_item",
+    "delete_confirm_button"
+   ]
+  },
+  "add_for_diagnosis": {
+   "private": [
+    "rate_limit_error_text",
+    "content_blocked_text",
+    "image_gen_failed_text",
+    "network_error_text",
+    "text_only_pattern",
+    "generated_image_alt_text",
+    "not_logged_in_text"
+   ],
+   "selectors": [
+    "cloudflare_iframe",
+    "challenge_overlay",
+    "generation_error_alert",
+    "login_button",
+    "auth_link"
+   ]
+  },
+  "skip": [
+   "priority",
+   "cloudflare_challenge_text",
+   "ai_agent_prefix",
+   "capability_keys (supports/ratios/max_ref_images) unless reusing ChatGPTAdapter.capabilities"
+  ]
+ },
+ "gaps": [
+  "Selector values are a point-in-time snapshot (config_version 87); live validity against chatgpt.com not tested.",
+  "background.js handlers (chatgpt:fetchImage hosts, checkWorkerEditorReady, deleteLastMessage) were not scanned beyond checkLogin/getProviderPrivateConfigs; MessageBridge GPT handlers only forward messages.",
+  "Server-side enforcement of chatgpt_run_max and whether private scope differs per plan: not observable offline.",
+  "ai_agent gate call site not verified.",
+  "doc 06 row 7 claims cloudflare_challenge_text drives detectChatGPTChallenge; code shows it is loaded but unread.",
+  "Runtime values are Free-plan only and from one boot; no diff against a paid plan.",
+  "Private keys delivered but unread in ChatGPT scope: ui_text_patterns.delete_menu_text, timeouts{image_ms,text_ms}, urls.base (0 hits in content/adapter/session/config/bridge); background.js not exhaustively scanned for them.",
+  "Regex-free substring patterns are Vietnamese/English only; other UI languages unverified.",
+  "Selector validity against live chatgpt.com not tested (static + config boot only)."
+ ],
+ "runtime_evidence": {
+  "label": "QS-runtime",
+  "provenance": {
+   "observed_at": "2026-11-04T18:30:16.564Z",
+   "source": "CDP Runtime.evaluate, read existing ProviderConfigManager memory after normal sidebar boot",
+   "plan": "free",
+   "extension_version": "1.3.138",
+   "files": [
+    "docs/research/evidence/chatgpt-private-config.json",
+    "docs/research/evidence/chatgpt-dom-config.json",
+    "docs/research/evidence/runtime-config-receipt.json"
+   ],
+   "sha256": {
+    "chatgpt-private-config.json": "86cb1c2e87c81a536e309a6790f34f55e0acb31c438af30311e77668de3aca11",
+    "chatgpt-dom-config.json": "b9317e2ca0c5cd87751c18dd767a12dbc1e4ca39091092e2ddc57acc46a62194",
+    "runtime-config-receipt.json": "e7d962a4a4b613910cb0e77cf1ee05915631843758d106850a24f99578177c0b"
+   },
+   "note": "captured by the parent research session using unmodified extension boot; not re-run by this static-analysis branch"
+  },
+  "receipt": {
+   "loggedIn": true,
+   "plan": "free",
+   "entitled": {
+    "chatgpt": true,
+    "flowApi": false
+   },
+   "privateLoaded": true,
+   "private_configs_http": [
+    200,
+    200
+   ],
+   "api_configs_http": [
+    200
+   ],
+   "dom_selectors_http": [
+    200
+   ],
+   "other_non_200": [
+    [
+     "/api/v1/sse/subscribe-token",
+     403
+    ],
+    [
+     "/api/v1/sse/ticket",
+     403
+    ],
+    [
+     "/api/v1/tools/motion-studio/projects",
+     403
+    ]
+   ]
+  },
+  "private_keys_count": 11,
+  "private_keys": [
+   "ai_agent_prefix",
+   "chatgpt_model_labels",
+   "chatgpt_model_slider_values",
+   "error_patterns",
+   "max_ref_images",
+   "ratios",
+   "reference_upload_timings",
+   "supports",
+   "timeouts",
+   "ui_text_patterns",
+   "urls"
+  ],
+  "dom_selectors_equal_to_static_snapshot": true,
+  "pattern_lists_parsed": {
+   "rate_limit_error_text": {
+    "count": 15,
+    "items": [
+     "you've reached your limit",
+     "you've hit the plus plan limit",
+     "rate limit",
+     "too many requests",
+     "please upgrade",
+     "limit will reset",
+     "limit resets in",
+     "daily limit",
+     "reached the daily maximum",
+     "generating images too quickly",
+     "create more images when the limit",
+     "you’re out of uploads",
+     "upgrade to chatgpt",
+     "unable to upload",
+     "max 0 uploads at a time"
+    ]
+   },
+   "content_blocked_text": {
+    "count": 21,
+    "items": [
+     "can't create",
+     "cannot generate",
+     "can't generate",
+     "content policy",
+     "violates our content polic",
+     "violates our usage polic",
+     "this request violates",
+     "request violates generation policy",
+     "safety system",
+     "not allowed by our safety system",
+     "unable to create",
+     "unable to generate images for that request",
+     "unable to generate the requested image",
+     "may violate our content polic",
+     "prompt may violate",
+     "violate our guardrails",
+     "we’re so sorry",
+     "please retry",
+     "edit your prompt",
+     "content policies",
+     "may violate"
+    ]
+   },
+   "image_gen_failed_text": {
+    "count": 21,
+    "items": [
+     "experienced an error when generating image",
+     "something went wrong while generating your image",
+     "couldn't generate the image",
+     "couldn't generate that image",
+     "couldn't create the image",
+     "couldn't create that image",
+     "trouble generating that image",
+     "trouble generating the image",
+     "error generating image",
+     "error creating images",
+     "error creating message",
+     "failed to generate the image",
+     "failed to generate image",
+     "unable to generate the image",
+     "unable to generate that image",
+     "unable to generate images directly",
+     "can't generate images at the moment",
+     "contact us through our help center",
+     "không tạo",
+     "thất bại",
+     "something went wrong"
+    ]
+   },
+   "network_error_text": {
+    "count": 7,
+    "items": [
+     "network error",
+     "something went wrong",
+     "connection error",
+     "please check your internet",
+     "we are currently processing too many requests",
+     "help.openai.com",
+     "failed to fetch"
+    ]
+   },
+   "cloudflare_challenge_text": {
+    "count": 3,
+    "items": [
+     "making sure you're human",
+     "verify you are human",
+     "verifying cloudflare"
+    ]
+   },
+   "text_only_pattern": {
+    "count": 21,
+    "items": [
+     "i'm sorry, but i",
+     "i apologize, but",
+     "i'm unable to",
+     "i cannot",
+     "unfortunately, i",
+     "i'm not able to",
+     "as an ai",
+     "as a language model",
+     "i don't have the ability",
+     "i can't directly",
+     "instead of generating",
+     "rather than creating an image",
+     "let me describe",
+     "here's a description",
+     "i'll describe",
+     "instead, i can",
+     "however, i can",
+     "but i can help",
+     "i can help you with",
+     "let me help you",
+     "i can assist"
+    ]
+   },
+   "not_logged_in_text": {
+    "count": 5,
+    "items": [
+     "log in",
+     "sign in",
+     "sign up",
+     "đăng nhập",
+     "đăng ký"
+    ]
+   },
+   "delete_menu_text": {
+    "count": 2,
+    "items": [
+     "delete",
+     "xóa"
+    ]
+   },
+   "create_image_menu_text": {
+    "count": 4,
+    "items": [
+     "create image",
+     "create an image",
+     "tạo hình ảnh",
+     "tạo ảnh"
+    ]
+   },
+   "generated_image_alt_text": {
+    "count": 3,
+    "items": [
+     "generated image",
+     "ảnh đã tạo",
+     "ảnh được tạo"
+    ]
+   }
+  },
+  "reference_upload_timings": {
+   "values": {
+    "preview_timeout_ms": 60000,
+    "completion_timeout_ms": 120000,
+    "settle_ms": 1000,
+    "poll_interval_ms": 300
+   },
+   "passes_validator": true
+  },
+  "slider_values": {
+   "Instant": 0,
+   "Medium": 1,
+   "High": 2
+  },
+  "models_without_slider_value": [
+   "Extra High",
+   "Pro"
+  ],
+  "timeouts_private": {
+   "value": {
+    "image_ms": 300000,
+    "text_ms": 90000
+   },
+   "reader_in_scope": false,
+   "effective_image_timeout_source": "SystemConfig chatgpt_timeout_ms=300000 (adapter); numerically equal to private timeouts.image_ms but not read from it"
+  },
+  "present_but_unread_in_scope": {
+   "ui_text_patterns.delete_menu_text": "delete|xóa",
+   "timeouts": {
+    "image_ms": 300000,
+    "text_ms": 90000
+   },
+   "urls.base": "https://chatgpt.com"
+  },
+  "quirks": {
+   "detectError_order": "rate_limit -> content_blocked -> image_gen_failed -> network (first match wins); 'something went wrong' sits in both image_gen_failed and network so it always yields IMAGE_GEN_FAILED, never NETWORK",
+   "overlap": {
+    "image_gen_failed_text & network_error_text": [
+     "something went wrong"
+    ]
+   },
+   "empty_segment": {
+    "key": "network_error_text",
+    "raw_contains": "||",
+    "effect": "filter(Boolean) drops it; harmless (an empty pattern would match every text)"
+   },
+   "broad_phrases": [
+    "content_blocked: 'may violate', 'please retry', 'edit your prompt'",
+    "image_gen_failed: 'Something went wrong' (case-insensitive)",
+    "rate_limit: 'rate limit', 'please upgrade'"
+   ],
+   "case": "patterns are lowercased; texts are lowercased; typographic apostrophes (U+2019) in 'You’re out of uploads' / 'We’re so sorry' will only match text with the same U+2019",
+   "defaults_vs_server": {
+    "create_image_menu_text": {
+     "code_default": "create image|create an image",
+     "server": "create image|create an image|tạo hình ảnh|tạo ảnh",
+     "adds": [
+      "tạo hình ảnh",
+      "tạo ảnh"
+     ]
+    }
+   }
+  },
+  "ai_agent_prefix_note": "delivered to Free (en, vi) even though entitlement ai_agent_enabled=0: config delivery is not plan-gated, feature use is a separate gate"
+ },
+ "private_config_runtime_values": {
+  "ratios": {
+   "image": [
+    {
+     "ui_name": "story",
+     "value": "9:16"
+    },
+    {
+     "ui_name": "portrait",
+     "value": "3:4"
+    },
+    {
+     "ui_name": "square",
+     "value": "1:1"
+    },
+    {
+     "ui_name": "landscape",
+     "value": "4:3"
+    },
+    {
+     "ui_name": "widescreen",
+     "value": "16:9"
+    }
+   ]
+  },
+  "error_patterns": {
+   "rate_limit_error_text": "You've reached your limit|you've hit the plus plan limit|rate limit|too many requests|please upgrade|limit will reset|limit resets in|daily limit|reached the daily maximum|generating images too quickly|create more images when the limit|You’re out of uploads|upgrade to ChatGPT|Unable to upload|Max 0 uploads at a time",
+   "content_blocked_text": "can't create|cannot generate|can't generate|content policy|violates our content polic|violates our usage polic|this request violates|request violates generation policy|safety system|not allowed by our safety system|unable to create|unable to generate images for that request|unable to generate the requested image|may violate our content polic|prompt may violate|violate our guardrails|We’re so sorry|please retry|edit your prompt|content policies|may violate",
+   "image_gen_failed_text": "experienced an error when generating image|something went wrong while generating your image|couldn't generate the image|couldn't generate that image|couldn't create the image|couldn't create that image|trouble generating that image|trouble generating the image|error generating image|error creating images|error creating message|failed to generate the image|failed to generate image|unable to generate the image|unable to generate that image|unable to generate images directly|can't generate images at the moment|contact us through our help center|không tạo|thất bại|Something went wrong",
+   "network_error_text": "network error|something went wrong|connection error|please check your internet|we are currently processing too many requests||help.openai.com|Failed to fetch",
+   "cloudflare_challenge_text": "making sure you're human|verify you are human|verifying cloudflare",
+   "text_only_pattern": "i'm sorry, but i|i apologize, but|i'm unable to|i cannot|unfortunately, i|i'm not able to|as an ai|as a language model|i don't have the ability|i can't directly|instead of generating|rather than creating an image|let me describe|here's a description|i'll describe|instead, i can|however, i can|but i can help|i can help you with|let me help you|i can assist",
+   "not_logged_in_text": "log in|sign in|sign up|đăng nhập|đăng ký"
+  },
+  "max_ref_images": {
+   "image": 10
+  },
+  "supports": {
+   "ratio": true,
+   "quantity": false,
+   "video": false,
+   "ref_image": true,
+   "auto_download": true,
+   "humanized": true,
+   "image_mode": true
+  },
+  "urls": {
+   "base": "https://chatgpt.com",
+   "tab_query_patterns": [
+    "*://chatgpt.com/*"
+   ],
+   "tab_query": "*://chatgpt.com/*",
+   "create_url": "https://chatgpt.com/"
+  },
+  "ui_text_patterns": {
+   "delete_menu_text": "delete|xóa",
+   "create_image_menu_text": "create image|create an image|tạo hình ảnh|tạo ảnh",
+   "generated_image_alt_text": "generated image|ảnh đã tạo|ảnh được tạo"
+  },
+  "chatgpt_model_labels": {
+   "Instant": "Instant|Tức thì",
+   "Medium": "Medium|Trung bình|Vừa",
+   "High": "High|Cao",
+   "Pro": "Pro",
+   "Extra High": "Extra High|Chuyên sâu"
+  },
+  "ai_agent_prefix": {
+   "en": "Respond directly to the request below. Return ONLY plain text as a normal inline chat message — do NOT use Canvas, do NOT open a document/editor/immersive view, do NOT place the answer in a textbox, code block, or collapsible panel. No markdown formatting, no preamble (like \"Here is...\", \"Sure,...\"), no quotation marks wrapping the answer, no image/file generation. Keep the TOTAL response under 20000 characters — be concise; if the content would exceed this, tighten it to fit rather than truncating mid-sentence. Keep the user intent without adding commentary.\n\n---REQUEST---",
+   "vi": "Phản hồi trực tiếp yêu cầu bên dưới. Chỉ trả về plain text dưới dạng tin nhắn chat thông thường — KHÔNG dùng Canvas, KHÔNG format đặt biệt, KHÔNG mở tài liệu/trình soạn thảo/chế độ immersive, KHÔNG đặt câu trả lời trong textbox, code block hay khung thu gọn. KHÔNG markdown, KHÔNG preamble (như \"Đây là...\", \"Để tôi...\", \"Sure,...\"), KHÔNG dấu ngoặc kép bao quanh response, KHÔNG tạo ảnh/file. Giữ TỔNG độ dài response DƯỚI 20000 ký tự — ngắn gọn; nếu nội dung vượt quá thì rút gọn cho vừa, KHÔNG cắt ngang câu. Giữ đúng intent yêu cầu bên dưới, không thêm bình luận.\n\n---YÊU CẦU---"
+  },
+  "chatgpt_model_slider_values": {
+   "Instant": 0,
+   "Medium": 1,
+   "High": 2
+  },
+  "timeouts": {
+   "image_ms": 300000,
+   "text_ms": 90000
+  },
+  "reference_upload_timings": {
+   "preview_timeout_ms": 60000,
+   "completion_timeout_ms": 120000,
+   "settle_ms": 1000,
+   "poll_interval_ms": 300
+  }
+ },
+ "bridge_gpt_handlers": {
+  "submit": {
+   "file": "src/core/MessageBridge.js",
+   "symbol": "MessageBridge.chatGPTSubmitAndWait",
+   "offset": 90823,
+   "anchor": "static async chatGPTSubmitAndWait({text,images,settings,timeout,inputTimeoutMs,tabId,taskName,workerAttempt=null})"
+  },
+  "fetch_image": {
+   "file": "src/core/MessageBridge.js",
+   "symbol": "MessageBridge.chatGPTFetchImage",
+   "offset": 92469,
+   "anchor": "static async chatGPTFetchImage(url,tabId)"
+  },
+  "reads_config": [
+   "ExecutionConfig.getProviderStartupTimeoutMs('chatgpt') -> settings.editorWaitMs (offset 91342)",
+   "SystemConfig chatgpt_scroll_during_gen (default true) (offset 91458)",
+   "storageSettings.inputTimeout"
+  ],
+  "forwards": "chrome.tabs.sendMessage(tabId,{action:'chatgpt:submitAndWait',...}); no selector/private config reads in the bridge"
+ }
+}

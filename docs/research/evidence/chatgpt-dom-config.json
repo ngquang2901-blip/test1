@@ -1,0 +1,748 @@
+{
+  "observed_at": "2026-11-04T18:30:16.564Z",
+  "extension_version": "1.3.138",
+  "source": "CDP Runtime.evaluate, read existing ProviderConfigManager memory after normal sidebar boot",
+  "plan": "free",
+  "data": {
+    "name": "ChatGPT",
+    "status": "active",
+    "base_url": "https://chatgpt.com",
+    "config_version": 87,
+    "meta": {
+      "version": 87
+    },
+    "selectors": {
+      "composer": {
+        "selectors": [
+          "#prompt-textarea",
+          "div.ProseMirror[role=\"textbox\"]"
+        ],
+        "priority": "P0"
+      },
+      "submit_button": {
+        "selectors": [
+          "#composer-submit-button",
+          "button[data-testid=\"send-button\"]",
+          "button.composer-submit-button-color",
+          "button[aria-label=\"Send prompt\"]",
+          "form:has(div.ProseMirror[role=\"textbox\"]) button[type=\"submit\"]",
+          "form[data-thread-find-composer=\"true\"] button[type=\"submit\"]"
+        ],
+        "exclude_if_aria_contains": [
+          "thoại",
+          "đọc chính tả",
+          "voice",
+          "dictat"
+        ],
+        "priority": "P0"
+      },
+      "stop_button": {
+        "selectors": [
+          "button[aria-label=\"Ngừng\"]",
+          "[aria-label=\"Stop generating\"]",
+          "[data-testid=\"stop-button\"]"
+        ],
+        "priority": "P0"
+      },
+      "conversation_turn": {
+        "selectors": [
+          "[data-content-search-unit-key^=\"fallback-turn-\"], div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+          "[data-testid^=\"conversation-turn-\"]",
+          "[data-turn-id]",
+          "[data-turn-key]"
+        ],
+        "attribute": "data-testid",
+        "identity_attributes": [
+          "data-turn-id",
+          "data-testid",
+          "data-turn-key",
+          "data-content-search-unit-key",
+          "data-chatgpt-search-unit-key",
+          "data-chatgpt-search-message-ids"
+        ],
+        "role_attributes": [
+          "data-turn",
+          "data-message-author-role",
+          "data-conversation-role",
+          "data-content-search-unit-key",
+          "data-chatgpt-search-unit-key"
+        ],
+        "priority": "P0"
+      },
+      "generated_image": {
+        "selectors": [
+          "[data-testid=\"generated-image-gallery\"] [data-testid=\"generated-image-preview\"] img[src^=\"blob:\"]",
+          "img[alt^=\"Generated image\"]:not([aria-hidden])"
+        ],
+        "attribute": "src",
+        "priority": "P0"
+      },
+      "generating_indicator": {
+        "selectors": [
+          "[data-testid=\"image-gen-loading-game-board\"]",
+          "[data-testid=\"image-gen-loading-state\"]"
+        ],
+        "priority": "P0"
+      },
+      "cloudflare_iframe": {
+        "selectors": [
+          "iframe[src*=\"challenges.cloudflare.com\"]",
+          "iframe[src*=\"turnstile\"]",
+          ".cf-turnstile",
+          "[data-cf-turnstile]"
+        ],
+        "priority": "P0"
+      },
+      "create_image_menu_item": {
+        "selectors": [
+          ".__menu-item:has(use[href*=\"#create-image-plugin\"])"
+        ],
+        "priority": "P0"
+      },
+      "generation_error_alert": {
+        "selectors": [
+          "[data-turn-key] [role=\"alert\"]",
+          "[data-turn-id] [role=\"alert\"]",
+          "[data-testid^=\"conversation-turn-\"] [role=\"alert\"]",
+          "[data-content-search-turn-key] [role=\"alert\"]"
+        ],
+        "priority": "P0"
+      },
+      "login_button": {
+        "selectors": [
+          "[data-testid=\"login-button\"]",
+          "button[data-testid*=\"login\"]"
+        ],
+        "priority": "P0"
+      },
+      "ratio_button": {
+        "selectors": [
+          "button[aria-label=\"Choose image aspect ratio\"]"
+        ],
+        "priority": "P1"
+      },
+      "plus_button": {
+        "selectors": [
+          "form button[data-composer-navigation-target=\"add-context\"]",
+          "#composer-plus-btn",
+          "[data-testid=\"composer-plus-btn\"]",
+          "button[data-composer-navigation-target=\"add-context\"]"
+        ],
+        "priority": "P1"
+      },
+      "file_input": {
+        "selectors": [
+          "#upload-photos",
+          "input[type=\"file\"][accept*=\"image\"]"
+        ],
+        "priority": "P1"
+      },
+      "new_chat_button": {
+        "selectors": [
+          "a[data-testid=\"create-new-chat-button\"]"
+        ],
+        "priority": "P1"
+      },
+      "message_author": {
+        "selectors": [
+          "[data-message-author-role]"
+        ],
+        "attribute": "data-message-author-role",
+        "priority": "P1"
+      },
+      "open_menu": {
+        "selectors": [
+          "[data-composer-overlay-floating-ui=\"true\"]",
+          "[popover]:popover-open:has(.__menu-item)",
+          "[popover]:popover-open",
+          "[data-radix-popper-content-wrapper]",
+          "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]",
+          "div[role=\"menu\"][data-state=\"open\"]",
+          "[role=\"menu\"]"
+        ],
+        "priority": "P1"
+      },
+      "menu_items": {
+        "selectors": [
+          "button[data-list-navigation-item=\"true\"]",
+          ".__menu-item",
+          "[role=\"menuitemradio\"]",
+          "[role=\"menuitem\"]"
+        ],
+        "priority": "P1"
+      },
+      "delete_confirm_button": {
+        "selectors": [
+          "button[data-testid=\"delete-conversation-confirm-button\"]",
+          "button[data-testid=\"delete-confirm-button\"]",
+          "button.btn-danger",
+          "form button[type=\"submit\"]"
+        ],
+        "priority": "P1"
+      },
+      "conversation_options_button": {
+        "selectors": [
+          "[data-testid=\"conversation-options-button\"]",
+          "button[aria-label=\"Open conversation options\"]",
+          "button[aria-label*=\"conversation options\"]",
+          "[data-testid=\"app-shell-header-context-menu-surface\"] button[aria-haspopup=\"menu\"]"
+        ],
+        "priority": "P1"
+      },
+      "delete_chat_menu_item": {
+        "selectors": [
+          "[data-testid=\"delete-chat-menu-item\"]",
+          "[role=\"menuitem\"][data-color=\"danger\"]",
+          "[role=\"menuitem\"].text-danger"
+        ],
+        "priority": "P1"
+      },
+      "pa_source_text_file": {
+        "selectors": [
+          "[role=\"group\"][aria-label$=\".txt\"]"
+        ],
+        "priority": "P1"
+      },
+      "conversation_options_menu": {
+        "selectors": [
+          "[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+          "[role=\"menu\"][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+          "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([role=\"menuitem\"].text-danger)"
+        ],
+        "priority": "P1"
+      },
+      "thinking_indicator": {
+        "selectors": [
+          ".result-thinking",
+          ".result-streaming"
+        ],
+        "priority": "P1"
+      },
+      "response_text_content": {
+        "selectors": [
+          ".markdown.prose",
+          "[data-markdown-text-style=\"assistant-message\"]"
+        ],
+        "priority": "P1"
+      },
+      "image_action_buttons": {
+        "selectors": [
+          "[aria-label=\"Like this image\"]",
+          "[aria-label=\"Edit image\"]",
+          "[aria-label=\"Dislike this image\"]"
+        ],
+        "priority": "P1"
+      },
+      "paragen_container": {
+        "selectors": [
+          "[class*=\"image-paragen-multigen\"]"
+        ],
+        "priority": "P1"
+      },
+      "challenge_overlay": {
+        "selectors": [
+          "[role=\"dialog\"][data-state=\"open\"]",
+          "div[role=\"dialog\"]",
+          "[role=\"alertdialog\"]",
+          "dialog[open]"
+        ],
+        "priority": "P1"
+      },
+      "remove_ref_image_button": {
+        "selectors": [
+          "form[data-type=\\\"unified-composer\\\"] div[role=\\\"group\\\"] button:not([aria-haspopup])",
+          "button[aria-label^=\"Remove file\"]",
+          "button[aria-label^=\\\"Xóa tệp\\\"]",
+          "[data-composer-body] [role=\"button\"][class*=\"composer-attachment\"] > button[aria-label]"
+        ],
+        "priority": "P1"
+      },
+      "cdn_image": {
+        "selectors": [
+          "img[src*=\"estuary/content\"]",
+          "img[src*=\"oaiusercontent\"]",
+          "img[src*=\"sandboxed.openai\"]",
+          "img[src*=\"/backend-api/\"]"
+        ],
+        "priority": "P1"
+      },
+      "assistant_turn": {
+        "selectors": [
+          "[data-content-search-unit-key^=\"fallback-turn-\"][data-content-search-unit-key$=\":assistant\"]",
+          "div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+          "[data-testid^=\"conversation-turn-\"][data-turn=\"assistant\"]",
+          "[data-chatgpt-search-unit-key$=\":assistant\"]"
+        ],
+        "priority": "P1"
+      },
+      "auth_link": {
+        "selectors": [
+          "a[href*=\"/auth/login\"]",
+          "a[href*=\"/auth/signin\"]"
+        ],
+        "priority": "P1"
+      },
+      "model_switcher_button": {
+        "selectors": [
+          "form[data-type=\"unified-composer\"] [data-composer-transition-slot=\"trailing\"] button.__composer-pill",
+          "button.__composer-pill[aria-haspopup=\"menu\"]",
+          "button[data-codex-intelligence-trigger=\"true\"][data-composer-navigation-target=\"reasoning\"]",
+          "button[data-composer-navigation-target=\"reasoning\"][aria-haspopup=\"menu\"]"
+        ],
+        "priority": "P1"
+      },
+      "mode_menu_item": {
+        "selectors": [
+          "[role=\"menuitemradio\"]"
+        ],
+        "priority": "P1"
+      },
+      "completed_text_response": {
+        "selectors": [
+          "[data-talvt-turn-state=\"complete\"] [data-chatgpt-search-unit-key$=\":assistant\"]:has([data-markdown-text-style=\"assistant-message\"]):not(:has(img, video, audio, canvas, iframe, object, embed))"
+        ],
+        "priority": "P1"
+      },
+      "audio_attachment_remove_button": {
+        "selectors": [
+          "[data-composer-attachments] span[class~=\"group/composer-attachment\"] > button[aria-label]"
+        ],
+        "priority": "P1"
+      },
+      "text_file_tile": {
+        "selectors": [
+          "button[name=\"expand-file-tile\"]"
+        ],
+        "priority": "P1"
+      },
+      "image_mode_pill": {
+        "selectors": [
+          "[data-system-hint-type=\"picture_v2\"]",
+          "[data-inline-selection-pill][data-id=\"picture_v2\"]"
+        ],
+        "priority": "P1"
+      },
+      "ref_upload_pending": {
+        "selectors": [
+          "form[data-type=\"unified-composer\"] [role=\"group\"] .cursor-wait",
+          "div[data-default-action] .cursor-wait"
+        ],
+        "priority": "P1"
+      },
+      "mention_menu": {
+        "selectors": [
+          ".popover.shadow-long:has(.__menu-item)",
+          ".popover:has(.__menu-item)"
+        ],
+        "priority": "P1"
+      },
+      "model_effort_slider": {
+        "selectors": [
+          "[data-reasoning-slider=\"true\"] [role=\"slider\"]"
+        ],
+        "priority": "P1"
+      },
+      "model_effort_slider_control": {
+        "selectors": [
+          "[data-reasoning-slider=\"true\"][aria-keyshortcuts*=\"ArrowRight\"]"
+        ],
+        "priority": "P1"
+      },
+      "chat_history_home_link": {
+        "selectors": [
+          "nav[aria-label=\"Chat history\"] a[href=\"/\"]"
+        ],
+        "attribute": "href",
+        "priority": "P2"
+      },
+      "image_generation_progress": {
+        "selectors": [
+          "[data-testid=\"image-gen-loading-game-board\"] + div > span:last-child",
+          "[data-testid=\"image-gen-loading-progress\"]"
+        ],
+        "attribute": "aria-valuenow",
+        "text_fallback": true,
+        "priority": "P2"
+      },
+      "composer_mode_radio": {
+        "selectors": [
+          "[role=\"group\"] button[role=\"radio\"][data-radix-collection-item]",
+          "button[role=\"radio\"][data-radix-collection-item]",
+          "button[role=\"radio\"]",
+          "header [role=\"group\"]:has(> button[aria-pressed]) > button[aria-pressed]"
+        ],
+        "priority": "P2"
+      }
+    },
+    "profiles": {
+      "legacy": {
+        "key": "legacy",
+        "host_patterns": [],
+        "version": 87,
+        "selectors": {
+          "composer": {
+            "selectors": [
+              "#prompt-textarea",
+              "div.ProseMirror[role=\"textbox\"]"
+            ],
+            "priority": "P0"
+          },
+          "submit_button": {
+            "selectors": [
+              "#composer-submit-button",
+              "button[data-testid=\"send-button\"]",
+              "button.composer-submit-button-color",
+              "button[aria-label=\"Send prompt\"]",
+              "form:has(div.ProseMirror[role=\"textbox\"]) button[type=\"submit\"]",
+              "form[data-thread-find-composer=\"true\"] button[type=\"submit\"]"
+            ],
+            "exclude_if_aria_contains": [
+              "thoại",
+              "đọc chính tả",
+              "voice",
+              "dictat"
+            ],
+            "priority": "P0"
+          },
+          "stop_button": {
+            "selectors": [
+              "button[aria-label=\"Ngừng\"]",
+              "[aria-label=\"Stop generating\"]",
+              "[data-testid=\"stop-button\"]"
+            ],
+            "priority": "P0"
+          },
+          "conversation_turn": {
+            "selectors": [
+              "[data-content-search-unit-key^=\"fallback-turn-\"], div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+              "[data-testid^=\"conversation-turn-\"]",
+              "[data-turn-id]",
+              "[data-turn-key]"
+            ],
+            "attribute": "data-testid",
+            "identity_attributes": [
+              "data-turn-id",
+              "data-testid",
+              "data-turn-key",
+              "data-content-search-unit-key",
+              "data-chatgpt-search-unit-key",
+              "data-chatgpt-search-message-ids"
+            ],
+            "role_attributes": [
+              "data-turn",
+              "data-message-author-role",
+              "data-conversation-role",
+              "data-content-search-unit-key",
+              "data-chatgpt-search-unit-key"
+            ],
+            "priority": "P0"
+          },
+          "generated_image": {
+            "selectors": [
+              "[data-testid=\"generated-image-gallery\"] [data-testid=\"generated-image-preview\"] img[src^=\"blob:\"]",
+              "img[alt^=\"Generated image\"]:not([aria-hidden])"
+            ],
+            "attribute": "src",
+            "priority": "P0"
+          },
+          "generating_indicator": {
+            "selectors": [
+              "[data-testid=\"image-gen-loading-game-board\"]",
+              "[data-testid=\"image-gen-loading-state\"]"
+            ],
+            "priority": "P0"
+          },
+          "cloudflare_iframe": {
+            "selectors": [
+              "iframe[src*=\"challenges.cloudflare.com\"]",
+              "iframe[src*=\"turnstile\"]",
+              ".cf-turnstile",
+              "[data-cf-turnstile]"
+            ],
+            "priority": "P0"
+          },
+          "create_image_menu_item": {
+            "selectors": [
+              ".__menu-item:has(use[href*=\"#create-image-plugin\"])"
+            ],
+            "priority": "P0"
+          },
+          "generation_error_alert": {
+            "selectors": [
+              "[data-turn-key] [role=\"alert\"]",
+              "[data-turn-id] [role=\"alert\"]",
+              "[data-testid^=\"conversation-turn-\"] [role=\"alert\"]",
+              "[data-content-search-turn-key] [role=\"alert\"]"
+            ],
+            "priority": "P0"
+          },
+          "login_button": {
+            "selectors": [
+              "[data-testid=\"login-button\"]",
+              "button[data-testid*=\"login\"]"
+            ],
+            "priority": "P0"
+          },
+          "ratio_button": {
+            "selectors": [
+              "button[aria-label=\"Choose image aspect ratio\"]"
+            ],
+            "priority": "P1"
+          },
+          "plus_button": {
+            "selectors": [
+              "form button[data-composer-navigation-target=\"add-context\"]",
+              "#composer-plus-btn",
+              "[data-testid=\"composer-plus-btn\"]",
+              "button[data-composer-navigation-target=\"add-context\"]"
+            ],
+            "priority": "P1"
+          },
+          "file_input": {
+            "selectors": [
+              "#upload-photos",
+              "input[type=\"file\"][accept*=\"image\"]"
+            ],
+            "priority": "P1"
+          },
+          "new_chat_button": {
+            "selectors": [
+              "a[data-testid=\"create-new-chat-button\"]"
+            ],
+            "priority": "P1"
+          },
+          "message_author": {
+            "selectors": [
+              "[data-message-author-role]"
+            ],
+            "attribute": "data-message-author-role",
+            "priority": "P1"
+          },
+          "open_menu": {
+            "selectors": [
+              "[data-composer-overlay-floating-ui=\"true\"]",
+              "[popover]:popover-open:has(.__menu-item)",
+              "[popover]:popover-open",
+              "[data-radix-popper-content-wrapper]",
+              "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]",
+              "div[role=\"menu\"][data-state=\"open\"]",
+              "[role=\"menu\"]"
+            ],
+            "priority": "P1"
+          },
+          "menu_items": {
+            "selectors": [
+              "button[data-list-navigation-item=\"true\"]",
+              ".__menu-item",
+              "[role=\"menuitemradio\"]",
+              "[role=\"menuitem\"]"
+            ],
+            "priority": "P1"
+          },
+          "delete_confirm_button": {
+            "selectors": [
+              "button[data-testid=\"delete-conversation-confirm-button\"]",
+              "button[data-testid=\"delete-confirm-button\"]",
+              "button.btn-danger",
+              "form button[type=\"submit\"]"
+            ],
+            "priority": "P1"
+          },
+          "conversation_options_button": {
+            "selectors": [
+              "[data-testid=\"conversation-options-button\"]",
+              "button[aria-label=\"Open conversation options\"]",
+              "button[aria-label*=\"conversation options\"]",
+              "[data-testid=\"app-shell-header-context-menu-surface\"] button[aria-haspopup=\"menu\"]"
+            ],
+            "priority": "P1"
+          },
+          "delete_chat_menu_item": {
+            "selectors": [
+              "[data-testid=\"delete-chat-menu-item\"]",
+              "[role=\"menuitem\"][data-color=\"danger\"]",
+              "[role=\"menuitem\"].text-danger"
+            ],
+            "priority": "P1"
+          },
+          "pa_source_text_file": {
+            "selectors": [
+              "[role=\"group\"][aria-label$=\".txt\"]"
+            ],
+            "priority": "P1"
+          },
+          "conversation_options_menu": {
+            "selectors": [
+              "[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+              "[role=\"menu\"][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+              "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([role=\"menuitem\"].text-danger)"
+            ],
+            "priority": "P1"
+          },
+          "thinking_indicator": {
+            "selectors": [
+              ".result-thinking",
+              ".result-streaming"
+            ],
+            "priority": "P1"
+          },
+          "response_text_content": {
+            "selectors": [
+              ".markdown.prose",
+              "[data-markdown-text-style=\"assistant-message\"]"
+            ],
+            "priority": "P1"
+          },
+          "image_action_buttons": {
+            "selectors": [
+              "[aria-label=\"Like this image\"]",
+              "[aria-label=\"Edit image\"]",
+              "[aria-label=\"Dislike this image\"]"
+            ],
+            "priority": "P1"
+          },
+          "paragen_container": {
+            "selectors": [
+              "[class*=\"image-paragen-multigen\"]"
+            ],
+            "priority": "P1"
+          },
+          "challenge_overlay": {
+            "selectors": [
+              "[role=\"dialog\"][data-state=\"open\"]",
+              "div[role=\"dialog\"]",
+              "[role=\"alertdialog\"]",
+              "dialog[open]"
+            ],
+            "priority": "P1"
+          },
+          "remove_ref_image_button": {
+            "selectors": [
+              "form[data-type=\\\"unified-composer\\\"] div[role=\\\"group\\\"] button:not([aria-haspopup])",
+              "button[aria-label^=\"Remove file\"]",
+              "button[aria-label^=\\\"Xóa tệp\\\"]",
+              "[data-composer-body] [role=\"button\"][class*=\"composer-attachment\"] > button[aria-label]"
+            ],
+            "priority": "P1"
+          },
+          "cdn_image": {
+            "selectors": [
+              "img[src*=\"estuary/content\"]",
+              "img[src*=\"oaiusercontent\"]",
+              "img[src*=\"sandboxed.openai\"]",
+              "img[src*=\"/backend-api/\"]"
+            ],
+            "priority": "P1"
+          },
+          "assistant_turn": {
+            "selectors": [
+              "[data-content-search-unit-key^=\"fallback-turn-\"][data-content-search-unit-key$=\":assistant\"]",
+              "div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+              "[data-testid^=\"conversation-turn-\"][data-turn=\"assistant\"]",
+              "[data-chatgpt-search-unit-key$=\":assistant\"]"
+            ],
+            "priority": "P1"
+          },
+          "auth_link": {
+            "selectors": [
+              "a[href*=\"/auth/login\"]",
+              "a[href*=\"/auth/signin\"]"
+            ],
+            "priority": "P1"
+          },
+          "model_switcher_button": {
+            "selectors": [
+              "form[data-type=\"unified-composer\"] [data-composer-transition-slot=\"trailing\"] button.__composer-pill",
+              "button.__composer-pill[aria-haspopup=\"menu\"]",
+              "button[data-codex-intelligence-trigger=\"true\"][data-composer-navigation-target=\"reasoning\"]",
+              "button[data-composer-navigation-target=\"reasoning\"][aria-haspopup=\"menu\"]"
+            ],
+            "priority": "P1"
+          },
+          "mode_menu_item": {
+            "selectors": [
+              "[role=\"menuitemradio\"]"
+            ],
+            "priority": "P1"
+          },
+          "completed_text_response": {
+            "selectors": [
+              "[data-talvt-turn-state=\"complete\"] [data-chatgpt-search-unit-key$=\":assistant\"]:has([data-markdown-text-style=\"assistant-message\"]):not(:has(img, video, audio, canvas, iframe, object, embed))"
+            ],
+            "priority": "P1"
+          },
+          "audio_attachment_remove_button": {
+            "selectors": [
+              "[data-composer-attachments] span[class~=\"group/composer-attachment\"] > button[aria-label]"
+            ],
+            "priority": "P1"
+          },
+          "text_file_tile": {
+            "selectors": [
+              "button[name=\"expand-file-tile\"]"
+            ],
+            "priority": "P1"
+          },
+          "image_mode_pill": {
+            "selectors": [
+              "[data-system-hint-type=\"picture_v2\"]",
+              "[data-inline-selection-pill][data-id=\"picture_v2\"]"
+            ],
+            "priority": "P1"
+          },
+          "ref_upload_pending": {
+            "selectors": [
+              "form[data-type=\"unified-composer\"] [role=\"group\"] .cursor-wait",
+              "div[data-default-action] .cursor-wait"
+            ],
+            "priority": "P1"
+          },
+          "mention_menu": {
+            "selectors": [
+              ".popover.shadow-long:has(.__menu-item)",
+              ".popover:has(.__menu-item)"
+            ],
+            "priority": "P1"
+          },
+          "model_effort_slider": {
+            "selectors": [
+              "[data-reasoning-slider=\"true\"] [role=\"slider\"]"
+            ],
+            "priority": "P1"
+          },
+          "model_effort_slider_control": {
+            "selectors": [
+              "[data-reasoning-slider=\"true\"][aria-keyshortcuts*=\"ArrowRight\"]"
+            ],
+            "priority": "P1"
+          },
+          "chat_history_home_link": {
+            "selectors": [
+              "nav[aria-label=\"Chat history\"] a[href=\"/\"]"
+            ],
+            "attribute": "href",
+            "priority": "P2"
+          },
+          "image_generation_progress": {
+            "selectors": [
+              "[data-testid=\"image-gen-loading-game-board\"] + div > span:last-child",
+              "[data-testid=\"image-gen-loading-progress\"]"
+            ],
+            "attribute": "aria-valuenow",
+            "text_fallback": true,
+            "priority": "P2"
+          },
+          "composer_mode_radio": {
+            "selectors": [
+              "[role=\"group\"] button[role=\"radio\"][data-radix-collection-item]",
+              "button[role=\"radio\"][data-radix-collection-item]",
+              "button[role=\"radio\"]",
+              "header [role=\"group\"]:has(> button[aria-pressed]) > button[aria-pressed]"
+            ],
+            "priority": "P2"
+          }
+        }
+      }
+    }
+  }
+}

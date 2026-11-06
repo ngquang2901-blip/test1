@@ -1,0 +1,92 @@
+{
+  "observed_at": "2026-11-04T18:30:16.564Z",
+  "extension_version": "1.3.138",
+  "source": "CDP Runtime.evaluate, read existing ProviderConfigManager memory after normal sidebar boot",
+  "plan": "free",
+  "data": {
+    "ratios": {
+      "image": [
+        {
+          "ui_name": "story",
+          "value": "9:16"
+        },
+        {
+          "ui_name": "portrait",
+          "value": "3:4"
+        },
+        {
+          "ui_name": "square",
+          "value": "1:1"
+        },
+        {
+          "ui_name": "landscape",
+          "value": "4:3"
+        },
+        {
+          "ui_name": "widescreen",
+          "value": "16:9"
+        }
+      ]
+    },
+    "error_patterns": {
+      "rate_limit_error_text": "You've reached your limit|you've hit the plus plan limit|rate limit|too many requests|please upgrade|limit will reset|limit resets in|daily limit|reached the daily maximum|generating images too quickly|create more images when the limit|You’re out of uploads|upgrade to ChatGPT|Unable to upload|Max 0 uploads at a time",
+      "content_blocked_text": "can't create|cannot generate|can't generate|content policy|violates our content polic|violates our usage polic|this request violates|request violates generation policy|safety system|not allowed by our safety system|unable to create|unable to generate images for that request|unable to generate the requested image|may violate our content polic|prompt may violate|violate our guardrails|We’re so sorry|please retry|edit your prompt|content policies|may violate",
+      "image_gen_failed_text": "experienced an error when generating image|something went wrong while generating your image|couldn't generate the image|couldn't generate that image|couldn't create the image|couldn't create that image|trouble generating that image|trouble generating the image|error generating image|error creating images|error creating message|failed to generate the image|failed to generate image|unable to generate the image|unable to generate that image|unable to generate images directly|can't generate images at the moment|contact us through our help center|không tạo|thất bại|Something went wrong",
+      "network_error_text": "network error|something went wrong|connection error|please check your internet|we are currently processing too many requests||help.openai.com|Failed to fetch",
+      "cloudflare_challenge_text": "making sure you're human|verify you are human|verifying cloudflare",
+      "text_only_pattern": "i'm sorry, but i|i apologize, but|i'm unable to|i cannot|unfortunately, i|i'm not able to|as an ai|as a language model|i don't have the ability|i can't directly|instead of generating|rather than creating an image|let me describe|here's a description|i'll describe|instead, i can|however, i can|but i can help|i can help you with|let me help you|i can assist",
+      "not_logged_in_text": "log in|sign in|sign up|đăng nhập|đăng ký"
+    },
+    "max_ref_images": {
+      "image": 10
+    },
+    "supports": {
+      "ratio": true,
+      "quantity": false,
+      "video": false,
+      "ref_image": true,
+      "auto_download": true,
+      "humanized": true,
+      "image_mode": true
+    },
+    "urls": {
+      "base": "https://chatgpt.com",
+      "tab_query_patterns": [
+        "*://chatgpt.com/*"
+      ],
+      "tab_query": "*://chatgpt.com/*",
+      "create_url": "https://chatgpt.com/"
+    },
+    "ui_text_patterns": {
+      "delete_menu_text": "delete|xóa",
+      "create_image_menu_text": "create image|create an image|tạo hình ảnh|tạo ảnh",
+      "generated_image_alt_text": "generated image|ảnh đã tạo|ảnh được tạo"
+    },
+    "chatgpt_model_labels": {
+      "Instant": "Instant|Tức thì",
+      "Medium": "Medium|Trung bình|Vừa",
+      "High": "High|Cao",
+      "Pro": "Pro",
+      "Extra High": "Extra High|Chuyên sâu"
+    },
+    "ai_agent_prefix": {
+      "en": "Respond directly to the request below. Return ONLY plain text as a normal inline chat message — do NOT use Canvas, do NOT open a document/editor/immersive view, do NOT place the answer in a textbox, code block, or collapsible panel. No markdown formatting, no preamble (like \"Here is...\", \"Sure,...\"), no quotation marks wrapping the answer, no image/file generation. Keep the TOTAL response under 20000 characters — be concise; if the content would exceed this, tighten it to fit rather than truncating mid-sentence. Keep the user intent without adding commentary.\n\n---REQUEST---",
+      "vi": "Phản hồi trực tiếp yêu cầu bên dưới. Chỉ trả về plain text dưới dạng tin nhắn chat thông thường — KHÔNG dùng Canvas, KHÔNG format đặt biệt, KHÔNG mở tài liệu/trình soạn thảo/chế độ immersive, KHÔNG đặt câu trả lời trong textbox, code block hay khung thu gọn. KHÔNG markdown, KHÔNG preamble (như \"Đây là...\", \"Để tôi...\", \"Sure,...\"), KHÔNG dấu ngoặc kép bao quanh response, KHÔNG tạo ảnh/file. Giữ TỔNG độ dài response DƯỚI 20000 ký tự — ngắn gọn; nếu nội dung vượt quá thì rút gọn cho vừa, KHÔNG cắt ngang câu. Giữ đúng intent yêu cầu bên dưới, không thêm bình luận.\n\n---YÊU CẦU---"
+    },
+    "chatgpt_model_slider_values": {
+      "Instant": 0,
+      "Medium": 1,
+      "High": 2
+    },
+    "timeouts": {
+      "image_ms": 300000,
+      "text_ms": 90000
+    },
+    "reference_upload_timings": {
+      "preview_timeout_ms": 60000,
+      "completion_timeout_ms": 120000,
+      "settle_ms": 1000,
+      "poll_interval_ms": 300
+    }
+  }
+}

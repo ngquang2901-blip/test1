@@ -1,0 +1,1662 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "0f8da92933aabeda93f342279fd84d2a0da1191721bac0f6d4549c223fd67c85",
+ "entries": 30,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T17:57:14.411Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=UpteDb",
+   "mime": "application/json",
+   "size": 719,
+   "req": [
+    {
+     "rpc": "UpteDb",
+     "args": [
+      "projects/*",
+      21,
+      null,
+      null,
+      null,
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "UpteDb",
+     "data": [
+      [
+       [
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        [
+         "Tháng 11 05 - 23:34",
+         null,
+         [
+          1793896494,
+          477784000
+         ],
+         "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+         "fbea4a87-1b17-4a1f-b696-946fedfdb36b",
+         [
+          "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T17:57:14.430Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 2843,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "827ca4d4-7890-468d-aae0-c4971a02b3d2"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "827ca4d4-7890-468d-aae0-c4971a02b3d2",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "28884322-e93b-466b-82ef-e24b6cdd037a",
+      null,
+      null,
+      [
+       [
+        1793900094,
+        772888000
+       ],
+       "The red paper boat drifts slowly to the right across calm blue water, gentle ripples, soft morning light, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_i2v_lite",
+          2,
+          [
+           1
+          ],
+          null,
+          1,
+          1
+         ],
+         [
+          [
+           null,
+           1,
+           "b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae",
+           [
+            null,
+            null,
+            1,
+            1
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "The red paper boat drifts slowly to the right across calm blue water, gentle ripples, soft morning light, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "[REDACTED len=569]",
+       [],
+       null,
+       1256130
+      ],
+      null,
+      [
+       [
+        null,
+        111319,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, gentle ripples, soft morning light, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://flow-content.google/video/827ca4d4-7890-468d-aae0-c4971a02b3d2?[query-stripped]",
+        null,
+        null,
+        null,
+        "veo_3_1_i2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "827ca4d4-7890-468d-aae0-c4971a02b3d2"
+       ],
+       null,
+       null,
+       [
+        null,
+        [
+         "https://flow-content.google/video/827ca4d4-7890-468d-aae0-c4971a02b3d2?[query-stripped]",
+         "[REDACTED len=569]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T17:57:14.488Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T17:57:14.497Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 140,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": null
+    }
+   ]
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T17:57:14.565Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4798,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T17:57:14.916Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T17:57:14.930Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=maseQ",
+   "mime": "application/json",
+   "size": 666,
+   "req": [
+    {
+     "rpc": "maseQ",
+     "args": [
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2638]",
+        1
+       ]
+      ],
+      "[REDACTED len=9336]",
+      "image/png",
+      1,
+      null,
+      null,
+      null,
+      null,
+      "toby_adf1f0c6-63c9-8a97-8bbb-ece0220eee2b.png",
+      null,
+      "34C89A0C-9D68-4BB3-B935-3E46A3EC6E06",
+      "8E9027B0-9CF9-40C2-BB5E-FB5146B4F976"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "maseQ",
+     "data": [
+      [
+       "d9ce2371-ec1e-4042-bdb2-c9899c055adf",
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       "b5e945b5-8ebd-4bed-8e71-b9d0a0339bee",
+       null,
+       null,
+       [
+        [
+         1793901443,
+         684664000
+        ],
+        null,
+        null,
+        null,
+        null,
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         1
+        ],
+        null,
+        null,
+        1,
+        null,
+        null,
+        null,
+        26053
+       ],
+       [
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         0,
+         null,
+         "image/jpeg"
+        ],
+        [
+         720,
+         1280
+        ]
+       ]
+      ],
+      [
+       "b5e945b5-8ebd-4bed-8e71-b9d0a0339bee",
+       null,
+       null,
+       [
+        "toby_adf1f0c6-63c9-8a97-8bbb-ece0220eee2b.png",
+        [
+         1793901443,
+         684664000
+        ],
+        null,
+        null,
+        "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+       ],
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T17:57:15.542Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://storage.googleapis.com/ai-sandbox-videofx/image/827ca4d4-7890-468d-aae0-c4971a02b3d2?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 24437
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T17:57:19.929Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T17:57:22.426Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=UpteDb",
+   "mime": "application/json",
+   "size": 718,
+   "req": [
+    {
+     "rpc": "UpteDb",
+     "args": [
+      "projects/*",
+      21,
+      null,
+      null,
+      null,
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "UpteDb",
+     "data": [
+      [
+       [
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        [
+         "Tháng 11 05 - 23:34",
+         null,
+         [
+          1793896494,
+          477784000
+         ],
+         "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+         "fbea4a87-1b17-4a1f-b696-946fedfdb36b",
+         [
+          "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T17:57:22.427Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T17:57:22.437Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1031,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "d9ce2371-ec1e-4042-bdb2-c9899c055adf",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b5e945b5-8ebd-4bed-8e71-b9d0a0339bee",
+      null,
+      null,
+      [
+       [
+        1793901443,
+        684664000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        null,
+        null,
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]",
+       null,
+       null,
+       26053
+      ],
+      [
+       null,
+       [
+        null,
+        null,
+        null,
+        "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]",
+        0,
+        null,
+        "image/jpeg"
+       ],
+       [
+        720,
+        1280
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T17:57:22.871Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_UPLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901434,
+          917000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_UPLOAD_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_UPLOAD_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "FILE_PICKER"
+            ]
+           ]
+          ],
+          [
+           "FLOW_UPLOAD_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"mimeType\":\"image/png\",\"dimensions\":{\"width\":720,\"height\":1280},\"aspectRatio\":0.5625,\"isHidden\":false,\"isCropped\":false}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T17:57:24.703Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/d9ce2371-ec1e-4042-bdb2-c9899c055adf?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 26053
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T17:57:28.036Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T17:57:28.037Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T17:57:28.043Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T17:57:28.049Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T17:57:28.053Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T17:57:28.161Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T17:57:28.171Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/jpeg",
+   "size": 20375
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T17:57:28.296Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4828,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T17:57:28.561Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ogiZ0b",
+   "mime": "application/json",
+   "size": 1424,
+   "req": [
+    {
+     "rpc": "ogiZ0b",
+     "args": [
+      null,
+      [
+       [
+        null,
+        null,
+        [
+         [
+          "d9ce2371-ec1e-4042-bdb2-c9899c055adf",
+          null,
+          null,
+          null,
+          1
+         ]
+        ],
+        1779283575,
+        2,
+        "HARBOR_SEAL",
+        null,
+        [
+         null,
+         22,
+         null,
+         null,
+         null,
+         "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+         null,
+         null,
+         null,
+         null,
+         [
+          "[REDACTED len=2660]",
+          1
+         ]
+        ],
+        [
+         [
+          [
+           "Turn the reference into a cheerful sun icon on a night sky, flat illustration."
+          ]
+         ]
+        ],
+        null,
+        null,
+        null,
+        "4CCEAFC8-BE84-4800-BFA4-2695D3BCAE55",
+        "3578787D-2C77-4264-9628-F083DDD310B2"
+       ]
+      ],
+      1,
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2660]",
+        1
+       ]
+      ],
+      [
+       "2D4D25AA-3825-4042-A850-F8B9E6F27298"
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ogiZ0b",
+     "data": [
+      [
+       [
+        "5c5f3c21-6cb7-4475-9d56-30ce8d306bad",
+        null,
+        "bbd08dc3-e677-4b60-8d1c-6bb0abcba57d",
+        null,
+        null,
+        null,
+        [
+         [
+          null,
+          1779283575,
+          null,
+          null,
+          null,
+          null,
+          1,
+          "Turn the reference into a cheerful sun icon on a night sky, flat illustration.",
+          31,
+          null,
+          null,
+          "bbd08dc3-e677-4b60-8d1c-6bb0abcba57d",
+          null,
+          "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]",
+          2,
+          [
+           null,
+           null,
+           [
+            [
+             "Turn the reference into a cheerful sun icon on a night sky, flat illustration.",
+             null,
+             [
+              [
+               [
+                "Turn the reference into a cheerful sun icon on a night sky, flat illustration."
+               ]
+              ]
+             ]
+            ]
+           ],
+           [
+            [
+             [
+              null,
+              1,
+              "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+             ]
+            ]
+           ]
+          ],
+          null,
+          "5c5f3c21-6cb7-4475-9d56-30ce8d306bad"
+         ],
+         null,
+         [
+          768,
+          1376
+         ],
+         null,
+         null,
+         [
+          null,
+          "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]"
+         ]
+        ]
+       ]
+      ],
+      [
+       [
+        "bbd08dc3-e677-4b60-8d1c-6bb0abcba57d",
+        null,
+        null,
+        [
+         "Create sun icon on night sky…",
+         [
+          1793901458,
+          524417000
+         ],
+         null,
+         null,
+         "5c5f3c21-6cb7-4475-9d56-30ce8d306bad",
+         "2D4D25AA-3825-4042-A850-F8B9E6F27298",
+         [
+          1793901465,
+          150068000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T17:57:28.565Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T17:57:39.270Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 331,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 25,
+   "t_utc": "2026-11-05T17:57:39.277Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 66664
+  },
+  {
+   "i": 26,
+   "t_utc": "2026-11-05T17:57:42.454Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1405,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "5c5f3c21-6cb7-4475-9d56-30ce8d306bad"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "5c5f3c21-6cb7-4475-9d56-30ce8d306bad",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "bbd08dc3-e677-4b60-8d1c-6bb0abcba57d",
+      null,
+      null,
+      [
+       [
+        1793901458,
+        524417000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        [
+         [
+          "Turn the reference into a cheerful sun icon on a night sky, flat illustration.",
+          null,
+          [
+           [
+            [
+             "Turn the reference into a cheerful sun icon on a night sky, flat illustration."
+            ]
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          [
+           null,
+           1,
+           "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+          ]
+         ]
+        ],
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]",
+       null,
+       null,
+       66664
+      ],
+      [
+       [
+        null,
+        1779283575,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "Turn the reference into a cheerful sun icon on a night sky, flat illustration.",
+        31,
+        "",
+        null,
+        "bbd08dc3-e677-4b60-8d1c-6bb0abcba57d",
+        null,
+        "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]",
+        2
+       ],
+       null,
+       [
+        768,
+        1376
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 27,
+   "t_utc": "2026-11-05T17:57:43.884Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/5c5f3c21-6cb7-4475-9d56-30ce8d306bad?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 66664
+  },
+  {
+   "i": 28,
+   "t_utc": "2026-11-05T17:57:49.056Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 29,
+   "t_utc": "2026-11-05T17:57:53.296Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 142,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_CONTEXT_MENU",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901447,
+          307000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "IMAGE"
+            ]
+           ]
+          ],
+          [
+           "FLOW_CONTEXT_MENU_ACTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ADD_TO_PROMPT"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "d9ce2371-ec1e-4042-bdb2-c9899c055adf"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ADD_REFERENCE_INGREDIENT",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901447,
+          319000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "ADD_REFERENCE_INGREDIENT_SOURCE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "VIDEO_TILE_REFERENCE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901448,
+          26000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "image"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"imageModelKey\":\"HARBOR_SEAL\",\"aspectRatio\":2,\"seed\":1779283575,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"Turn the reference into a cheerful sun icon on a night sky, flat illustration.\"}]},\"referenceImageMediaIds\":[\"d9ce2371-ec1e-4042-bdb2-c9899c055adf\"]}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901464,
+          38000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "5c5f3c21-6cb7-4475-9d56-30ce8d306bad"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IMAGE_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_IMAGE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901464,
+          55000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "5c5f3c21-6cb7-4475-9d56-30ce8d306bad"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  }
+ ]
+}

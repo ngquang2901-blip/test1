@@ -1,0 +1,62 @@
+{
+  "scope": "DOCUMENT_VALIDATOR_ONLY",
+  "results": [
+    {
+      "case": "unchanged fixture passes",
+      "result": "PASS",
+      "observed_status": "PASS",
+      "errors": []
+    },
+    {
+      "case": "missing chapter is caught",
+      "result": "PASS",
+      "observed_status": "FAIL",
+      "errors": [
+        "Missing required file: /home/nthieuu/.hermes/profiles/bot-nthieuu/cache/scratch/toolflow-doc-check-ki01o_a4/docs/app/04-flow-driver.md"
+      ]
+    },
+    {
+      "case": "broken local link is caught",
+      "result": "PASS",
+      "observed_status": "FAIL",
+      "errors": [
+        "Missing link target: README.md: not-a-file.md"
+      ]
+    },
+    {
+      "case": "unknown requirement is caught",
+      "result": "PASS",
+      "observed_status": "FAIL",
+      "errors": [
+        "Requirements must define TF-01 through TF-22 exactly once",
+        "Unknown requirement in AC-01: TF-01",
+        "Unknown requirement in AC-23: TF-01",
+        "Requirement has no acceptance case: TF-99",
+        "Unknown requirement references in 00-product-scope.md: ['TF-99']"
+      ]
+    },
+    {
+      "case": "missing acceptance case is caught",
+      "result": "PASS",
+      "observed_status": "FAIL",
+      "errors": [
+        "Acceptance cases must define AC-01 through AC-33"
+      ]
+    },
+    {
+      "case": "bridge scope regression is caught",
+      "result": "PASS",
+      "observed_status": "FAIL",
+      "errors": [
+        "Scope/status assertion failed: bridge_deferred_in_research"
+      ]
+    },
+    {
+      "case": "restored fixture passes",
+      "result": "PASS",
+      "observed_status": "PASS",
+      "errors": []
+    }
+  ],
+  "product_tests": "NOT RUN"
+}

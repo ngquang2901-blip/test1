@@ -1,0 +1,2802 @@
+{
+ "data": {
+  "chatgpt": {
+   "base_url": "https://chatgpt.com",
+   "config_version": 87,
+   "meta": {
+    "version": 87
+   },
+   "name": "ChatGPT",
+   "profiles": {
+    "legacy": {
+     "host_patterns": [],
+     "key": "legacy",
+     "selectors": {
+      "assistant_turn": {
+       "priority": "P1",
+       "selectors": [
+        "[data-content-search-unit-key^=\"fallback-turn-\"][data-content-search-unit-key$=\":assistant\"]",
+        "div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+        "[data-testid^=\"conversation-turn-\"][data-turn=\"assistant\"]",
+        "[data-chatgpt-search-unit-key$=\":assistant\"]"
+       ]
+      },
+      "audio_attachment_remove_button": {
+       "priority": "P1",
+       "selectors": [
+        "[data-composer-attachments] span[class~=\"group/composer-attachment\"] > button[aria-label]"
+       ]
+      },
+      "auth_link": {
+       "priority": "P1",
+       "selectors": [
+        "a[href*=\"/auth/login\"]",
+        "a[href*=\"/auth/signin\"]"
+       ]
+      },
+      "cdn_image": {
+       "priority": "P1",
+       "selectors": [
+        "img[src*=\"estuary/content\"]",
+        "img[src*=\"oaiusercontent\"]",
+        "img[src*=\"sandboxed.openai\"]",
+        "img[src*=\"/backend-api/\"]"
+       ]
+      },
+      "challenge_overlay": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"dialog\"][data-state=\"open\"]",
+        "div[role=\"dialog\"]",
+        "[role=\"alertdialog\"]",
+        "dialog[open]"
+       ]
+      },
+      "chat_history_home_link": {
+       "attribute": "href",
+       "priority": "P2",
+       "selectors": [
+        "nav[aria-label=\"Chat history\"] a[href=\"/\"]"
+       ]
+      },
+      "cloudflare_iframe": {
+       "priority": "P0",
+       "selectors": [
+        "iframe[src*=\"challenges.cloudflare.com\"]",
+        "iframe[src*=\"turnstile\"]",
+        ".cf-turnstile",
+        "[data-cf-turnstile]"
+       ]
+      },
+      "completed_text_response": {
+       "priority": "P1",
+       "selectors": [
+        "[data-talvt-turn-state=\"complete\"] [data-chatgpt-search-unit-key$=\":assistant\"]:has([data-markdown-text-style=\"assistant-message\"]):not(:has(img, video, audio, canvas, iframe, object, embed))"
+       ]
+      },
+      "composer": {
+       "priority": "P0",
+       "selectors": [
+        "#prompt-textarea",
+        "div.ProseMirror[role=\"textbox\"]"
+       ]
+      },
+      "composer_mode_radio": {
+       "priority": "P2",
+       "selectors": [
+        "[role=\"group\"] button[role=\"radio\"][data-radix-collection-item]",
+        "button[role=\"radio\"][data-radix-collection-item]",
+        "button[role=\"radio\"]",
+        "header [role=\"group\"]:has(> button[aria-pressed]) > button[aria-pressed]"
+       ]
+      },
+      "conversation_options_button": {
+       "priority": "P1",
+       "selectors": [
+        "[data-testid=\"conversation-options-button\"]",
+        "button[aria-label=\"Open conversation options\"]",
+        "button[aria-label*=\"conversation options\"]",
+        "[data-testid=\"app-shell-header-context-menu-surface\"] button[aria-haspopup=\"menu\"]"
+       ]
+      },
+      "conversation_options_menu": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+        "[role=\"menu\"][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+        "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([role=\"menuitem\"].text-danger)"
+       ]
+      },
+      "conversation_turn": {
+       "attribute": "data-testid",
+       "identity_attributes": [
+        "data-turn-id",
+        "data-testid",
+        "data-turn-key",
+        "data-content-search-unit-key",
+        "data-chatgpt-search-unit-key",
+        "data-chatgpt-search-message-ids"
+       ],
+       "priority": "P0",
+       "role_attributes": [
+        "data-turn",
+        "data-message-author-role",
+        "data-conversation-role",
+        "data-content-search-unit-key",
+        "data-chatgpt-search-unit-key"
+       ],
+       "selectors": [
+        "[data-content-search-unit-key^=\"fallback-turn-\"], div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+        "[data-testid^=\"conversation-turn-\"]",
+        "[data-turn-id]",
+        "[data-turn-key]"
+       ]
+      },
+      "create_image_menu_item": {
+       "priority": "P0",
+       "selectors": [
+        ".__menu-item:has(use[href*=\"#create-image-plugin\"])"
+       ]
+      },
+      "delete_chat_menu_item": {
+       "priority": "P1",
+       "selectors": [
+        "[data-testid=\"delete-chat-menu-item\"]",
+        "[role=\"menuitem\"][data-color=\"danger\"]",
+        "[role=\"menuitem\"].text-danger"
+       ]
+      },
+      "delete_confirm_button": {
+       "priority": "P1",
+       "selectors": [
+        "button[data-testid=\"delete-conversation-confirm-button\"]",
+        "button[data-testid=\"delete-confirm-button\"]",
+        "button.btn-danger",
+        "form button[type=\"submit\"]"
+       ]
+      },
+      "file_input": {
+       "priority": "P1",
+       "selectors": [
+        "#upload-photos",
+        "input[type=\"file\"][accept*=\"image\"]"
+       ]
+      },
+      "generated_image": {
+       "attribute": "src",
+       "priority": "P0",
+       "selectors": [
+        "[data-testid=\"generated-image-gallery\"] [data-testid=\"generated-image-preview\"] img[src^=\"blob:\"]",
+        "img[alt^=\"Generated image\"]:not([aria-hidden])"
+       ]
+      },
+      "generating_indicator": {
+       "priority": "P0",
+       "selectors": [
+        "[data-testid=\"image-gen-loading-game-board\"]",
+        "[data-testid=\"image-gen-loading-state\"]"
+       ]
+      },
+      "generation_error_alert": {
+       "priority": "P0",
+       "selectors": [
+        "[data-turn-key] [role=\"alert\"]",
+        "[data-turn-id] [role=\"alert\"]",
+        "[data-testid^=\"conversation-turn-\"] [role=\"alert\"]",
+        "[data-content-search-turn-key] [role=\"alert\"]"
+       ]
+      },
+      "image_action_buttons": {
+       "priority": "P1",
+       "selectors": [
+        "[aria-label=\"Like this image\"]",
+        "[aria-label=\"Edit image\"]",
+        "[aria-label=\"Dislike this image\"]"
+       ]
+      },
+      "image_generation_progress": {
+       "attribute": "aria-valuenow",
+       "priority": "P2",
+       "selectors": [
+        "[data-testid=\"image-gen-loading-game-board\"] + div > span:last-child",
+        "[data-testid=\"image-gen-loading-progress\"]"
+       ],
+       "text_fallback": true
+      },
+      "image_mode_pill": {
+       "priority": "P1",
+       "selectors": [
+        "[data-system-hint-type=\"picture_v2\"]",
+        "[data-inline-selection-pill][data-id=\"picture_v2\"]"
+       ]
+      },
+      "login_button": {
+       "priority": "P0",
+       "selectors": [
+        "[data-testid=\"login-button\"]",
+        "button[data-testid*=\"login\"]"
+       ]
+      },
+      "mention_menu": {
+       "priority": "P1",
+       "selectors": [
+        ".popover.shadow-long:has(.__menu-item)",
+        ".popover:has(.__menu-item)"
+       ]
+      },
+      "menu_items": {
+       "priority": "P1",
+       "selectors": [
+        "button[data-list-navigation-item=\"true\"]",
+        ".__menu-item",
+        "[role=\"menuitemradio\"]",
+        "[role=\"menuitem\"]"
+       ]
+      },
+      "message_author": {
+       "attribute": "data-message-author-role",
+       "priority": "P1",
+       "selectors": [
+        "[data-message-author-role]"
+       ]
+      },
+      "mode_menu_item": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"menuitemradio\"]"
+       ]
+      },
+      "model_effort_slider": {
+       "priority": "P1",
+       "selectors": [
+        "[data-reasoning-slider=\"true\"] [role=\"slider\"]"
+       ]
+      },
+      "model_effort_slider_control": {
+       "priority": "P1",
+       "selectors": [
+        "[data-reasoning-slider=\"true\"][aria-keyshortcuts*=\"ArrowRight\"]"
+       ]
+      },
+      "model_switcher_button": {
+       "priority": "P1",
+       "selectors": [
+        "form[data-type=\"unified-composer\"] [data-composer-transition-slot=\"trailing\"] button.__composer-pill",
+        "button.__composer-pill[aria-haspopup=\"menu\"]",
+        "button[data-codex-intelligence-trigger=\"true\"][data-composer-navigation-target=\"reasoning\"]",
+        "button[data-composer-navigation-target=\"reasoning\"][aria-haspopup=\"menu\"]"
+       ]
+      },
+      "new_chat_button": {
+       "priority": "P1",
+       "selectors": [
+        "a[data-testid=\"create-new-chat-button\"]"
+       ]
+      },
+      "open_menu": {
+       "priority": "P1",
+       "selectors": [
+        "[data-composer-overlay-floating-ui=\"true\"]",
+        "[popover]:popover-open:has(.__menu-item)",
+        "[popover]:popover-open",
+        "[data-radix-popper-content-wrapper]",
+        "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]",
+        "div[role=\"menu\"][data-state=\"open\"]",
+        "[role=\"menu\"]"
+       ]
+      },
+      "pa_source_text_file": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"group\"][aria-label$=\".txt\"]"
+       ]
+      },
+      "paragen_container": {
+       "priority": "P1",
+       "selectors": [
+        "[class*=\"image-paragen-multigen\"]"
+       ]
+      },
+      "plus_button": {
+       "priority": "P1",
+       "selectors": [
+        "form button[data-composer-navigation-target=\"add-context\"]",
+        "#composer-plus-btn",
+        "[data-testid=\"composer-plus-btn\"]",
+        "button[data-composer-navigation-target=\"add-context\"]"
+       ]
+      },
+      "ratio_button": {
+       "priority": "P1",
+       "selectors": [
+        "button[aria-label=\"Choose image aspect ratio\"]"
+       ]
+      },
+      "ref_upload_pending": {
+       "priority": "P1",
+       "selectors": [
+        "form[data-type=\"unified-composer\"] [role=\"group\"] .cursor-wait",
+        "div[data-default-action] .cursor-wait"
+       ]
+      },
+      "remove_ref_image_button": {
+       "priority": "P1",
+       "selectors": [
+        "form[data-type=\\\"unified-composer\\\"] div[role=\\\"group\\\"] button:not([aria-haspopup])",
+        "button[aria-label^=\"Remove file\"]",
+        "button[aria-label^=\\\"Xóa tệp\\\"]",
+        "[data-composer-body] [role=\"button\"][class*=\"composer-attachment\"] > button[aria-label]"
+       ]
+      },
+      "response_text_content": {
+       "priority": "P1",
+       "selectors": [
+        ".markdown.prose",
+        "[data-markdown-text-style=\"assistant-message\"]"
+       ]
+      },
+      "stop_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[aria-label=\"Ngừng\"]",
+        "[aria-label=\"Stop generating\"]",
+        "[data-testid=\"stop-button\"]"
+       ]
+      },
+      "submit_button": {
+       "exclude_if_aria_contains": [
+        "thoại",
+        "đọc chính tả",
+        "voice",
+        "dictat"
+       ],
+       "priority": "P0",
+       "selectors": [
+        "#composer-submit-button",
+        "button[data-testid=\"send-button\"]",
+        "button.composer-submit-button-color",
+        "button[aria-label=\"Send prompt\"]",
+        "form:has(div.ProseMirror[role=\"textbox\"]) button[type=\"submit\"]",
+        "form[data-thread-find-composer=\"true\"] button[type=\"submit\"]"
+       ]
+      },
+      "text_file_tile": {
+       "priority": "P1",
+       "selectors": [
+        "button[name=\"expand-file-tile\"]"
+       ]
+      },
+      "thinking_indicator": {
+       "priority": "P1",
+       "selectors": [
+        ".result-thinking",
+        ".result-streaming"
+       ]
+      }
+     },
+     "version": 87
+    }
+   },
+   "selectors": {
+    "assistant_turn": {
+     "priority": "P1",
+     "selectors": [
+      "[data-content-search-unit-key^=\"fallback-turn-\"][data-content-search-unit-key$=\":assistant\"]",
+      "div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+      "[data-testid^=\"conversation-turn-\"][data-turn=\"assistant\"]",
+      "[data-chatgpt-search-unit-key$=\":assistant\"]"
+     ]
+    },
+    "audio_attachment_remove_button": {
+     "priority": "P1",
+     "selectors": [
+      "[data-composer-attachments] span[class~=\"group/composer-attachment\"] > button[aria-label]"
+     ]
+    },
+    "auth_link": {
+     "priority": "P1",
+     "selectors": [
+      "a[href*=\"/auth/login\"]",
+      "a[href*=\"/auth/signin\"]"
+     ]
+    },
+    "cdn_image": {
+     "priority": "P1",
+     "selectors": [
+      "img[src*=\"estuary/content\"]",
+      "img[src*=\"oaiusercontent\"]",
+      "img[src*=\"sandboxed.openai\"]",
+      "img[src*=\"/backend-api/\"]"
+     ]
+    },
+    "challenge_overlay": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"dialog\"][data-state=\"open\"]",
+      "div[role=\"dialog\"]",
+      "[role=\"alertdialog\"]",
+      "dialog[open]"
+     ]
+    },
+    "chat_history_home_link": {
+     "attribute": "href",
+     "priority": "P2",
+     "selectors": [
+      "nav[aria-label=\"Chat history\"] a[href=\"/\"]"
+     ]
+    },
+    "cloudflare_iframe": {
+     "priority": "P0",
+     "selectors": [
+      "iframe[src*=\"challenges.cloudflare.com\"]",
+      "iframe[src*=\"turnstile\"]",
+      ".cf-turnstile",
+      "[data-cf-turnstile]"
+     ]
+    },
+    "completed_text_response": {
+     "priority": "P1",
+     "selectors": [
+      "[data-talvt-turn-state=\"complete\"] [data-chatgpt-search-unit-key$=\":assistant\"]:has([data-markdown-text-style=\"assistant-message\"]):not(:has(img, video, audio, canvas, iframe, object, embed))"
+     ]
+    },
+    "composer": {
+     "priority": "P0",
+     "selectors": [
+      "#prompt-textarea",
+      "div.ProseMirror[role=\"textbox\"]"
+     ]
+    },
+    "composer_mode_radio": {
+     "priority": "P2",
+     "selectors": [
+      "[role=\"group\"] button[role=\"radio\"][data-radix-collection-item]",
+      "button[role=\"radio\"][data-radix-collection-item]",
+      "button[role=\"radio\"]",
+      "header [role=\"group\"]:has(> button[aria-pressed]) > button[aria-pressed]"
+     ]
+    },
+    "conversation_options_button": {
+     "priority": "P1",
+     "selectors": [
+      "[data-testid=\"conversation-options-button\"]",
+      "button[aria-label=\"Open conversation options\"]",
+      "button[aria-label*=\"conversation options\"]",
+      "[data-testid=\"app-shell-header-context-menu-surface\"] button[aria-haspopup=\"menu\"]"
+     ]
+    },
+    "conversation_options_menu": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+      "[role=\"menu\"][data-state=\"open\"]:has([data-testid=\"delete-chat-menu-item\"])",
+      "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]:has([role=\"menuitem\"].text-danger)"
+     ]
+    },
+    "conversation_turn": {
+     "attribute": "data-testid",
+     "identity_attributes": [
+      "data-turn-id",
+      "data-testid",
+      "data-turn-key",
+      "data-content-search-unit-key",
+      "data-chatgpt-search-unit-key",
+      "data-chatgpt-search-message-ids"
+     ],
+     "priority": "P0",
+     "role_attributes": [
+      "data-turn",
+      "data-message-author-role",
+      "data-conversation-role",
+      "data-content-search-unit-key",
+      "data-chatgpt-search-unit-key"
+     ],
+     "selectors": [
+      "[data-content-search-unit-key^=\"fallback-turn-\"], div:has(> [data-chatgpt-agent-turn-start]):has(> h4[data-conversation-role=\"assistant\"])",
+      "[data-testid^=\"conversation-turn-\"]",
+      "[data-turn-id]",
+      "[data-turn-key]"
+     ]
+    },
+    "create_image_menu_item": {
+     "priority": "P0",
+     "selectors": [
+      ".__menu-item:has(use[href*=\"#create-image-plugin\"])"
+     ]
+    },
+    "delete_chat_menu_item": {
+     "priority": "P1",
+     "selectors": [
+      "[data-testid=\"delete-chat-menu-item\"]",
+      "[role=\"menuitem\"][data-color=\"danger\"]",
+      "[role=\"menuitem\"].text-danger"
+     ]
+    },
+    "delete_confirm_button": {
+     "priority": "P1",
+     "selectors": [
+      "button[data-testid=\"delete-conversation-confirm-button\"]",
+      "button[data-testid=\"delete-confirm-button\"]",
+      "button.btn-danger",
+      "form button[type=\"submit\"]"
+     ]
+    },
+    "file_input": {
+     "priority": "P1",
+     "selectors": [
+      "#upload-photos",
+      "input[type=\"file\"][accept*=\"image\"]"
+     ]
+    },
+    "generated_image": {
+     "attribute": "src",
+     "priority": "P0",
+     "selectors": [
+      "[data-testid=\"generated-image-gallery\"] [data-testid=\"generated-image-preview\"] img[src^=\"blob:\"]",
+      "img[alt^=\"Generated image\"]:not([aria-hidden])"
+     ]
+    },
+    "generating_indicator": {
+     "priority": "P0",
+     "selectors": [
+      "[data-testid=\"image-gen-loading-game-board\"]",
+      "[data-testid=\"image-gen-loading-state\"]"
+     ]
+    },
+    "generation_error_alert": {
+     "priority": "P0",
+     "selectors": [
+      "[data-turn-key] [role=\"alert\"]",
+      "[data-turn-id] [role=\"alert\"]",
+      "[data-testid^=\"conversation-turn-\"] [role=\"alert\"]",
+      "[data-content-search-turn-key] [role=\"alert\"]"
+     ]
+    },
+    "image_action_buttons": {
+     "priority": "P1",
+     "selectors": [
+      "[aria-label=\"Like this image\"]",
+      "[aria-label=\"Edit image\"]",
+      "[aria-label=\"Dislike this image\"]"
+     ]
+    },
+    "image_generation_progress": {
+     "attribute": "aria-valuenow",
+     "priority": "P2",
+     "selectors": [
+      "[data-testid=\"image-gen-loading-game-board\"] + div > span:last-child",
+      "[data-testid=\"image-gen-loading-progress\"]"
+     ],
+     "text_fallback": true
+    },
+    "image_mode_pill": {
+     "priority": "P1",
+     "selectors": [
+      "[data-system-hint-type=\"picture_v2\"]",
+      "[data-inline-selection-pill][data-id=\"picture_v2\"]"
+     ]
+    },
+    "login_button": {
+     "priority": "P0",
+     "selectors": [
+      "[data-testid=\"login-button\"]",
+      "button[data-testid*=\"login\"]"
+     ]
+    },
+    "mention_menu": {
+     "priority": "P1",
+     "selectors": [
+      ".popover.shadow-long:has(.__menu-item)",
+      ".popover:has(.__menu-item)"
+     ]
+    },
+    "menu_items": {
+     "priority": "P1",
+     "selectors": [
+      "button[data-list-navigation-item=\"true\"]",
+      ".__menu-item",
+      "[role=\"menuitemradio\"]",
+      "[role=\"menuitem\"]"
+     ]
+    },
+    "message_author": {
+     "attribute": "data-message-author-role",
+     "priority": "P1",
+     "selectors": [
+      "[data-message-author-role]"
+     ]
+    },
+    "mode_menu_item": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"menuitemradio\"]"
+     ]
+    },
+    "model_effort_slider": {
+     "priority": "P1",
+     "selectors": [
+      "[data-reasoning-slider=\"true\"] [role=\"slider\"]"
+     ]
+    },
+    "model_effort_slider_control": {
+     "priority": "P1",
+     "selectors": [
+      "[data-reasoning-slider=\"true\"][aria-keyshortcuts*=\"ArrowRight\"]"
+     ]
+    },
+    "model_switcher_button": {
+     "priority": "P1",
+     "selectors": [
+      "form[data-type=\"unified-composer\"] [data-composer-transition-slot=\"trailing\"] button.__composer-pill",
+      "button.__composer-pill[aria-haspopup=\"menu\"]",
+      "button[data-codex-intelligence-trigger=\"true\"][data-composer-navigation-target=\"reasoning\"]",
+      "button[data-composer-navigation-target=\"reasoning\"][aria-haspopup=\"menu\"]"
+     ]
+    },
+    "new_chat_button": {
+     "priority": "P1",
+     "selectors": [
+      "a[data-testid=\"create-new-chat-button\"]"
+     ]
+    },
+    "open_menu": {
+     "priority": "P1",
+     "selectors": [
+      "[data-composer-overlay-floating-ui=\"true\"]",
+      "[popover]:popover-open:has(.__menu-item)",
+      "[popover]:popover-open",
+      "[data-radix-popper-content-wrapper]",
+      "div[role=\"menu\"][data-radix-menu-content][data-state=\"open\"]",
+      "div[role=\"menu\"][data-state=\"open\"]",
+      "[role=\"menu\"]"
+     ]
+    },
+    "pa_source_text_file": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"group\"][aria-label$=\".txt\"]"
+     ]
+    },
+    "paragen_container": {
+     "priority": "P1",
+     "selectors": [
+      "[class*=\"image-paragen-multigen\"]"
+     ]
+    },
+    "plus_button": {
+     "priority": "P1",
+     "selectors": [
+      "form button[data-composer-navigation-target=\"add-context\"]",
+      "#composer-plus-btn",
+      "[data-testid=\"composer-plus-btn\"]",
+      "button[data-composer-navigation-target=\"add-context\"]"
+     ]
+    },
+    "ratio_button": {
+     "priority": "P1",
+     "selectors": [
+      "button[aria-label=\"Choose image aspect ratio\"]"
+     ]
+    },
+    "ref_upload_pending": {
+     "priority": "P1",
+     "selectors": [
+      "form[data-type=\"unified-composer\"] [role=\"group\"] .cursor-wait",
+      "div[data-default-action] .cursor-wait"
+     ]
+    },
+    "remove_ref_image_button": {
+     "priority": "P1",
+     "selectors": [
+      "form[data-type=\\\"unified-composer\\\"] div[role=\\\"group\\\"] button:not([aria-haspopup])",
+      "button[aria-label^=\"Remove file\"]",
+      "button[aria-label^=\\\"Xóa tệp\\\"]",
+      "[data-composer-body] [role=\"button\"][class*=\"composer-attachment\"] > button[aria-label]"
+     ]
+    },
+    "response_text_content": {
+     "priority": "P1",
+     "selectors": [
+      ".markdown.prose",
+      "[data-markdown-text-style=\"assistant-message\"]"
+     ]
+    },
+    "stop_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[aria-label=\"Ngừng\"]",
+      "[aria-label=\"Stop generating\"]",
+      "[data-testid=\"stop-button\"]"
+     ]
+    },
+    "submit_button": {
+     "exclude_if_aria_contains": [
+      "thoại",
+      "đọc chính tả",
+      "voice",
+      "dictat"
+     ],
+     "priority": "P0",
+     "selectors": [
+      "#composer-submit-button",
+      "button[data-testid=\"send-button\"]",
+      "button.composer-submit-button-color",
+      "button[aria-label=\"Send prompt\"]",
+      "form:has(div.ProseMirror[role=\"textbox\"]) button[type=\"submit\"]",
+      "form[data-thread-find-composer=\"true\"] button[type=\"submit\"]"
+     ]
+    },
+    "text_file_tile": {
+     "priority": "P1",
+     "selectors": [
+      "button[name=\"expand-file-tile\"]"
+     ]
+    },
+    "thinking_indicator": {
+     "priority": "P1",
+     "selectors": [
+      ".result-thinking",
+      ".result-streaming"
+     ]
+    }
+   },
+   "status": "active"
+  },
+  "gemini": {
+   "base_url": "https://gemini.google.com",
+   "config_version": 34,
+   "meta": {
+    "version": 34
+   },
+   "name": "Gemini",
+   "profiles": {
+    "legacy": {
+     "host_patterns": [],
+     "key": "legacy",
+     "selectors": {
+      "add_button": {
+       "priority": "P1",
+       "selectors": [
+        "button.upload-card-button",
+        "button:has(mat-icon[data-mat-icon-name=\"add_2\"])",
+        "button:has(mat-icon[fonticon=\"add_2\"])",
+        "button[aria-controls=\"upload-file-menu\"]",
+        "button[aria-label=\"Mở trình đơn tải tệp lên\"]",
+        "button[aria-label*=\"upload menu\"]"
+       ]
+      },
+      "cloudflare_iframe": {
+       "priority": "P0",
+       "selectors": [
+        "iframe[src*=\"challenges.cloudflare.com\"]",
+        "iframe[src*=\"recaptcha\"]"
+       ]
+      },
+      "composer": {
+       "priority": "P0",
+       "selectors": [
+        ".ql-editor",
+        "div[role=\"textbox\"]",
+        "[contenteditable=\"true\"]",
+        "rich-textarea"
+       ]
+      },
+      "conversation_actions_menu": {
+       "priority": "P1",
+       "selectors": [
+        "button[data-test-id=\"conversation-actions-menu-icon-button\"]",
+        "button[data-test-id=\"actions-menu-button\"].gem-conversation-actions-menu-button",
+        "button[data-test-id=\"actions-menu-button\"]",
+        "gem-icon-button[gemmenutrigger][fonticonname=\"more_vert\"]"
+       ]
+      },
+      "conversation_scroll_root": {
+       "priority": "P1",
+       "selectors": [
+        ".chat-history-scroll-container",
+        "chat-window main"
+       ]
+      },
+      "delete_confirm_action": {
+       "priority": "P0",
+       "selectors": [
+        "mat-dialog-actions gem-button[cdkfocusinitial] button"
+       ]
+      },
+      "delete_confirm_button": {
+       "priority": "P1",
+       "selectors": [
+        "mat-dialog-container button[mat-flat-button]",
+        ".mat-mdc-dialog-container button.mat-mdc-button-base",
+        "mat-dialog-container button"
+       ]
+      },
+      "delete_confirm_dialog": {
+       "priority": "P1",
+       "selectors": [
+        "mat-dialog-container",
+        ".mat-mdc-dialog-container",
+        ".cdk-overlay-pane mat-dialog-actions"
+       ]
+      },
+      "delete_confirm_identity": {
+       "priority": "P0",
+       "selectors": [
+        "message-dialog a[href=\"https://support.google.com/gemini?p=deleted_chats\"]",
+        "message-dialog a[href^=\"https://support.google.com/gemini?p=deleted_chats&\"]"
+       ]
+      },
+      "delete_menu_item": {
+       "priority": "P1",
+       "selectors": [
+        "gem-menu-item[data-test-id=\"delete-button\"]",
+        "gem-menu-item[value=\"delete\"]",
+        "[data-test-id=\"delete-button\"]"
+       ]
+      },
+      "generated_image": {
+       "priority": "P0",
+       "selectors": [
+        "generated-image img.image.loaded[src]",
+        "generated-image img.image[src^=\"blob:https://gemini.google.com/\"]"
+       ]
+      },
+      "generation_busy_indicator": {
+       "priority": "P1",
+       "selectors": [
+        ".markdown[aria-busy=\"true\"]",
+        "message-content[aria-busy=\"true\"]",
+        "mat-progress-bar:not([hidden])"
+       ]
+      },
+      "image_download_button": {
+       "icon_text": "download",
+       "priority": "P1",
+       "selectors": [
+        "gem-icon-button[data-test-id=\"download-generated-image-button\"]"
+       ]
+      },
+      "image_loading_overlay": {
+       "priority": "P1",
+       "selectors": [
+        "generated-image .placeholder.loading",
+        "generated-image .loader.animate:not(.done-generating)"
+       ]
+      },
+      "image_menu_download_item": {
+       "priority": "P0",
+       "selectors": [
+        "gem-menu-item[data-test-id=\"image-download-button\"]"
+       ]
+      },
+      "image_more_menu_button": {
+       "priority": "P0",
+       "selectors": [
+        "message-actions gem-icon-button[data-test-id=\"more-menu-button\"]"
+       ]
+      },
+      "image_preview": {
+       "priority": "P1",
+       "selectors": [
+        "[class*=\"image-preview\"]",
+        "[class*=\"attachment\"]",
+        "img[src^=\"blob:\"]"
+       ]
+      },
+      "image_ratio_option_16_9": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"][aria-label=\"16:9\"]"
+       ]
+      },
+      "image_ratio_option_1_1": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"][aria-label=\"1:1\"]"
+       ]
+      },
+      "image_ratio_option_3_4": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"][aria-label=\"3:4\"]"
+       ]
+      },
+      "image_ratio_option_4_3": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"][aria-label=\"4:3\"]"
+       ]
+      },
+      "image_ratio_option_9_16": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"][aria-label=\"9:16\"]"
+       ]
+      },
+      "image_ratio_trigger": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-chip gem-button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"aspect_ratio\"])",
+        "input-companion-chip button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"aspect_ratio\"])",
+        "input-companion-chip button:has(mat-icon[data-mat-icon-name=\"aspect_ratio\"])"
+       ]
+      },
+      "image_result": {
+       "priority": "P0",
+       "selectors": [
+        "generated-image img.image.loaded[src]",
+        "generated-image img.image[src^=\"blob:https://gemini.google.com/\"]"
+       ]
+      },
+      "image_result_container": {
+       "priority": "P0",
+       "selectors": [
+        "model-response generated-image",
+        "generated-image"
+       ]
+      },
+      "input_area_container": {
+       "priority": "P1",
+       "selectors": [
+        ".input-area-container",
+        ".input-area",
+        "[class*=\"input-area\"]",
+        "[class*=\"composer-input\"]",
+        "form"
+       ]
+      },
+      "media_response_container": {
+       "priority": "P0",
+       "selectors": [
+        "model-response"
+       ]
+      },
+      "model_option_button": {
+       "attribute_id": "data-mode-id",
+       "attribute_selected": "aria-current",
+       "priority": "P1",
+       "selectors": [
+        "gem-menu-item[data-mode-id]",
+        "[data-test-id^=\"bard-mode-option-\"]"
+       ]
+      },
+      "model_option_label": {
+       "priority": "P0",
+       "selectors": [
+        ".label-container .label"
+       ]
+      },
+      "model_option_selected": {
+       "priority": "P0",
+       "selectors": [
+        "gem-menu-item-content.selected"
+       ]
+      },
+      "model_switcher_button": {
+       "priority": "P1",
+       "selectors": [
+        "gem-button[data-test-id=\"bard-mode-menu-button\"] button",
+        "button[data-test-id=\"bard-mode-menu-button\"]",
+        "button.input-area-switch[data-test-id*=\"bard-mode\"]",
+        "bard-mode-switcher button[aria-haspopup=\"menu\"]",
+        "button[aria-label=\"Mở bộ chọn chế độ\"]",
+        "button[aria-label*=\"mode picker\"]"
+       ]
+      },
+      "model_trigger_label": {
+       "priority": "P0",
+       "selectors": [
+        ".picker-primary-text"
+       ]
+      },
+      "motion_audio_sent_file": {
+       "priority": "P1",
+       "selectors": [
+        "user-query-file-preview [data-test-id=\"uploaded-file\"] button[aria-label]"
+       ]
+      },
+      "motion_audio_user_turn": {
+       "priority": "P1",
+       "selectors": [
+        "user-query"
+       ]
+      },
+      "new_chat_button": {
+       "priority": "P1",
+       "selectors": [
+        "gem-nav-list-item[data-test-id=\"new-chat-button\"] a",
+        "[data-test-id=\"new-chat-button\"] a",
+        "[data-test-id=\"new-chat-button\"]",
+        "a[data-test-id=\"side-nav-sparkle-button\"]"
+       ]
+      },
+      "response_container": {
+       "priority": "P0",
+       "selectors": [
+        "[data-message-id]",
+        ".response-container",
+        "model-response"
+       ]
+      },
+      "response_text": {
+       "priority": "P0",
+       "selectors": [
+        ".markdown-main-panel",
+        ".markdown",
+        "message-content"
+       ]
+      },
+      "screen_reader_label": {
+       "priority": "P0",
+       "selectors": [
+        ".screen-reader-model-response-label",
+        ".cdk-visually-hidden"
+       ]
+      },
+      "stop_button": {
+       "priority": "P0",
+       "selectors": [
+        "gem-icon-button.send-button.stop button",
+        "button.send-button.stop",
+        "button[aria-label=\"Ngừng tạo câu trả lời\"]",
+        "button[aria-label*=\"Stop generating\"]",
+        "button[aria-label*=\"Stop\"]"
+       ]
+      },
+      "submit_button": {
+       "priority": "P0",
+       "selectors": [
+        "gem-icon-button.send-button.submit button",
+        "button.send-button.submit",
+        "button.send-button:not(.stop)",
+        "button[aria-label=\"Gửi tin nhắn\"]",
+        "button[aria-label=\"Send message\"]",
+        "button[aria-label*=\"Send\"]",
+        "button[type=\"submit\"]"
+       ]
+      },
+      "tools_button": {
+       "priority": "P2",
+       "selectors": [
+        "toolbox-drawer button.toolbox-drawer-button",
+        "button.toolbox-drawer-button[aria-haspopup=\"menu\"]",
+        "button[aria-label=\"Công cụ\"]",
+        "button[aria-label=\"Tools\"]",
+        "button[aria-controls^=\"toolbox-drawer-menu\"]"
+       ]
+      },
+      "tools_image_gen_item": {
+       "icon_text": "image_create",
+       "priority": "P2",
+       "selectors": [
+        "button.toolbox-drawer-item-list-button:has(mat-icon[data-mat-icon-name=\"image_create\"])",
+        "toolbox-drawer-item:has(mat-icon[data-mat-icon-name=\"image_create\"]) button",
+        "toolbox-drawer-item gem-list-item:has(mat-icon[data-mat-icon-name=\"image_create\"])"
+       ]
+      },
+      "tools_image_selected_chip": {
+       "icon_text": "image_create",
+       "priority": "P0",
+       "selectors": [
+        "gem-button[data-test-id=\"deselect-drawer-item-gem-button\"]:has(mat-icon[data-mat-icon-name=\"image_create\"])",
+        "input-area-v2 toolbox-drawer gem-attachment:has(mat-icon[data-mat-icon-name=\"image_create\"])"
+       ]
+      },
+      "tools_menu_button": {
+       "priority": "P0",
+       "selectors": [
+        "simplified-input-menu gem-icon-button.menu-button button[aria-haspopup=\"menu\"]",
+        "simplified-input-menu button[aria-haspopup=\"menu\"]"
+       ]
+      },
+      "tools_menu_item": {
+       "attribute_selected": "aria-checked",
+       "class_selected": "is-selected",
+       "priority": "P2",
+       "selectors": [
+        "button.toolbox-drawer-item-list-button",
+        "toolbox-drawer-item button[role=\"menuitemcheckbox\"]"
+       ]
+      },
+      "tools_menu_scope": {
+       "priority": "P0",
+       "selectors": [
+        "simplified-input-menu"
+       ]
+      },
+      "tools_video_gen_item": {
+       "icon_text": "movie",
+       "priority": "P1",
+       "selectors": [
+        "button.toolbox-drawer-item-list-button:has(mat-icon[data-mat-icon-name=\"movie\"])",
+        "toolbox-drawer-item:has(mat-icon[data-mat-icon-name=\"movie\"]) button",
+        "toolbox-drawer-item gem-list-item:has(mat-icon[data-mat-icon-name=\"movie\"])"
+       ]
+      },
+      "tools_video_selected_chip": {
+       "icon_text": "movie",
+       "priority": "P0",
+       "selectors": [
+        "gem-button[data-test-id=\"deselect-drawer-item-gem-button\"]:has(mat-icon[data-mat-icon-name=\"movie\"])"
+       ]
+      },
+      "upload_in_progress": {
+       "priority": "P1",
+       "selectors": [
+        "uploader-file-preview .image-preview.loading",
+        "uploader-file-preview .progress-spinner",
+        ".file-preview-chip .image-preview.loading"
+       ]
+      },
+      "uploaded_image": {
+       "priority": "P1",
+       "selectors": [
+        "img[data-test-id=\"uploaded-img\"]",
+        "uploader-file-preview gem-media-attachment img[src^=\"blob:\"]"
+       ]
+      },
+      "video_download_button": {
+       "button_text": [
+        "Tải video xuống",
+        "Download video",
+        "動画をダウンロード",
+        "ดาวน์โหลดวิดีโอ"
+       ],
+       "icon_text": "download",
+       "priority": "P1",
+       "selectors": [
+        "generated-video button:has(mat-icon[data-mat-icon-name=\"download\"])",
+        "generated-video gem-icon-button:has(mat-icon[data-mat-icon-name=\"download\"])"
+       ]
+      },
+      "video_menu_download_item": {
+       "priority": "P0",
+       "selectors": [
+        "gem-menu-item[data-test-id=\"video-download-button\"]"
+       ]
+      },
+      "video_more_menu_button": {
+       "priority": "P0",
+       "selectors": [
+        "message-actions gem-icon-button[data-test-id=\"more-menu-button\"]"
+       ]
+      },
+      "video_ratio_option_landscape": {
+       "icon_text": "crop_16_9",
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"]:has(mat-icon[data-mat-icon-name=\"crop_16_9\"])"
+       ]
+      },
+      "video_ratio_option_portrait": {
+       "icon_text": "crop_9_16",
+       "priority": "P0",
+       "selectors": [
+        "input-companion-item[role=\"menuitemradio\"]:has(mat-icon[data-mat-icon-name=\"crop_9_16\"])"
+       ]
+      },
+      "video_ratio_trigger": {
+       "priority": "P0",
+       "selectors": [
+        "input-companion-chip gem-button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"crop_16_9\"])",
+        "input-companion-chip gem-button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"crop_9_16\"])",
+        "input-companion-chip button:has(mat-icon[data-mat-icon-name=\"crop_16_9\"])",
+        "input-companion-chip button:has(mat-icon[data-mat-icon-name=\"crop_9_16\"])"
+       ]
+      },
+      "video_result": {
+       "priority": "P0",
+       "selectors": [
+        "generated-video video[src]",
+        "model-response video[src*=\"contribution.usercontent.google.com/download\"]"
+       ]
+      },
+      "video_result_container": {
+       "priority": "P0",
+       "selectors": [
+        "model-response generated-video",
+        "generated-video"
+       ]
+      }
+     },
+     "version": 34
+    }
+   },
+   "selectors": {
+    "add_button": {
+     "priority": "P1",
+     "selectors": [
+      "button.upload-card-button",
+      "button:has(mat-icon[data-mat-icon-name=\"add_2\"])",
+      "button:has(mat-icon[fonticon=\"add_2\"])",
+      "button[aria-controls=\"upload-file-menu\"]",
+      "button[aria-label=\"Mở trình đơn tải tệp lên\"]",
+      "button[aria-label*=\"upload menu\"]"
+     ]
+    },
+    "cloudflare_iframe": {
+     "priority": "P0",
+     "selectors": [
+      "iframe[src*=\"challenges.cloudflare.com\"]",
+      "iframe[src*=\"recaptcha\"]"
+     ]
+    },
+    "composer": {
+     "priority": "P0",
+     "selectors": [
+      ".ql-editor",
+      "div[role=\"textbox\"]",
+      "[contenteditable=\"true\"]",
+      "rich-textarea"
+     ]
+    },
+    "conversation_actions_menu": {
+     "priority": "P1",
+     "selectors": [
+      "button[data-test-id=\"conversation-actions-menu-icon-button\"]",
+      "button[data-test-id=\"actions-menu-button\"].gem-conversation-actions-menu-button",
+      "button[data-test-id=\"actions-menu-button\"]",
+      "gem-icon-button[gemmenutrigger][fonticonname=\"more_vert\"]"
+     ]
+    },
+    "conversation_scroll_root": {
+     "priority": "P1",
+     "selectors": [
+      ".chat-history-scroll-container",
+      "chat-window main"
+     ]
+    },
+    "delete_confirm_action": {
+     "priority": "P0",
+     "selectors": [
+      "mat-dialog-actions gem-button[cdkfocusinitial] button"
+     ]
+    },
+    "delete_confirm_button": {
+     "priority": "P1",
+     "selectors": [
+      "mat-dialog-container button[mat-flat-button]",
+      ".mat-mdc-dialog-container button.mat-mdc-button-base",
+      "mat-dialog-container button"
+     ]
+    },
+    "delete_confirm_dialog": {
+     "priority": "P1",
+     "selectors": [
+      "mat-dialog-container",
+      ".mat-mdc-dialog-container",
+      ".cdk-overlay-pane mat-dialog-actions"
+     ]
+    },
+    "delete_confirm_identity": {
+     "priority": "P0",
+     "selectors": [
+      "message-dialog a[href=\"https://support.google.com/gemini?p=deleted_chats\"]",
+      "message-dialog a[href^=\"https://support.google.com/gemini?p=deleted_chats&\"]"
+     ]
+    },
+    "delete_menu_item": {
+     "priority": "P1",
+     "selectors": [
+      "gem-menu-item[data-test-id=\"delete-button\"]",
+      "gem-menu-item[value=\"delete\"]",
+      "[data-test-id=\"delete-button\"]"
+     ]
+    },
+    "generated_image": {
+     "priority": "P0",
+     "selectors": [
+      "generated-image img.image.loaded[src]",
+      "generated-image img.image[src^=\"blob:https://gemini.google.com/\"]"
+     ]
+    },
+    "generation_busy_indicator": {
+     "priority": "P1",
+     "selectors": [
+      ".markdown[aria-busy=\"true\"]",
+      "message-content[aria-busy=\"true\"]",
+      "mat-progress-bar:not([hidden])"
+     ]
+    },
+    "image_download_button": {
+     "icon_text": "download",
+     "priority": "P1",
+     "selectors": [
+      "gem-icon-button[data-test-id=\"download-generated-image-button\"]"
+     ]
+    },
+    "image_loading_overlay": {
+     "priority": "P1",
+     "selectors": [
+      "generated-image .placeholder.loading",
+      "generated-image .loader.animate:not(.done-generating)"
+     ]
+    },
+    "image_menu_download_item": {
+     "priority": "P0",
+     "selectors": [
+      "gem-menu-item[data-test-id=\"image-download-button\"]"
+     ]
+    },
+    "image_more_menu_button": {
+     "priority": "P0",
+     "selectors": [
+      "message-actions gem-icon-button[data-test-id=\"more-menu-button\"]"
+     ]
+    },
+    "image_preview": {
+     "priority": "P1",
+     "selectors": [
+      "[class*=\"image-preview\"]",
+      "[class*=\"attachment\"]",
+      "img[src^=\"blob:\"]"
+     ]
+    },
+    "image_ratio_option_16_9": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"][aria-label=\"16:9\"]"
+     ]
+    },
+    "image_ratio_option_1_1": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"][aria-label=\"1:1\"]"
+     ]
+    },
+    "image_ratio_option_3_4": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"][aria-label=\"3:4\"]"
+     ]
+    },
+    "image_ratio_option_4_3": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"][aria-label=\"4:3\"]"
+     ]
+    },
+    "image_ratio_option_9_16": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"][aria-label=\"9:16\"]"
+     ]
+    },
+    "image_ratio_trigger": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-chip gem-button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"aspect_ratio\"])",
+      "input-companion-chip button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"aspect_ratio\"])",
+      "input-companion-chip button:has(mat-icon[data-mat-icon-name=\"aspect_ratio\"])"
+     ]
+    },
+    "image_result": {
+     "priority": "P0",
+     "selectors": [
+      "generated-image img.image.loaded[src]",
+      "generated-image img.image[src^=\"blob:https://gemini.google.com/\"]"
+     ]
+    },
+    "image_result_container": {
+     "priority": "P0",
+     "selectors": [
+      "model-response generated-image",
+      "generated-image"
+     ]
+    },
+    "input_area_container": {
+     "priority": "P1",
+     "selectors": [
+      ".input-area-container",
+      ".input-area",
+      "[class*=\"input-area\"]",
+      "[class*=\"composer-input\"]",
+      "form"
+     ]
+    },
+    "media_response_container": {
+     "priority": "P0",
+     "selectors": [
+      "model-response"
+     ]
+    },
+    "model_option_button": {
+     "attribute_id": "data-mode-id",
+     "attribute_selected": "aria-current",
+     "priority": "P1",
+     "selectors": [
+      "gem-menu-item[data-mode-id]",
+      "[data-test-id^=\"bard-mode-option-\"]"
+     ]
+    },
+    "model_option_label": {
+     "priority": "P0",
+     "selectors": [
+      ".label-container .label"
+     ]
+    },
+    "model_option_selected": {
+     "priority": "P0",
+     "selectors": [
+      "gem-menu-item-content.selected"
+     ]
+    },
+    "model_switcher_button": {
+     "priority": "P1",
+     "selectors": [
+      "gem-button[data-test-id=\"bard-mode-menu-button\"] button",
+      "button[data-test-id=\"bard-mode-menu-button\"]",
+      "button.input-area-switch[data-test-id*=\"bard-mode\"]",
+      "bard-mode-switcher button[aria-haspopup=\"menu\"]",
+      "button[aria-label=\"Mở bộ chọn chế độ\"]",
+      "button[aria-label*=\"mode picker\"]"
+     ]
+    },
+    "model_trigger_label": {
+     "priority": "P0",
+     "selectors": [
+      ".picker-primary-text"
+     ]
+    },
+    "motion_audio_sent_file": {
+     "priority": "P1",
+     "selectors": [
+      "user-query-file-preview [data-test-id=\"uploaded-file\"] button[aria-label]"
+     ]
+    },
+    "motion_audio_user_turn": {
+     "priority": "P1",
+     "selectors": [
+      "user-query"
+     ]
+    },
+    "new_chat_button": {
+     "priority": "P1",
+     "selectors": [
+      "gem-nav-list-item[data-test-id=\"new-chat-button\"] a",
+      "[data-test-id=\"new-chat-button\"] a",
+      "[data-test-id=\"new-chat-button\"]",
+      "a[data-test-id=\"side-nav-sparkle-button\"]"
+     ]
+    },
+    "response_container": {
+     "priority": "P0",
+     "selectors": [
+      "[data-message-id]",
+      ".response-container",
+      "model-response"
+     ]
+    },
+    "response_text": {
+     "priority": "P0",
+     "selectors": [
+      ".markdown-main-panel",
+      ".markdown",
+      "message-content"
+     ]
+    },
+    "screen_reader_label": {
+     "priority": "P0",
+     "selectors": [
+      ".screen-reader-model-response-label",
+      ".cdk-visually-hidden"
+     ]
+    },
+    "stop_button": {
+     "priority": "P0",
+     "selectors": [
+      "gem-icon-button.send-button.stop button",
+      "button.send-button.stop",
+      "button[aria-label=\"Ngừng tạo câu trả lời\"]",
+      "button[aria-label*=\"Stop generating\"]",
+      "button[aria-label*=\"Stop\"]"
+     ]
+    },
+    "submit_button": {
+     "priority": "P0",
+     "selectors": [
+      "gem-icon-button.send-button.submit button",
+      "button.send-button.submit",
+      "button.send-button:not(.stop)",
+      "button[aria-label=\"Gửi tin nhắn\"]",
+      "button[aria-label=\"Send message\"]",
+      "button[aria-label*=\"Send\"]",
+      "button[type=\"submit\"]"
+     ]
+    },
+    "tools_button": {
+     "priority": "P2",
+     "selectors": [
+      "toolbox-drawer button.toolbox-drawer-button",
+      "button.toolbox-drawer-button[aria-haspopup=\"menu\"]",
+      "button[aria-label=\"Công cụ\"]",
+      "button[aria-label=\"Tools\"]",
+      "button[aria-controls^=\"toolbox-drawer-menu\"]"
+     ]
+    },
+    "tools_image_gen_item": {
+     "icon_text": "image_create",
+     "priority": "P2",
+     "selectors": [
+      "button.toolbox-drawer-item-list-button:has(mat-icon[data-mat-icon-name=\"image_create\"])",
+      "toolbox-drawer-item:has(mat-icon[data-mat-icon-name=\"image_create\"]) button",
+      "toolbox-drawer-item gem-list-item:has(mat-icon[data-mat-icon-name=\"image_create\"])"
+     ]
+    },
+    "tools_image_selected_chip": {
+     "icon_text": "image_create",
+     "priority": "P0",
+     "selectors": [
+      "gem-button[data-test-id=\"deselect-drawer-item-gem-button\"]:has(mat-icon[data-mat-icon-name=\"image_create\"])",
+      "input-area-v2 toolbox-drawer gem-attachment:has(mat-icon[data-mat-icon-name=\"image_create\"])"
+     ]
+    },
+    "tools_menu_button": {
+     "priority": "P0",
+     "selectors": [
+      "simplified-input-menu gem-icon-button.menu-button button[aria-haspopup=\"menu\"]",
+      "simplified-input-menu button[aria-haspopup=\"menu\"]"
+     ]
+    },
+    "tools_menu_item": {
+     "attribute_selected": "aria-checked",
+     "class_selected": "is-selected",
+     "priority": "P2",
+     "selectors": [
+      "button.toolbox-drawer-item-list-button",
+      "toolbox-drawer-item button[role=\"menuitemcheckbox\"]"
+     ]
+    },
+    "tools_menu_scope": {
+     "priority": "P0",
+     "selectors": [
+      "simplified-input-menu"
+     ]
+    },
+    "tools_video_gen_item": {
+     "icon_text": "movie",
+     "priority": "P1",
+     "selectors": [
+      "button.toolbox-drawer-item-list-button:has(mat-icon[data-mat-icon-name=\"movie\"])",
+      "toolbox-drawer-item:has(mat-icon[data-mat-icon-name=\"movie\"]) button",
+      "toolbox-drawer-item gem-list-item:has(mat-icon[data-mat-icon-name=\"movie\"])"
+     ]
+    },
+    "tools_video_selected_chip": {
+     "icon_text": "movie",
+     "priority": "P0",
+     "selectors": [
+      "gem-button[data-test-id=\"deselect-drawer-item-gem-button\"]:has(mat-icon[data-mat-icon-name=\"movie\"])"
+     ]
+    },
+    "upload_in_progress": {
+     "priority": "P1",
+     "selectors": [
+      "uploader-file-preview .image-preview.loading",
+      "uploader-file-preview .progress-spinner",
+      ".file-preview-chip .image-preview.loading"
+     ]
+    },
+    "uploaded_image": {
+     "priority": "P1",
+     "selectors": [
+      "img[data-test-id=\"uploaded-img\"]",
+      "uploader-file-preview gem-media-attachment img[src^=\"blob:\"]"
+     ]
+    },
+    "video_download_button": {
+     "button_text": [
+      "Tải video xuống",
+      "Download video",
+      "動画をダウンロード",
+      "ดาวน์โหลดวิดีโอ"
+     ],
+     "icon_text": "download",
+     "priority": "P1",
+     "selectors": [
+      "generated-video button:has(mat-icon[data-mat-icon-name=\"download\"])",
+      "generated-video gem-icon-button:has(mat-icon[data-mat-icon-name=\"download\"])"
+     ]
+    },
+    "video_menu_download_item": {
+     "priority": "P0",
+     "selectors": [
+      "gem-menu-item[data-test-id=\"video-download-button\"]"
+     ]
+    },
+    "video_more_menu_button": {
+     "priority": "P0",
+     "selectors": [
+      "message-actions gem-icon-button[data-test-id=\"more-menu-button\"]"
+     ]
+    },
+    "video_ratio_option_landscape": {
+     "icon_text": "crop_16_9",
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"]:has(mat-icon[data-mat-icon-name=\"crop_16_9\"])"
+     ]
+    },
+    "video_ratio_option_portrait": {
+     "icon_text": "crop_9_16",
+     "priority": "P0",
+     "selectors": [
+      "input-companion-item[role=\"menuitemradio\"]:has(mat-icon[data-mat-icon-name=\"crop_9_16\"])"
+     ]
+    },
+    "video_ratio_trigger": {
+     "priority": "P0",
+     "selectors": [
+      "input-companion-chip gem-button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"crop_16_9\"])",
+      "input-companion-chip gem-button[aria-haspopup=\"menu\"]:has(mat-icon[data-mat-icon-name=\"crop_9_16\"])",
+      "input-companion-chip button:has(mat-icon[data-mat-icon-name=\"crop_16_9\"])",
+      "input-companion-chip button:has(mat-icon[data-mat-icon-name=\"crop_9_16\"])"
+     ]
+    },
+    "video_result": {
+     "priority": "P0",
+     "selectors": [
+      "generated-video video[src]",
+      "model-response video[src*=\"contribution.usercontent.google.com/download\"]"
+     ]
+    },
+    "video_result_container": {
+     "priority": "P0",
+     "selectors": [
+      "model-response generated-video",
+      "generated-video"
+     ]
+    }
+   },
+   "status": "active"
+  },
+  "grok": {
+   "base_url": "https://x.com/i/grok",
+   "config_version": 65,
+   "meta": {
+    "version": 65
+   },
+   "name": "Grok",
+   "profiles": {
+    "legacy": {
+     "host_patterns": [],
+     "key": "legacy",
+     "selectors": {
+      "age_verification_continue_button": {
+       "priority": "P1",
+       "selectors": [
+        "button.bg-button-filled",
+        "button[class*=\"bg-button\"]"
+       ]
+      },
+      "age_verification_modal": {
+       "attribute": "data-analytics-name",
+       "priority": "P1",
+       "selectors": [
+        "[data-analytics-name=\"age_verification\"]"
+       ]
+      },
+      "age_verification_scroll_container": {
+       "priority": "P1",
+       "selectors": [
+        ".overflow-y-auto",
+        "[class*=\"snap-y\"]"
+       ]
+      },
+      "age_verification_year_button": {
+       "priority": "P1",
+       "selectors": [
+        "button[type=\"button\"]"
+       ]
+      },
+      "auth_link": {
+       "attribute": "href",
+       "priority": "P2",
+       "selectors": [
+        "a[href*=\"/login\"]",
+        "a[href*=\"/signin\"]",
+        "a[href*=\"auth\"]"
+       ]
+      },
+      "back_button": {
+       "priority": "P1",
+       "selectors": [
+        "div[aria-label=\"Back\"]",
+        "button[aria-label=\"Back\"]",
+        "div[aria-label=\"Quay lại\"]",
+        "button[aria-label=\"Quay lại\"]"
+       ]
+      },
+      "cloudflare_iframe": {
+       "priority": "P0",
+       "selectors": [
+        "iframe[src*=\"challenges.cloudflare.com\"]",
+        "iframe[src*=\"turnstile\"]"
+       ]
+      },
+      "cloudflare_overlay_dialog": {
+       "priority": "P1",
+       "selectors": [
+        "div[class*=\"fixed\"]",
+        "div[role=\"dialog\"]",
+        "body > div"
+       ]
+      },
+      "cloudflare_turnstile": {
+       "priority": "P0",
+       "selectors": [
+        ".cf-turnstile",
+        "[data-cf-turnstile]"
+       ]
+      },
+      "composer": {
+       "priority": "P0",
+       "selectors": [
+        "form div[contenteditable=\"true\"]",
+        ".ProseMirror",
+        ".tiptap"
+       ]
+      },
+      "control_radio_option": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"radio\"]"
+       ]
+      },
+      "file_input": {
+       "priority": "P1",
+       "selectors": [
+        "input[type=\"file\"][name=\"files\"]",
+        "input[type=\"file\"][accept*=\"image\"]"
+       ]
+      },
+      "filmstrip_item": {
+       "priority": "P1",
+       "selectors": [
+        "[data-filmstrip-item]"
+       ]
+      },
+      "generation_mode": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"radiogroup\"][aria-label=\"Generation mode\"]",
+        "[role=\"radiogroup\"][aria-label=\"Chế độ tạo\"]"
+       ]
+      },
+      "generation_mode_option": {
+       "label_attribute": "aria-label",
+       "priority": "P0",
+       "selected_attribute": "aria-checked",
+       "selectors": [
+        "[role=\"radiogroup\"] button[role=\"radio\"]",
+        "[role=\"radiogroup\"] button[role=\"radio\"][aria-label]",
+        "div[data-unified-toolbar] div[role=\"group\"] button[role=\"radio\"]"
+       ],
+       "svg_path_selector": "path[d]"
+      },
+      "grok_cdn_image": {
+       "attribute": "src",
+       "priority": "P2",
+       "selectors": [
+        "img[src*=\"assets.grok.com\"]"
+       ]
+      },
+      "image_quality_picker": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"radiogroup\"][aria-label=\"Image generation speed\"]",
+        "[role=\"radiogroup\"][aria-label=\"Tốc độ tạo hình ảnh\"]",
+        "[role=\"group\"][aria-label=\"Image generation speed\"]"
+       ]
+      },
+      "imagine_link": {
+       "priority": "P1",
+       "selectors": [
+        "a[href=\"/imagine\"]",
+        "a[href=\"/imagine/\"]",
+        "button[aria-label=\"Imagine\"]"
+       ]
+      },
+      "modal_overlay_wrapper": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"dialog\"]",
+        "[role=\"alertdialog\"]",
+        "div[class*=\"modal\"]",
+        "div[class*=\"Modal\"]",
+        "div[class*=\"fixed\"]",
+        "div[class*=\"overlay\"]",
+        "div[class*=\"Overlay\"]"
+       ]
+      },
+      "open_menu": {
+       "priority": "P1",
+       "selectors": [
+        "[data-radix-popper-content-wrapper]",
+        "[role=\"menu\"]"
+       ]
+      },
+      "ratio_button": {
+       "priority": "P1",
+       "selectors": [
+        "button[aria-label=\"Aspect Ratio\"]",
+        "button[aria-label=\"Tỷ lệ khung hình\"]"
+       ]
+      },
+      "ratio_menu_item": {
+       "priority": "P1",
+       "selectors": [
+        "div[role=\"menuitem\"]",
+        "[role=\"menuitemradio\"]",
+        "[role=\"option\"]"
+       ]
+      },
+      "ref_role_first_frame": {
+       "button_text": "First frame",
+       "priority": "P1",
+       "selectors": [
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:first-child",
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:first-child",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-child(1)",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:first-child"
+       ]
+      },
+      "ref_role_last_frame": {
+       "button_text": "Last frame",
+       "priority": "P1",
+       "selectors": [
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-last-child(3)",
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-last-child(3)",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-child(2)",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-last-child(3)"
+       ]
+      },
+      "ref_role_option": {
+       "button_text": "Reference",
+       "priority": "P1",
+       "selectors": [
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:last-child",
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:last-child",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:last-child"
+       ]
+      },
+      "ref_role_options": {
+       "priority": "P1",
+       "selectors": [
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]",
+        "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]",
+        "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]"
+       ]
+      },
+      "ref_role_trigger": {
+       "priority": "P1",
+       "selectors": [
+        "form [class~=\"group/current-files\"] div:has(> button[data-slot=\"button\"]):has(> div > img), form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > button[data-slot=\"button\"])",
+        "form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> span > button[data-slot=\"button\"]), form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > span > button[data-slot=\"button\"])",
+        "form [class~=\"group/current-files\"] div[id^=\"base-ui-\"]:has(> div > img):has(> div > span > button[data-slot=\"button\"])",
+        "form [class~=\"group/current-files\"] div:has(> div > img):has(> span > button[data-slot=\"button\"]), form [class~=\"group/current-files\"] div:has(> div > img):has(> div > span > button[data-slot=\"button\"])"
+       ]
+      },
+      "remove_image_button": {
+       "priority": "P1",
+       "selectors": [
+        "form [class~=\"group/current-files\"] div:has(> button[data-slot=\"button\"]):has(> div > img) > button[data-slot=\"button\"], form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > button[data-slot=\"button\"]) > div > button[data-slot=\"button\"]",
+        "form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> span > button[data-slot=\"button\"]) > span > button[data-slot=\"button\"], form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > span > button[data-slot=\"button\"]) > div > span > button[data-slot=\"button\"]",
+        "form [class~=\"group/current-files\"] div[id^=\"base-ui-\"]:has(> div > img):has(> div > span > button[data-slot=\"button\"]) > div > span > button[data-slot=\"button\"]",
+        "form [class~=\"group/current-files\"] div:has(> div > img):has(> span > button[data-slot=\"button\"]) > span > button[data-slot=\"button\"], form [class~=\"group/current-files\"] div:has(> div > img):has(> div > span > button[data-slot=\"button\"]) > div > span > button[data-slot=\"button\"]"
+       ]
+      },
+      "remove_image_button_broad": {
+       "priority": "P2",
+       "selectors": [
+        "button[aria-label=\"Remove\"]",
+        "button[aria-label=\"Cancel\"]",
+        "button[aria-label=\"Delete\"]",
+        "button[aria-label=\"Remove file\"]"
+       ]
+      },
+      "result_container": {
+       "priority": "P0",
+       "selectors": [
+        "[data-lightbox-media]",
+        "[data-testid=\"result-container\"]",
+        "main article:has(img[src*=\"/generated/\"])",
+        "main article:has(video)",
+        "main article",
+        "div[id^=\"imagine-masonry-section-\"]"
+       ]
+      },
+      "result_download_button": {
+       "priority": "P0",
+       "selectors": [
+        "#dialog-portal [role=\"dialog\"][data-state=\"open\"]:has(button[aria-label=\"Share\"]) button[aria-label=\"Download\"]",
+        "aside[aria-label=\"Post details\"] button[aria-label=\"Download\"]",
+        "main article button[aria-label=\"Download\"]"
+       ]
+      },
+      "result_feed_card_image": {
+       "attribute": "src",
+       "priority": "P1",
+       "selectors": [
+        "[data-masonry-key] img:not([class*=\"blur\"])"
+       ]
+      },
+      "result_feed_section": {
+       "priority": "P1",
+       "selectors": [
+        "[id^=\"imagine-masonry-section-0\"]"
+       ]
+      },
+      "result_image": {
+       "attribute": "src",
+       "priority": "P0",
+       "selectors": [
+        "img[src^=\"https://\"]"
+       ]
+      },
+      "result_inline_image": {
+       "priority": "P1",
+       "selectors": [
+        "main article img[src^=\"data:image/\"]"
+       ]
+      },
+      "result_lightbox_inline_image": {
+       "priority": "P0",
+       "selectors": [
+        "[data-lightbox-media] img[src^=\"data:image/\"]"
+       ]
+      },
+      "result_lightbox_post_actions_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[aria-label=\"Post actions\"]"
+       ]
+      },
+      "result_post_actions_button": {
+       "priority": "P0",
+       "selectors": [
+        "main button[aria-label=\"Post actions\"]"
+       ]
+      },
+      "result_video": {
+       "attribute": "src",
+       "priority": "P0",
+       "selectors": [
+        "video",
+        "video source"
+       ]
+      },
+      "saved_button": {
+       "priority": "P1",
+       "selectors": [
+        "a[aria-label=\"Saved\"]",
+        "button[aria-label=\"Saved\"]"
+       ]
+      },
+      "stop_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[aria-label=\"Stop\"]",
+        "[aria-label=\"Stop generating\"]",
+        "button[aria-label=\"Dừng\"]"
+       ]
+      },
+      "submit_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[type=\"submit\"][aria-label=\"Submit\"]",
+        "button[aria-label=\"Submit\"]",
+        "button[type=\"submit\"]",
+        "button[type=\"submit\"][aria-label=\"Gửi\"]",
+        "button[aria-label=\"Gửi\"]"
+       ]
+      },
+      "subscription_dialog": {
+       "priority": "P0",
+       "selectors": [
+        "#dialog-portal .x-commerce [role=\"dialog\"][data-slot=\"xds-modal-surface\"]"
+       ]
+      },
+      "upload_container": {
+       "priority": "P2",
+       "selectors": [
+        "[class*=\"upload\"]",
+        "[class*=\"preview\"]"
+       ]
+      },
+      "upload_error_close_button": {
+       "priority": "P1",
+       "selectors": [
+        "button svg.lucide-x"
+       ]
+      },
+      "upload_error_icon": {
+       "priority": "P1",
+       "selectors": [
+        "svg.lucide-triangle-alert"
+       ]
+      },
+      "upload_loading_indicator": {
+       "priority": "P1",
+       "selectors": [
+        "span.animate-pulse",
+        "div.animate-spin"
+       ]
+      },
+      "video_control_menu_option": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"menuitemradio\"]"
+       ]
+      },
+      "video_duration_menu_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[aria-label=\"Video duration\"][aria-haspopup=\"menu\"]"
+       ]
+      },
+      "video_duration_picker": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"radiogroup\"][aria-label=\"Video duration\"]",
+        "[role=\"radiogroup\"][aria-label=\"Thời lượng video\"]",
+        "[role=\"group\"][aria-label=\"Video duration\"]"
+       ]
+      },
+      "video_resolution_menu_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[aria-label=\"Video resolution\"][aria-haspopup=\"menu\"]"
+       ]
+      },
+      "video_resolution_picker": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"radiogroup\"][aria-label=\"Video resolution\"]",
+        "[role=\"radiogroup\"][aria-label=\"Độ phân giải video\"]",
+        "[role=\"group\"][aria-label=\"Video resolution\"]"
+       ]
+      }
+     },
+     "version": 65
+    }
+   },
+   "selectors": {
+    "age_verification_continue_button": {
+     "priority": "P1",
+     "selectors": [
+      "button.bg-button-filled",
+      "button[class*=\"bg-button\"]"
+     ]
+    },
+    "age_verification_modal": {
+     "attribute": "data-analytics-name",
+     "priority": "P1",
+     "selectors": [
+      "[data-analytics-name=\"age_verification\"]"
+     ]
+    },
+    "age_verification_scroll_container": {
+     "priority": "P1",
+     "selectors": [
+      ".overflow-y-auto",
+      "[class*=\"snap-y\"]"
+     ]
+    },
+    "age_verification_year_button": {
+     "priority": "P1",
+     "selectors": [
+      "button[type=\"button\"]"
+     ]
+    },
+    "auth_link": {
+     "attribute": "href",
+     "priority": "P2",
+     "selectors": [
+      "a[href*=\"/login\"]",
+      "a[href*=\"/signin\"]",
+      "a[href*=\"auth\"]"
+     ]
+    },
+    "back_button": {
+     "priority": "P1",
+     "selectors": [
+      "div[aria-label=\"Back\"]",
+      "button[aria-label=\"Back\"]",
+      "div[aria-label=\"Quay lại\"]",
+      "button[aria-label=\"Quay lại\"]"
+     ]
+    },
+    "cloudflare_iframe": {
+     "priority": "P0",
+     "selectors": [
+      "iframe[src*=\"challenges.cloudflare.com\"]",
+      "iframe[src*=\"turnstile\"]"
+     ]
+    },
+    "cloudflare_overlay_dialog": {
+     "priority": "P1",
+     "selectors": [
+      "div[class*=\"fixed\"]",
+      "div[role=\"dialog\"]",
+      "body > div"
+     ]
+    },
+    "cloudflare_turnstile": {
+     "priority": "P0",
+     "selectors": [
+      ".cf-turnstile",
+      "[data-cf-turnstile]"
+     ]
+    },
+    "composer": {
+     "priority": "P0",
+     "selectors": [
+      "form div[contenteditable=\"true\"]",
+      ".ProseMirror",
+      ".tiptap"
+     ]
+    },
+    "control_radio_option": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"radio\"]"
+     ]
+    },
+    "file_input": {
+     "priority": "P1",
+     "selectors": [
+      "input[type=\"file\"][name=\"files\"]",
+      "input[type=\"file\"][accept*=\"image\"]"
+     ]
+    },
+    "filmstrip_item": {
+     "priority": "P1",
+     "selectors": [
+      "[data-filmstrip-item]"
+     ]
+    },
+    "generation_mode": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"radiogroup\"][aria-label=\"Generation mode\"]",
+      "[role=\"radiogroup\"][aria-label=\"Chế độ tạo\"]"
+     ]
+    },
+    "generation_mode_option": {
+     "label_attribute": "aria-label",
+     "priority": "P0",
+     "selected_attribute": "aria-checked",
+     "selectors": [
+      "[role=\"radiogroup\"] button[role=\"radio\"]",
+      "[role=\"radiogroup\"] button[role=\"radio\"][aria-label]",
+      "div[data-unified-toolbar] div[role=\"group\"] button[role=\"radio\"]"
+     ],
+     "svg_path_selector": "path[d]"
+    },
+    "grok_cdn_image": {
+     "attribute": "src",
+     "priority": "P2",
+     "selectors": [
+      "img[src*=\"assets.grok.com\"]"
+     ]
+    },
+    "image_quality_picker": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"radiogroup\"][aria-label=\"Image generation speed\"]",
+      "[role=\"radiogroup\"][aria-label=\"Tốc độ tạo hình ảnh\"]",
+      "[role=\"group\"][aria-label=\"Image generation speed\"]"
+     ]
+    },
+    "imagine_link": {
+     "priority": "P1",
+     "selectors": [
+      "a[href=\"/imagine\"]",
+      "a[href=\"/imagine/\"]",
+      "button[aria-label=\"Imagine\"]"
+     ]
+    },
+    "modal_overlay_wrapper": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"dialog\"]",
+      "[role=\"alertdialog\"]",
+      "div[class*=\"modal\"]",
+      "div[class*=\"Modal\"]",
+      "div[class*=\"fixed\"]",
+      "div[class*=\"overlay\"]",
+      "div[class*=\"Overlay\"]"
+     ]
+    },
+    "open_menu": {
+     "priority": "P1",
+     "selectors": [
+      "[data-radix-popper-content-wrapper]",
+      "[role=\"menu\"]"
+     ]
+    },
+    "ratio_button": {
+     "priority": "P1",
+     "selectors": [
+      "button[aria-label=\"Aspect Ratio\"]",
+      "button[aria-label=\"Tỷ lệ khung hình\"]"
+     ]
+    },
+    "ratio_menu_item": {
+     "priority": "P1",
+     "selectors": [
+      "div[role=\"menuitem\"]",
+      "[role=\"menuitemradio\"]",
+      "[role=\"option\"]"
+     ]
+    },
+    "ref_role_first_frame": {
+     "button_text": "First frame",
+     "priority": "P1",
+     "selectors": [
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:first-child",
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:first-child",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-child(1)",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:first-child"
+     ]
+    },
+    "ref_role_last_frame": {
+     "button_text": "Last frame",
+     "priority": "P1",
+     "selectors": [
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-last-child(3)",
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-last-child(3)",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-child(2)",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-last-child(3)"
+     ]
+    },
+    "ref_role_option": {
+     "button_text": "Reference",
+     "priority": "P1",
+     "selectors": [
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:last-child",
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:last-child",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]:last-child"
+     ]
+    },
+    "ref_role_options": {
+     "priority": "P1",
+     "selectors": [
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"]:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]",
+      "[data-radix-popper-content-wrapper] > [data-state=\"open\"][style*=\"--radix-hover-card-content-transform-origin\"] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(5))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]",
+      "[data-open][data-base-ui-focusable] > div:only-child:has(> button[aria-pressed][aria-haspopup=\"false\"]:nth-child(4)):not(:has(> :nth-child(6))):not(:has(> :not(button[aria-pressed][aria-haspopup=\"false\"]))) > button[aria-pressed][aria-haspopup=\"false\"]"
+     ]
+    },
+    "ref_role_trigger": {
+     "priority": "P1",
+     "selectors": [
+      "form [class~=\"group/current-files\"] div:has(> button[data-slot=\"button\"]):has(> div > img), form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > button[data-slot=\"button\"])",
+      "form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> span > button[data-slot=\"button\"]), form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > span > button[data-slot=\"button\"])",
+      "form [class~=\"group/current-files\"] div[id^=\"base-ui-\"]:has(> div > img):has(> div > span > button[data-slot=\"button\"])",
+      "form [class~=\"group/current-files\"] div:has(> div > img):has(> span > button[data-slot=\"button\"]), form [class~=\"group/current-files\"] div:has(> div > img):has(> div > span > button[data-slot=\"button\"])"
+     ]
+    },
+    "remove_image_button": {
+     "priority": "P1",
+     "selectors": [
+      "form [class~=\"group/current-files\"] div:has(> button[data-slot=\"button\"]):has(> div > img) > button[data-slot=\"button\"], form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > button[data-slot=\"button\"]) > div > button[data-slot=\"button\"]",
+      "form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> span > button[data-slot=\"button\"]) > span > button[data-slot=\"button\"], form [class~=\"group/current-files\"] div[data-state]:has(> div > img):has(> div > span > button[data-slot=\"button\"]) > div > span > button[data-slot=\"button\"]",
+      "form [class~=\"group/current-files\"] div[id^=\"base-ui-\"]:has(> div > img):has(> div > span > button[data-slot=\"button\"]) > div > span > button[data-slot=\"button\"]",
+      "form [class~=\"group/current-files\"] div:has(> div > img):has(> span > button[data-slot=\"button\"]) > span > button[data-slot=\"button\"], form [class~=\"group/current-files\"] div:has(> div > img):has(> div > span > button[data-slot=\"button\"]) > div > span > button[data-slot=\"button\"]"
+     ]
+    },
+    "remove_image_button_broad": {
+     "priority": "P2",
+     "selectors": [
+      "button[aria-label=\"Remove\"]",
+      "button[aria-label=\"Cancel\"]",
+      "button[aria-label=\"Delete\"]",
+      "button[aria-label=\"Remove file\"]"
+     ]
+    },
+    "result_container": {
+     "priority": "P0",
+     "selectors": [
+      "[data-lightbox-media]",
+      "[data-testid=\"result-container\"]",
+      "main article:has(img[src*=\"/generated/\"])",
+      "main article:has(video)",
+      "main article",
+      "div[id^=\"imagine-masonry-section-\"]"
+     ]
+    },
+    "result_download_button": {
+     "priority": "P0",
+     "selectors": [
+      "#dialog-portal [role=\"dialog\"][data-state=\"open\"]:has(button[aria-label=\"Share\"]) button[aria-label=\"Download\"]",
+      "aside[aria-label=\"Post details\"] button[aria-label=\"Download\"]",
+      "main article button[aria-label=\"Download\"]"
+     ]
+    },
+    "result_feed_card_image": {
+     "attribute": "src",
+     "priority": "P1",
+     "selectors": [
+      "[data-masonry-key] img:not([class*=\"blur\"])"
+     ]
+    },
+    "result_feed_section": {
+     "priority": "P1",
+     "selectors": [
+      "[id^=\"imagine-masonry-section-0\"]"
+     ]
+    },
+    "result_image": {
+     "attribute": "src",
+     "priority": "P0",
+     "selectors": [
+      "img[src^=\"https://\"]"
+     ]
+    },
+    "result_inline_image": {
+     "priority": "P1",
+     "selectors": [
+      "main article img[src^=\"data:image/\"]"
+     ]
+    },
+    "result_lightbox_inline_image": {
+     "priority": "P0",
+     "selectors": [
+      "[data-lightbox-media] img[src^=\"data:image/\"]"
+     ]
+    },
+    "result_lightbox_post_actions_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[aria-label=\"Post actions\"]"
+     ]
+    },
+    "result_post_actions_button": {
+     "priority": "P0",
+     "selectors": [
+      "main button[aria-label=\"Post actions\"]"
+     ]
+    },
+    "result_video": {
+     "attribute": "src",
+     "priority": "P0",
+     "selectors": [
+      "video",
+      "video source"
+     ]
+    },
+    "saved_button": {
+     "priority": "P1",
+     "selectors": [
+      "a[aria-label=\"Saved\"]",
+      "button[aria-label=\"Saved\"]"
+     ]
+    },
+    "stop_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[aria-label=\"Stop\"]",
+      "[aria-label=\"Stop generating\"]",
+      "button[aria-label=\"Dừng\"]"
+     ]
+    },
+    "submit_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[type=\"submit\"][aria-label=\"Submit\"]",
+      "button[aria-label=\"Submit\"]",
+      "button[type=\"submit\"]",
+      "button[type=\"submit\"][aria-label=\"Gửi\"]",
+      "button[aria-label=\"Gửi\"]"
+     ]
+    },
+    "subscription_dialog": {
+     "priority": "P0",
+     "selectors": [
+      "#dialog-portal .x-commerce [role=\"dialog\"][data-slot=\"xds-modal-surface\"]"
+     ]
+    },
+    "upload_container": {
+     "priority": "P2",
+     "selectors": [
+      "[class*=\"upload\"]",
+      "[class*=\"preview\"]"
+     ]
+    },
+    "upload_error_close_button": {
+     "priority": "P1",
+     "selectors": [
+      "button svg.lucide-x"
+     ]
+    },
+    "upload_error_icon": {
+     "priority": "P1",
+     "selectors": [
+      "svg.lucide-triangle-alert"
+     ]
+    },
+    "upload_loading_indicator": {
+     "priority": "P1",
+     "selectors": [
+      "span.animate-pulse",
+      "div.animate-spin"
+     ]
+    },
+    "video_control_menu_option": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"menuitemradio\"]"
+     ]
+    },
+    "video_duration_menu_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[aria-label=\"Video duration\"][aria-haspopup=\"menu\"]"
+     ]
+    },
+    "video_duration_picker": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"radiogroup\"][aria-label=\"Video duration\"]",
+      "[role=\"radiogroup\"][aria-label=\"Thời lượng video\"]",
+      "[role=\"group\"][aria-label=\"Video duration\"]"
+     ]
+    },
+    "video_resolution_menu_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[aria-label=\"Video resolution\"][aria-haspopup=\"menu\"]"
+     ]
+    },
+    "video_resolution_picker": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"radiogroup\"][aria-label=\"Video resolution\"]",
+      "[role=\"radiogroup\"][aria-label=\"Độ phân giải video\"]",
+      "[role=\"group\"][aria-label=\"Video resolution\"]"
+     ]
+    }
+   },
+   "status": "active"
+  },
+  "muse": {
+   "base_url": "https://muse.ai",
+   "config_version": 41,
+   "meta": {
+    "version": 41
+   },
+   "name": "Muse",
+   "profiles": {
+    "legacy": {
+     "host_patterns": [],
+     "key": "legacy",
+     "selectors": {
+      "active_thread_options_button": {
+       "priority": "P0",
+       "selectors": [
+        "[data-testid=\"hatch-thread-row\"][aria-current=\"page\"] button[data-pel-click=\"chat_thread_options_open\"]"
+       ]
+      },
+      "active_thread_row": {
+       "priority": "P0",
+       "selectors": [
+        "[data-testid=\"hatch-thread-row\"][aria-current=\"page\"]"
+       ]
+      },
+      "attachment_preview": {
+       "priority": "P0",
+       "selectors": [
+        "button[data-pel-click=\"chat_remove_attachment_click\"]"
+       ]
+      },
+      "attachment_scope": {
+       "priority": "P0",
+       "selectors": [
+        "[data-hatch-composer-root=\"true\"]"
+       ]
+      },
+      "chat_switcher_trigger": {
+       "priority": "P0",
+       "selectors": [
+        "button[data-testid=\"hatch-chat-switcher-trigger\"]"
+       ]
+      },
+      "composer": {
+       "priority": "P0",
+       "selectors": [
+        "textarea[data-hatch-composer-prehydration-input]"
+       ]
+      },
+      "composer_drop_target": {
+       "priority": "P0",
+       "selectors": [
+        "[data-hatch-composer-root=\"true\"]"
+       ]
+      },
+      "connection_status": {
+       "priority": "P0",
+       "selectors": [
+        "[data-hatch-connection-status-announcer]"
+       ]
+      },
+      "delete_confirm_button": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"dialog\"][data-slot=\"dialog-content\"] button[data-pel-click=\"chat_thread_delete_confirm\"]"
+       ]
+      },
+      "delete_thread_menu_item": {
+       "priority": "P0",
+       "selectors": [
+        "[role=\"menuitem\"][data-pel-click=\"chat_thread_delete_open\"]"
+       ]
+      },
+      "delivery_error": {
+       "priority": "P1",
+       "selectors": [
+        "[data-message-item=\"true\"][data-message-role=\"user\"] [data-pel-impression=\"error_content_impression\"]"
+       ]
+      },
+      "download_menu_item": {
+       "priority": "P1",
+       "selectors": [
+        "[role=\"menuitem\"][data-pel-click=\"media_download\"]"
+       ]
+      },
+      "file_input": {
+       "priority": "P0",
+       "selectors": [
+        "input[type=\"file\"]"
+       ]
+      },
+      "new_chat_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[data-testid=\"hatch-chat-compose\"]"
+       ]
+      },
+      "response_option_button": {
+       "priority": "P1",
+       "selectors": [
+        "div[data-message-item=\"true\"][data-message-role=\"assistant\"] div[data-copy-exclude=\"\"] button[aria-disabled]"
+       ]
+      },
+      "result_image": {
+       "priority": "P0",
+       "selectors": [
+        "[data-message-role=\"assistant\"] button.hatch-chat-groupable-bubble img"
+       ]
+      },
+      "result_message": {
+       "attribute": "data-message-id",
+       "priority": "P0",
+       "selectors": [
+        "[data-message-item=\"true\"][data-message-role=\"assistant\"]"
+       ]
+      },
+      "result_video": {
+       "attribute": "data-hatch-video-src",
+       "media_selector": "video",
+       "poster_attribute": "data-hatch-video-poster",
+       "priority": "P0",
+       "selectors": [
+        "[data-message-role=\"assistant\"] [data-hatch-video-wrapper=\"true\"][data-hatch-video-src]"
+       ]
+      },
+      "send_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[data-pel-click=\"chat_send_message\"]"
+       ]
+      },
+      "shell_state": {
+       "attribute": "data-hatch-shell-hydration-state",
+       "priority": "P0",
+       "selectors": [
+        "[data-hatch-shell-hydration-state]"
+       ]
+      },
+      "side_chats_panel": {
+       "priority": "P0",
+       "selectors": [
+        "[data-testid=\"hatch-side-chats-panel-content\"]"
+       ]
+      },
+      "stop_button": {
+       "priority": "P0",
+       "selectors": [
+        "button[data-testid=\"hatch-composer-stop-button\"]"
+       ]
+      },
+      "user_message": {
+       "attribute": "data-message-id",
+       "priority": "P1",
+       "selectors": [
+        "[data-message-item=\"true\"][data-message-role=\"user\"]"
+       ]
+      }
+     },
+     "version": 41
+    }
+   },
+   "selectors": {
+    "active_thread_options_button": {
+     "priority": "P0",
+     "selectors": [
+      "[data-testid=\"hatch-thread-row\"][aria-current=\"page\"] button[data-pel-click=\"chat_thread_options_open\"]"
+     ]
+    },
+    "active_thread_row": {
+     "priority": "P0",
+     "selectors": [
+      "[data-testid=\"hatch-thread-row\"][aria-current=\"page\"]"
+     ]
+    },
+    "attachment_preview": {
+     "priority": "P0",
+     "selectors": [
+      "button[data-pel-click=\"chat_remove_attachment_click\"]"
+     ]
+    },
+    "attachment_scope": {
+     "priority": "P0",
+     "selectors": [
+      "[data-hatch-composer-root=\"true\"]"
+     ]
+    },
+    "chat_switcher_trigger": {
+     "priority": "P0",
+     "selectors": [
+      "button[data-testid=\"hatch-chat-switcher-trigger\"]"
+     ]
+    },
+    "composer": {
+     "priority": "P0",
+     "selectors": [
+      "textarea[data-hatch-composer-prehydration-input]"
+     ]
+    },
+    "composer_drop_target": {
+     "priority": "P0",
+     "selectors": [
+      "[data-hatch-composer-root=\"true\"]"
+     ]
+    },
+    "connection_status": {
+     "priority": "P0",
+     "selectors": [
+      "[data-hatch-connection-status-announcer]"
+     ]
+    },
+    "delete_confirm_button": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"dialog\"][data-slot=\"dialog-content\"] button[data-pel-click=\"chat_thread_delete_confirm\"]"
+     ]
+    },
+    "delete_thread_menu_item": {
+     "priority": "P0",
+     "selectors": [
+      "[role=\"menuitem\"][data-pel-click=\"chat_thread_delete_open\"]"
+     ]
+    },
+    "delivery_error": {
+     "priority": "P1",
+     "selectors": [
+      "[data-message-item=\"true\"][data-message-role=\"user\"] [data-pel-impression=\"error_content_impression\"]"
+     ]
+    },
+    "download_menu_item": {
+     "priority": "P1",
+     "selectors": [
+      "[role=\"menuitem\"][data-pel-click=\"media_download\"]"
+     ]
+    },
+    "file_input": {
+     "priority": "P0",
+     "selectors": [
+      "input[type=\"file\"]"
+     ]
+    },
+    "new_chat_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[data-testid=\"hatch-chat-compose\"]"
+     ]
+    },
+    "response_option_button": {
+     "priority": "P1",
+     "selectors": [
+      "div[data-message-item=\"true\"][data-message-role=\"assistant\"] div[data-copy-exclude=\"\"] button[aria-disabled]"
+     ]
+    },
+    "result_image": {
+     "priority": "P0",
+     "selectors": [
+      "[data-message-role=\"assistant\"] button.hatch-chat-groupable-bubble img"
+     ]
+    },
+    "result_message": {
+     "attribute": "data-message-id",
+     "priority": "P0",
+     "selectors": [
+      "[data-message-item=\"true\"][data-message-role=\"assistant\"]"
+     ]
+    },
+    "result_video": {
+     "attribute": "data-hatch-video-src",
+     "media_selector": "video",
+     "poster_attribute": "data-hatch-video-poster",
+     "priority": "P0",
+     "selectors": [
+      "[data-message-role=\"assistant\"] [data-hatch-video-wrapper=\"true\"][data-hatch-video-src]"
+     ]
+    },
+    "send_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[data-pel-click=\"chat_send_message\"]"
+     ]
+    },
+    "shell_state": {
+     "attribute": "data-hatch-shell-hydration-state",
+     "priority": "P0",
+     "selectors": [
+      "[data-hatch-shell-hydration-state]"
+     ]
+    },
+    "side_chats_panel": {
+     "priority": "P0",
+     "selectors": [
+      "[data-testid=\"hatch-side-chats-panel-content\"]"
+     ]
+    },
+    "stop_button": {
+     "priority": "P0",
+     "selectors": [
+      "button[data-testid=\"hatch-composer-stop-button\"]"
+     ]
+    },
+    "user_message": {
+     "attribute": "data-message-id",
+     "priority": "P1",
+     "selectors": [
+      "[data-message-item=\"true\"][data-message-role=\"user\"]"
+     ]
+    }
+   },
+   "status": "active"
+  }
+ },
+ "expiresAt": 1793817356206.0,
+ "fetchedAt": 1793813756206.0,
+ "meta": {
+  "access": {
+   "authorization_ttl_sec": 300,
+   "client_id": "<redacted>",
+   "contract": "device-v1",
+   "key_id": "<redacted>",
+   "key_revision": 1,
+   "product_id": 1,
+   "user_id": 16510
+  }
+ },
+ "scope": {
+  "audience": "https://labs.tool.vn/api/v1",
+  "auth_epoch": 76,
+  "authorization_ttl_sec": 300,
+  "authorized_at": 1793813756198.0,
+  "client_id": "<redacted>",
+  "contract": "device-v1",
+  "key_id": "<redacted>",
+  "key_revision": 1,
+  "product_id": 1,
+  "token_hash": "<redacted>",
+  "user_id": 16510
+ }
+}

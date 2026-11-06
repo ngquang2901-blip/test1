@@ -1,0 +1,1149 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "29236eab26eaefae99b43a866887680508e43aeb1d8640fe0d0b61a3e14a8ddf",
+ "entries": 25,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:27:47.310Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/anchor?[query-stripped]",
+   "mime": "text/html",
+   "size": 55092
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:27:47.448Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/recaptcha/releases/kxxK8h62TERPFgxXTKenDcjR/recaptcha__en.js",
+   "mime": "text/javascript",
+   "size": 852683
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:27:47.531Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/webworker.js?[query-stripped]",
+   "mime": "x-unknown",
+   "size": 102
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:27:47.539Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://fonts.gstatic.com/s/roboto/v48/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2",
+   "mime": "font/woff2",
+   "size": 40128
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:27:47.540Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/recaptcha/api2/logo_48.png",
+   "mime": "image/png",
+   "size": 2228
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:27:47.755Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/recaptcha/releases/kxxK8h62TERPFgxXTKenDcjR/recaptcha__en.js",
+   "mime": "text/javascript",
+   "size": 852683
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:29:24.729Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:29:24.734Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:29:24.740Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:29:24.744Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:29:24.984Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:29:25.019Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1786,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "31895334-d003-4da7-a1cf-3761facdaf63",
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "31895334-d003-4da7-a1cf-3761facdaf63",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "9f595057-a0e3-4a5b-943f-6488f9a53f5b",
+      null,
+      null,
+      [
+       [
+        1793902481,
+        514814000
+       ],
+       "The red paper boat drifts slowly to the right across calm blue water, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_i2v_lite",
+          2,
+          [
+           1
+          ],
+          null,
+          1,
+          1
+         ],
+         [
+          [
+           null,
+           1,
+           "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+           [
+            null,
+            null,
+            1,
+            1
+           ]
+          ]
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "The red paper boat drifts slowly to the right across calm blue water, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+       [],
+       null,
+       1519983
+      ],
+      null,
+      [
+       [
+        null,
+        608994,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>The red paper boat drifts slowly to the right across calm blue water, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+        null,
+        null,
+        null,
+        "veo_3_1_i2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "31895334-d003-4da7-a1cf-3761facdaf63"
+       ],
+       null,
+       null,
+       [
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:29:25.021Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1032,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "bc52c218-6371-4f0c-9d12-c7724eb4b85d"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "bc52c218-6371-4f0c-9d12-c7724eb4b85d",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "459d1e96-2363-46ce-8d0a-278615b5552a",
+      null,
+      null,
+      [
+       [
+        1793902467,
+        580883000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        null,
+        null,
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]",
+       null,
+       null,
+       69640
+      ],
+      [
+       null,
+       [
+        null,
+        null,
+        null,
+        "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]",
+        0,
+        null,
+        "image/jpeg"
+       ],
+       [
+        720,
+        1280
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:29:25.022Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1692,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+      null,
+      null,
+      [
+       [
+        1793901669,
+        253043000
+       ],
+       "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_t2v_lite",
+          1,
+          null,
+          null,
+          1,
+          1
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+       [],
+       null,
+       1721774
+      ],
+      null,
+      [
+       [
+        null,
+        175494,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+        null,
+        null,
+        null,
+        "veo_3_1_t2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ],
+       null,
+       null,
+       [
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:29:25.148Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 3525,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:29:25.337Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ogiZ0b",
+   "mime": "application/json",
+   "size": 1308,
+   "req": [
+    {
+     "rpc": "ogiZ0b",
+     "args": [
+      null,
+      [
+       [
+        null,
+        null,
+        null,
+        1172706753,
+        2,
+        "BELUGA",
+        null,
+        [
+         null,
+         22,
+         null,
+         null,
+         null,
+         "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+         null,
+         null,
+         null,
+         null,
+         [
+          "[REDACTED len=2681]",
+          1
+         ]
+        ],
+        [
+         [
+          [
+           "A small blue teapot on a kitchen shelf, flat illustration."
+          ]
+         ]
+        ],
+        null,
+        null,
+        null,
+        "8CD7435A-EDB9-4A39-A6CC-FC5F0371656A",
+        "D750D85B-08B7-489B-A27D-67A933F96302"
+       ]
+      ],
+      1,
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2681]",
+        1
+       ]
+      ],
+      [
+       "84B6A6AF-BB9A-4E15-A139-CBA1B166CF82"
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ogiZ0b",
+     "data": [
+      [
+       [
+        "8ca97fa7-89e0-4113-a662-063d159e5152",
+        null,
+        "e58e5f7f-2dfa-4305-8f88-ee32ef005fd4",
+        null,
+        null,
+        null,
+        [
+         [
+          null,
+          1172706753,
+          null,
+          null,
+          null,
+          null,
+          1,
+          "A small blue teapot on a kitchen shelf, flat illustration.",
+          36,
+          null,
+          null,
+          "e58e5f7f-2dfa-4305-8f88-ee32ef005fd4",
+          null,
+          "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]",
+          2,
+          [
+           null,
+           null,
+           [
+            [
+             "A small blue teapot on a kitchen shelf, flat illustration.",
+             null,
+             [
+              [
+               [
+                "A small blue teapot on a kitchen shelf, flat illustration."
+               ]
+              ]
+             ]
+            ]
+           ],
+           []
+          ],
+          null,
+          "8ca97fa7-89e0-4113-a662-063d159e5152"
+         ],
+         null,
+         [
+          768,
+          1376
+         ],
+         null,
+         null,
+         [
+          null,
+          "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]"
+         ]
+        ]
+       ]
+      ],
+      [
+       [
+        "e58e5f7f-2dfa-4305-8f88-ee32ef005fd4",
+        null,
+        null,
+        [
+         "Small blue teapot on shelf",
+         [
+          1793903375,
+          461342000
+         ],
+         null,
+         null,
+         "8ca97fa7-89e0-4113-a662-063d159e5152",
+         "84B6A6AF-BB9A-4E15-A139-CBA1B166CF82",
+         [
+          1793903393,
+          428924000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:29:25.346Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:29:27.018Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/bc52c218-6371-4f0c-9d12-c7724eb4b85d?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 69640
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:29:30.705Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793903364,
+          715000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "image"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"imageModelKey\":\"BELUGA\",\"aspectRatio\":2,\"seed\":1172706753,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A small blue teapot on a kitchen shelf, flat illustration.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:29:47.288Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 331,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:29:47.302Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 145724
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:29:52.832Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1295,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "8ca97fa7-89e0-4113-a662-063d159e5152"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "8ca97fa7-89e0-4113-a662-063d159e5152",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "e58e5f7f-2dfa-4305-8f88-ee32ef005fd4",
+      null,
+      null,
+      [
+       [
+        1793903375,
+        461342000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        [
+         [
+          "A small blue teapot on a kitchen shelf, flat illustration.",
+          null,
+          [
+           [
+            [
+             "A small blue teapot on a kitchen shelf, flat illustration."
+            ]
+           ]
+          ]
+         ]
+        ],
+        [],
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]",
+       null,
+       null,
+       145724
+      ],
+      [
+       [
+        null,
+        1172706753,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "A small blue teapot on a kitchen shelf, flat illustration.",
+        36,
+        "",
+        null,
+        "e58e5f7f-2dfa-4305-8f88-ee32ef005fd4",
+        null,
+        "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]",
+        2
+       ],
+       null,
+       [
+        768,
+        1376
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:29:54.090Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/8ca97fa7-89e0-4113-a662-063d159e5152?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 145724
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:29:59.305Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T18:30:01.112Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793903394,
+          276000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "8ca97fa7-89e0-4113-a662-063d159e5152"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IMAGE_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_IMAGE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793903394,
+          305000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "8ca97fa7-89e0-4113-a662-063d159e5152"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  }
+ ]
+}

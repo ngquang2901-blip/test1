@@ -1,0 +1,11 @@
+{
+ "source": "Lượt 17: poll jwpduf, 1 video đang chạy",
+ "records": [
+  {
+   "phase": "done",
+   "rpc": "jwpduf",
+   "status": 200,
+   "res": ")]}'\n\n865\n[[\"wrb.fr\",\"jwpduf\",\"[null,null,[[\\\"877ac18e-f606-43e7-8290-fd8f8df6b903\\\",\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",\\\"46f8cb34-0ba4-44f4-abbc-5ba5a6557c0e\\\",null,null,[[1793946064,734886000],\\\"Mưa rào bất chợt trên phố cổ Hội An, người đi đường kéo áo mưa chạy vội, máy quay đứng yên\\\",null,null,null,null,[null,[[\\\"veo_3_1_t2v_lite\\\",1,null,null,1,1]],[[null,null,[[[\\\"Mưa rào bất chợt trên phố cổ Hội An, người đi đường kéo áo mưa chạy vội, máy quay đứng yên\\\"]]]]],null,1],null,[2],1],null,[[null,183487,null,null,null,null,null,\\\"Sudden rain shower in the ancient streets of Hoi An, pedestrians pull on raincoats and hurry away, the camera stands still\\\",null,null,null,null,\\\"veo_3_1_t2v_lite\\\",\\\"\\\",null,false,1],[null,null,[8]],[\\\"877ac18e-f606-43e7-8290-fd8f8df6b903\\\"]]]]]\",null,null,null,\"generic\"],[\"di\",848],[\"af.httprm\",847,\"-1885919111823095390\",2]]\n25\n[[\"e\",4,null,null,967]]\n"
+  }
+ ]
+}

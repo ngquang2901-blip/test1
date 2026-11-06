@@ -1,0 +1,199 @@
+{
+  "at": "2026-11-04T18:30:16.564Z",
+  "loggedIn": true,
+  "plan": "free",
+  "entitled": {
+    "chatgpt": true,
+    "flowApi": false
+  },
+  "privateLoaded": true,
+  "network": [
+    {
+      "path": "/api/v1/health",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/settings",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/i18n/vi",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-device-key",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/addon-prompts",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/providers",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-devices/claim",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/system-settings/public",
+      "status": 200
+    },
+    {
+      "path": "/images/icons/autoflow-logo.png",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/entitlements",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/referral/code",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/settings",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/usage/heartbeat",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/plans",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/announcement",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/notifications/unread-count",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-config/access",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/validation-rules",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/telegram/executor-heartbeat",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/prompts",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-config/provider-models",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/settings",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/referral/stats",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-config/providers/api-configs",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-config/system-config/execution",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/tools/motion-studio/projects",
+      "status": 403
+    },
+    {
+      "path": "/api/v1/webhook-settings",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/sse/subscribe-token",
+      "status": 403
+    },
+    {
+      "path": "/api/v1/extension-config/system-config/ai-tools",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-config/providers/dom-selectors",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/affiliate/dashboard",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/extension-config/providers/private-configs",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/sse/ticket",
+      "status": 403
+    },
+    {
+      "path": "/api/v1/extension-config/providers/private-configs",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/config/versions",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/events/poll",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/mcp/executor-heartbeat",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/config/versions",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/health",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/health",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/entitlements",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/tools/motion-studio/projects",
+      "status": 403
+    }
+  ],
+  "grantedRelevant": [
+    "chatgpt:ratios",
+    "chatgpt:error_patterns",
+    "chatgpt:max_ref_images",
+    "chatgpt:supports",
+    "chatgpt:urls",
+    "chatgpt:ui_text_patterns",
+    "chatgpt:chatgpt_model_labels",
+    "chatgpt:ai_agent_prefix",
+    "chatgpt:chatgpt_model_slider_values",
+    "chatgpt:timeouts",
+    "chatgpt:reference_upload_timings"
+  ],
+  "flowPrivateKeys": [],
+  "profile_method": "Temporary copy of extension state and IndexedDB only; no browser Cookies, Login Data, History. Source untouched. Ordinary extension boot may claim same device and send telemetry."
+}

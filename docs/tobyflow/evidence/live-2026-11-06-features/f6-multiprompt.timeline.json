@@ -1,0 +1,2164 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "bf7ab1fa637b3ac3759830f4dac3a6063c2359c4187627ea1b6f940d43b6dc39",
+ "entries": 39,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:10:52.508Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:10:52.512Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:10:52.515Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:10:52.521Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:10:52.626Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:10:52.646Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/jpeg",
+   "size": 21955
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:10:52.750Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4827,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:10:53.007Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ogiZ0b",
+   "mime": "application/json",
+   "size": 1291,
+   "req": [
+    {
+     "rpc": "ogiZ0b",
+     "args": [
+      null,
+      [
+       [
+        null,
+        null,
+        null,
+        1543349143,
+        2,
+        "HARBOR_SEAL",
+        null,
+        [
+         null,
+         22,
+         null,
+         null,
+         null,
+         "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+         null,
+         null,
+         null,
+         null,
+         [
+          "[REDACTED len=2638]",
+          1
+         ]
+        ],
+        [
+         [
+          [
+           "A single red apple on a white table, flat illustration."
+          ]
+         ]
+        ],
+        null,
+        null,
+        null,
+        "975343D6-A5E5-4D2E-99D2-2DC65B5A837C",
+        "9F941A19-25C4-4F8D-A6A0-F6CD48CE04B7"
+       ]
+      ],
+      1,
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2638]",
+        1
+       ]
+      ],
+      [
+       "5ED50B25-DC9A-44E1-B633-69C52A37EC4E"
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ogiZ0b",
+     "data": [
+      [
+       [
+        "94fdec99-2737-4c40-ac93-ae73cb59149f",
+        null,
+        "ce37a388-230d-432b-b813-7a03275f8f43",
+        null,
+        null,
+        null,
+        [
+         [
+          null,
+          1543349143,
+          null,
+          null,
+          null,
+          null,
+          1,
+          "A single red apple on a white table, flat illustration.",
+          31,
+          null,
+          null,
+          "ce37a388-230d-432b-b813-7a03275f8f43",
+          null,
+          "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+          2,
+          [
+           null,
+           null,
+           [
+            [
+             "A single red apple on a white table, flat illustration.",
+             null,
+             [
+              [
+               [
+                "A single red apple on a white table, flat illustration."
+               ]
+              ]
+             ]
+            ]
+           ],
+           []
+          ],
+          null,
+          "94fdec99-2737-4c40-ac93-ae73cb59149f"
+         ],
+         null,
+         [
+          768,
+          1376
+         ],
+         null,
+         null,
+         [
+          null,
+          "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]"
+         ]
+        ]
+       ]
+      ],
+      [
+       [
+        "ce37a388-230d-432b-b813-7a03275f8f43",
+        null,
+        null,
+        [
+         "Red apple on table",
+         [
+          1793902262,
+          789525000
+         ],
+         null,
+         null,
+         "94fdec99-2737-4c40-ac93-ae73cb59149f",
+         "5ED50B25-DC9A-44E1-B633-69C52A37EC4E",
+         [
+          1793902269,
+          177835000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:10:53.011Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:10:57.343Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 142,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902252,
+          497000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "image"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"imageModelKey\":\"HARBOR_SEAL\",\"aspectRatio\":2,\"seed\":1543349143,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A single red apple on a white table, flat illustration.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:11:03.270Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:11:03.277Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 31611
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:11:03.695Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:11:03.699Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:11:03.702Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:11:03.705Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:11:03.991Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4806,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:11:04.312Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ogiZ0b",
+   "mime": "application/json",
+   "size": 1310,
+   "req": [
+    {
+     "rpc": "ogiZ0b",
+     "args": [
+      null,
+      [
+       [
+        null,
+        null,
+        null,
+        1847653519,
+        2,
+        "HARBOR_SEAL",
+        null,
+        [
+         null,
+         22,
+         null,
+         null,
+         null,
+         "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+         null,
+         null,
+         null,
+         null,
+         [
+          "[REDACTED len=2617]",
+          1
+         ]
+        ],
+        [
+         [
+          [
+           "A blue bicycle leaning on a brick wall, flat illustration."
+          ]
+         ]
+        ],
+        null,
+        null,
+        null,
+        "E60AC62E-5AC1-4EBB-8795-FD079A9DEF2C",
+        "743E1926-737D-4F9A-82DD-9B6EFDB4F694"
+       ]
+      ],
+      1,
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2617]",
+        1
+       ]
+      ],
+      [
+       "E2258EDB-39EC-44A3-A428-8BD2255C8735"
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ogiZ0b",
+     "data": [
+      [
+       [
+        "8fd7f981-034c-4563-bb02-7b445e339369",
+        null,
+        "43f464b6-2781-486f-b1cc-a99b7cf549cc",
+        null,
+        null,
+        null,
+        [
+         [
+          null,
+          1847653519,
+          null,
+          null,
+          null,
+          null,
+          1,
+          "A blue bicycle leaning on a brick wall, flat illustration.",
+          31,
+          null,
+          null,
+          "43f464b6-2781-486f-b1cc-a99b7cf549cc",
+          null,
+          "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+          2,
+          [
+           null,
+           null,
+           [
+            [
+             "A blue bicycle leaning on a brick wall, flat illustration.",
+             null,
+             [
+              [
+               [
+                "A blue bicycle leaning on a brick wall, flat illustration."
+               ]
+              ]
+             ]
+            ]
+           ],
+           []
+          ],
+          null,
+          "8fd7f981-034c-4563-bb02-7b445e339369"
+         ],
+         null,
+         [
+          768,
+          1376
+         ],
+         null,
+         null,
+         [
+          null,
+          "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]"
+         ]
+        ]
+       ]
+      ],
+      [
+       [
+        "43f464b6-2781-486f-b1cc-a99b7cf549cc",
+        null,
+        null,
+        [
+         "Blue bicycle leaning on wall",
+         [
+          1793902274,
+          115425000
+         ],
+         null,
+         null,
+         "8fd7f981-034c-4563-bb02-7b445e339369",
+         "E2258EDB-39EC-44A3-A428-8BD2255C8735",
+         [
+          1793902280,
+          564685000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:11:04.316Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:11:14.525Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 331,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:11:14.533Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 152804
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:11:18.829Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:11:18.834Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:11:18.838Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T18:11:18.841Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 25,
+   "t_utc": "2026-11-05T18:11:19.092Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4833,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 26,
+   "t_utc": "2026-11-05T18:11:19.414Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ogiZ0b",
+   "mime": "application/json",
+   "size": 1287,
+   "req": [
+    {
+     "rpc": "ogiZ0b",
+     "args": [
+      null,
+      [
+       [
+        null,
+        null,
+        null,
+        1935208017,
+        2,
+        "HARBOR_SEAL",
+        null,
+        [
+         null,
+         22,
+         null,
+         null,
+         null,
+         "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+         null,
+         null,
+         null,
+         null,
+         [
+          "[REDACTED len=2638]",
+          1
+         ]
+        ],
+        [
+         [
+          [
+           "A small green cactus in a clay pot, flat illustration."
+          ]
+         ]
+        ],
+        null,
+        null,
+        null,
+        "7A2589EB-8EED-4FD7-9213-E777AEC95132",
+        "8204E5C6-A19D-49A9-9BB5-582405ABD16B"
+       ]
+      ],
+      1,
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2638]",
+        1
+       ]
+      ],
+      [
+       "8AB65E55-50CE-4B8C-95F9-4CD97DFCB69A"
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ogiZ0b",
+     "data": [
+      [
+       [
+        "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+        null,
+        "ed61406e-3005-4b69-a724-154f789338cc",
+        null,
+        null,
+        null,
+        [
+         [
+          null,
+          1935208017,
+          null,
+          null,
+          null,
+          null,
+          1,
+          "A small green cactus in a clay pot, flat illustration.",
+          31,
+          null,
+          null,
+          "ed61406e-3005-4b69-a724-154f789338cc",
+          null,
+          "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+          2,
+          [
+           null,
+           null,
+           [
+            [
+             "A small green cactus in a clay pot, flat illustration.",
+             null,
+             [
+              [
+               [
+                "A small green cactus in a clay pot, flat illustration."
+               ]
+              ]
+             ]
+            ]
+           ],
+           []
+          ],
+          null,
+          "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+         ],
+         null,
+         [
+          768,
+          1376
+         ],
+         null,
+         null,
+         [
+          null,
+          "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]"
+         ]
+        ]
+       ]
+      ],
+      [
+       [
+        "ed61406e-3005-4b69-a724-154f789338cc",
+        null,
+        null,
+        [
+         "Cactus in clay pot",
+         [
+          1793902289,
+          208825000
+         ],
+         null,
+         null,
+         "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+         "8AB65E55-50CE-4B8C-95F9-4CD97DFCB69A",
+         [
+          1793902295,
+          820667000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 27,
+   "t_utc": "2026-11-05T18:11:19.419Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 28,
+   "t_utc": "2026-11-05T18:11:27.717Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 140,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902263,
+          682000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "image"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"imageModelKey\":\"HARBOR_SEAL\",\"aspectRatio\":2,\"seed\":1847653519,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A blue bicycle leaning on a brick wall, flat illustration.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902278,
+          820000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "image"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"imageModelKey\":\"HARBOR_SEAL\",\"aspectRatio\":2,\"seed\":1935208017,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A small green cactus in a clay pot, flat illustration.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 29,
+   "t_utc": "2026-11-05T18:11:29.793Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 30,
+   "t_utc": "2026-11-05T18:11:29.805Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 56826
+  },
+  {
+   "i": 31,
+   "t_utc": "2026-11-05T18:11:33.538Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1283,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "94fdec99-2737-4c40-ac93-ae73cb59149f"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "94fdec99-2737-4c40-ac93-ae73cb59149f",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "ce37a388-230d-432b-b813-7a03275f8f43",
+      null,
+      null,
+      [
+       [
+        1793902262,
+        789525000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        [
+         [
+          "A single red apple on a white table, flat illustration.",
+          null,
+          [
+           [
+            [
+             "A single red apple on a white table, flat illustration."
+            ]
+           ]
+          ]
+         ]
+        ],
+        [],
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+       null,
+       null,
+       31611
+      ],
+      [
+       [
+        null,
+        1543349143,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "A single red apple on a white table, flat illustration.",
+        31,
+        "",
+        null,
+        "ce37a388-230d-432b-b813-7a03275f8f43",
+        null,
+        "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+        2
+       ],
+       null,
+       [
+        768,
+        1376
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 32,
+   "t_utc": "2026-11-05T18:11:34.573Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/94fdec99-2737-4c40-ac93-ae73cb59149f?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 31611
+  },
+  {
+   "i": 33,
+   "t_utc": "2026-11-05T18:11:35.268Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1296,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "8fd7f981-034c-4563-bb02-7b445e339369"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "8fd7f981-034c-4563-bb02-7b445e339369",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "43f464b6-2781-486f-b1cc-a99b7cf549cc",
+      null,
+      null,
+      [
+       [
+        1793902274,
+        115425000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        [
+         [
+          "A blue bicycle leaning on a brick wall, flat illustration.",
+          null,
+          [
+           [
+            [
+             "A blue bicycle leaning on a brick wall, flat illustration."
+            ]
+           ]
+          ]
+         ]
+        ],
+        [],
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+       null,
+       null,
+       152804
+      ],
+      [
+       [
+        null,
+        1847653519,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "A blue bicycle leaning on a brick wall, flat illustration.",
+        31,
+        "",
+        null,
+        "43f464b6-2781-486f-b1cc-a99b7cf549cc",
+        null,
+        "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+        2
+       ],
+       null,
+       [
+        768,
+        1376
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 34,
+   "t_utc": "2026-11-05T18:11:36.460Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/8fd7f981-034c-4563-bb02-7b445e339369?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 152804
+  },
+  {
+   "i": 35,
+   "t_utc": "2026-11-05T18:11:37.190Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1283,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "eb8e0596-4459-4fae-baaf-b4f2398f91b6",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "ed61406e-3005-4b69-a724-154f789338cc",
+      null,
+      null,
+      [
+       [
+        1793902289,
+        208825000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        [
+         [
+          "A small green cactus in a clay pot, flat illustration.",
+          null,
+          [
+           [
+            [
+             "A small green cactus in a clay pot, flat illustration."
+            ]
+           ]
+          ]
+         ]
+        ],
+        [],
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+       null,
+       null,
+       56826
+      ],
+      [
+       [
+        null,
+        1935208017,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "A small green cactus in a clay pot, flat illustration.",
+        31,
+        "",
+        null,
+        "ed61406e-3005-4b69-a724-154f789338cc",
+        null,
+        "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+        2
+       ],
+       null,
+       [
+        768,
+        1376
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 36,
+   "t_utc": "2026-11-05T18:11:38.525Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/eb8e0596-4459-4fae-baaf-b4f2398f91b6?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 56826
+  },
+  {
+   "i": 37,
+   "t_utc": "2026-11-05T18:11:39.731Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 38,
+   "t_utc": "2026-11-05T18:11:58.154Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902294,
+          720000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "94fdec99-2737-4c40-ac93-ae73cb59149f"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IMAGE_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_IMAGE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902294,
+          730000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "94fdec99-2737-4c40-ac93-ae73cb59149f"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902296,
+          604000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "8fd7f981-034c-4563-bb02-7b445e339369"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IMAGE_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_IMAGE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902296,
+          611000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "8fd7f981-034c-4563-bb02-7b445e339369"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902298,
+          669000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IMAGE_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_IMAGE"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793902298,
+          675000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "eb8e0596-4459-4fae-baaf-b4f2398f91b6"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  }
+ ]
+}

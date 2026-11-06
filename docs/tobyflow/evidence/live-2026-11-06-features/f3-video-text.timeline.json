@@ -1,0 +1,2021 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "381d948dd0a9e49c94d5716a08890ccfa7390328b8d1b54049fc15f2f631164a",
+ "entries": 30,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:00:59.200Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:00:59.332Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 4781,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:00:59.999Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:01:00.003Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:01:00.007Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:01:00.012Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:01:00.014Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=YhhmEf",
+   "mime": "application/json",
+   "size": 1298,
+   "req": [
+    {
+     "rpc": "YhhmEf",
+     "args": [
+      [
+       [
+        [
+         null,
+         null,
+         [
+          [
+           [
+            "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+           ]
+          ]
+         ]
+        ],
+        "veo_3_1_t2v_lite",
+        1,
+        null,
+        [
+         null,
+         null,
+         null,
+         null,
+         "FB032921-C037-47F5-8133-ADC5024A3FFF",
+         "E196A559-70D7-4930-AEC1-C63049427E3D"
+        ]
+       ]
+      ],
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2617]",
+        1
+       ]
+      ],
+      [
+       "07B37FAB-2788-4835-AF3F-77A3F50CF963",
+       2
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "YhhmEf",
+     "data": [
+      null,
+      1018,
+      [
+       [
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         "Paper kite floats across sky",
+         [
+          1793901669,
+          253043000
+         ],
+         null,
+         null,
+         "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+         "07B37FAB-2788-4835-AF3F-77A3F50CF963",
+         [
+          1793901672,
+          186329000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ],
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          6
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:01:00.026Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:01:04.050Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1027,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          6
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:01:09.051Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1026,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:01:14.053Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1027,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:01:19.052Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1026,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:01:23.747Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901659,
+          988000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "video"
+            ]
+           ]
+          ],
+          [
+           "AUDIO_FAILURE_PREFERENCE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"videoModelKey\":\"veo_3_1_t2v_lite\",\"aspectRatio\":1,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A paper kite floats slowly across a pale sky, gentle breeze, static camera.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:01:24.053Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1026,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:01:29.054Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1026,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:01:34.055Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1026,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:01:39.055Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1026,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          2
+         ],
+         1
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 17,
+   "t_utc": "2026-11-05T18:01:44.056Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=jwpduf",
+   "mime": "application/json",
+   "size": 1049,
+   "req": [
+    {
+     "rpc": "jwpduf",
+     "args": [
+      null,
+      null,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "jwpduf",
+     "data": [
+      null,
+      1018,
+      [
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+        "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+        null,
+        null,
+        [
+         [
+          1793901669,
+          253043000
+         ],
+         "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+         null,
+         null,
+         null,
+         null,
+         [
+          null,
+          [
+           [
+            "veo_3_1_t2v_lite",
+            1,
+            null,
+            null,
+            1,
+            1
+           ]
+          ],
+          [
+           [
+            null,
+            null,
+            [
+             [
+              [
+               "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+              ]
+             ]
+            ]
+           ]
+          ],
+          null,
+          1
+         ],
+         null,
+         [
+          3
+         ],
+         1,
+         null,
+         null,
+         null,
+         1721774
+        ],
+        null,
+        [
+         [
+          null,
+          175494,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+          null,
+          null,
+          null,
+          null,
+          "veo_3_1_t2v_lite",
+          "",
+          null,
+          false,
+          1
+         ],
+         [
+          null,
+          null,
+          [
+           8
+          ]
+         ],
+         [
+          "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+         ]
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 18,
+   "t_utc": "2026-11-05T18:01:44.871Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 330,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 19,
+   "t_utc": "2026-11-05T18:01:44.882Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1691,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      null,
+      [
+       1
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+      null,
+      null,
+      [
+       [
+        1793901669,
+        253043000
+       ],
+       "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_t2v_lite",
+          1,
+          null,
+          null,
+          1,
+          1
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+       [],
+       null,
+       1721774
+      ],
+      null,
+      [
+       [
+        null,
+        175494,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]",
+        null,
+        null,
+        null,
+        "veo_3_1_t2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ],
+       null,
+       null,
+       [
+        "https://lh3.googleusercontent.com/asb/[REDACTED-signed]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 20,
+   "t_utc": "2026-11-05T18:01:45.431Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/jpeg",
+   "size": 14402
+  },
+  {
+   "i": 21,
+   "t_utc": "2026-11-05T18:01:45.949Z",
+   "method": "GET",
+   "status": 302,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "text/html",
+   "size": 0
+  },
+  {
+   "i": 22,
+   "t_utc": "2026-11-05T18:01:46.047Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow.google.com/asb/[REDACTED-signed]",
+   "mime": "image/webp",
+   "size": 6432
+  },
+  {
+   "i": 23,
+   "t_utc": "2026-11-05T18:01:46.110Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1821,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "5a2522f2-8722-4b4f-a329-16fb2fa284e4",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "b81f2843-d6f9-4ef0-9370-e251d4d8f883",
+      null,
+      null,
+      [
+       [
+        1793901669,
+        253043000
+       ],
+       "A paper kite floats slowly across a pale sky, gentle breeze, static camera.",
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        [
+         [
+          "veo_3_1_t2v_lite",
+          1,
+          null,
+          null,
+          1,
+          1
+         ]
+        ],
+        [
+         [
+          null,
+          null,
+          [
+           [
+            [
+             "A paper kite floats slowly across a pale sky, gentle breeze, static camera."
+            ]
+           ]
+          ]
+         ]
+        ],
+        null,
+        1
+       ],
+       null,
+       [
+        3
+       ],
+       1,
+       "https://flow-content.google/image/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+       [],
+       null,
+       1721774
+      ],
+      null,
+      [
+       [
+        null,
+        175494,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "<root>\n  <context>\n  </context>\n  <instruction>\n    <prompt>A paper kite floats slowly across a pale sky, gentle breeze, static camera.</prompt>\n  </instruction>\n</root>",
+        "https://flow-content.google/video/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+        null,
+        null,
+        null,
+        "veo_3_1_t2v_lite",
+        "",
+        null,
+        false,
+        1
+       ],
+       [
+        null,
+        null,
+        [
+         8
+        ]
+       ],
+       [
+        "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+       ],
+       null,
+       null,
+       [
+        null,
+        [
+         "https://flow-content.google/video/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+         "https://flow-content.google/image/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 24,
+   "t_utc": "2026-11-05T18:01:46.468Z",
+   "method": "GET",
+   "status": 206,
+   "url": "https://rr5---sn-ogul7n76.googlevideo.com/videoplayback?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 32768
+  },
+  {
+   "i": 25,
+   "t_utc": "2026-11-05T18:01:47.486Z",
+   "method": "GET",
+   "status": 206,
+   "url": "https://rr5---sn-ogul7n76.googlevideo.com/videoplayback?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 17838
+  },
+  {
+   "i": 26,
+   "t_utc": "2026-11-05T18:01:48.076Z",
+   "method": "GET",
+   "status": 206,
+   "url": "https://rr5---sn-ogul7n76.googlevideo.com/videoplayback?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 1689006
+  },
+  {
+   "i": 27,
+   "t_utc": "2026-11-05T18:01:50.282Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/video/5a2522f2-8722-4b4f-a329-16fb2fa284e4?[query-stripped]",
+   "mime": "video/mp4",
+   "size": 1721774
+  },
+  {
+   "i": 28,
+   "t_utc": "2026-11-05T18:01:54.228Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 141,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "FLOW_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901711,
+          365000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+            ]
+           ]
+          ],
+          [
+           "DOWNLOAD_TILES_COUNT",
+           [
+            "type.googleapis.com/google.protobuf.Int64Value",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "VIDEO_DOWNLOAD_RESOLUTION",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "ORIGINAL_VIDEO"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ],
+       [
+        "ASSET_DOWNLOAD",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793901711,
+          374000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "5a2522f2-8722-4b4f-a329-16fb2fa284e4"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 29,
+   "t_utc": "2026-11-05T18:01:56.375Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+  "checked_at": "2026-11-04T19:05:02.049094+00:00",
+  "result": "No downloadable official Bridge package located on examined public surfaces. Extension source shows per-account bridge_download_url delivery.",
+  "checks": [
+    {
+      "url": "https://labs.tool.vn/downloads/toolbridge-latest.zip",
+      "status": 404,
+      "source": "placeholder in official website JS; not an assigned user download URL"
+    },
+    {
+      "service": "Chrome CRX updater",
+      "extension_id": "heieobedadlfdkppgagnhfakcdapbfka",
+      "status": 404,
+      "error": "error-unknownApplication"
+    }
+  ],
+  "official_public_sources": [
+    {
+      "url": "https://labs.tool.vn/",
+      "status": 200,
+      "finding": "official site links main ToolFlow Chrome Web Store listing, not Bridge"
+    },
+    {
+      "url": "https://labs.tool.vn/guide",
+      "status": 200,
+      "finding": "official guide bundles YouTube tutorial links; no public Bridge download link found"
+    },
+    {
+      "url": "https://labs.tool.vn/toolflow",
+      "status": 200,
+      "finding": "setup landing for main extension, not Bridge"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=aINYQn7goeI",
+      "status": 200,
+      "finding": "official guide part1 description has no Bridge download link"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=F6zF0fYkRkw",
+      "status": 200,
+      "finding": "official guide part2 description has no Bridge download link"
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=SQHgyYHhKqI",
+      "status": 200,
+      "finding": "developer video description links main extension and guide playlist, not Bridge"
+    },
+    {
+      "url": "https://t.me/ToolAI",
+      "status": 200,
+      "finding": "contact page; address linked in official website footer; no package linked on landing"
+    }
+  ],
+  "unverified_leads": [
+    {
+      "url": "https://github.com/hongkongsa/toolflow",
+      "finding": "not established as developer-owned; public tree contains no Bridge package. Not treated as official."
+    }
+  ],
+  "actions_not_taken": [
+    "No install",
+    "No purchase",
+    "No message sent to developer",
+    "No entitlement or account changes"
+  ],
+  "scope_limits": "Public first-party pages, guide-linked video descriptions and exact distribution leads; no access to closed groups, private messages or gated paid download URL."
+}

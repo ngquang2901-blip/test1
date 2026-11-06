@@ -1,0 +1,21 @@
+{
+ "announcement": 1793769851608052.0,
+ "default_settings": 68,
+ "i18n": {
+  "en": 259,
+  "ja": 220,
+  "th": 220,
+  "vi": 242
+ },
+ "node_types": 73,
+ "provider_models": 111,
+ "providers": {
+  "chatgpt": 87,
+  "flow": 273,
+  "gemini": 34,
+  "grok": 65,
+  "muse": 41
+ },
+ "system_settings": 531,
+ "validation_rules": 7
+}

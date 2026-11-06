@@ -1,0 +1,735 @@
+{
+ "entitlements": {
+  "addon_prompt_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "addon_prompt_enabled",
+   "name": "Custom Style Prompts",
+   "type": "boolean",
+   "value": "0"
+  },
+  "addon_prompt_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "addon_prompt_max",
+   "limit": 0,
+   "name": "Maximum Custom Styles",
+   "remaining": 0,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "0"
+  },
+  "agent_bot_enabled": {
+   "category": "agent",
+   "has_override": false,
+   "key": "agent_bot_enabled",
+   "name": "AI Agent / Bot",
+   "type": "boolean",
+   "value": "1"
+  },
+  "ai_agent_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "ai_agent_enabled",
+   "name": "AI Agent",
+   "type": "boolean",
+   "value": "0"
+  },
+  "angles_enabled": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "angles_enabled",
+   "name": "Angles Module",
+   "type": "boolean",
+   "value": "1"
+  },
+  "angles_run_max": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "angles_run_max",
+   "limit": 5,
+   "name": "Angles Runs Per Day",
+   "remaining": 5,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "5"
+  },
+  "api_rate_limit_per_minute": {
+   "category": "limits",
+   "has_override": false,
+   "key": "api_rate_limit_per_minute",
+   "limit": 3000,
+   "name": "API Rate Limit (per minute)",
+   "remaining": 3000,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "3000"
+  },
+  "auto_download": {
+   "category": "core",
+   "has_override": false,
+   "key": "auto_download",
+   "name": "Auto Download",
+   "type": "boolean",
+   "value": "1"
+  },
+  "chatgpt_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "chatgpt_enabled",
+   "name": "ChatGPT Provider",
+   "type": "boolean",
+   "value": "1"
+  },
+  "chatgpt_mcp_enabled": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "chatgpt_mcp_enabled",
+   "name": "MCP via ChatGPT",
+   "type": "boolean",
+   "value": null
+  },
+  "chatgpt_ref_images": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "chatgpt_ref_images",
+   "name": "ChatGPT Reference Images",
+   "type": "boolean",
+   "value": "1"
+  },
+  "chatgpt_run_max": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "chatgpt_run_max",
+   "limit": 10,
+   "name": "ChatGPT Runs Per Day",
+   "remaining": 10,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "10"
+  },
+  "effects_enabled": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "effects_enabled",
+   "name": "Image Effects",
+   "type": "boolean",
+   "value": "1"
+  },
+  "effects_run_max": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "effects_run_max",
+   "limit": 5,
+   "name": "Image Effects Runs Per Day",
+   "remaining": 5,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "5"
+  },
+  "extension_device_max": {
+   "category": "limits",
+   "has_override": false,
+   "key": "extension_device_max",
+   "limit": 1,
+   "name": "Extension Devices",
+   "remaining": 1,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "1"
+  },
+  "flow_api_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "flow_api_enabled",
+   "name": "API Flow Mode",
+   "type": "boolean",
+   "value": null
+  },
+  "gemini_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "gemini_enabled",
+   "name": "Gemini Provider",
+   "type": "boolean",
+   "value": "1"
+  },
+  "gemini_mcp_enabled": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "gemini_mcp_enabled",
+   "name": "MCP via Gemini",
+   "type": "boolean",
+   "value": "0"
+  },
+  "gemini_ref_images": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "gemini_ref_images",
+   "name": "Gemini Reference Images",
+   "type": "boolean",
+   "value": "1"
+  },
+  "gemini_run_max": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "gemini_run_max",
+   "limit": 15,
+   "name": "Gemini Runs Per Day",
+   "remaining": 15,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "15"
+  },
+  "gen_batch_queue_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "gen_batch_queue_max",
+   "limit": 3,
+   "name": "Queued Flow Batches Per Project",
+   "remaining": 3,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "3"
+  },
+  "gen_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "gen_enabled",
+   "name": "Generate Module",
+   "type": "boolean",
+   "value": "1"
+  },
+  "gen_run_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "gen_run_max",
+   "limit": 20,
+   "name": "Generate Runs Per Day",
+   "remaining": 20,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "20"
+  },
+  "grok_enabled": {
+   "category": "grok",
+   "has_override": false,
+   "key": "grok_enabled",
+   "name": "Grok Module",
+   "type": "boolean",
+   "value": "1"
+  },
+  "grok_mcp_enabled": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "grok_mcp_enabled",
+   "name": "MCP via Grok",
+   "type": "boolean",
+   "value": null
+  },
+  "grok_run_max": {
+   "category": "grok",
+   "has_override": false,
+   "key": "grok_run_max",
+   "limit": 10,
+   "name": "Grok Generate Runs Per Day",
+   "remaining": 10,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "10"
+  },
+  "grok_telegram_enabled": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "grok_telegram_enabled",
+   "name": "Grok Telegram Module",
+   "type": "boolean",
+   "value": "0"
+  },
+  "grok_telegram_rate_day": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "grok_telegram_rate_day",
+   "limit": 0,
+   "name": "Grok Telegram Limit Per Day",
+   "remaining": 0,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "0"
+  },
+  "grok_telegram_rate_hour": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "grok_telegram_rate_hour",
+   "limit": 0,
+   "name": "Grok Telegram Limit Per Hour",
+   "remaining": 0,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "0"
+  },
+  "history_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "history_enabled",
+   "name": "Generation History",
+   "type": "boolean",
+   "value": "1"
+  },
+  "history_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "history_max",
+   "limit": 20,
+   "name": "Maximum History Records",
+   "remaining": 20,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "20"
+  },
+  "i2p_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "i2p_enabled",
+   "name": "Image to Prompt",
+   "type": "boolean",
+   "value": "1"
+  },
+  "image_remove_watermark_enabled": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "image_remove_watermark_enabled",
+   "name": "Image Post-Processing",
+   "type": "boolean",
+   "value": "1"
+  },
+  "mcp_enabled": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_enabled",
+   "name": "MCP AI Integration",
+   "type": "boolean",
+   "value": null
+  },
+  "mcp_max_tokens": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_max_tokens",
+   "name": "MCP Max Tokens",
+   "type": "quota",
+   "value": null
+  },
+  "mcp_queue_max": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_queue_max",
+   "name": "MCP Queue Max",
+   "type": "quota",
+   "value": null
+  },
+  "mcp_rate_day": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_rate_day",
+   "name": "MCP Rate/Day",
+   "type": "quota",
+   "value": null
+  },
+  "mcp_rate_hour": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_rate_hour",
+   "name": "MCP Rate/Hour",
+   "type": "quota",
+   "value": null
+  },
+  "mcp_workflow_create_rate_day": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_workflow_create_rate_day",
+   "name": "MCP Workflow Create/Day",
+   "type": "quota",
+   "value": null
+  },
+  "mcp_workflow_enabled": {
+   "category": "mcp",
+   "has_override": false,
+   "key": "mcp_workflow_enabled",
+   "name": "MCP Create Workflow",
+   "type": "boolean",
+   "value": null
+  },
+  "motion_tool_enabled": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "motion_tool_enabled",
+   "name": "Motion Studio",
+   "type": "boolean",
+   "value": null
+  },
+  "motion_tool_max": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "motion_tool_max",
+   "name": "Maximum Motion Projects",
+   "type": "quota",
+   "value": null
+  },
+  "muse_enabled": {
+   "category": "muse",
+   "has_override": false,
+   "key": "muse_enabled",
+   "name": "Muse Module",
+   "type": "boolean",
+   "value": "1"
+  },
+  "muse_mcp_enabled": {
+   "category": "muse",
+   "has_override": false,
+   "key": "muse_mcp_enabled",
+   "name": "MCP via Muse",
+   "type": "boolean",
+   "value": null
+  },
+  "muse_ref_images": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "muse_ref_images",
+   "name": "Muse Reference Images",
+   "type": "boolean",
+   "value": "1"
+  },
+  "muse_run_max": {
+   "category": "muse",
+   "has_override": false,
+   "key": "muse_run_max",
+   "limit": 5,
+   "name": "Muse Runs Per Day",
+   "remaining": 5,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "5"
+  },
+  "pipeline_queue_enabled": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "pipeline_queue_enabled",
+   "name": "Pipeline Queue",
+   "type": "boolean",
+   "value": "1"
+  },
+  "premium_templates": {
+   "category": "core",
+   "has_override": false,
+   "key": "premium_templates",
+   "name": "Premium Templates Access",
+   "type": "boolean",
+   "value": null
+  },
+  "priority_support": {
+   "type": "boolean",
+   "value": false
+  },
+  "prompt_assistant_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "prompt_assistant_enabled",
+   "name": "Prompt Assistant",
+   "type": "boolean",
+   "value": "1"
+  },
+  "prompt_enhancer_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "prompt_enhancer_enabled",
+   "name": "Prompt Enhancer (Legacy)",
+   "type": "boolean",
+   "value": "0"
+  },
+  "prompt_node_enabled": {
+   "category": "chat_ai",
+   "has_override": false,
+   "key": "prompt_node_enabled",
+   "name": "Prompt Node",
+   "type": "boolean",
+   "value": "1"
+  },
+  "prompt_submit_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "prompt_submit_max",
+   "limit": 100,
+   "name": "Prompt Submit Limit",
+   "remaining": 100,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "100"
+  },
+  "prompt_templates_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "prompt_templates_enabled",
+   "name": "Prompt Templates",
+   "type": "boolean",
+   "value": "1"
+  },
+  "prompts_per_batch": {
+   "category": "core",
+   "has_override": false,
+   "key": "prompts_per_batch",
+   "limit": 5,
+   "name": "Prompts Per Batch",
+   "remaining": 5,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "5"
+  },
+  "ref_images": {
+   "category": "core",
+   "has_override": false,
+   "key": "ref_images",
+   "name": "Reference Images",
+   "type": "boolean",
+   "value": "1"
+  },
+  "retry_on_fail": {
+   "category": "core",
+   "has_override": false,
+   "key": "retry_on_fail",
+   "name": "Retry on Fail",
+   "type": "boolean",
+   "value": "1"
+  },
+  "snippets_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "snippets_max",
+   "limit": 10,
+   "name": "Maximum Snippets",
+   "remaining": 10,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "10"
+  },
+  "tasks_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "tasks_enabled",
+   "name": "Tasks Module",
+   "type": "boolean",
+   "value": "1"
+  },
+  "tasks_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "tasks_max",
+   "limit": 2,
+   "name": "Maximum Tasks",
+   "remaining": 2,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "2"
+  },
+  "tasks_run_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "tasks_run_max",
+   "limit": 15,
+   "name": "Task Runs Per Day",
+   "remaining": 15,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "15"
+  },
+  "telegram_custom_bot": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_custom_bot",
+   "name": "Telegram Custom Bot",
+   "type": "boolean",
+   "value": "0"
+  },
+  "telegram_enabled": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_enabled",
+   "name": "Telegram Bot",
+   "type": "boolean",
+   "value": "0"
+  },
+  "telegram_queue_max": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_queue_max",
+   "limit": 0,
+   "name": "Telegram Queue Max",
+   "remaining": 0,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "0"
+  },
+  "telegram_rate_day": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_rate_day",
+   "limit": 0,
+   "name": "Telegram Rate/Day",
+   "remaining": 0,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "0"
+  },
+  "telegram_rate_hour": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_rate_hour",
+   "limit": 0,
+   "name": "Telegram Rate/Hour",
+   "remaining": 0,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "0"
+  },
+  "telegram_ref_image": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_ref_image",
+   "name": "Telegram Ref Image",
+   "type": "boolean",
+   "value": "0"
+  },
+  "telegram_workflow": {
+   "category": "telegram",
+   "has_override": false,
+   "key": "telegram_workflow",
+   "name": "Telegram Workflow",
+   "type": "boolean",
+   "value": "0"
+  },
+  "video_remove_watermark_enabled": {
+   "category": "advanced",
+   "has_override": false,
+   "key": "video_remove_watermark_enabled",
+   "name": "Video Post-Processing",
+   "type": "boolean",
+   "value": null
+  },
+  "workflow_execution_history_max": {
+   "category": "limits",
+   "has_override": false,
+   "key": "workflow_execution_history_max",
+   "limit": 20,
+   "name": "Workflow Execution History Max",
+   "remaining": 20,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "20"
+  },
+  "workflow_export": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflow_export",
+   "name": "Workflow Export",
+   "type": "boolean",
+   "value": null
+  },
+  "workflow_import": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflow_import",
+   "name": "Workflow Import",
+   "type": "boolean",
+   "value": null
+  },
+  "workflow_share_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflow_share_enabled",
+   "name": "Workflow Sharing",
+   "type": "boolean",
+   "value": null
+  },
+  "workflow_templates_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflow_templates_enabled",
+   "name": "Workflow Templates",
+   "type": "boolean",
+   "value": "1"
+  },
+  "workflows_enabled": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflows_enabled",
+   "name": "Workflows Module",
+   "type": "boolean",
+   "value": "1"
+  },
+  "workflows_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflows_max",
+   "limit": 2,
+   "name": "Maximum Workflows",
+   "remaining": 2,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "2"
+  },
+  "workflows_nodes_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflows_nodes_max",
+   "limit": 5,
+   "name": "Maximum Workflow Nodes",
+   "remaining": 5,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "5"
+  },
+  "workflows_run_max": {
+   "category": "core",
+   "has_override": false,
+   "key": "workflows_run_max",
+   "limit": 10,
+   "name": "Workflow Runs Per Day",
+   "remaining": 10,
+   "type": "quota",
+   "usage_today": 0,
+   "used_today": 0,
+   "value": "10"
+  }
+ },
+ "lastFetch": 1793813754658.0,
+ "plan": {
+  "expires_at": null,
+  "name": "Free",
+  "slug": "free"
+ },
+ "user_id": null
+}

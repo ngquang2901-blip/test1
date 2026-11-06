@@ -1,0 +1,652 @@
+{
+ "source": "DevTools Export HAR (sanitized) + har_redact.py",
+ "har_sha256": "f89b4a92b8d7b0bc5e424702bc85d69ac846c008c2a31d9ab575f80c06a49321",
+ "entries": 17,
+ "timeline": [
+  {
+   "i": 0,
+   "t_utc": "2026-11-05T18:23:53.811Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=nzlxg",
+   "mime": "application/json",
+   "size": 181,
+   "req": [
+    {
+     "rpc": "nzlxg",
+     "args": []
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "nzlxg",
+     "data": [
+      978,
+      1,
+      2,
+      2,
+      null,
+      978,
+      [
+       1795075087,
+       909787000
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 1,
+   "t_utc": "2026-11-05T18:23:54.955Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 2,
+   "t_utc": "2026-11-05T18:23:54.959Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 3,
+   "t_utc": "2026-11-05T18:23:54.963Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 4,
+   "t_utc": "2026-11-05T18:23:54.966Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  },
+  {
+   "i": 5,
+   "t_utc": "2026-11-05T18:23:55.074Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://www.gstatic.com/aitestkitchen/website/flow/images/perlin.png",
+   "mime": "image/png",
+   "size": 57725
+  },
+  {
+   "i": 6,
+   "t_utc": "2026-11-05T18:23:55.094Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1031,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "1ff69744-b86e-4ac4-ad64-b865296c13ac",
+      null,
+      null,
+      [
+       [
+        1793900081,
+        564932000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        null,
+        null,
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae?[query-stripped]",
+       null,
+       null,
+       69640
+      ],
+      [
+       null,
+       [
+        null,
+        null,
+        null,
+        "https://flow-content.google/image/b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae?[query-stripped]",
+        0,
+        null,
+        "image/jpeg"
+       ],
+       [
+        720,
+        1280
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 7,
+   "t_utc": "2026-11-05T18:23:55.231Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/reload?[query-stripped]",
+   "mime": "application/json",
+   "size": 3357,
+   "decode_error": "JSONDecodeError"
+  },
+  {
+   "i": 8,
+   "t_utc": "2026-11-05T18:23:55.563Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ogiZ0b",
+   "mime": "application/json",
+   "size": 1340,
+   "req": [
+    {
+     "rpc": "ogiZ0b",
+     "args": [
+      null,
+      [
+       [
+        null,
+        null,
+        null,
+        357800371,
+        2,
+        "HARBOR_SEAL",
+        null,
+        [
+         null,
+         22,
+         null,
+         null,
+         null,
+         "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+         null,
+         null,
+         null,
+         null,
+         [
+          "[REDACTED len=2681]",
+          1
+         ]
+        ],
+        [
+         [
+          [
+           "A small purple umbrella leaning on a wooden door, flat illustration."
+          ]
+         ]
+        ],
+        null,
+        null,
+        null,
+        "FB55A820-BAF1-4688-A707-0C31B9807827",
+        "F27F068E-F331-44B0-ABD4-DF190F2E70B1"
+       ]
+      ],
+      1,
+      [
+       null,
+       22,
+       null,
+       null,
+       null,
+       "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+       null,
+       null,
+       null,
+       null,
+       [
+        "[REDACTED len=2681]",
+        1
+       ]
+      ],
+      [
+       "D9670308-E47B-4399-A84B-CB7D85942898"
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ogiZ0b",
+     "data": [
+      [
+       [
+        "ab49cb37-3164-4ed3-acb9-a5765ce71503",
+        null,
+        "e503560a-a980-42eb-abb1-8438b8ba4bf9",
+        null,
+        null,
+        null,
+        [
+         [
+          null,
+          357800371,
+          null,
+          null,
+          null,
+          null,
+          1,
+          "A small purple umbrella leaning on a wooden door, flat illustration.",
+          31,
+          null,
+          null,
+          "e503560a-a980-42eb-abb1-8438b8ba4bf9",
+          null,
+          "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]",
+          2,
+          [
+           null,
+           null,
+           [
+            [
+             "A small purple umbrella leaning on a wooden door, flat illustration.",
+             null,
+             [
+              [
+               [
+                "A small purple umbrella leaning on a wooden door, flat illustration."
+               ]
+              ]
+             ]
+            ]
+           ],
+           []
+          ],
+          null,
+          "ab49cb37-3164-4ed3-acb9-a5765ce71503"
+         ],
+         null,
+         [
+          768,
+          1376
+         ],
+         null,
+         null,
+         [
+          null,
+          "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]"
+         ]
+        ]
+       ]
+      ],
+      [
+       [
+        "e503560a-a980-42eb-abb1-8438b8ba4bf9",
+        null,
+        null,
+        [
+         "Purple umbrella leaning on door",
+         [
+          1793903045,
+          425177000
+         ],
+         null,
+         null,
+         "ab49cb37-3164-4ed3-acb9-a5765ce71503",
+         "D9670308-E47B-4399-A84B-CB7D85942898",
+         [
+          1793903051,
+          632060000
+         ]
+        ],
+        "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 9,
+   "t_utc": "2026-11-05T18:23:55.572Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://www.google.com/recaptcha/enterprise/clr?[query-stripped]",
+   "mime": "application/binary",
+   "size": 0
+  },
+  {
+   "i": 10,
+   "t_utc": "2026-11-05T18:23:56.468Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/b7e9bb1d-067a-4162-a38e-c6cef7f2a7ae?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 69640
+  },
+  {
+   "i": 11,
+   "t_utc": "2026-11-05T18:23:59.900Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=WuwhI",
+   "mime": "application/json",
+   "size": 140,
+   "req": [
+    {
+     "rpc": "WuwhI",
+     "args": [
+      [
+       [
+        "MEDIA_GENERATION",
+        [
+         "7F94FDA7-33EF-4613-8B37-669157AC120A",
+         [
+          1793903034,
+          945000000
+         ],
+         null,
+         [
+          [
+           "IS_MOBILE",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_TABLET",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            []
+           ]
+          ],
+          [
+           "IS_DESKTOP",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "IS_ANGULAR",
+           [
+            "type.googleapis.com/google.protobuf.BoolValue",
+            [
+             1
+            ]
+           ]
+          ],
+          [
+           "USER_AGENT",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "[UA]"
+            ]
+           ]
+          ],
+          [
+           "TOOL_NAME",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PINHOLE"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_TYPE",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "image"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_SETTINGS",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "{\"imageModelKey\":\"HARBOR_SEAL\",\"aspectRatio\":2,\"seed\":357800371,\"count\":1,\"structuredPrompt\":{\"parts\":[{\"text\":\"A small purple umbrella leaning on a wooden door, flat illustration.\"}]}}"
+            ]
+           ]
+          ],
+          [
+           "PROJECT_ID",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+            ]
+           ]
+          ],
+          [
+           "MEDIA_GENERATION_PAYGATE_TIER",
+           [
+            "type.googleapis.com/google.protobuf.StringValue",
+            [
+             "PAYGATE_TIER_ONE"
+            ]
+           ]
+          ]
+         ],
+         "[REDACTED len=825]"
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "WuwhI",
+     "data": []
+    }
+   ]
+  },
+  {
+   "i": 12,
+   "t_utc": "2026-11-05T18:24:05.484Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=ngNC2",
+   "mime": "application/json",
+   "size": 331,
+   "req": [
+    {
+     "rpc": "ngNC2",
+     "args": [
+      "tools/PINHOLE/projects/b89ba0b5-d5e3-44d9-8d86-1851dd147159"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "ngNC2",
+     "data": [
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      [
+       "Tháng 11 05 - 23:34",
+       "fbea4a87-1b17-4a1f-b696-946fedfdb36b"
+      ],
+      null,
+      null,
+      null,
+      [
+       null,
+       null,
+       [
+        [
+         null,
+         3,
+         2,
+         "beluga_display"
+        ],
+        [
+         "abra",
+         2,
+         1
+        ]
+       ],
+       null,
+       2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 13,
+   "t_utc": "2026-11-05T18:24:05.492Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 148637
+  },
+  {
+   "i": 14,
+   "t_utc": "2026-11-05T18:24:08.640Z",
+   "method": "POST",
+   "status": 200,
+   "url": "https://flow.google.com/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=as29s",
+   "mime": "application/json",
+   "size": 1323,
+   "req": [
+    {
+     "rpc": "as29s",
+     "args": [
+      "ab49cb37-3164-4ed3-acb9-a5765ce71503"
+     ]
+    }
+   ],
+   "resp": [
+    {
+     "rpc": "as29s",
+     "data": [
+      "ab49cb37-3164-4ed3-acb9-a5765ce71503",
+      "b89ba0b5-d5e3-44d9-8d86-1851dd147159",
+      "e503560a-a980-42eb-abb1-8438b8ba4bf9",
+      null,
+      null,
+      [
+       [
+        1793903045,
+        425177000
+       ],
+       null,
+       null,
+       null,
+       null,
+       null,
+       [
+        null,
+        null,
+        [
+         [
+          "A small purple umbrella leaning on a wooden door, flat illustration.",
+          null,
+          [
+           [
+            [
+             "A small purple umbrella leaning on a wooden door, flat illustration."
+            ]
+           ]
+          ]
+         ]
+        ],
+        [],
+        1
+       ],
+       null,
+       null,
+       1,
+       "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]",
+       null,
+       null,
+       148637
+      ],
+      [
+       [
+        null,
+        357800371,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "A small purple umbrella leaning on a wooden door, flat illustration.",
+        31,
+        "",
+        null,
+        "e503560a-a980-42eb-abb1-8438b8ba4bf9",
+        null,
+        "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]",
+        2
+       ],
+       null,
+       [
+        768,
+        1376
+       ],
+       null,
+       null,
+       [
+        null,
+        "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]"
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "i": 15,
+   "t_utc": "2026-11-05T18:24:09.757Z",
+   "method": "GET",
+   "status": 200,
+   "url": "https://flow-content.google/image/ab49cb37-3164-4ed3-acb9-a5765ce71503?[query-stripped]",
+   "mime": "image/jpeg",
+   "size": 148637
+  },
+  {
+   "i": 16,
+   "t_utc": "2026-11-05T18:24:14.925Z",
+   "method": "POST",
+   "status": 204,
+   "url": "https://www.google-analytics.com/g/collect?[query-stripped]",
+   "mime": "text/plain",
+   "size": 0
+  }
+ ]
+}

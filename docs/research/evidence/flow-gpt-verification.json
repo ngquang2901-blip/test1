@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-11-04T18:57:47.043069+00:00",
+  "parent_verification": true,
+  "chatgpt_unique_source_refs": 47,
+  "flow_source_refs": 154,
+  "native_source_anchors": 118,
+  "source_refs_total": 319,
+  "native_rpc_mappings": 24,
+  "pinned_native_source_files": 4,
+  "runtime_artifact_hashes": "PASS",
+  "config_evidence_secret_pattern_scan": "PASS",
+  "new_chapter_links": "PASS",
+  "native_markdown_json_table_agreement": "PASS",
+  "provider_generation": "NOT RUN",
+  "bridge_package": "NOT OBTAINED",
+  "native_public_frontend_investigation": "Static pass complete; nested schema/auth/live response gaps documented in chapter17"
+}

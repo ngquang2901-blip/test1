@@ -1,0 +1,71 @@
+{
+ "flow_api": {
+  "auto_fallback": "v1",
+  "auto_primary": "v2",
+  "driver": "v2",
+  "v2_canary_percent": 0,
+  "v2_config_revision": 1,
+  "v2_enabled": true,
+  "v2_generation_transport": "fetch_request",
+  "v2_media_types": [
+   "image",
+   "video"
+  ],
+  "v2_surfaces": [
+   "gen",
+   "task",
+   "workflow"
+  ],
+  "v2_upload_enabled": true
+ },
+ "flow_recovery": {
+  "auto_recovery_enabled": true,
+  "backoff_base_sec": 30,
+  "backoff_jitter_percent": 20,
+  "backoff_max_sec": 300,
+  "captcha_recovery_mode": "pause_resume",
+  "chunk_mode_enabled": true,
+  "chunk_size": 40,
+  "consecutive_fail_threshold": 2,
+  "session_refresh_enabled": "<redacted>",
+  "session_refresh_interval_min": "<redacted>"
+ },
+ "history": {
+  "chain_options_supported": true,
+  "stage_reason_supported": true
+ },
+ "parallel": {
+  "flow_v2_web_enabled": true,
+  "provider_web_chatgpt_startup_timeout_ms": 60000,
+  "provider_web_enabled": true,
+  "provider_web_enabled_providers": [
+   "muse",
+   "chatgpt",
+   "gemini"
+  ],
+  "provider_web_gemini_startup_timeout_ms": 60000,
+  "provider_web_max_concurrent_workers": 2,
+  "provider_web_mcp_direct_enabled": true,
+  "provider_web_motion_enabled": true,
+  "provider_web_muse_startup_timeout_ms": 60000,
+  "provider_web_workflow_enabled": true,
+  "web_resubmit_enabled": true
+ },
+ "queue": {
+  "batch_size": 6,
+  "max_monitor": 6,
+  "rest_max_sec": 15,
+  "rest_min_sec": 5,
+  "video_max_monitor": 4
+ },
+ "timing": {
+  "delay_between_prompts_sec": 3
+ },
+ "workflow": {
+  "delay_nodes_sec": 3,
+  "flow_api_enabled": true,
+  "max_retries": 1,
+  "on_error": "continue",
+  "timeout_sec": 180
+ }
+}

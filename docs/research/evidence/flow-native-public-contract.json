@@ -1,0 +1,1366 @@
+{
+ "observed_at": "2026-11-05",
+ "method": "Anonymous HTTP GET of public HTML/JS; first two script URLs from HTML, project/grid URLs derived from exact public lazy module IDs and the observed preload URL template. Static analysis only; no login, cookies, RPC/POST or generation.",
+ "fetches_used": "1 HTML (parent) + 4 scripts (m_b, GK5kFd, wO1vlb, XRV0Af); pass 2 added 0 network requests",
+ "artifacts": [
+  {
+   "name": "flow-anonymous.html",
+   "bytes": 160742,
+   "sha256": "20db8e1c4f91425d0e641705900003ba33421f0b142256b26fd217cfdaa8a4a4"
+  },
+  {
+   "name": "flow-boq-m_b.js",
+   "url": "https://www.gstatic.com/_/mss/boq-labs-ai-sandbox/_/js/k=boq-labs-ai-sandbox.AiSandboxAngularFrontend.en_US.4sZngGusFEc.2018.O/d=1/excm=_b/ed=1/dg=0/wt=2/ujg=1/rs=APwUF7xvB9RBkmsE6gIgcjPXPEA9A9VpUw/ee=Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;Uvc8o:VDovNc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dowIGb:ebZ3mb;lOO0Vd:OTA3Ae/dti=1/m=_b",
+   "http": 200,
+   "bytes": 1190932,
+   "sha256": "d38ec208798f030193d6e82482ab47b64b683fc1f037b309c376c8a02d14086d"
+  },
+  {
+   "name": "flow-boq-m_GK5kFd.js",
+   "url": "https://www.gstatic.com/_/mss/boq-labs-ai-sandbox/_/js/k=boq-labs-ai-sandbox.AiSandboxAngularFrontend.en_US.4sZngGusFEc.2018.O/ck=boq-labs-ai-sandbox.AiSandboxAngularFrontend.3Gm-4A0Vi-A.L.X.O/d=1/exm=_b/excm=_b/ed=1/wt=2/ujg=1/rs=APwUF7xgrvX2ilBYpBlYvMzONOBGE_FcGg/ee=Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;Uvc8o:VDovNc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dowIGb:ebZ3mb;lOO0Vd:OTA3Ae/dti=1/m=GK5kFd",
+   "http": 200,
+   "bytes": 104934,
+   "sha256": "cdc9df3ac3707923eaff41381107e3cd41ef669286d07aabeb51fa89a04574fa",
+   "note": "app shell/UI module; no aisandbox/upload/video/RPC definition strings found"
+  }
+ ],
+ "scratch_dir": "/home/nthieuu/.hermes/profiles/bot-nthieuu/cache/scratch/toolflow-flow-gpt",
+ "known": {
+  "transport_html": {
+   "WIZ_global_data.eptZe": "/_/AiSandboxAngularFrontend/",
+   "hCQbU": "https://aisandbox-pa.googleapis.com",
+   "YmyN0b": "https://aisandbox-pa-webchannel.clients6.google.com",
+   "cfb2h": "boq_labs-ai-sandbox-frontend_20261104.00_p0",
+   "html_char_offset_eptZe": 14349,
+   "keys_redacted": "API keys / recaptcha site key / CSRF-like blobs deliberately not stored"
+  },
+  "batchexecute": {
+   "path_template": "${eptZe}data/batchexecute",
+   "js_offset": 708037,
+   "query_params_built_in_code": [
+    "rpcids",
+    "source-path",
+    "fcd.retries"
+   ],
+   "body_key": "f.req",
+   "f.req_offset": 689294
+  },
+  "backend_rest_paths_in_m_b": [
+   {
+    "path": "/v1/chooseServer",
+    "offset": 501532
+   },
+   {
+    "path": "/v1/refreshCreds",
+    "offset": 502135
+   },
+   {
+    "path": "/v1/flowAppletAgent/streamAppletAgentChat/channel",
+    "offset": 1189144
+   },
+   {
+    "path": "/v1/flowCreationAgent/streamCreationAgentChat/channel",
+    "offset": 1189379
+   }
+  ],
+  "grpc_method": {
+   "path": "/google.internal.labs.aisandbox.proto.flow.v1.FlowService/StreamGenerateContent",
+   "rpc_id": "L2jnw",
+   "offset": 415406,
+   "request_response_classes": "Descriptor Xa=_.jC (response), hb=_.iC (request); full fields not decoded. Assignment verified in pass 2."
+  },
+  "error_proto": "google.internal.labs.aisandbox.proto.common.v1.PublicAitkError (offset ~221900)",
+  "rpc_id_table_count": 105,
+  "rpc_id_table_range_offsets": [
+   400980,
+   438974
+  ],
+  "rpc_ids_with_explicit_method_path": 1,
+  "rpc_defs": [
+   {
+    "id": "KaLHHf",
+    "offset": 400980,
+    "grpc_path": null
+   },
+   {
+    "id": "BLIwAb",
+    "offset": 405523,
+    "grpc_path": null
+   },
+   {
+    "id": "GLc8O",
+    "offset": 405667,
+    "grpc_path": null
+   },
+   {
+    "id": "Hbi7j",
+    "offset": 406013,
+    "grpc_path": null
+   },
+   {
+    "id": "Iyc41d",
+    "offset": 406440,
+    "grpc_path": null
+   },
+   {
+    "id": "uRk1o",
+    "offset": 407106,
+    "grpc_path": null
+   },
+   {
+    "id": "yfXKib",
+    "offset": 407482,
+    "grpc_path": null
+   },
+   {
+    "id": "jtGUlf",
+    "offset": 407858,
+    "grpc_path": null
+   },
+   {
+    "id": "Dp1eae",
+    "offset": 408891,
+    "grpc_path": null
+   },
+   {
+    "id": "QiuWMe",
+    "offset": 409291,
+    "grpc_path": null
+   },
+   {
+    "id": "ZndCYe",
+    "offset": 409916,
+    "grpc_path": null
+   },
+   {
+    "id": "HU68fc",
+    "offset": 410132,
+    "grpc_path": null
+   },
+   {
+    "id": "uurnC",
+    "offset": 410348,
+    "grpc_path": null
+   },
+   {
+    "id": "Hnrtob",
+    "offset": 410552,
+    "grpc_path": null
+   },
+   {
+    "id": "kDiqOe",
+    "offset": 411024,
+    "grpc_path": null
+   },
+   {
+    "id": "O12LBf",
+    "offset": 411264,
+    "grpc_path": null
+   },
+   {
+    "id": "L91dPd",
+    "offset": 411874,
+    "grpc_path": null
+   },
+   {
+    "id": "m1QyH",
+    "offset": 412392,
+    "grpc_path": null
+   },
+   {
+    "id": "rEhmZd",
+    "offset": 412567,
+    "grpc_path": null
+   },
+   {
+    "id": "okjlg",
+    "offset": 412808,
+    "grpc_path": null
+   },
+   {
+    "id": "ncZTKe",
+    "offset": 413048,
+    "grpc_path": null
+   },
+   {
+    "id": "Xffewf",
+    "offset": 413319,
+    "grpc_path": null
+   },
+   {
+    "id": "LWkPYd",
+    "offset": 413884,
+    "grpc_path": null
+   },
+   {
+    "id": "kGwJ9b",
+    "offset": 414179,
+    "grpc_path": null
+   },
+   {
+    "id": "BN3L2e",
+    "offset": 414449,
+    "grpc_path": null
+   },
+   {
+    "id": "CsdYNb",
+    "offset": 414950,
+    "grpc_path": null
+   },
+   {
+    "id": "XarPDb",
+    "offset": 415166,
+    "grpc_path": null
+   },
+   {
+    "id": "L2jnw",
+    "offset": 415406,
+    "grpc_path": "/google.internal.labs.aisandbox.proto.flow.v1.FlowService/StreamGenerateContent"
+   },
+   {
+    "id": "NM5mBd",
+    "offset": 415571,
+    "grpc_path": null
+   },
+   {
+    "id": "BLuntc",
+    "offset": 415811,
+    "grpc_path": null
+   },
+   {
+    "id": "H5ewbd",
+    "offset": 416056,
+    "grpc_path": null
+   },
+   {
+    "id": "epopJ",
+    "offset": 416436,
+    "grpc_path": null
+   },
+   {
+    "id": "a3UfBf",
+    "offset": 416705,
+    "grpc_path": null
+   },
+   {
+    "id": "rThb8d",
+    "offset": 417598,
+    "grpc_path": null
+   },
+   {
+    "id": "Yw72Rc",
+    "offset": 417906,
+    "grpc_path": null
+   },
+   {
+    "id": "x9P9ne",
+    "offset": 418026,
+    "grpc_path": null
+   },
+   {
+    "id": "gS5h8c",
+    "offset": 419976,
+    "grpc_path": null
+   },
+   {
+    "id": "OqcWz",
+    "offset": 420153,
+    "grpc_path": null
+   },
+   {
+    "id": "BejPuf",
+    "offset": 420311,
+    "grpc_path": null
+   },
+   {
+    "id": "e97Odc",
+    "offset": 420470,
+    "grpc_path": null
+   },
+   {
+    "id": "JnpaK",
+    "offset": 420629,
+    "grpc_path": null
+   },
+   {
+    "id": "wX5DAe",
+    "offset": 420772,
+    "grpc_path": null
+   },
+   {
+    "id": "cO7JOb",
+    "offset": 421501,
+    "grpc_path": null
+   },
+   {
+    "id": "dpwTMe",
+    "offset": 422558,
+    "grpc_path": null
+   },
+   {
+    "id": "Adnnof",
+    "offset": 422737,
+    "grpc_path": null
+   },
+   {
+    "id": "Uhba0c",
+    "offset": 423352,
+    "grpc_path": null
+   },
+   {
+    "id": "X1yU8",
+    "offset": 423500,
+    "grpc_path": null
+   },
+   {
+    "id": "DviW9c",
+    "offset": 423705,
+    "grpc_path": null
+   },
+   {
+    "id": "e1OaUd",
+    "offset": 423912,
+    "grpc_path": null
+   },
+   {
+    "id": "GI4k8",
+    "offset": 424129,
+    "grpc_path": null
+   },
+   {
+    "id": "SIzNd",
+    "offset": 424346,
+    "grpc_path": null
+   },
+   {
+    "id": "aZDXX",
+    "offset": 424797,
+    "grpc_path": null
+   },
+   {
+    "id": "bk2bVd",
+    "offset": 425081,
+    "grpc_path": null
+   },
+   {
+    "id": "NTqQeb",
+    "offset": 425627,
+    "grpc_path": null
+   },
+   {
+    "id": "YTnJl",
+    "offset": 425786,
+    "grpc_path": null
+   },
+   {
+    "id": "vuMhXe",
+    "offset": 427277,
+    "grpc_path": null
+   },
+   {
+    "id": "dfEfxe",
+    "offset": 427485,
+    "grpc_path": null
+   },
+   {
+    "id": "EYPu5e",
+    "offset": 427729,
+    "grpc_path": null
+   },
+   {
+    "id": "drK0v",
+    "offset": 427973,
+    "grpc_path": null
+   },
+   {
+    "id": "RcR0yd",
+    "offset": 428216,
+    "grpc_path": null
+   },
+   {
+    "id": "Ag8LYc",
+    "offset": 428460,
+    "grpc_path": null
+   },
+   {
+    "id": "FHOCLd",
+    "offset": 428703,
+    "grpc_path": null
+   },
+   {
+    "id": "UyrjXe",
+    "offset": 428911,
+    "grpc_path": null
+   },
+   {
+    "id": "TLev1c",
+    "offset": 429207,
+    "grpc_path": null
+   },
+   {
+    "id": "enykc",
+    "offset": 429451,
+    "grpc_path": null
+   },
+   {
+    "id": "VeAN2c",
+    "offset": 429529,
+    "grpc_path": null
+   },
+   {
+    "id": "egmKmf",
+    "offset": 429688,
+    "grpc_path": null
+   },
+   {
+    "id": "dvDVle",
+    "offset": 430219,
+    "grpc_path": null
+   },
+   {
+    "id": "qxCAdb",
+    "offset": 430298,
+    "grpc_path": null
+   },
+   {
+    "id": "P7sk3d",
+    "offset": 430540,
+    "grpc_path": null
+   },
+   {
+    "id": "RcItAc",
+    "offset": 430781,
+    "grpc_path": null
+   },
+   {
+    "id": "zWuTOe",
+    "offset": 431925,
+    "grpc_path": null
+   },
+   {
+    "id": "x6ag3",
+    "offset": 432003,
+    "grpc_path": null
+   },
+   {
+    "id": "m8kykf",
+    "offset": 432155,
+    "grpc_path": null
+   },
+   {
+    "id": "xtglob",
+    "offset": 432734,
+    "grpc_path": null
+   },
+   {
+    "id": "pcDSI",
+    "offset": 432813,
+    "grpc_path": null
+   },
+   {
+    "id": "Pr65yd",
+    "offset": 432965,
+    "grpc_path": null
+   },
+   {
+    "id": "pd379d",
+    "offset": 433118,
+    "grpc_path": null
+   },
+   {
+    "id": "PnAUeb",
+    "offset": 433271,
+    "grpc_path": null
+   },
+   {
+    "id": "Qagez",
+    "offset": 433908,
+    "grpc_path": null
+   },
+   {
+    "id": "gxLfEb",
+    "offset": 433986,
+    "grpc_path": null
+   },
+   {
+    "id": "s00Wxb",
+    "offset": 434304,
+    "grpc_path": null
+   },
+   {
+    "id": "w9sHx",
+    "offset": 434383,
+    "grpc_path": null
+   },
+   {
+    "id": "eahEVe",
+    "offset": 434535,
+    "grpc_path": null
+   },
+   {
+    "id": "Aq1f4e",
+    "offset": 434853,
+    "grpc_path": null
+   },
+   {
+    "id": "Yt9pW",
+    "offset": 435062,
+    "grpc_path": null
+   },
+   {
+    "id": "cUBiIc",
+    "offset": 435270,
+    "grpc_path": null
+   },
+   {
+    "id": "EErZ0e",
+    "offset": 435479,
+    "grpc_path": null
+   },
+   {
+    "id": "B4pDmd",
+    "offset": 435723,
+    "grpc_path": null
+   },
+   {
+    "id": "X18iAf",
+    "offset": 435802,
+    "grpc_path": null
+   },
+   {
+    "id": "Ysuf1b",
+    "offset": 435961,
+    "grpc_path": null
+   },
+   {
+    "id": "SVN3Zb",
+    "offset": 436136,
+    "grpc_path": null
+   },
+   {
+    "id": "cNMbMd",
+    "offset": 436362,
+    "grpc_path": null
+   },
+   {
+    "id": "cRvg2c",
+    "offset": 436515,
+    "grpc_path": null
+   },
+   {
+    "id": "eS3Qm",
+    "offset": 436804,
+    "grpc_path": null
+   },
+   {
+    "id": "SVlREb",
+    "offset": 437037,
+    "grpc_path": null
+   },
+   {
+    "id": "y69Wzf",
+    "offset": 437116,
+    "grpc_path": null
+   },
+   {
+    "id": "xaPsAd",
+    "offset": 437269,
+    "grpc_path": null
+   },
+   {
+    "id": "SOvRI",
+    "offset": 437552,
+    "grpc_path": null
+   },
+   {
+    "id": "Oge8Od",
+    "offset": 437760,
+    "grpc_path": null
+   },
+   {
+    "id": "cEUqSd",
+    "offset": 437969,
+    "grpc_path": null
+   },
+   {
+    "id": "aWpAxb",
+    "offset": 438213,
+    "grpc_path": null
+   },
+   {
+    "id": "Ilo2Rd",
+    "offset": 438456,
+    "grpc_path": null
+   },
+   {
+    "id": "vvWmwb",
+    "offset": 438730,
+    "grpc_path": null
+   },
+   {
+    "id": "H1e9Be",
+    "offset": 438974,
+    "grpc_path": null
+   }
+  ]
+ },
+ "verdict": "PARTIAL: 24 native Flow RPC IDs linked to UI actions with request field-number evidence from project/grid modules. Bridge implementation, actual ToolFlow private protocol.rpc values, full nested wire schema and live provider acceptance remain unverified.",
+ "pass1_status": "PARTIAL (m_b + GK5kFd only)",
+ "artifacts_durable": [
+  {
+   "path": "evidence/native-sources/flow-boq-m_b.js",
+   "bytes": 1190932,
+   "sha256": "d38ec208798f030193d6e82482ab47b64b683fc1f037b309c376c8a02d14086d"
+  },
+  {
+   "path": "evidence/native-sources/flow-boq-m_GK5kFd.js",
+   "bytes": 104934,
+   "sha256": "cdc9df3ac3707923eaff41381107e3cd41ef669286d07aabeb51fa89a04574fa"
+  },
+  {
+   "path": "evidence/native-sources/flow-boq-m_wO1vlb.js",
+   "bytes": 3514612,
+   "sha256": "16607c80b4f85543850e475f1170b1dbf34cfc2c169337ce877111509096c83d"
+  },
+  {
+   "path": "evidence/native-sources/flow-boq-m_XRV0Af.js",
+   "bytes": 4483037,
+   "sha256": "5ad3393f2d14411ddb1029fb67c7ef8229ce442c844a0cae2317f419cf9bb9e2"
+  }
+ ],
+ "module_urls_derived": "native-followup-fetches.json (scratch): wO1vlb@m_b:1172648, XRV0Af@m_b:1172708; URL = preload URL with m=<literal id>, not listed explicitly in HTML",
+ "pass2": {
+  "verdict": "PARTIAL-HIGH: unary RPC wire envelope + ~25 action->RPC id mappings resolved by callsite; streaming agent path identified; several response schemas and per-field semantics still unknown",
+  "transport": {
+   "unary_descriptor": "new _.UB({Wa:id,Xa:RESPONSE class,hb:REQUEST class}) => batchexecute POST ${eptZe}data/batchexecute?rpcids=<ids>&source-path=..; body f.req",
+   "streaming_descriptor": "new _.VB({...,qQ:\"/google.internal.labs.aisandbox.proto.flow.agent.v1....\"}) => /v1/...channel streams (flowCreationAgent StreamChat, flowAppletAgent RunAppletAgentSse, flow.v1 StreamGenerateContent)",
+   "f_req_envelope": "vza{f1: repeated Qs{f1: rpcId string, f2: oneof(2|5|6) request payload = JSON.stringify(array-form protobuf), f4: client key}}; f.req=vza.Ie()",
+   "response_envelope": "Ts \"wrb.fr\": f1 rpcId, f2/9/10 oneof payload, f5 error(fu)",
+   "array_form": "proto message te[] is JSON array: field N at index N-1 (jspb); m.Ie()=JSON.stringify(xc(this))",
+   "setter_legend": [
+    {
+     "setter": "Bz",
+     "type": "string",
+     "off": 309665,
+     "snip": "_.Bz=function(a,b,c){return _.Pc(a,b,Tb(c),\"\")}"
+    },
+    {
+     "setter": "Cz",
+     "type": "bytes",
+     "off": 309762,
+     "snip": "_.Cz=function(a,b,c){return _.Pc(a,b,cb(c,!1,!0)"
+    },
+    {
+     "setter": "Dz",
+     "type": "enum/integer through _.Bb; not the strict int32 helper _.Db",
+     "off": 309877,
+     "snip": "_.Dz=function(a,b,c){return _.Pc(a,b,c==null?c:_.Bb(c),0)}"
+    },
+    {
+     "setter": "Np",
+     "type": "string (Tb validates typeof value == string); NOT evidence for int64",
+     "off": 309616,
+     "snip": "_.Np=function(a,b,c,d){return _.mz(a,b,Tb(c),d)}"
+    },
+    {
+     "setter": "$x",
+     "type": "bool",
+     "off": 309219,
+     "snip": "_.$x=function(a,b,c){return _.Pc(a,b,c==null?c:xb(c),!1)}"
+    },
+    {
+     "setter": "Ln",
+     "type": "message",
+     "off": 307574,
+     "snip": "_.Ln=function(a,b,c){c=Iba(c);_.mz(a,b,c)"
+    },
+    {
+     "setter": "Ez",
+     "type": "repeated string",
+     "off": 309936,
+     "snip": "_.Ez=function(a,b,c){return _.Oc(a,b,c,_.Rb)}"
+    },
+    {
+     "setter": "sz",
+     "type": "repeated message",
+     "off": 307727,
+     "snip": "_.sz=function(a,b,c){_.Ec(a);var d=a.te"
+    }
+   ],
+   "type_correction_by_parent": {
+    "note": "Np and Bz both use Tb, a string validator. Dz/Yq use Bb(enum); Zq/zz use Db(int32). Field numbers are grounded, semantic names remain inferred. Do not infer int64 merely from a minified helper name.",
+    "source": "flow-boq-m_b.js",
+    "anchors": [
+     {
+      "off": 19696,
+      "snip": "Tb=function(a){if(a!=null&&typeof a!==\"string\")throw Error();return a}"
+     },
+     {
+      "off": 16235,
+      "snip": "_.Bb=function(a){if(!zb(a))throw Ia(\"enum\");return a|0}"
+     },
+     {
+      "off": 16343,
+      "snip": "_.Db=function(a){if(typeof a!==\"number\")throw Ia(\"int32\");if(!zb(a))throw Ia(\"int32\");return a|0}"
+     }
+    ]
+   }
+  },
+  "non_batchexecute": [
+   {
+    "action": "UPLOAD_VIDEO",
+    "mechanism": "Scotty uploader POST /upload/v1/flow/upload/video/<projectId>, headers X-Framework-Xsrf-Token, Slug, optional x-trim-start/end ms; JSON response keys workflow/media/mediaId/name",
+    "anchor": "see extra anchors"
+   },
+   {
+    "action": "agent generate (Creation Agent)",
+    "mechanism": "FlowCreationAgentService/StreamChat (VB streaming); tool-event JSON GenerateImage/VideoInvocation/Result parsed with UI schemas _.UWa/_.VWa/_.WWa/_.XWa via _.mT; NOT the wire schema, those are UI event payload schemas (JSON keys like reference_media_ids, video_media_id, placeholder_frontend_id, workflow_id, media_id, batch_id, collection_id, error_code)"
+   }
+  ],
+  "rows": [
+   {
+    "rpc_id": "maseQ",
+    "action": "UPLOAD_IMAGE (inline bytes)",
+    "ui_mutation_key": "UPLOAD_IMAGE",
+    "descriptor_var": "Sab",
+    "request_fields_from_callsite": "1 msg(ctx: session/workflow/tool), 2 bytes(image), 3 string(mimeType), 4 bool, 7 msg(crop), 8 bool(isHidden), 9 string(fileName), 10 msg, 11 string(seed-like UI value; semantic name inferred), 12 string(seed-like UI value; semantic name inferred), 14 msg",
+    "response_note": "resp f1=ZB media (Dx(M,_.ZB,1))",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1902863,
+      "def_snip": "Wa:\"maseQ\"",
+      "call_off": 1940374,
+      "call_snip": "M=Sab.Db;var U=_.Y(Qab());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1918402,
+      "def_snip": "Wa:\"maseQ\"",
+      "call_off": 1955913,
+      "call_snip": "M=Sab.Db;var U=_.Y(Qab());"
+     }
+    }
+   },
+   {
+    "rpc_id": "jeNy9c",
+    "action": "SAVE_VIDEO_FRAME -> image upload",
+    "ui_mutation_key": "SAVE_VIDEO_FRAME",
+    "descriptor_var": "jab",
+    "request_fields_from_callsite": "1 string, 2 oneof msg(timestamp), 4 string, 5 string, 6 msg, 7 msg, 8 string(fileName)",
+    "response_note": "resp f1=ZB media",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1900183,
+      "def_snip": "Wa:\"jeNy9c\"",
+      "call_off": 1941252,
+      "call_snip": "c=jab.Db;var u=_.Y(hab());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1915722,
+      "def_snip": "Wa:\"jeNy9c\"",
+      "call_off": 1956791,
+      "call_snip": "c=jab.Db;var u=_.Y(hab());"
+     }
+    }
+   },
+   {
+    "rpc_id": "sAVZzc",
+    "action": "TRANSFORM_IMAGE",
+    "ui_mutation_key": "TRANSFORM_IMAGE",
+    "descriptor_var": "oab",
+    "request_fields_from_callsite": "1 enum/integer, 2 string(mediaId), 4 oneof msg, 7 string",
+    "response_note": "resp f1=ZB media",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1900490,
+      "def_snip": "Wa:\"sAVZzc\"",
+      "call_off": 1941972,
+      "call_snip": "k=oab.Db,l=_.Y(mab());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1916029,
+      "def_snip": "Wa:\"sAVZzc\"",
+      "call_off": 1957511,
+      "call_snip": "k=oab.Db,l=_.Y(mab());"
+     }
+    }
+   },
+   {
+    "rpc_id": "ogiZ0b",
+    "action": "GENERATE_IMAGE (default path via sw/yeb)",
+    "ui_mutation_key": "GENERATE_IMAGE",
+    "descriptor_var": "y9a",
+    "request_fields_from_callsite": "2 repeated msg(per-image udb: 3 rep msg refs, 4 int, 6 string, 8 msg ctx, 9 msg, 10 msg, 11/12 rep msg, 13/14 string, 15 int), 3 bool=true, 4 msg(ctx Jka), 5 msg(settings dR)",
+    "response_note": "resp f1 rep ZB media, f2 rep $B workflow",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1893449,
+      "def_snip": "Wa:\"ogiZ0b\"",
+      "call_off": 1942276,
+      "call_snip": "f=y9a.Db;var g=_.Y(w9a());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1908988,
+      "def_snip": "Wa:\"ogiZ0b\"",
+      "call_off": 1957815,
+      "call_snip": "f=y9a.Db;var g=_.Y(w9a());"
+     }
+    }
+   },
+   {
+    "rpc_id": "Z9cAtf",
+    "action": "GENERATE_IMAGE (alt path Deb/Aeb/zeb)",
+    "ui_mutation_key": "GENERATE_IMAGE",
+    "descriptor_var": "m9a",
+    "request_fields_from_callsite": "1 repeated msg, 3 msg(ctx), 4 msg(settings)",
+    "response_note": "same resp shape as ogiZ0b",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1892557,
+      "def_snip": "Wa:\"Z9cAtf\"",
+      "call_off": 1942505,
+      "call_snip": "f=m9a.Db;var g=_.Y(k9a());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1908096,
+      "def_snip": "Wa:\"Z9cAtf\"",
+      "call_off": 1958044,
+      "call_snip": "f=m9a.Db;var g=_.Y(k9a());"
+     }
+    }
+   },
+   {
+    "rpc_id": "YhhmEf",
+    "action": "GENERATE_VIDEO text",
+    "ui_mutation_key": "GENERATE_VIDEO (TEXT)",
+    "descriptor_var": "Ybb",
+    "request_fields_from_callsite": "1 rep msg(Sbb: 1 msg,2 string prompt,3 int aspect,5 msg placeholder{1,2,3 string;5,6 string},7 msg,8 msg resolution), 2 msg(ctx), 3 msg(settings)",
+    "response_note": "resp shared wR",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1907986,
+      "def_snip": "Wa:\"YhhmEf\"",
+      "call_off": 1958357,
+      "call_snip": "case \"TEXT\":return b.ha.mutate(Ybb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1923525,
+      "def_snip": "Wa:\"YhhmEf\"",
+      "call_off": 1973896,
+      "call_snip": "case \"TEXT\":return b.ha.mutate(Ybb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "MZZa6b",
+    "action": "GENERATE_VIDEO references",
+    "ui_mutation_key": "GENERATE_VIDEO (REFERENCES)",
+    "descriptor_var": "Dbb",
+    "request_fields_from_callsite": "per item(xbb): 1 msg,3 string(prompt),6 msg(placeholder),2/8/10/11 rep msg,9 msg,12 msg; list-level f2 rep item,f3?,x via Abb/zbb/ybb (not resolved)",
+    "response_note": "resp f1 rep xbb",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1906372,
+      "def_snip": "Wa:\"MZZa6b\"",
+      "call_off": 1958614,
+      "call_snip": "case \"REFERENCES\":return b.ha.mutate(Dbb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1921911,
+      "def_snip": "Wa:\"MZZa6b\"",
+      "call_off": 1974153,
+      "call_snip": "case \"REFERENCES\":return b.ha.mutate(Dbb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "eb1hJf",
+    "action": "GENERATE_VIDEO start frame",
+    "ui_mutation_key": "GENERATE_VIDEO (START_FRAME)",
+    "descriptor_var": "Rbb",
+    "request_fields_from_callsite": "per item(Lbb): 1 msg,2 string(prompt),5 msg(frame),6 msg(placeholder),9 msg,10 msg",
+    "response_note": "resp f1 rep Lbb",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1907448,
+      "def_snip": "Wa:\"eb1hJf\"",
+      "call_off": 1958983,
+      "call_snip": "case \"START_FRAME\":return b.ha.mutate(Rbb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1922987,
+      "def_snip": "Wa:\"eb1hJf\"",
+      "call_off": 1974522,
+      "call_snip": "case \"START_FRAME\":return b.ha.mutate(Rbb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "nprQif",
+    "action": "GENERATE_VIDEO start+end frames",
+    "ui_mutation_key": "GENERATE_VIDEO (START_END_FRAMES)",
+    "descriptor_var": "Kbb",
+    "request_fields_from_callsite": "per item(Ebb): 1 msg,2 string(prompt),5 msg(start),6 msg(end),7 msg(placeholder),9 msg",
+    "response_note": "resp f1 rep Ebb",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1906910,
+      "def_snip": "Wa:\"nprQif\"",
+      "call_off": 1959300,
+      "call_snip": "case \"START_END_FRAMES\":return b.ha.mutate(Kbb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1922449,
+      "def_snip": "Wa:\"nprQif\"",
+      "call_off": 1974839,
+      "call_snip": "case \"START_END_FRAMES\":return b.ha.mutate(Kbb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "jIps6",
+    "action": "EDIT_VIDEO",
+    "ui_mutation_key": "GENERATE_VIDEO (EDIT_VIDEO)",
+    "descriptor_var": "ibb",
+    "request_fields_from_callsite": "per item (bbb): 2 msg, 3 string(prompt), 4 enum/integer(aspect), 5 msg(placeholder), 6 msg, 9 msg",
+    "response_note": "UI switch",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1904757,
+      "def_snip": "Wa:\"jIps6\"",
+      "call_off": 1959649,
+      "call_snip": "case \"EDIT_VIDEO\":return b.ha.mutate(ibb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1920296,
+      "def_snip": "Wa:\"jIps6\"",
+      "call_off": 1975188,
+      "call_snip": "case \"EDIT_VIDEO\":return b.ha.mutate(ibb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "fZytfe",
+    "action": "EXTEND_VIDEO",
+    "ui_mutation_key": "GENERATE_VIDEO (EXTEND_VIDEO)",
+    "descriptor_var": "wbb",
+    "request_fields_from_callsite": "per item (qbb): 2 msg, 3 string(prompt), aspect via setAspectRatio",
+    "response_note": "UI switch",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1905834,
+      "def_snip": "Wa:\"fZytfe\"",
+      "call_off": 1960045,
+      "call_snip": "case \"EXTEND_VIDEO\":return b.ha.mutate(wbb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1921373,
+      "def_snip": "Wa:\"fZytfe\"",
+      "call_off": 1975584,
+      "call_snip": "case \"EXTEND_VIDEO\":return b.ha.mutate(wbb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "p0UkFb",
+    "action": "UPSAMPLE_VIDEO",
+    "ui_mutation_key": "UPSAMPLE_VIDEO",
+    "descriptor_var": "ecb",
+    "request_fields_from_callsite": "per item(Zbb): 1 msg (oneof 1/2 from y6a), 32 string; list-level builders $bb/acb/bcb",
+    "response_note": "UI switch",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1908524,
+      "def_snip": "Wa:\"p0UkFb\"",
+      "call_off": 1960443,
+      "call_snip": "case \"UPSAMPLE_VIDEO\":return b.ha.mutate(ecb.Db("
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1924063,
+      "def_snip": "Wa:\"p0UkFb\"",
+      "call_off": 1975982,
+      "call_snip": "case \"UPSAMPLE_VIDEO\":return b.ha.mutate(ecb.Db("
+     }
+    }
+   },
+   {
+    "rpc_id": "SPrCad",
+    "action": "UPSAMPLE_IMAGE (sync)",
+    "ui_mutation_key": "UPSAMPLE_IMAGE",
+    "descriptor_var": "Xab",
+    "request_fields_from_callsite": "1 string(mediaId), 2 enum/integer, 3 msg(ctx)",
+    "response_note": "resp f1 ZB media, f2 bytes",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1903159,
+      "def_snip": "Wa:\"SPrCad\"",
+      "call_off": 1945109,
+      "call_snip": "f=Xab.Db,g=_.Y(Vab());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1918698,
+      "def_snip": "Wa:\"SPrCad\"",
+      "call_off": 1960648,
+      "call_snip": "f=Xab.Db,g=_.Y(Vab());"
+     }
+    }
+   },
+   {
+    "rpc_id": "LcEY2c",
+    "action": "ASYNC_UPSAMPLE_IMAGE",
+    "ui_mutation_key": "ASYNC_UPSAMPLE_IMAGE",
+    "descriptor_var": "O8a",
+    "request_fields_from_callsite": "1 string(mediaId), 2 enum/integer, 3 msg(ctx)",
+    "response_note": "resp f1 ZB media",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1891076,
+      "def_snip": "Wa:\"LcEY2c\"",
+      "call_off": 1945401,
+      "call_snip": "f=O8a.Db,g=_.Y(M8a());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1906615,
+      "def_snip": "Wa:\"LcEY2c\"",
+      "call_off": 1960940,
+      "call_snip": "f=O8a.Db,g=_.Y(M8a());"
+     }
+    }
+   },
+   {
+    "rpc_id": "QZasKb",
+    "action": "GENERATE_GIF (step 1)",
+    "ui_mutation_key": "GENERATE_GIF",
+    "descriptor_var": "mcb",
+    "request_fields_from_callsite": "2 string",
+    "response_note": "resp: only optional $Z (f3 / f2); payload fields not resolved",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1909053,
+      "def_snip": "Wa:\"QZasKb\"",
+      "call_off": 1953639,
+      "call_snip": "var c=mcb.Db;var d=_.Y(kcb());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1924592,
+      "def_snip": "Wa:\"QZasKb\"",
+      "call_off": 1969178,
+      "call_snip": "var c=mcb.Db;var d=_.Y(kcb());"
+     }
+    }
+   },
+   {
+    "rpc_id": "GjQLTd",
+    "action": "GENERATE_GIF (get)",
+    "ui_mutation_key": "GENERATE_GIF",
+    "descriptor_var": "Acb",
+    "request_fields_from_callsite": "1 repeated msg",
+    "response_note": "resp: only optional $Z (f3 / f2); payload fields not resolved",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1909956,
+      "def_snip": "Wa:\"GjQLTd\"",
+      "call_off": 1953887,
+      "call_snip": "e=Acb.Db;var f=new xcb;"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1925495,
+      "def_snip": "Wa:\"GjQLTd\"",
+      "call_off": 1969426,
+      "call_snip": "e=Acb.Db;var f=new xcb;"
+     }
+    }
+   },
+   {
+    "rpc_id": "GSkHsd",
+    "action": "UPLOAD_SESSION_ATTACHMENT (creation agent)",
+    "ui_mutation_key": "UPLOAD_SESSION_ATTACHMENT",
+    "descriptor_var": "$wb",
+    "request_fields_from_callsite": "1 string(session), 2 string(fileName), 3 string(mimeType), 4 bytes(data), 6 string",
+    "response_note": "resp f1 msg(OX attachment)",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 2726531,
+      "def_snip": "Wa:\"GSkHsd\"",
+      "call_off": 2906810,
+      "call_snip": "k=$wb.Db,l=_.Y(Ywb());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 2742070,
+      "def_snip": "Wa:\"GSkHsd\"",
+      "call_off": 2922349,
+      "call_snip": "k=$wb.Db,l=_.Y(Ywb());"
+     }
+    }
+   },
+   {
+    "rpc_id": "MVz44c",
+    "action": "UPLOAD_SESSION_ATTACHMENT (applet)",
+    "ui_mutation_key": "UPLOAD_SESSION_ATTACHMENT",
+    "descriptor_var": "Mwb",
+    "request_fields_from_callsite": "1 string, 2 string(name), 3 string(mime), 4 bytes, 5 string",
+    "response_note": "resp f1 msg",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 2725236,
+      "def_snip": "Wa:\"MVz44c\"",
+      "call_off": 2907032,
+      "call_snip": "k=Mwb.Db;l=_.Y(Kwb());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 2740775,
+      "def_snip": "Wa:\"MVz44c\"",
+      "call_off": 2922571,
+      "call_snip": "k=Mwb.Db;l=_.Y(Kwb());"
+     }
+    }
+   },
+   {
+    "rpc_id": "as29s",
+    "action": "Media/video URL resolve by id",
+    "ui_mutation_key": "VIDEO_URLS",
+    "descriptor_var": "_.q3a",
+    "request_fields_from_callsite": "1 string(mediaId), 2 msg(ctx)",
+    "response_note": "resp is _.ZB; A8a then reads sub-message f6 (oneof 1/2/3) from a wrapper — exact class chain not fully resolved",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1672862,
+      "def_snip": "Wa:\"as29s\"",
+      "call_off": 1802867,
+      "call_snip": "g=b.ma.fetch(_.q3a.Db(_.Qv(n3a(_.o3a(_.Y((0,_.p3a)()),c)"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1688401,
+      "def_snip": "Wa:\"as29s\"",
+      "call_off": 1818406,
+      "call_snip": "g=b.ma.fetch(_.q3a.Db(_.Qv(n3a(_.o3a(_.Y((0,_.p3a)()),c)"
+     }
+    }
+   },
+   {
+    "rpc_id": "bOKtO",
+    "action": "Batch media get by names (poll/resolve)",
+    "ui_mutation_key": null,
+    "descriptor_var": "C8a",
+    "request_fields_from_callsite": "1 msg(ctx), 2 repeated string(names d), 3 msg",
+    "response_note": "resp f1 repeated ZB media (hg())",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1801366,
+      "def_snip": "Wa:\"bOKtO\"",
+      "call_off": 1889477,
+      "call_snip": "k=C8a.Db;var l=_.Y(B8a());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1816905,
+      "def_snip": "Wa:\"bOKtO\"",
+      "call_off": 1905016,
+      "call_snip": "k=C8a.Db;var l=_.Y(B8a());"
+     }
+    }
+   },
+   {
+    "rpc_id": "wDg3C",
+    "action": "Batch workflow/entity get (Jeb)",
+    "ui_mutation_key": null,
+    "descriptor_var": "Vcb",
+    "request_fields_from_callsite": "2 repeated string",
+    "response_note": "resp f1 rep Tcb (mC())",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1919331,
+      "def_snip": "Wa:\"wDg3C\"",
+      "call_off": 1946349,
+      "call_snip": "e=Vcb.Db;var f=_.Y(Scb());"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1934870,
+      "def_snip": "Wa:\"wDg3C\"",
+      "call_off": 1961888,
+      "call_snip": "e=Vcb.Db;var f=_.Y(Scb());"
+     }
+    }
+   },
+   {
+    "rpc_id": "Zzl0ze",
+    "action": "Get project",
+    "ui_mutation_key": null,
+    "descriptor_var": "W$a",
+    "request_fields_from_callsite": "1 string `projects/<id>` (S$a), 5 msg (T$a, optional ctx)",
+    "response_note": "resp f4 rep z9a (workflow), hg()",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1899208,
+      "def_snip": "Wa:\"Zzl0ze\"",
+      "call_off": 1977326,
+      "call_snip": "f=yield a.ha.fetch(W$a.Db(_.Qv(T$a(S$a(`projects/${c}`),f))))"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1914747,
+      "def_snip": "Wa:\"Zzl0ze\"",
+      "call_off": 1992865,
+      "call_snip": "f=yield a.ha.fetch(W$a.Db(_.Qv(T$a(S$a(`projects/${c}`),f))))"
+     }
+    }
+   },
+   {
+    "rpc_id": "UpteDb",
+    "action": "List/search projects",
+    "ui_mutation_key": null,
+    "descriptor_var": "_.l2a",
+    "request_fields_from_callsite": "2 int(page), 3 string(token), 4 msg ; uses _.g2a(_.f2a(21),e) filter",
+    "response_note": "resp f1 rep nN",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": 1672947,
+      "def_snip": "Wa:\"UpteDb\"",
+      "call_off": 1675713,
+      "call_snip": "k=h.fetch;l=_.l2a.Db;"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 1688486,
+      "def_snip": "Wa:\"UpteDb\"",
+      "call_off": 1691252,
+      "call_snip": "k=h.fetch;l=_.l2a.Db;"
+     }
+    }
+   },
+   {
+    "rpc_id": "heTLee",
+    "action": "Search media (grid)",
+    "ui_mutation_key": null,
+    "descriptor_var": "ECb",
+    "request_fields_from_callsite": "oneof(1,2) msg(xCb), 3 int32(yCb), 4 string(zCb), 5 msg(ACb)",
+    "response_note": "resp f4 rep CCb",
+    "anchors": {
+     "flow-boq-m_wO1vlb.js": {
+      "def_off": -1,
+      "def_snip": "Wa:\"heTLee\"",
+      "call_off": -1,
+      "call_snip": "e=yield b.ha.fetch(ECb.Db(c))"
+     },
+     "flow-boq-m_XRV0Af.js": {
+      "def_off": 2948948,
+      "def_snip": "Wa:\"heTLee\"",
+      "call_off": 2950016,
+      "call_snip": "e=yield b.ha.fetch(ECb.Db(c))"
+     }
+    }
+   }
+  ],
+  "extra_anchors": [
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 400709,
+    "snip": "_.UB=class extends TB{constructor(a){super(a);this[Eza]=\"unary\"}}",
+    "note": "UB=unary (batchexecute); VB=server_streaming"
+   },
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 400094,
+    "snip": "Wa:e,hb:c,Xa:b,Za:a}",
+    "note": "TB(id,Xa,hb): Xa=RESPONSE class, hb=REQUEST class (confirmed by Qab=_.Ed(Pab), hb:Pab, response read by Dx(M,_.ZB,1))"
+   },
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 383382,
+    "snip": "Qs=class extends _.m{constructor(a){super(a)}Pg(){return _.n(this,1)}},uza=[2,5,6]",
+    "note": "envelope item: f1=rpc id string; f2 (oneof 2/5/6)=request payload string; f4=client key"
+   },
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 707723,
+    "snip": "la=_.Np(Oa,4,la),la=_.Np(la,1,aa.Pg()[_.SB].Wa),_.ns(aa)&&lqa(la,Ha),_.Yc(e,1,Qs,la)",
+    "note": "builder: Qs.f4=key, f1=Wa id, f2=ns(req).Ie(), appended to vza f1"
+   },
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 689288,
+    "snip": "iI(k,\"f.req\",f.Ie())",
+    "note": "f.req = JSON.stringify(array form of vza); m.Ie()=JSON.stringify(xc(this))"
+   },
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 383907,
+    "snip": "Ts.Ue=\"wrb.fr\"",
+    "note": "response envelope Ts: f1 id, f2/9/10 oneof payload, f5 error(fu)"
+   },
+   {
+    "file": "flow-boq-m_b.js",
+    "off": 708016,
+    "snip": "${_.Nd(\"eptZe\")}data/batchexecute",
+    "note": "URL"
+   },
+   {
+    "file": "flow-boq-m_wO1vlb.js",
+    "off": 3115747,
+    "snip": "new _.VB(IRb)",
+    "note": "VB streaming: qQ path FlowAppletAgentService/RunAppletAgentSse"
+   },
+   {
+    "file": "flow-boq-m_wO1vlb.js",
+    "off": 3159621,
+    "snip": "FlowCreationAgentService/StreamChat",
+    "note": "streaming agent chat, not batchexecute"
+   },
+   {
+    "file": "flow-boq-m_wO1vlb.js",
+    "off": 1952171,
+    "snip": "url:`/upload/v1/flow/upload/video/${e}`",
+    "note": "UPLOAD_VIDEO is NOT batchexecute: Scotty uploader POST, headers X-Framework-Xsrf-Token, Slug; JSON response parse workflow/media/name/mediaId"
+   },
+   {
+    "file": "flow-boq-m_wO1vlb.js",
+    "off": 3177701,
+    "snip": "_.mT({schema:_.UWa,data:b.payload,no:\"GenerateImageInvocation\",Eq:!0})",
+    "note": "UI/agent event JSON schema (UWa/VWa/WWa/XWa) for tool-events, NOT wire schema of batchexecute generate"
+   },
+   {
+    "file": "flow-boq-m_wO1vlb.js",
+    "off": 3185316,
+    "snip": "_.mT({schema:_.WWa,data:c.payload,no:\"GenerateVideoInvocation\",Eq:!0})",
+    "note": "same, video"
+   },
+   {
+    "file": "flow-boq-m_wO1vlb.js",
+    "off": 1958357,
+    "snip": "case \"TEXT\":return b.ha.mutate(Ybb.Db(",
+    "note": "video mode switch"
+   }
+  ],
+  "poll_resolve_chain": "No dedicated poll RPC proved. GENERATE_VIDEO response (shared class wR) exposes hg() list with per-media status failed/canceled ($eb). Resolve/refresh: bOKtO batch media get (names rep string f2) and as29s per-media URL resolve (mediaId f1); project load Zzl0ze; media grid heTLee only in XRV0Af (not in wO1vlb).",
+  "unknown": [
+   "field semantic names (minified)",
+   "ZB media / $B workflow message layouts beyond getters",
+   "wR response class layout",
+   "Z class (Hb/Gb at last request field)",
+   "Which of Ybb..ecb video RPC ids is chosen server-side policy",
+   "entitlement/auth/recaptcha",
+   "symbolic ToolFlow protocol.rpc.* -> no automatic mapping; map only by explicit action ids in this table"
+  ],
+  "verify": "python3 docs/research/evidence/verify-flow-native-public-contract.py"
+ },
+ "superseded_unknowns": {
+  "upload/generate/poll/media resolve IDs": "resolved partially in pass2 (see pass2.rows)",
+  "module lazy": "resolved: wO1vlb, XRV0Af from m_b literals"
+ },
+ "unknown_pass1_history": [
+  "Map of any rpc_id except L2jnw to a Flow action (upload/generate image/video/poll/media resolve): minified symbols carry no names; not inferred.",
+  "Wire schema (field numbers) of StreamGenerateContent request/response: classes _.jC/_.iC not decoded.",
+  "Whether the 104 UB-defs are Flow-specific or shared framework: unproven.",
+  "Feature lazy-loaded modules containing create/upload/video/media code: module URLs not listed in anonymous HTML; not guessed.",
+  "/fx/api/trpc/media.getMediaUrlRedirect: absent from both public scripts (0 matches 'trpc','getMediaUrlRedirect').",
+  "Auth requirements for aisandbox-pa calls: not tested (no calls)."
+ ],
+ "unknown": [
+  "field semantic names (minified)",
+  "ZB media / $B workflow message layouts beyond getters",
+  "wR response class layout",
+  "Z class (Hb/Gb at last request field)",
+  "Which of Ybb..ecb video RPC ids is chosen server-side policy",
+  "entitlement/auth/recaptcha",
+  "symbolic ToolFlow protocol.rpc.* -> no automatic mapping; map only by explicit action ids in this table",
+  "No dedicated video/image generation poll RPC proven; batch-media refresh and media-URL resolve identified.",
+  "Full wire-compatible request construction and response acceptance not exercised.",
+  "Actual paid ToolFlow protocol.rpc values were not obtained; do not equate native action mapping with Bridge compatibility."
+ ]
+}

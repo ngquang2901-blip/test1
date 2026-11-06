@@ -1,0 +1,41 @@
+{
+ "source": "Lượt 16 (06/11/2026): 3 request ảnh Nano Banana 2 Lite 1:1 x1, prompt 2 và 3 trùng nhau",
+ "records": [
+  {
+   "phase": "sent",
+   "rpc": "ogiZ0b",
+   "status": 0,
+   "req": "f.req=[[[\"ogiZ0b\",\"[null,[[null,null,null,2138079120,1,\\\"HARBOR_SEAL\\\",null,[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[[[\\\"Chiếc xe máy Cub cũ dựng trước cửa nhà ống, buổi trưa, ảnh chụp đời thường\\\"]]],null,null,null,\\\"88214A5A-958D-47BA-9618-764F4DDAC7A4\\\",\\\"0D33595E-71AC-4920-9BBF-4B9BE0DA99FB\\\"]],1,[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[\\\"86031961-8022-4965-9870-A127D2E8EAE4\\\"]]\",null,\"generic\"]]]&at=<redacted>&"
+  },
+  {
+   "phase": "sent",
+   "rpc": "ogiZ0b",
+   "status": 0,
+   "req": "f.req=[[[\"ogiZ0b\",\"[null,[[null,null,null,215213752,1,\\\"HARBOR_SEAL\\\",null,[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[[[\\\"Giỏ trái cây miền Tây trên ghe, chợ nổi Cái Răng, ảnh chụp đời thường\\\"]]],null,null,null,\\\"E0CC3C02-A5F7-4443-BD5F-E456D86DF5D7\\\",\\\"D1DE678C-2F5F-4138-8904-0C56BEF8481B\\\"]],1,[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[\\\"384EE82C-953F-49CE-9F66-766C5E278939\\\"]]\",null,\"generic\"]]]&at=<redacted>&"
+  },
+  {
+   "phase": "sent",
+   "rpc": "ogiZ0b",
+   "status": 0,
+   "req": "f.req=[[[\"ogiZ0b\",\"[null,[[null,null,null,2062553198,1,\\\"HARBOR_SEAL\\\",null,[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[[[\\\"Giỏ trái cây miền Tây trên ghe, chợ nổi Cái Răng, ảnh chụp đời thường\\\"]]],null,null,null,\\\"3FDE0518-AAE4-44D7-B87F-7FCAAA4F267E\\\",\\\"7A5D3A58-0808-4ED4-9F2D-79A78B56D735\\\"]],1,[null,22,null,null,null,\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\",null,null,null,null,[\\\"<long>\\\",1]],[\\\"5363F8EB-2909-4DB9-A562-4B436DC2BEE2\\\"]]\",null,\"generic\"]]]&at=<redacted>&"
+  },
+  {
+   "phase": "done",
+   "rpc": "ogiZ0b",
+   "status": 200,
+   "res": ")]}'\n\n1366\n[[\"wrb.fr\",\"ogiZ0b\",\"[[[\\\"2672034c-30c0-4bed-afc5-118d60db0aad\\\",null,\\\"28986256-43ab-47d6-830d-5ff171e45d0b\\\",null,null,null,[[null,2138079120,null,null,null,null,1,\\\"An old Cub motorbike parked in front of a narrow tube house, at noon, everyday life photography.\\\",31,null,null,\\\"28986256-43ab-47d6-830d-5ff171e45d0b\\\",null,\\\"https://flow-content.google/image/2672034c-30c0-4bed-afc5-118d60db0aad?Expires\\\\u003d1793967566\\\\u0026KeyName\\\\u003dlabs-flow-prod-cdn-key\\\\u0026Signature\\\\u003d<redacted>\\\",1,[null,null,[[\\\"An old Cub motorbike parked in front of a narrow tube house, at noon, everyday life photography.\\\",null,[[[\\\"Chiếc xe máy Cub cũ dựng trước cửa nhà ống, buổi trưa, ảnh chụp đời thường\\\"]]]]],[]],null,\\\"2672034c-30c0-4bed-afc5-118d60db0aad\\\"],null,[1024,1024],null,null,[null,\\\"https://flow-content.google/image/2672034c-30c0-4bed-afc5-118d60db0aad?Expires\\\\u003d1793967566\\\\u0026KeyName\\\\u003dlabs-flow-prod-cdn-key\\\\u0026Signature\\\\u003d<redacted>\\\"]]]],[[\\\"28986256-43ab-47d6-830d-5ff171e45d0b\\\",null,null,[\\\"Cub motorbike parked by house\\\",[1793945968,271281000],null,null,\\\"2672034c-30c0-4bed-afc5-118d60db0aad\\\",\\\"86031961-8022-4965-9870-A127D2E8EAE4\\\",[1793945974,512023000]],\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\"]]]\",null,null,null,\"generic\"],[\"di\",10227],[\"af.httprm\",10227,\"-4432615584577660375\",1]]\n26\n[[\"e\",4,null,null,1431]]\n"
+  },
+  {
+   "phase": "done",
+   "rpc": "ogiZ0b",
+   "status": 200,
+   "res": ")]}'\n\n1337\n[[\"wrb.fr\",\"ogiZ0b\",\"[[[\\\"63c75619-658a-48a3-9fc3-9d7c7d83220c\\\",null,\\\"bfb6a2ae-035f-4b38-8794-070e428de029\\\",null,null,null,[[null,215213752,null,null,null,null,1,\\\"Fruit basket of the Mekong Delta on a boat, Cai Rang floating market, candid photography.\\\",31,null,null,\\\"bfb6a2ae-035f-4b38-8794-070e428de029\\\",null,\\\"https://flow-content.google/image/63c75619-658a-48a3-9fc3-9d7c7d83220c?Expires\\\\u003d1793967569\\\\u0026KeyName\\\\u003dlabs-flow-prod-cdn-key\\\\u0026Signature\\\\u003d<redacted>\\\",1,[null,null,[[\\\"Fruit basket of the Mekong Delta on a boat, Cai Rang floating market, candid photography.\\\",null,[[[\\\"Giỏ trái cây miền Tây trên ghe, chợ nổi Cái Răng, ảnh chụp đời thường\\\"]]]]],[]],null,\\\"63c75619-658a-48a3-9fc3-9d7c7d83220c\\\"],null,[1024,1024],null,null,[null,\\\"https://flow-content.google/image/63c75619-658a-48a3-9fc3-9d7c7d83220c?Expires\\\\u003d1793967569\\\\u0026KeyName\\\\u003dlabs-flow-prod-cdn-key\\\\u0026Signature\\\\u003d<redacted>\\\"]]]],[[\\\"bfb6a2ae-035f-4b38-8794-070e428de029\\\",null,null,[\\\"Fruit basket on boat\\\",[1793945971,129020000],null,null,\\\"63c75619-658a-48a3-9fc3-9d7c7d83220c\\\",\\\"384EE82C-953F-49CE-9F66-766C5E278939\\\",[1793945977,844129000]],\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\"]]]\",null,null,null,\"generic\"],[\"di\",10656],[\"af.httprm\",10656,\"-2251148897491122568\",3]]\n26\n[[\"e\",4,null,null,1399]]\n"
+  },
+  {
+   "phase": "done",
+   "rpc": "ogiZ0b",
+   "status": 200,
+   "res": ")]}'\n\n1344\n[[\"wrb.fr\",\"ogiZ0b\",\"[[[\\\"939b20c3-7e88-432e-b413-fb5b64c869f7\\\",null,\\\"3ba89a07-30ff-4190-b5ce-7d03b7720141\\\",null,null,null,[[null,2062553198,null,null,null,null,1,\\\"Fruit basket of the Mekong Delta on a boat, Cái Răng floating market, candid photography.\\\",31,null,null,\\\"3ba89a07-30ff-4190-b5ce-7d03b7720141\\\",null,\\\"https://flow-content.google/image/939b20c3-7e88-432e-b413-fb5b64c869f7?Expires\\\\u003d1793967572\\\\u0026KeyName\\\\u003dlabs-flow-prod-cdn-key\\\\u0026Signature\\\\u003d<redacted>\\\",1,[null,null,[[\\\"Fruit basket of the Mekong Delta on a boat, Cái Răng floating market, candid photography.\\\",null,[[[\\\"Giỏ trái cây miền Tây trên ghe, chợ nổi Cái Răng, ảnh chụp đời thường\\\"]]]]],[]],null,\\\"939b20c3-7e88-432e-b413-fb5b64c869f7\\\"],null,[1024,1024],null,null,[null,\\\"https://flow-content.google/image/939b20c3-7e88-432e-b413-fb5b64c869f7?Expires\\\\u003d1793967572\\\\u0026KeyName\\\\u003dlabs-flow-prod-cdn-key\\\\u0026Signature\\\\u003d<redacted>\\\"]]]],[[\\\"3ba89a07-30ff-4190-b5ce-7d03b7720141\\\",null,null,[\\\"Fruit basket on boat market\\\",[1793945974,296079000],null,null,\\\"939b20c3-7e88-432e-b413-fb5b64c869f7\\\",\\\"5363F8EB-2909-4DB9-A562-4B436DC2BEE2\\\",[1793945980,811844000]],\\\"b89ba0b5-d5e3-44d9-8d86-1851dd147159\\\"]]]\",null,null,null,\"generic\"],[\"di\",10465],[\"af.httprm\",10464,\"4718156907407229292\",3]]\n26\n[[\"e\",4,null,null,1410]]\n"
+  }
+ ]
+}

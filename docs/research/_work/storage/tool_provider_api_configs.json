@@ -1,0 +1,178 @@
+{
+ "data": {
+  "chatgpt": {
+   "config_version": 87,
+   "configs": {},
+   "meta": {
+    "version": 87
+   },
+   "name": "ChatGPT",
+   "status": "active"
+  },
+  "gemini": {
+   "config_version": 34,
+   "configs": {},
+   "meta": {
+    "version": 34
+   },
+   "name": "Gemini",
+   "status": "active"
+  },
+  "grok": {
+   "config_version": 65,
+   "configs": {},
+   "meta": {
+    "version": 65
+   },
+   "name": "Grok",
+   "status": "active"
+  },
+  "muse": {
+   "config_version": 41,
+   "configs": {
+    "automation_timings": {
+     "new_chat_timeout_ms": 10000,
+     "poll_interval_ms": 150
+    },
+    "error_patterns": {
+     "generation_failed_text": "I'm afraid|wasn't able to|Couldn't make|Couldn't generate|internal error|wasn't generated|I wasn't able to make that video|I wasn't able to generate that video|I’m missing|can't generate|Chưa tạo|không thể|I wasn't able|I can't retry"
+    },
+    "max_ref_images": {
+     "image": 10,
+     "video": 1
+    },
+    "media_fetch": {
+     "attempts": 3,
+     "retry_delay_ms": 500,
+     "timeout_ms": 10000
+    },
+    "ratios": {
+     "image": [
+      {
+       "label": "1:1",
+       "value": "1:1"
+      },
+      {
+       "label": "4:3",
+       "value": "4:3"
+      },
+      {
+       "label": "3:4",
+       "value": "3:4"
+      },
+      {
+       "label": "16:9",
+       "value": "16:9"
+      },
+      {
+       "is_default": true,
+       "label": "9:16",
+       "value": "9:16"
+      }
+     ],
+     "video": [
+      {
+       "label": "1:1",
+       "value": "1:1"
+      },
+      {
+       "label": "4:3",
+       "value": "4:3"
+      },
+      {
+       "label": "3:4",
+       "value": "3:4"
+      },
+      {
+       "label": "16:9",
+       "value": "16:9"
+      },
+      {
+       "label": "9:16",
+       "value": "9:16"
+      }
+     ]
+    },
+    "reference_upload_timings": {
+     "poll_interval_ms": 200,
+     "settle_ms": 2000,
+     "timeout_ms": 120000
+    },
+    "result_wait": {
+     "pending_media_patterns": [
+      "\\.(?:webp|png|jpe?g|mp4|webm)",
+      "imagine_media",
+      "deliverable",
+      "generated\\s+.*image",
+      "verified\\s+generated",
+      "artifact"
+     ],
+     "text_min_elapsed_ms": 8000,
+     "text_stable_ms": 9000
+    },
+    "session_readiness": {
+     "assigned_status": "assigned",
+     "connecting_patterns": [
+      "Connecting...",
+      "Connecting…"
+     ],
+     "disabled_state": "DISABLED",
+     "hydrated_state": "hydrated",
+     "poll_interval_ms": 500,
+     "running_state": "RUNNING",
+     "session_url": "/api/session",
+     "timeout_ms": 15000,
+     "wake_url": "/api/hatch/vm/wake"
+    },
+    "supports": {
+     "auto_download": true,
+     "delete_after_gen": true,
+     "humanized": false,
+     "image_mode": false,
+     "quantity": false,
+     "ratio": true,
+     "ref_image": true,
+     "video": true
+    },
+    "timeouts": {
+     "image_ms": 300000,
+     "video_ms": 600000
+    },
+    "urls": {
+     "new_chat_url": "https://muse.ai/thread/new"
+    }
+   },
+   "meta": {
+    "version": 41
+   },
+   "name": "Muse",
+   "status": "active"
+  }
+ },
+ "expiresAt": 1793817356203.0,
+ "fetchedAt": 1793813756203.0,
+ "meta": {
+  "access": {
+   "authorization_ttl_sec": 300,
+   "client_id": "<redacted>",
+   "contract": "device-v1",
+   "key_id": "<redacted>",
+   "key_revision": 1,
+   "product_id": 1,
+   "user_id": 16510
+  }
+ },
+ "scope": {
+  "audience": "https://labs.tool.vn/api/v1",
+  "auth_epoch": 76,
+  "authorization_ttl_sec": 300,
+  "authorized_at": 1793813756193.0,
+  "client_id": "<redacted>",
+  "contract": "device-v1",
+  "key_id": "<redacted>",
+  "key_revision": 1,
+  "product_id": 1,
+  "token_hash": "<redacted>",
+  "user_id": 16510
+ }
+}

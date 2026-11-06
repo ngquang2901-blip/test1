@@ -1,0 +1,202 @@
+{
+ "tool_device_fp": {
+  "bytes": 38,
+  "type": "str",
+  "dumped": false
+ },
+ "tool_client_enrollment": {
+  "bytes": 225,
+  "type": "dict",
+  "dumped": false
+ },
+ "af_local_usage": {
+  "bytes": 28,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_settings": {
+  "bytes": 2162,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_settings_touched": {
+  "bytes": 1666,
+  "type": "list",
+  "dumped": true
+ },
+ "tool_gentab_state": {
+  "bytes": 2,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_system_settings": {
+  "bytes": 2178,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_addon_prompts": {
+  "bytes": 256826,
+  "type": "dict",
+  "dumped": true
+ },
+ "tool_providers": {
+  "bytes": 1155,
+  "type": "list",
+  "dumped": true
+ },
+ "tool_i18n_en": {
+  "bytes": 275274,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_locale": {
+  "bytes": 4,
+  "type": "str",
+  "dumped": true
+ },
+ "af_validation_rules": {
+  "bytes": 106,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_active_session": {
+  "bytes": 116,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_fingerprint": {
+  "bytes": 38,
+  "type": "str",
+  "dumped": false
+ },
+ "af_entitlements": {
+  "bytes": 12765,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_location": {
+  "bytes": 133,
+  "type": "dict",
+  "dumped": false
+ },
+ "af_announcement_initialized": {
+  "bytes": 4,
+  "type": "bool",
+  "dumped": true
+ },
+ "af_announcement_seen_version": {
+  "bytes": 18,
+  "type": "str",
+  "dumped": true
+ },
+ "tool_config_versions": {
+  "bytes": 256,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_auth": {
+  "bytes": 2787,
+  "type": "dict",
+  "dumped": false
+ },
+ "af_tasks": {
+  "bytes": 2,
+  "type": "list",
+  "dumped": true
+ },
+ "af_workflows": {
+  "bytes": 2,
+  "type": "list",
+  "dumped": true
+ },
+ "af_nodes": {
+  "bytes": 2,
+  "type": "list",
+  "dumped": true
+ },
+ "af_edges": {
+  "bytes": 2,
+  "type": "list",
+  "dumped": true
+ },
+ "tool_server_time_offset": {
+  "bytes": 4,
+  "type": "int",
+  "dumped": true
+ },
+ "af_settings_owner": {
+  "bytes": 47,
+  "type": "dict",
+  "dumped": true
+ },
+ "tool_mcp_runner_id": {
+  "bytes": 38,
+  "type": "str",
+  "dumped": true
+ },
+ "tool_mcp_runner_owner": {
+  "bytes": 7,
+  "type": "str",
+  "dumped": true
+ },
+ "tool_i18n_vi": {
+  "bytes": 308085,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_projects": {
+  "bytes": 2481,
+  "type": "dict",
+  "dumped": true
+ },
+ "tool_config_access_scope": {
+  "bytes": 395,
+  "type": "dict",
+  "dumped": true
+ },
+ "tool_provider_models": {
+  "bytes": 8884,
+  "type": "dict",
+  "dumped": true
+ },
+ "af_execution_config": {
+  "bytes": 1345,
+  "type": "dict",
+  "dumped": true
+ },
+ "tool_provider_api_configs": {
+  "bytes": 2790,
+  "type": "dict",
+  "dumped": true
+ },
+ "tool_provider_configs": {
+  "bytes": 71431,
+  "type": "dict",
+  "dumped": true
+ },
+ "_toolConfigsReady": {
+  "bytes": 18,
+  "type": "float",
+  "dumped": true
+ },
+ "sse_leader_16510": {
+  "bytes": 29,
+  "type": "str",
+  "dumped": true
+ },
+ "sse_leader_heartbeat_16510": {
+  "bytes": 18,
+  "type": "float",
+  "dumped": true
+ },
+ "af_onboarding_done": {
+  "bytes": 4,
+  "type": "bool",
+  "dumped": true
+ },
+ "af_onboarding_done_anon": {
+  "bytes": 4,
+  "type": "bool",
+  "dumped": true
+ }
+}

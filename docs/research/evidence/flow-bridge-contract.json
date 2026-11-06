@@ -1,0 +1,4268 @@
+{
+ "$meta": {
+  "title": "Flow Bridge protocol contract (ToolFlow side)",
+  "extension": {
+   "name": "ToolFlow",
+   "version": "1.3.138",
+   "id": "iicjfgdnngmpfocfanpiammedafmomin",
+   "root": "/home/nthieuu/.config/google-chrome/Profile 1/Extensions/iicjfgdnngmpfocfanpiammedafmomin/1.3.138_0/"
+  },
+  "method": "static read-only analysis of minified source; no network, no auth, no generation, no install, no browser",
+  "offset_convention": "0-based index into file text (Python str of UTF-8 decoded content); verify: text[offset:offset+len(anchor)]==anchor",
+  "status_legend": {
+   "actual": "value or behaviour observed directly in client code/storage",
+   "required_only": "client requires/validates it but concrete value is not available",
+   "unknown": "not observable"
+  },
+  "scope_exclusions": [
+   "watermark",
+   "Motion",
+   "Grok",
+   "Gemini",
+   "Muse"
+  ],
+  "files": {
+   "BC": {
+    "path": "src/core/BridgeClient.js",
+    "sha256": "33150894361e61bdfd0a8229c6f9f25d509c1d91e58e5f18a59893404cde84a4",
+    "bytes": 16015
+   },
+   "V2": {
+    "path": "src/core/flow-api/FlowApiV2Driver.js",
+    "sha256": "30f9c6e3b6450dc703ad790af45f9a2022834479094a484036fb95349826a193",
+    "bytes": 89070
+   },
+   "SC": {
+    "path": "src/core/flow-api/FlowApiSessionCoordinator.js",
+    "sha256": "a6e12f36711aed1d5614b4d51a4c66fc85b9c3adb020b06c65035b73b36fc787",
+    "bytes": 33285
+   },
+   "CP": {
+    "path": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+    "sha256": "667cb330c1d01ac7e7178d5875f5a80e1be9da489f443b1e5986d61f64f23a56",
+    "bytes": 22431
+   },
+   "FAC": {
+    "path": "src/core/flow-api/FlowApiFacade.js",
+    "sha256": "5c5f0021724f048184cd32029d0824a4b12a196fc9ea0b09d7e12419fb3ad706",
+    "bytes": 11771
+   },
+   "RES": {
+    "path": "src/core/flow-api/FlowApiDriverResolver.js",
+    "sha256": "ad482f6ed0d3359d54f8c528adbfaf40199a44a67e28f6dee157388f05cb33a9",
+    "bytes": 13111
+   },
+   "ERR": {
+    "path": "src/core/flow-api/FlowApiDriverError.js",
+    "sha256": "18a90791360aa24323328d8458b10ad8d725597f592dbd84a5f5ee024031c1b9",
+    "bytes": 13284
+   },
+   "AD": {
+    "path": "src/core/providers/FlowApiAdapter.js",
+    "sha256": "c269bfd2f6a952808de8ea26a8ceccfa6eab490360d61b51a94f1c63c2662473",
+    "bytes": 59268
+   },
+   "GW": {
+    "path": "src/core/FlowUuidGateway.js",
+    "sha256": "9e0778f16d78e620b2d45bccd70d15b9d2ee489f383ea94728fe9395eab394e3",
+    "bytes": 88428
+   },
+   "PCM": {
+    "path": "src/core/ProviderConfigManager.js",
+    "sha256": "d32599b8a0bae29e991e7e05cf5e529737f0834abded4f26cfc36b111137495e",
+    "bytes": 30715
+   },
+   "PCC": {
+    "path": "src/core/ProtectedConfigClient.js",
+    "sha256": "cbea12966a897aac0332ae72ef6aee8404b4fde64a3324f255e262085ffc1693",
+    "bytes": 29221
+   },
+   "SYS": {
+    "path": "src/core/SystemConfig.js",
+    "sha256": "a07ac3404b32fd093f86d28350a5602d5b4fd89738c629136f698570b9abe613",
+    "bytes": 11911
+   },
+   "SET": {
+    "path": "settings-page.js",
+    "sha256": "0b6a8579e5e4f59cde0218f9f9312b5bbf4bee6975303bf71a1e068c8ad9131b",
+    "bytes": 216993
+   },
+   "BG": {
+    "path": "background.js",
+    "sha256": "3c45bf527a6bff6f65e651ffc55ef2fbd2bb6bd0c26fe333bd9a9d4da493c315",
+    "bytes": 521791
+   },
+   "MAN": {
+    "path": "manifest.json",
+    "sha256": "95761368bf255152456cc148df602fe2918b970bb7713a13470b809545cf5c02",
+    "bytes": 6356
+   },
+   "OBS": {
+    "path": "flow-v2-correlation-observer.js",
+    "sha256": "ed8a3a6735415423f9006e609d23d870d24f3f45d79c2b3c05a00df7337e75c2",
+    "bytes": 67942
+   },
+   "REL": {
+    "path": "src/core/FlowObserverConfigRelay.js",
+    "sha256": "c1c42e423e66c9f705671fa4c015b919fa1b9db6a95d2bba13ba9715e7833c5a",
+    "bytes": 1501
+   }
+  }
+ },
+ "transport_envelope": {
+  "request": {
+   "api": "chrome.runtime.sendMessage(BRIDGE_ID, {method:string, params:object}, callback)",
+   "bridge_id": "heieobedadlfdkppgagnhfakcdapbfka",
+   "bridge_id_status": "actual (hard-coded in BridgeClient and background.js)",
+   "evidence": [
+    "BC-id",
+    "BC-send",
+    "BG-id"
+   ]
+  },
+  "response": {
+   "shape": "JSON object, at minimum {ok:boolean, error?:string}; empty/undefined -> EMPTY_RESPONSE",
+   "evidence": [
+    "BC-send"
+   ]
+  },
+  "error_codes_synthesized_by_client": {
+   "BRIDGE_NOT_INSTALLED": {
+    "when": "lastError matches /receiving end does not exist|could not establish connection/i",
+    "result": "mutation: {stage:'pre_dispatch',dispatchStarted:false,ambiguous:false}; poll/resolve: {stage:'accepted_poll',dispatchStarted:true}"
+   },
+   "BRIDGE_CHANNEL_CLOSED": {
+    "when": "any other lastError",
+    "result": "mutation: {stage:'ambiguous',dispatchStarted:true,ambiguous:true}"
+   },
+   "BRIDGE_REQUEST_TIMEOUT": {
+    "when": "no reply within timeoutMs>0",
+    "result": "as CHANNEL_CLOSED"
+   },
+   "EMPTY_RESPONSE": {
+    "when": "falsy reply",
+    "result": "as CHANNEL_CLOSED"
+   },
+   "NO_RUNTIME": {
+    "when": "chrome.runtime.sendMessage missing",
+    "result": "{ok:false,error:'NO_RUNTIME'}"
+   },
+   "ABORTED": {
+    "when": "abortFn()===true (polled every 100 ms)",
+    "result": "{...uncertain, cancelled:true, noRetry:true, noReplay:true, commandId}"
+   }
+  },
+  "mutation_methods": [
+   "flow_v2_upload_ref",
+   "flow_v2_upload_video",
+   "flow_v2_submit_image",
+   "flow_v2_submit_image_batch",
+   "flow_v2_submit_video",
+   "flow_v2_submit_video_edit",
+   "flow_v2_upscale_image",
+   "flow_v2_upscale_video"
+  ],
+  "accepted_read_methods": [
+   "flow_v2_poll_operations",
+   "flow_v2_resolve_media"
+  ],
+  "evidence": [
+   "BC-uncertain",
+   "BC-undelivered",
+   "BC-runtime-err"
+  ]
+ },
+ "injected_params": {
+  "commandId": {
+   "applies_to": "flow_v2_* via BridgeClient.request only",
+   "format": "v2-client-<Date.now()>-<Math.random().toString(36).slice(2)>",
+   "evidence": [
+    "BC-cmdid"
+   ]
+  },
+  "commandExpiresAt": {
+   "applies_to": "flow_v2_* when timeoutMs>0",
+   "value": "Date.now()+timeoutMs (epoch ms)",
+   "evidence": [
+    "BC-expires"
+   ]
+  }
+ },
+ "bridge_methods": [
+  {
+   "method": "ping",
+   "group": "control",
+   "params": [],
+   "timeout_ms": 5000,
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "r.ok",
+     "required": true
+    },
+    {
+     "name": "version",
+     "type": "string|null",
+     "source": "r.version",
+     "required": true
+    },
+    {
+     "name": "capabilities",
+     "type": "string[]",
+     "source": "r.capabilities",
+     "required": true
+    },
+    {
+     "name": "flowV2MaxReferences",
+     "type": "integer|null",
+     "source": "Number.isInteger",
+     "required": true
+    },
+    {
+     "name": "native",
+     "type": "object|null",
+     "source": "r.native (opaque)",
+     "required": true
+    }
+   ],
+   "cache": "30000 ms; 1000 ms on transient error",
+   "evidence": [
+    "BC-ping"
+   ]
+  },
+  {
+   "method": "get_status",
+   "group": "control",
+   "params": [],
+   "timeout_ms": 5000,
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "r.ok",
+     "required": true
+    },
+    {
+     "name": "tokenReady",
+     "type": "bool",
+     "source": "!!r.tokenReady",
+     "required": true
+    },
+    {
+     "name": "tokenAgeMs",
+     "type": "number|null",
+     "source": "r.tokenAgeMs",
+     "required": true
+    },
+    {
+     "name": "flowTabOpen",
+     "type": "bool",
+     "source": "!!r.flowTabOpen",
+     "required": true
+    },
+    {
+     "name": "tokenBootstrapActive",
+     "type": "bool",
+     "source": "!!r.tokenBootstrapActive",
+     "required": true
+    },
+    {
+     "name": "version",
+     "type": "string|null",
+     "source": "r.version",
+     "required": true
+    }
+   ],
+   "cache": "5000 ms",
+   "evidence": [
+    "BC-status"
+   ]
+  },
+  {
+   "method": "set_flow_api_maintenance",
+   "group": "control",
+   "params": [
+    {
+     "name": "enabled",
+     "type": "bool",
+     "source": "enabled===true",
+     "required": true
+    }
+   ],
+   "timeout_ms": 5000,
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "response.ok",
+     "required": true
+    },
+    {
+     "name": "error",
+     "type": "string",
+     "source": "BRIDGE_NOT_INSTALLED tolerated",
+     "required": true
+    }
+   ],
+   "evidence": [
+    "BC-maint",
+    "BG-maint"
+   ]
+  },
+  {
+   "method": "flow_clear_cookies_reload",
+   "group": "control",
+   "params": [
+    {
+     "name": "tabId",
+     "type": "integer",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "userInitiated",
+     "type": "bool(true)",
+     "source": "literal true",
+     "required": true
+    }
+   ],
+   "timeout_ms": "SystemConfig api_timeout_ms (sample 60000); missing -> CONFIG_NOT_READY",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "result.ok",
+     "required": true
+    },
+    {
+     "name": "cacheCleared",
+     "type": "bool",
+     "source": "must be true",
+     "required": true
+    },
+    {
+     "name": "reloaded",
+     "type": "bool",
+     "source": "must be true",
+     "required": true
+    }
+   ],
+   "requires_capabilities": [
+    "flow_clear_cookies_reload",
+    "flow_clear_cache_reload"
+   ],
+   "min_bridge_version": "1.3.33",
+   "evidence": [
+    "BC-cookies",
+    "BC-cookie-cap"
+   ]
+  },
+  {
+   "method": "flow_v2_health",
+   "group": "v2-session",
+   "mutation": false,
+   "params": [
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "source": "Number(config.protocol.schema_version) (item.flowApiProtocolRevision when pinned)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "source": "FlowApiV2CheckpointStore.fingerprint(config) (item.flowApiProtocolFingerprint when pinned)",
+     "required": true
+    },
+    {
+     "name": "surface",
+     "type": "gen|task|workflow",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "mediaType",
+     "type": "image|video",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid|null",
+     "source": "projectId||null",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer>=0",
+     "required": false,
+     "source": "_flowTabPin(item): Number(item.flowApiTabId)"
+    }
+   ],
+   "timeout_ms": "runtime.poll_interval_ms+5000 if integer in [250,60000] else 10000",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "response.ok",
+     "required": true
+    },
+    {
+     "name": "ready",
+     "type": "bool",
+     "source": "response.ready",
+     "required": true
+    },
+    {
+     "name": "session",
+     "type": "any|null",
+     "source": "passed through",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "response.projectId||projectId",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer",
+     "source": "Number.isInteger",
+     "required": true
+    },
+    {
+     "name": "error",
+     "type": "string",
+     "source": "reason when not ready",
+     "required": true
+    },
+    {
+     "name": "diagnostic",
+     "type": "object",
+     "source": "sessionProof,wizPresent,atPresent,buildPresent,fSidPresent,nativeRequestObserved,sameDomainHeaderObserved",
+     "required": false
+    },
+    {
+     "name": "grpcCode",
+     "type": "number|null",
+     "source": "",
+     "required": false
+    },
+    {
+     "name": "grpcReason",
+     "type": "string|null",
+     "source": "",
+     "required": false
+    },
+    {
+     "name": "providerErrorCodes",
+     "type": "string[]",
+     "source": "",
+     "required": false
+    }
+   ],
+   "evidence": [
+    "V2-health",
+    "V2-health-resp",
+    "V2-health-diag"
+   ]
+  },
+  {
+   "method": "flow_v2_reconnect",
+   "group": "v2-session",
+   "params": [
+    {
+     "name": "projectId",
+     "type": "uuid|null",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "userInitiated",
+     "type": "bool",
+     "source": "options.userInitiated===true",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer>=0",
+     "required": false,
+     "source": "_flowTabPin(item): Number(item.flowApiTabId)"
+    },
+    {
+     "name": "recoveryAuthorized",
+     "type": "bool",
+     "source": "options",
+     "required": true
+    },
+    {
+     "name": "forcePageReload",
+     "type": "bool",
+     "source": "options",
+     "required": true
+    },
+    {
+     "name": "preservePage",
+     "type": "bool",
+     "source": "options",
+     "required": true
+    },
+    {
+     "name": "recoveryReason",
+     "type": "string|null",
+     "source": "options",
+     "required": true
+    },
+    {
+     "name": "allowFocus",
+     "type": "bool",
+     "source": "=userInitiated",
+     "required": true
+    },
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "source": "Number(config.protocol.schema_version) (item.flowApiProtocolRevision when pinned)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "source": "FlowApiV2CheckpointStore.fingerprint(config) (item.flowApiProtocolFingerprint when pinned)",
+     "required": true
+    }
+   ],
+   "timeout_ms": "runtime.session_refresh_timeout_ms+10000 if integer in [3000,60000] else 10000",
+   "response_consumed": [
+    {
+     "name": "ready",
+     "type": "bool",
+     "source": "result.ready",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer",
+     "source": "normalized",
+     "required": true
+    },
+    {
+     "name": "recoveryStarted",
+     "type": "bool",
+     "source": "",
+     "required": false
+    },
+    {
+     "name": "pagePreserved",
+     "type": "bool",
+     "source": "",
+     "required": false
+    },
+    {
+     "name": "reloadIssued",
+     "type": "bool",
+     "source": "",
+     "required": false
+    }
+   ],
+   "requires_capabilities": [
+    "flow_v2_reconnect (reason capability_missing)",
+    "flow_v2_preserve_page_reconnect (when accepted op)",
+    "flow_v2_unusual_reload (forcePageReload)"
+   ],
+   "evidence": [
+    "SC-reconnect",
+    "SC-preserve"
+   ]
+  },
+  {
+   "method": "flow_v2_cancel_command",
+   "group": "v2-session",
+   "params": [
+    {
+     "name": "commandId",
+     "type": "string",
+     "source": "the cancelled command",
+     "required": true
+    },
+    {
+     "name": "commandExpiresAt",
+     "type": "epoch-ms",
+     "source": "params.commandExpiresAt of cancelled command",
+     "required": true
+    }
+   ],
+   "timeout_ms": 10000,
+   "note": "sent via _sendRaw; late reply of original command is only logged ([FlowApiStoppedReceipt])",
+   "response_consumed": [],
+   "evidence": [
+    "BC-cancel"
+   ]
+  },
+  {
+   "method": "flow_v2_upload_ref",
+   "group": "v2-write",
+   "mutation": true,
+   "alt_method": "flow_v2_upload_video (mime video/mp4|webm|quicktime)",
+   "params": [
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "targetProject",
+     "required": true
+    },
+    {
+     "name": "base64",
+     "type": "string",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "fileName",
+     "type": "string",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "mimeType",
+     "type": "string",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "protocol",
+     "type": "object",
+     "source": "config.protocol",
+     "required": true
+    },
+    {
+     "name": "models",
+     "type": "object",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "type": "object",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "type": "object",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "type": "object",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "type": "integer",
+     "source": "Number(config.protocol.schema_version)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "type": "string",
+     "source": "fingerprint(config)",
+     "required": true
+    }
+   ],
+   "timeout_ms": "3-phase mutation formula",
+   "ambiguity_recovery": "flow_v2_get_upload_receipt",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "must be true",
+     "required": true
+    },
+    {
+     "name": "stage",
+     "type": "string",
+     "source": "'receipt' on success/reject",
+     "required": true
+    },
+    {
+     "name": "mediaId",
+     "type": "uuid|AB-asb",
+     "source": "_referenceId()",
+     "required": true
+    },
+    {
+     "name": "error",
+     "type": "string",
+     "source": "/^[A-Z][A-Z0-9_]{1,100}$/ or project_mismatch",
+     "required": true
+    },
+    {
+     "name": "ambiguous",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "dispatchStarted",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "url|thumbnailUrl|thumbnail_url",
+     "type": "string",
+     "source": "presence logged only",
+     "required": false
+    }
+   ],
+   "requires_capabilities": [
+    "flow_v2_upload_ref | flow_v2_upload_video"
+   ],
+   "requires_rpc": [
+    "protocol.rpc.upload_ref (image)",
+    "protocol.transport.video_upload (video)"
+   ],
+   "evidence": [
+    "V2-upload",
+    "V2-upload-resp"
+   ]
+  },
+  {
+   "method": "flow_v2_submit_image",
+   "group": "v2-write",
+   "mutation": true,
+   "alt_method": "flow_v2_submit_image_batch (cap present and quantity>1, single command)",
+   "params": [
+    {
+     "name": "generationTransport",
+     "type": "xhr|fetch_request",
+     "source": "SystemConfig flow_api_v2_generation_transport",
+     "required": true
+    },
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "source": "Number(config.protocol.schema_version) (item.flowApiProtocolRevision when pinned)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "source": "FlowApiV2CheckpointStore.fingerprint(config) (item.flowApiProtocolFingerprint when pinned)",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer>=0",
+     "required": false,
+     "source": "_flowTabPin(item): Number(item.flowApiTabId)"
+    },
+    {
+     "name": "input",
+     "type": "object",
+     "source": "see input_fields",
+     "required": true
+    }
+   ],
+   "input_fields": [
+    {
+     "name": "itemId",
+     "type": "string",
+     "source": "item.id",
+     "required": true
+    },
+    {
+     "name": "attemptId",
+     "type": "string",
+     "source": "item.attemptId||item.id; suffix ':<outputIndex>' when quantity>1 and not native batch",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid|null",
+     "source": "item.projectId||null",
+     "required": true
+    },
+    {
+     "name": "prompt",
+     "type": "string",
+     "source": "item.prompt||''",
+     "required": true
+    },
+    {
+     "name": "model",
+     "type": "string|null",
+     "source": "item.settings.model",
+     "required": true
+    },
+    {
+     "name": "ratio",
+     "type": "string|null",
+     "source": "item.settings.ratio",
+     "required": true
+    },
+    {
+     "name": "duration",
+     "type": "string|null",
+     "source": "flowVideoDuration||duration",
+     "required": true
+    },
+    {
+     "name": "resolution",
+     "type": "string|null",
+     "source": "flowVideoResolution",
+     "required": true
+    },
+    {
+     "name": "isFrames",
+     "type": "bool",
+     "source": "settings.isFrames===true",
+     "required": true
+    },
+    {
+     "name": "quantity",
+     "type": "integer",
+     "source": "nativeImageBatch?quantity:1",
+     "required": true
+    },
+    {
+     "name": "refMediaIds",
+     "type": "string[]",
+     "source": "referenceIds",
+     "required": true
+    },
+    {
+     "name": "refVideoMediaIds",
+     "type": "string[]",
+     "source": "videoReferenceIds",
+     "required": true
+    }
+   ],
+   "timeout_ms": "3-phase mutation (4-phase for submit_video with refMediaIds)",
+   "ambiguity_recovery": "flow_v2_get_generation_receipt",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs",
+     "type": "array",
+     "source": "length must == expectedOutputCount",
+     "required": true
+    },
+    {
+     "name": "outputs[].operationId",
+     "type": "uuid",
+     "source": "_uuid(); unique across commands",
+     "required": true
+    },
+    {
+     "name": "outputs[].mediaId",
+     "type": "uuid|null",
+     "source": "_uuid() if present",
+     "required": true
+    },
+    {
+     "name": "outputs[].state",
+     "type": "string",
+     "source": "checkpoint state",
+     "required": true
+    },
+    {
+     "name": "outputs[].url",
+     "type": "string",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "stage",
+     "type": "string",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "ambiguous",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "error",
+     "type": "string",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "providerErrorCodes",
+     "type": "string[] (PUBLIC_ERROR_*)",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "grpcCode",
+     "type": "number",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "grpcReason",
+     "type": "string /^[A-Z][A-Z0-9_]{2,119}$/",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "diagnostic",
+     "type": "object",
+     "source": "",
+     "required": true
+    }
+   ],
+   "evidence": [
+    "V2-submit",
+    "V2-submit-input",
+    "V2-submit-validate"
+   ]
+  },
+  {
+   "method": "flow_v2_submit_video",
+   "group": "v2-write",
+   "mutation": true,
+   "alt_method": "flow_v2_submit_video_edit (a video ref present)",
+   "params": "same envelope and input_fields as flow_v2_submit_image",
+   "timeout_ms": "3-phase; 4-phase if input.refMediaIds.length>0",
+   "ambiguity_recovery": "flow_v2_get_generation_receipt",
+   "evidence": [
+    "V2-submit",
+    "BC-timeout-phases"
+   ]
+  },
+  {
+   "method": "flow_v2_poll_operations",
+   "group": "v2-read",
+   "params": [
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "source": "Number(config.protocol.schema_version) (item.flowApiProtocolRevision when pinned)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "source": "FlowApiV2CheckpointStore.fingerprint(config) (item.flowApiProtocolFingerprint when pinned)",
+     "required": true
+    },
+    {
+     "name": "operationIds",
+     "type": "uuid[]",
+     "source": "pendingIds",
+     "required": true
+    },
+    {
+     "name": "acceptedOperationIds",
+     "type": "uuid[]",
+     "source": "= operationIds",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid|null",
+     "source": "item.projectId||null",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer>=0",
+     "required": false,
+     "source": "_flowTabPin(item): Number(item.flowApiTabId)"
+    }
+   ],
+   "timeout_ms": "runtime.request_timeout_ms+20000 (single phase)",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].operationId",
+     "type": "uuid",
+     "source": "unknown id -> V2_POLL_LINEAGE_MISMATCH trip",
+     "required": true
+    },
+    {
+     "name": "outputs[].state",
+     "type": "string",
+     "source": "terminal: completed|complete|done|succeeded|success|resolved; failed|error|cancelled|canceled|rejected",
+     "required": true
+    },
+    {
+     "name": "outputs[].rawState",
+     "type": "number|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].unknownState",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].mediaId",
+     "type": "uuid|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].url",
+     "type": "string|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].durableUrl",
+     "type": "string|null",
+     "source": "checkpoint recovery accepts url||durableUrl",
+     "required": true
+    },
+    {
+     "name": "outputs[].model",
+     "type": "string|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].error",
+     "type": "string|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].grpcCode",
+     "type": "number|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].grpcReason",
+     "type": "string|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].providerErrorCodes",
+     "type": "string[]",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs[].failureDetail",
+     "type": "object",
+     "source": "object: statusCode,message observed as fields",
+     "required": false
+    },
+    {
+     "name": "outputs[].compact",
+     "type": "bool",
+     "source": "",
+     "required": false
+    },
+    {
+     "name": "outputs[].generationId",
+     "type": "string",
+     "source": "",
+     "required": false
+    },
+    {
+     "name": "outputs[].projectId",
+     "type": "uuid|null",
+     "source": "upscale: null+failed tolerated",
+     "required": false
+    }
+   ],
+   "evidence": [
+    "V2-poll",
+    "CP-poll",
+    "V2-poll-resp",
+    "ERR-failed",
+    "V2-poll-out-fields"
+   ]
+  },
+  {
+   "method": "flow_v2_resolve_media",
+   "group": "v2-read",
+   "params": [
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "source": "Number(config.protocol.schema_version) (item.flowApiProtocolRevision when pinned)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "source": "FlowApiV2CheckpointStore.fingerprint(config) (item.flowApiProtocolFingerprint when pinned)",
+     "required": true
+    },
+    {
+     "name": "mediaId",
+     "type": "uuid",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid|null",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "mediaType",
+     "type": "image|video",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "operationId",
+     "type": "uuid",
+     "source": "only _resolveOutput/checkpoint",
+     "required": false
+    },
+    {
+     "name": "resolvePurpose",
+     "type": "'download'",
+     "source": "only when download",
+     "required": false
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer>=0",
+     "required": false,
+     "source": "_flowTabPin(item): Number(item.flowApiTabId)"
+    }
+   ],
+   "timeout_ms": "runtime.request_timeout_ms+20000",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "output.mediaId",
+     "type": "uuid",
+     "source": "must equal request mediaId else V2_RESOLVE_IDENTITY_MISMATCH",
+     "required": true
+    },
+    {
+     "name": "output.projectId",
+     "type": "uuid",
+     "source": "must equal request projectId",
+     "required": true
+    },
+    {
+     "name": "output.url",
+     "type": "string|null",
+     "source": "absent with identityOnly:true allowed",
+     "required": true
+    },
+    {
+     "name": "output.posterUrl",
+     "type": "string|null",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "output.durableUrl",
+     "type": "string|null",
+     "source": "checkpoint",
+     "required": true
+    },
+    {
+     "name": "decoderRevision",
+     "type": "integer|null",
+     "source": "logged",
+     "required": true
+    },
+    {
+     "name": "downloadRuntime",
+     "type": "object",
+     "source": "swBuild,swVersion,relayBuild,mainBuild,codecRevision,flowTabId,matchingProjectTabs,tabPinned,repairAttempted,repairOutcome,mainPurpose,mainLoadedAt,readId (video+tracing only)",
+     "required": false
+    },
+    {
+     "name": "diagnostic.lineageCheck",
+     "type": "string",
+     "source": "'resolved projectId' -> other_project",
+     "required": false
+    }
+   ],
+   "requires_capabilities": [
+    "flow_v2_resolve_media"
+   ],
+   "evidence": [
+    "V2-resolve-uuid",
+    "V2-resolve-out",
+    "V2-resolve-out2",
+    "V2-resolve-ref",
+    "BC-trace",
+    "GW-checkref-ret"
+   ]
+  },
+  {
+   "method": "flow_v2_upscale_image",
+   "group": "v2-write",
+   "mutation": true,
+   "params": [
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "source": "Number(config.protocol.schema_version) (item.flowApiProtocolRevision when pinned)",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "source": "FlowApiV2CheckpointStore.fingerprint(config) (item.flowApiProtocolFingerprint when pinned)",
+     "required": true
+    },
+    {
+     "name": "mediaId",
+     "type": "uuid",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "caller",
+     "required": true
+    },
+    {
+     "name": "operationId",
+     "type": "uuid",
+     "source": "context.operationId",
+     "required": true
+    },
+    {
+     "name": "resolution",
+     "type": "'2k'|'4k'",
+     "source": "lowercased by caller",
+     "required": true
+    }
+   ],
+   "timeout_ms": "3-phase mutation",
+   "ambiguity_recovery": "NONE (no receipt method)",
+   "requires_rpc": [
+    "protocol.rpc.image_upscale"
+   ],
+   "requires_wire": [
+    "schema.wire.image_upscale_level_2k:int",
+    "schema.wire.image_upscale_level_4k:int"
+   ],
+   "response_shape": "NOT inspected by ToolFlow beyond ok/error: result returned verbatim",
+   "evidence": [
+    "V2-upscale-img",
+    "V2-upscale-img-cfg"
+   ]
+  },
+  {
+   "method": "flow_v2_upscale_video",
+   "group": "v2-write",
+   "mutation": true,
+   "params": [
+    {
+     "name": "protocol",
+     "source": "config.protocol (private flow_api_v2_protocol)",
+     "required": true
+    },
+    {
+     "name": "models",
+     "source": "config.models",
+     "required": true
+    },
+    {
+     "name": "schema",
+     "source": "config.schema",
+     "required": true
+    },
+    {
+     "name": "stateMapping",
+     "source": "config.state_mapping",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "source": "config.runtime",
+     "required": true
+    },
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "protocolRevision",
+     "type": "integer",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "protocolFingerprint",
+     "type": "string",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "mediaId",
+     "type": "uuid",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "resolution",
+     "type": "string lowercased",
+     "source": "",
+     "required": true
+    }
+   ],
+   "timeout_ms": "4-phase mutation",
+   "ambiguity_recovery": "NONE",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "mediaId",
+     "type": "'<uuid>_upsampled'",
+     "source": "regex ^uuid_upsampled$",
+     "required": true
+    },
+    {
+     "name": "stage",
+     "type": "string",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "ambiguous",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "dispatchStarted",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "providerErrorCodes",
+     "type": "string[]",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "grpcCode",
+     "type": "number",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "grpcReason",
+     "type": "string",
+     "source": "",
+     "required": true
+    }
+   ],
+   "requires_rpc": [
+    "protocol.rpc.video_upscale",
+    "protocol.rpc.catalog_get"
+   ],
+   "followup": "flow_v2_poll_operations(operationIds=[<uuid>_upsampled]) then flow_v2_resolve_media",
+   "evidence": [
+    "V2-upscale-vid",
+    "V2-upscale-regex",
+    "V2-upscale-vid-poll",
+    "V2-upscale-vid-cfg"
+   ]
+  },
+  {
+   "method": "flow_v2_get_upload_receipt",
+   "group": "v2-receipt",
+   "params": [
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "targetCommandId",
+     "type": "string",
+     "source": "commandId of upload",
+     "required": true
+    },
+    {
+     "name": "runtime",
+     "type": "object",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "commandExpiresAt",
+     "type": "epoch-ms",
+     "source": "now+30000",
+     "required": true
+    }
+   ],
+   "timeout_ms": "min(request_timeout_ms+5000, 30000) (sent via _sendRaw with fixed 10000)",
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "stage",
+     "type": "'receipt'",
+     "source": "required for success",
+     "required": true
+    },
+    {
+     "name": "mediaId",
+     "type": "string",
+     "source": "required for success",
+     "required": true
+    },
+    {
+     "name": "error",
+     "type": "UPLOAD_RECEIPT_PENDING|BRIDGE_*|EMPTY_RESPONSE",
+     "source": "continue-loop codes",
+     "required": true
+    }
+   ],
+   "retry": "max 4 attempts, 500 ms apart, only when first result.ambiguous===true",
+   "evidence": [
+    "BC-upload-receipt"
+   ]
+  },
+  {
+   "method": "flow_v2_get_generation_receipt",
+   "group": "v2-receipt",
+   "params": [
+    {
+     "name": "projectId",
+     "type": "uuid",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "targetCommandId",
+     "type": "string",
+     "source": "commandId of submit",
+     "required": true
+    },
+    {
+     "name": "flowTabId",
+     "type": "integer",
+     "source": "params.flowTabId",
+     "required": false
+    },
+    {
+     "name": "runtime",
+     "type": "object",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "commandExpiresAt",
+     "type": "epoch-ms",
+     "source": "now+30000",
+     "required": true
+    }
+   ],
+   "response_consumed": [
+    {
+     "name": "ok",
+     "type": "bool",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "stage",
+     "type": "'receipt'",
+     "source": "",
+     "required": true
+    },
+    {
+     "name": "outputs",
+     "type": "array len>0",
+     "source": "required for success",
+     "required": true
+    },
+    {
+     "name": "error",
+     "type": "GENERATION_RECEIPT_PENDING|BRIDGE_*|EMPTY_RESPONSE",
+     "source": "continue-loop codes",
+     "required": true
+    }
+   ],
+   "retry": "max 4 attempts, 500 ms apart",
+   "evidence": [
+    "BC-gen-receipt"
+   ]
+  }
+ ],
+ "timeouts": {
+  "formula_source": "BridgeClient._requestTimeout",
+  "cfg": "runtime.request_timeout_ms valid 1000..120000 else 10000",
+  "phases": {
+   "1": "poll_operations, resolve_media: cfg+20000",
+   "3": "submit_image(_batch), submit_video w/o refs, submit_video_edit, upload_*, upscale_image: cfg*3+30000+max(0,mutation-cfg)",
+   "4": "upscale_video, submit_video with refMediaIds: cfg*4+30000+max(0,mutation-cfg)"
+  },
+  "control": {
+   "ping/get_status/set_flow_api_maintenance": 5000,
+   "refresh_token": 20000,
+   "flow_validate_session/open_flow_login(_manual)": 60000
+  },
+  "evidence": [
+   "BC-timeout",
+   "BC-timeout-phases"
+  ]
+ },
+ "protocol_rpc": {
+  "WARNING": "These are SYMBOLIC KEY NAMES of the private config map protocol.rpc. Their values (Google batchexecute rpc ids) are NOT in the extension and NOT recovered here. Do not substitute any guess.",
+  "type_required": "string (typeof === 'string'); only the 7 health keys are type-checked at health time",
+  "keys": [
+   {
+    "key": "image_submit",
+    "media": "image",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc (image)",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "media_resolve",
+    "media": "image,video",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_submit",
+    "media": "video",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc (video)",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_text_submit",
+    "media": "video",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc (video)",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_first_frame_submit",
+    "media": "video",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc (video)",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_first_last_submit",
+    "media": "video",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc (video)",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_poll",
+    "media": "video",
+    "class": "required_for_health",
+    "consumer": "checkReady requiredRpc (video)",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "upload_ref",
+    "media": "image upload",
+    "class": "optional_feature",
+    "consumer": "uploadReference gate",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_edit_submit",
+    "media": "video edit",
+    "class": "optional_feature",
+    "consumer": "checkInputSupported video-ref",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "image_upscale",
+    "media": "image upscale",
+    "class": "optional_feature",
+    "consumer": "checkDownloadReady requireUpscale",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_upscale",
+    "media": "video upscale",
+    "class": "optional_feature",
+    "consumer": "checkDownloadReady requireUpscale",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "catalog_get",
+    "media": "video upscale",
+    "class": "optional_feature",
+    "consumer": "checkDownloadReady requireUpscale",
+    "value": null,
+    "value_status": "unknown_private_config"
+   }
+  ],
+  "protocol_other": [
+   {
+    "path": "protocol.schema_version",
+    "type": "integer",
+    "constraint": "== 1 == flow_api_v2_config_revision",
+    "status": "required (actual check)",
+    "value": null,
+    "value_status": "must equal 1 to be usable by client 1.3.138"
+   },
+   {
+    "path": "protocol.transport.video_upload",
+    "type": "string",
+    "constraint": "needed for flow_v2_upload_video route",
+    "status": "required_only",
+    "value": null,
+    "value_status": "unknown_private_config"
+   }
+  ],
+  "evidence": [
+   "V2-ready-rpc",
+   "V2-ready-rev",
+   "V2-upscale-img-cfg",
+   "V2-upscale-vid-cfg",
+   "V2-videoedit",
+   "V2-upload"
+  ]
+ },
+ "schema_wire": {
+  "fields": [
+   {
+    "path": "schema.wire.image_upscale_level_2k",
+    "type": "integer",
+    "consumer": "checkDownloadReady requireUpscale image",
+    "status": "required_only",
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": "schema.wire.image_upscale_level_4k",
+    "type": "integer",
+    "consumer": "checkDownloadReady requireUpscale image",
+    "status": "required_only",
+    "value": null,
+    "value_status": "unknown_private_config"
+   }
+  ],
+  "note": "ToolFlow reads ONLY these two keys of schema.wire. Any other wire fields (prompt position, ratio enums, model keys, etc.) exist only inside the opaque schema object passed to Bridge and are NOT consumable from client code.",
+  "aspect_ratios": {
+   "paths": [
+    "schema.aspect_ratios.image",
+    "schema.aspect_ratios.video"
+   ],
+   "type": "object keyed by ratio string (hasOwnProperty); value opaque (video edit path uses truthiness)",
+   "status": "required_only",
+   "value": null,
+   "value_status": "unknown_private_config"
+  },
+  "evidence": [
+   "V2-upscale-img-cfg",
+   "V2-ratio-img",
+   "V2-ratio-vid"
+  ]
+ },
+ "models": {
+  "fields": [
+   {
+    "path": "models.<image|video>.<modelKey>",
+    "type": "object",
+    "rule": "key = model value; or entry whose ui_values[] contains the canonical/UI value (case-insensitive trim)",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-modelcfg"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".default",
+    "type": "truthy",
+    "rule": "image: model supported iff truthy",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-input"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".ui_values",
+    "type": "string[]",
+    "rule": "alias match",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-modelcfg"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".max_prompt_chars",
+    "type": "positive integer|null",
+    "rule": "PROMPT_TOO_LONG; non-positive -> V2_PROMPT_LIMIT_CONFIG_INVALID",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-promptmax"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".ingredients_layout / .first_frame_layout",
+    "type": "null|'canonical_v1'",
+    "rule": "anything else -> *_LAYOUT_CONFIG_INVALID",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-layout"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".by_ratio.<ratio>",
+    "type": "object",
+    "rule": "shallow-merged over model entry for video",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-bytratio"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".generation_resolutions",
+    "type": "string[]",
+    "rule": "video resolution allowlist",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-genres"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".text_2_video / .frame_2_video / .start_end_frame_2_video / .reference_frame_2_video",
+    "type": "string | {<duration>:string | {<resolution>:string,default}, default:string}",
+    "rule": "_capabilityModel resolves to a model key string (opaque, passed to Bridge only via models)",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-capmodel"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".video_edit_video",
+    "type": "truthy",
+    "rule": "video-ref edit enabled",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-videoedit"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".video_edit_variants.<resolution|default>",
+    "type": "{max_ref_images:int 0..6, image_refs_idx:8 for 360p/multi-ref, row_length:9|13}",
+    "rule": "mixed refs",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-videoedit-variant"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".video_edit_resolutions",
+    "type": "string[]",
+    "rule": "allowlist",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-videoedit"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "path": ".video_edit_frames",
+    "type": "{start:int>=0, end:int>start, end<=100000}",
+    "rule": "V2_VIDEO_EDIT_CONFIG_INVALID otherwise",
+    "status": "required_only (conditional)",
+    "evidence": [
+     "V2-videoedit-frames"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   }
+  ],
+  "evidence": [
+   "V2-modelcfg",
+   "V2-input"
+  ]
+ },
+ "state_mapping": {
+  "client_reads_only": [
+   {
+    "path": "state_mapping.verified",
+    "type": "boolean",
+    "constraint": "=== true or V2_STATE_MAPPING_UNVERIFIED",
+    "status": "actual check",
+    "evidence": [
+     "V2-ready-sm"
+    ]
+   }
+  ],
+  "opaque": "Everything else in state_mapping is passed to Bridge untouched (stateMapping param) and into the config fingerprint. State names ToolFlow understands in Bridge OUTPUT: see poll outputs[].state. Bridge attaches rawState/unknownState itself.",
+  "terminal_state_vocabulary": {
+   "completed": [
+    "completed",
+    "complete",
+    "done",
+    "succeeded",
+    "success",
+    "resolved"
+   ],
+   "failed": [
+    "failed",
+    "error",
+    "cancelled",
+    "canceled",
+    "rejected"
+   ],
+   "other": "running",
+   "evidence": [
+    "CP-terminal"
+   ]
+  }
+ },
+ "runtime": {
+  "fields": [
+   {
+    "key": "max_concurrent",
+    "min": 1,
+    "constraint": "integer>=1",
+    "consumer": "V2 slot / ref validation concurrency / gateway api concurrency min(4,x)",
+    "required": true,
+    "evidence": [
+     "V2-maxconc"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "submit_pacing_ms",
+    "min": 50,
+    "constraint": "integer>=50",
+    "consumer": "V2 _paceSubmit",
+    "required": true,
+    "evidence": [
+     "V2-pace"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "request_timeout_ms",
+    "min": 1000,
+    "constraint": "integer 1000..120000 (BridgeClient), >=1000 (CheckpointStore)",
+    "consumer": "BridgeClient timeout base",
+    "required": true,
+    "evidence": [
+     "BC-timeout"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "mutation_timeout_ms",
+    "min": 1000,
+    "constraint": "integer 1000..120000, optional (defaults to request_timeout_ms)",
+    "consumer": "BridgeClient timeout + upload preview wait",
+    "required": true,
+    "evidence": [
+     "BC-timeout"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "poll_interval_ms",
+    "min": 1,
+    "constraint": "integer>=1 (client); Bridge health timeout needs 250..60000",
+    "consumer": "poll sleep",
+    "required": true,
+    "evidence": [
+     "V2-poll"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "image_timeout_ms",
+    "min": 1,
+    "constraint": "integer>=1",
+    "consumer": "operation deadline image",
+    "required": true,
+    "evidence": [
+     "V2-opdeadline"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "video_timeout_ms",
+    "min": 1,
+    "constraint": "integer>=1",
+    "consumer": "operation deadline video",
+    "required": true,
+    "evidence": [
+     "V2-opdeadline"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "max_retry_attempts",
+    "min": 0,
+    "constraint": "integer>=0",
+    "consumer": "read retry",
+    "required": true,
+    "evidence": [
+     "V2-retry-keys"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "base_backoff_ms",
+    "min": 0,
+    "constraint": "integer>=0",
+    "consumer": "read retry",
+    "required": true,
+    "evidence": [
+     "V2-retry-keys"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "max_backoff_ms",
+    "min": 0,
+    "constraint": "integer>=0",
+    "consumer": "read retry",
+    "required": true,
+    "evidence": [
+     "V2-retry-keys"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "session_refresh_max_attempts",
+    "min": 0,
+    "constraint": "integer>=0",
+    "consumer": "reconnect during poll",
+    "required": true,
+    "evidence": [
+     "V2-session-refresh"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "session_refresh_timeout_ms",
+    "min": null,
+    "constraint": "integer 3000..60000 else Bridge reconnect timeout falls back to 10000",
+    "consumer": "BridgeClient reconnect timeout",
+    "required": false,
+    "evidence": [
+     "BC-timeout"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "schema_drift_threshold",
+    "min": null,
+    "constraint": "optional integer>0, capped 100, default 1",
+    "consumer": "circuit breaker",
+    "required": false,
+    "evidence": [
+     "RES-circuit"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "schema_drift_min_samples",
+    "min": null,
+    "constraint": "optional integer>0",
+    "consumer": "circuit breaker",
+    "required": false,
+    "evidence": [
+     "RES-circuit"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   },
+   {
+    "key": "schema_drift_window_ms",
+    "min": null,
+    "constraint": "optional integer>0, default 60000",
+    "consumer": "circuit breaker",
+    "required": false,
+    "evidence": [
+     "RES-circuit"
+    ],
+    "value": null,
+    "value_status": "unknown_private_config"
+   }
+  ],
+  "error": "missing/invalid -> Error('V2_RUNTIME_CONFIG_INVALID:<key>')",
+  "note": "video_timeout_ms <= 7200000 is asserted in doc 05 but not located in this pass (UNVERIFIED here).",
+  "evidence": [
+   "V2-runtimeInteger"
+  ]
+ },
+ "error_mapping": {
+  "shape": "object: { <ErrorCodePrefix>: <errorType-or-text> }",
+  "match": "case-insensitive startsWith over candidates [providerErrorCodes..., error.code, grpcReason]; longest key wins; value is passed to FlowApiAdapter.classifyError('', value); result 'unknown' is ignored",
+  "errorType_vocabulary": [
+   "quota_exceeded",
+   "per_model_daily",
+   "content_blocked",
+   "tier_restricted",
+   "bot_detected",
+   "media_expired",
+   "captcha_failed",
+   "auth_expired",
+   "project_mismatch",
+   "schema_changed",
+   "server_unavailable",
+   "rate_limited(consumer-only)",
+   "unknown"
+  ],
+  "status": "required_only (typeof object, optional keys)",
+  "value": null,
+  "value_status": "unknown_private_config",
+  "evidence": [
+   "V2-errmap",
+   "V2-resperr"
+  ]
+ },
+ "system_settings": {
+  "source_file": "docs/research/_work/storage/af_system_settings.json (redacted sample, extension 1.3.137 storage)",
+  "keys": [
+   {
+    "key": "flow_api_driver",
+    "type": "disabled|v1|v2|v2_canary|auto",
+    "sample": "v2",
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_enabled",
+    "type": "bool",
+    "sample": true,
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_canary_percent",
+    "type": "int 0..100",
+    "sample": 0,
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_surfaces",
+    "type": "subset of gen|task|workflow",
+    "sample": "list(3)",
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_media_types",
+    "type": "subset of image|video",
+    "sample": "list(2)",
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_auto_primary",
+    "type": "v1|v2",
+    "sample": "v2",
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_auto_fallback",
+    "type": "none|v1|v2",
+    "sample": "v1",
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_config_revision",
+    "type": "int>=1, <=1 for client",
+    "sample": 1,
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_generation_transport",
+    "type": "xhr|fetch_request",
+    "sample": "fetch_request",
+    "status": "actual"
+   },
+   {
+    "key": "flow_api_v2_upload_enabled",
+    "type": "bool",
+    "sample": true,
+    "status": "actual"
+   },
+   {
+    "key": "bridge_min_version",
+    "type": "semver",
+    "sample": "1.3.38",
+    "status": "actual (UI badge only)"
+   },
+   {
+    "key": "api_timeout_ms",
+    "type": "int",
+    "sample": "unverified in this pass",
+    "status": "per doc 05"
+   }
+  ],
+  "evidence": [
+   "RES-snapshot",
+   "V2-ready-transport"
+  ]
+ },
+ "health_requirements": {
+  "gate_order": [
+   {
+    "n": 1,
+    "check": "ProviderConfigManager.fetchFlowApiV2Configs() returns all 6 parts",
+    "fail": "V2_PRIVATE_CONFIG_MISSING"
+   },
+   {
+    "n": 2,
+    "check": "protocol.schema_version == revision == 1",
+    "fail": "V2_PROTOCOL_REVISION_MISMATCH"
+   },
+   {
+    "n": 3,
+    "check": "state_mapping.verified === true",
+    "fail": "V2_STATE_MAPPING_UNVERIFIED"
+   },
+   {
+    "n": 4,
+    "check": "protocol.rpc[requiredRpc] all typeof string",
+    "fail": "V2_RPC_CONFIG_INVALID"
+   },
+   {
+    "n": 5,
+    "check": "SystemConfig flow_api_v2_generation_transport in {xhr,fetch_request}",
+    "fail": "V2_GENERATION_TRANSPORT_CONFIG_MISSING"
+   },
+   {
+    "n": 6,
+    "check": "BridgeClient.ping installed; all required capabilities present (re-ping once with force)",
+    "fail": "BRIDGE_NOT_INSTALLED | V2_BRIDGE_VERSION_UNSUPPORTED | BRIDGE_PING_FAILED(retryable)"
+   },
+   {
+    "n": 7,
+    "check": "flow_v2_health returns ok && ready",
+    "fail": "response.error || V2_PAGE_SESSION_NOT_READY"
+   }
+  ],
+  "required_capabilities": {
+   "always": [
+    "flow_v2_health",
+    "flow_v2_submit_image (image) | flow_v2_submit_video (video)",
+    "flow_v2_poll_operations",
+    "flow_v2_resolve_media",
+    "flow_v2_cancel_command"
+   ],
+   "if_transport_fetch_request": [
+    "flow_v2_fetch_request_generation"
+   ],
+   "feature_gated": [
+    "flow_v2_submit_image_batch",
+    "flow_v2_submit_video_edit",
+    "flow_v2_video_edit_mixed_refs",
+    "flow_v2_first_frame_canonical",
+    "flow_v2_ingredients_canonical",
+    "flow_v2_upload_ref",
+    "flow_v2_upload_video",
+    "flow_v2_upscale_image",
+    "flow_v2_upscale_video",
+    "flow_v2_reconnect",
+    "flow_v2_preserve_page_reconnect",
+    "flow_v2_unusual_reload",
+    "flow_clear_cookies_reload",
+    "flow_clear_cache_reload"
+   ]
+  },
+  "driver_gate_before_health": "Entitlement flow_api_enabled via featureGate.canUse; SystemConfig 8 keys; kill switch; surface/media allowlists",
+  "evidence": [
+   "V2-ready-order",
+   "V2-ready-rev",
+   "V2-ready-sm",
+   "V2-ready-rpc",
+   "V2-ready-transport",
+   "V2-ready-caps",
+   "V2-required-caps",
+   "V2-ping-uncertain",
+   "V2-bridge-unsupported",
+   "V2-health",
+   "V2-chkgate",
+   "SC-actions"
+  ]
+ },
+ "receipts": {
+  "client_side": {
+   "command_id": "commandId (v2-client-...) is the idempotency/receipt key; Google has no idempotency key in this contract",
+   "evidence": [
+    "BC-cmdid"
+   ]
+  },
+  "upload_receipt": {
+   "request_method": "flow_v2_get_upload_receipt",
+   "success": "ok===true && stage==='receipt' && mediaId",
+   "pending_codes": [
+    "UPLOAD_RECEIPT_PENDING",
+    "BRIDGE_CHANNEL_CLOSED",
+    "BRIDGE_REQUEST_TIMEOUT",
+    "EMPTY_RESPONSE"
+   ],
+   "attempts": 4,
+   "interval_ms": 500,
+   "evidence": [
+    "BC-upload-receipt"
+   ]
+  },
+  "generation_receipt": {
+   "request_method": "flow_v2_get_generation_receipt",
+   "success": "ok===true && stage==='receipt' && outputs.length>0",
+   "pending_codes": [
+    "GENERATION_RECEIPT_PENDING",
+    "BRIDGE_CHANNEL_CLOSED",
+    "BRIDGE_REQUEST_TIMEOUT",
+    "EMPTY_RESPONSE"
+   ],
+   "attempts": 4,
+   "interval_ms": 500,
+   "evidence": [
+    "BC-gen-receipt"
+   ]
+  },
+  "upscale_receipt": {
+   "request_method": null,
+   "note": "No receipt-recovery for flow_v2_upscale_*; ambiguous stays ambiguous",
+   "evidence": [
+    "BC-request"
+   ]
+  },
+  "durable_client_checkpoint": {
+   "storage_key": "chrome.storage.local['tool_flow_api_checkpoints_v2_schema1']",
+   "fields": [
+    "driver",
+    "protocolRevision",
+    "protocolFingerprint",
+    "itemId",
+    "jobId",
+    "projectId",
+    "flowTabId?",
+    "attemptId",
+    "operationId",
+    "mediaId",
+    "mediaType",
+    "surface",
+    "state",
+    "submittedAt",
+    "dispatchedAt",
+    "operationDeadlineAt",
+    "lastPolledAt"
+   ],
+   "evidence": [
+    "CP-key",
+    "CP-save",
+    "CP-fp"
+   ]
+  },
+  "stage_vocabulary": [
+   "pre_dispatch",
+   "preflight",
+   "receipt",
+   "ambiguous",
+   "accepted_poll",
+   "terminal"
+  ],
+  "evidence_stage": [
+   "ERR-normalize"
+  ]
+ },
+ "provider_config_manager": {
+  "v2_parts": [
+   "protocol",
+   "models",
+   "schema",
+   "state_mapping",
+   "runtime",
+   "error_mapping"
+  ],
+  "private_key_names": [
+   "flow_api_v2_protocol",
+   "flow_api_v2_models",
+   "flow_api_v2_schema",
+   "flow_api_v2_state_mapping",
+   "flow_api_v2_runtime",
+   "flow_api_v2_error_mapping"
+  ],
+  "assembly": "getFlowApiV2ConfigSync: for each suffix, getApiConfigValueSync('flow','flow_api_v2_'+suffix); any null -> whole result null",
+  "gating": "key startsWith 'flow_api_v2_' => requires fresh private configs (TTL 1h, retry >=30 s), token match, and key in meta.granted",
+  "evidence": [
+   "PCM-v2cfg",
+   "PCM-fetchv2",
+   "PCM-getval",
+   "PCM-v2key",
+   "PCM-granted",
+   "PCM-ttl"
+  ]
+ },
+ "bridge_distribution": {
+  "bridge_id": "heieobedadlfdkppgagnhfakcdapbfka",
+  "chrome_web_store_listing": "not asserted: no Web Store URL for the Bridge exists in the 1.3.138 package (checked: bridge_download_url consumers, settings page, manifest). Not guessed.",
+  "key_name": "bridge_download_url",
+  "namespace": "private provider config, slug 'flow' (store[slug]=blob.configs), listed in _GATED_API_CONFIG_KEYS; requires json.meta.granted to include the key",
+  "delivery": {
+   "endpoint_template_in_client": "extension-config/providers/private-configs (ProtectedConfigClient.paths.private); authenticated, signed (RequestSigner). Read-only lead: NOT called in this task.",
+   "ttl_ms": 3600000,
+   "token_binding": "value returned only if authManager token === _privateToken and within TTL",
+   "evidence": [
+    "PCC-paths",
+    "PCC-fetch",
+    "PCM-fetchpriv",
+    "PCM-store",
+    "PCM-granted",
+    "PCM-bdu",
+    "PCM-ttl",
+    "PCM-gated"
+   ]
+  },
+  "ui_consumers": [
+   {
+    "where": "settings-page.js bridge card",
+    "behaviour": "href = _safeExternalHttpUrl(value) (http/https only); if empty shows settings.bridgeNoUrl 'Admin has not configured ToolBridge — contact support'",
+    "evidence": [
+     "SET-url",
+     "SET-safe",
+     "SET-install",
+     "SET-nourl"
+    ]
+   },
+   {
+    "where": "settings-page.js diagnostic",
+    "behaviour": "records downloadConfigured/downloadGranted/downloadValueState in {missing_or_empty, valid_http_url, invalid_http_url}",
+    "evidence": [
+     "SET-diag"
+    ]
+   }
+  ],
+  "install_flow_from_i18n": [
+   "download zip",
+   "unzip",
+   "chrome://extensions",
+   "enable Developer mode",
+   "Load unpacked -> select folder",
+   "Reconnect"
+  ],
+  "side_findings": [
+   {
+    "finding": "SystemConfig strips bridge_download_url from public settings and only persists when present in af_system_settings",
+    "evidence": [
+     "SYS-strip",
+     "SYS-restore"
+    ]
+   },
+   {
+    "finding": "background.js _FLOW_DOWNLOAD_PRIVATE_KEYS (13 v1 keys) does NOT include bridge_download_url nor flow_api_v2_*",
+    "evidence": [
+     "BG-keys"
+    ]
+   },
+   {
+    "finding": "manifest externally_connectable only matches *://labs.tool.vn/* (that is who may message ToolFlow, not Bridge). update_url is Chrome Web Store (ToolFlow itself)",
+    "evidence": [
+     "MAN-ext",
+     "MAN-update"
+    ]
+   },
+   {
+    "finding": "storage sample has no bridge_download_url, no flow slug in tool_provider_api_configs; tool_config_versions.providers.flow=273 exists (version number only)",
+    "evidence": []
+   }
+  ],
+  "not_a_lead": [
+   "muse video_flow_bridge (Muse-specific byte policy; out of scope)",
+   "autoCapcut.downloadBridge i18n label (no code reference found; appears in server-delivered i18n only)"
+  ],
+  "licensing_boundary": "Value is entitlement-gated (flow_api_enabled / granted). Sample account has value:null -> not granted. This task does not bypass or probe it.",
+  "runtime_followup": {
+   "observed_by_parent": "Runtime config on Free plan: flowPrivateKeys=[]; entitled.flowApi=false => no bridge_download_url",
+   "placeholder_url_from_public_website_js": "https://labs.tool.vn/downloads/toolbridge-latest.zip",
+   "placeholder_probe_result": "parent GET -> 404",
+   "webstore_update_crx_for_bridge_id": "parent probe -> 404",
+   "interpretation": "Placeholder is NOT confirmed as the real download URL; treat as unverified lead. Bridge is not in Web Store (404). No further network performed in this task."
+  },
+  "next_legit_steps": [
+   "Run an account that is legitimately entitled and read ProviderConfigManager.isPrivateConfigGranted('bridge_download_url') through the settings diagnostic log",
+   "Ask Tool support for the Bridge package (UI says 'contact support')"
+  ]
+ },
+ "flow_uuid_gateway_gaps_filled": {
+  "branches_read_this_pass": [
+   "_traceOperation",
+   "_target",
+   "_apiStatus",
+   "_webPrimitive",
+   "listMedia",
+   "lookupCatalog",
+   "_resolve (api branch)",
+   "checkReferenceProject",
+   "resolveMedia",
+   "_controlledRefresh (begin)"
+  ],
+  "api_read_primitive_args (to FlowApiFacade._resolveMediaPrimitive -> V2.resolveMedia)": [
+   "...context.apiContext",
+   "...health.readContext{protocolRevision,protocolFingerprint}",
+   "media_uuid",
+   "mediaId",
+   "projectId (expected target or context)",
+   "mediaType",
+   "apiDriver",
+   "uuidLookup:true",
+   "identityOnly:true",
+   "flowTabId",
+   "abortFn"
+  ],
+  "api_status_return": "{...SessionCoordinator.check result, maxConcurrent: runtime.max_concurrent, readContext:{protocolRevision, protocolFingerprint}} only when health.ready && driver==='v2'",
+  "api_concurrency": "min(4, runtime.max_concurrent); chunks of 256 ids",
+  "api_result_requirements": "value.projectId must equal context.projectId else id goes to web path",
+  "web_primitive": "MessageBridge.sendToContentScript('flowUuidGatewayRead',{identities,ownerRecords,expectedFlowTarget,operationId,mediaType}) - no Bridge involved",
+  "listMedia": "contents-script only: sendToContentScript('scanFlowImages',{deep:false,expectedFlowTarget}); complete:false always; no Bridge",
+  "lookupCatalog": "wrapper around resolve(mode:'web'); returns {supported: driverKey==='flow_v2', known, unknown, complete:false, aliases, revision, snapshotSource}",
+  "checkReferenceProject": "api only; status valid|other_project|unresolved via V2._readReferenceProjectPrimitive -> flow_v2_resolve_media; other_project iff error==='LINEAGE_MISMATCH' && diagnostic.lineageCheck==='resolved projectId'",
+  "resolveMedia": "pinned driver v1 -> v1 read; else resolve([mediaId]) and returns {url,posterUrl,mediaId,projectId,revoke:false,metadata,effectiveMode}",
+  "_traceOperation": "diagnostic wrapper only; no wire",
+  "bridge_methods_touched_by_gateway": [
+   "flow_v2_resolve_media (indirect)"
+  ],
+  "evidence": [
+   "GW-resolve-api",
+   "GW-apiread-args",
+   "GW-apistatus",
+   "GW-apistatus-ret",
+   "GW-target",
+   "GW-web",
+   "GW-list",
+   "GW-lookup",
+   "GW-lookup-ret",
+   "GW-trace",
+   "GW-checkref",
+   "GW-checkref-ret",
+   "GW-resolvemedia",
+   "GW-resolvemedia-ret",
+   "GW-controlled",
+   "GW-conc",
+   "GW-chunk"
+  ]
+ },
+ "flow_config_schema_required_only": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ToolFlow flow_api_v2 private config (REQUIRED-ONLY, values unknown)",
+  "x-note": "Derived from client consumers. Only constraints the client enforces are expressed. No server values exist in the analysed data.",
+  "type": "object",
+  "required": [
+   "protocol",
+   "models",
+   "schema",
+   "state_mapping",
+   "runtime",
+   "error_mapping"
+  ],
+  "properties": {
+   "protocol": {
+    "type": "object",
+    "required": [
+     "schema_version",
+     "rpc"
+    ],
+    "properties": {
+     "schema_version": {
+      "const": 1
+     },
+     "rpc": {
+      "type": "object",
+      "required": [
+       "image_submit",
+       "media_resolve",
+       "video_submit",
+       "video_text_submit",
+       "video_first_frame_submit",
+       "video_first_last_submit",
+       "video_poll"
+      ],
+      "properties": {
+       "image_submit": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "media_resolve": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_submit": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_text_submit": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_first_frame_submit": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_first_last_submit": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_poll": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "upload_ref": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_edit_submit": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "image_upscale": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "video_upscale": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       },
+       "catalog_get": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       }
+      },
+      "x-note": "Property names are symbolic keys, NOT rpc ids. Image-only deployments need only image_submit+media_resolve at health time."
+     },
+     "transport": {
+      "type": "object",
+      "properties": {
+       "video_upload": {
+        "type": "string",
+        "x-value": "unknown_private_config"
+       }
+      }
+     }
+    }
+   },
+   "models": {
+    "type": "object",
+    "properties": {
+     "image": {
+      "type": "object"
+     },
+     "video": {
+      "type": "object"
+     }
+    },
+    "x-fields": [
+     "models.<image|video>.<modelKey>",
+     ".default",
+     ".ui_values",
+     ".max_prompt_chars",
+     ".ingredients_layout / .first_frame_layout",
+     ".by_ratio.<ratio>",
+     ".generation_resolutions",
+     ".text_2_video / .frame_2_video / .start_end_frame_2_video / .reference_frame_2_video",
+     ".video_edit_video",
+     ".video_edit_variants.<resolution|default>",
+     ".video_edit_resolutions",
+     ".video_edit_frames"
+    ]
+   },
+   "schema": {
+    "type": "object",
+    "required": [
+     "aspect_ratios"
+    ],
+    "properties": {
+     "aspect_ratios": {
+      "type": "object",
+      "properties": {
+       "image": {
+        "type": "object"
+       },
+       "video": {
+        "type": "object"
+       }
+      }
+     },
+     "wire": {
+      "type": "object",
+      "properties": {
+       "image_upscale_level_2k": {
+        "type": "integer"
+       },
+       "image_upscale_level_4k": {
+        "type": "integer"
+       }
+      },
+      "x-note": "required only for image upscale"
+     }
+    }
+   },
+   "state_mapping": {
+    "type": "object",
+    "required": [
+     "verified"
+    ],
+    "properties": {
+     "verified": {
+      "const": true
+     }
+    }
+   },
+   "runtime": {
+    "type": "object",
+    "required": [
+     "max_concurrent",
+     "submit_pacing_ms",
+     "request_timeout_ms",
+     "poll_interval_ms",
+     "image_timeout_ms",
+     "video_timeout_ms",
+     "max_retry_attempts",
+     "base_backoff_ms",
+     "max_backoff_ms",
+     "session_refresh_max_attempts"
+    ],
+    "properties": {
+     "max_concurrent": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "submit_pacing_ms": {
+      "type": "integer",
+      "minimum": 50
+     },
+     "request_timeout_ms": {
+      "type": "integer",
+      "minimum": 1000
+     },
+     "mutation_timeout_ms": {
+      "type": "integer",
+      "minimum": 1000
+     },
+     "poll_interval_ms": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "image_timeout_ms": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "video_timeout_ms": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "max_retry_attempts": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "base_backoff_ms": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "max_backoff_ms": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "session_refresh_max_attempts": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "session_refresh_timeout_ms": {
+      "type": "integer"
+     },
+     "schema_drift_threshold": {
+      "type": "integer"
+     },
+     "schema_drift_min_samples": {
+      "type": "integer"
+     },
+     "schema_drift_window_ms": {
+      "type": "integer"
+     }
+    }
+   },
+   "error_mapping": {
+    "type": "object",
+    "additionalProperties": {
+     "type": "string"
+    }
+   }
+  }
+ },
+ "public_runtime_config": {
+  "provenance": {
+   "files": {
+    "flow-api-public-config.json": "d0105721304f6da9d181b64da8fe7b1e0393a85caa0feeb8e1aa39c6dccfc20f",
+    "flow-dom-config.json": "a73e0b48394108b07c0f10c6836dfddcc2ad7d6f4f6a751e253951df110150d3",
+    "runtime-config-receipt.json": "e7d962a4a4b613910cb0e77cf1ee05915631843758d106850a24f99578177c0b"
+   },
+   "method": "parent: CDP Runtime.evaluate on ProviderConfigManager memory after normal sidebar boot, copied extension state, Free plan, no entitlement patch, no generate (as reported by parent; this task did not re-collect)",
+   "plan": "free",
+   "entitled": {
+    "chatgpt": true,
+    "flowApi": false
+   },
+   "flowPrivateKeys": [],
+   "dom_config_version": 273,
+   "dom_selector_counts_checked": {
+    "top_level_selectors": 64,
+    "profiles": [
+     "legacy",
+     "v2"
+    ]
+   }
+  },
+  "status": "actual (observed runtime values)",
+  "batchexecute_transport": {
+   "observer_transport.paths": [
+    "/_/AiSandboxAngularFrontend/data/batchexecute"
+   ],
+   "version": 1,
+   "status": "actual (public config)",
+   "meaning": "URL PATH(S) the MAIN-world observer hooks (XHR+fetch). Path regex /^\\/(?:[A-Za-z0-9_-]+\\/)*[A-Za-z0-9_-]+$/, <=8 paths, <=256 chars, no 'u/<n>' segment. Path only: host is the flow page origin (flow.google.com / labs.google page context) - the config carries no host, so full URL host is NOT asserted.",
+   "request_body_parse": "f.req (FormData | URLSearchParams | bytes | string) = JSON; envelope[0] = array of rows; row[0]=rpcId string, row[1]=payload (JSON string, parsed). This is classic Google batchexecute: rpcIds in requests are the REAL ids but are NOT present in any config we hold.",
+   "response_frame_parse": "frames where frame[0]=='wrb.fr', frame[1]=rpcId string (/^[A-Za-z0-9_-]{1,64}$/), frame[2]=JSON string payload; node[5] also read as payload for error matching.",
+   "delivery_to_observer": "FlowObserverConfigRelay.publish reads tool_provider_api_configs.flow_v2_observer_transport & native_project_media_identity and dispatches CustomEvents TOOL_FLOW_OBSERVER_TRANSPORT / TOOL_FLOW_NATIVE_MEDIA_SCHEMA",
+   "relation_to_bridge": "INFERENCE only: Bridge path/rpc used by flow_v2_* is not shown; the observer path is what the page's own traffic uses. protocol.rpc.* ids remain unknown.",
+   "evidence": [
+    "OBS-transport",
+    "OBS-path-re",
+    "OBS-freq",
+    "OBS-wrb",
+    "OBS-match-resp",
+    "REL-publish"
+   ]
+  },
+  "media_identity": {
+   "schema": {
+    "version": 1,
+    "enabled": true,
+    "collection_path": [
+     2
+    ],
+    "uuid_path": [
+     0
+    ],
+    "project_path": [
+     1
+    ],
+    "generation_path": [
+     2
+    ],
+    "details_path": [
+     5
+    ],
+    "media_types": [
+     {
+      "type": "video",
+      "rules": [
+       {
+        "all": [
+         {
+          "path": [
+           7,
+           1,
+           0
+          ],
+          "kind": "positive_integer"
+         },
+         {
+          "path": [
+           7,
+           1,
+           1
+          ],
+          "kind": "positive_integer"
+         }
+        ]
+       },
+       {
+        "all": [
+         {
+          "path": [
+           5,
+           6,
+           1,
+           0,
+           0
+          ],
+          "kind": "string"
+         },
+         {
+          "path": [
+           5,
+           8,
+           0
+          ],
+          "kind": "integer"
+         }
+        ]
+       }
+      ],
+      "asb_url_paths": [
+       [
+        5,
+        5
+       ],
+       [
+        5,
+        10
+       ],
+       [
+        7,
+        4,
+        2
+       ]
+      ]
+     },
+     {
+      "type": "image",
+      "rules": [
+       {
+        "all": [
+         {
+          "path": [
+           6,
+           2
+          ],
+          "kind": "positive_integer_pair"
+         }
+        ]
+       }
+      ],
+      "asb_url_paths": [
+       [
+        5,
+        5
+       ],
+       [
+        5,
+        10
+       ],
+       [
+        6,
+        0,
+        13
+       ],
+       [
+        6,
+        1,
+        3
+       ]
+      ]
+     }
+    ]
+   },
+   "status": "actual (public config)",
+   "how_applied": "For every wrb.fr frame: body=JSON.parse(frame[2]); rows=body at collection_path. Row accepted iff uuid=row@uuid_path is UUID, row@project_path (lowercased) == project id from the page URL, row@generation_path is UUID, row@details_path is an array, and uuid evidence exists. Then media_types[].rules decide image vs video; asb_url_paths locate AB-… (ASB) URL strings which map ASB alias <-> UUID.",
+   "paths_decoded": {
+    "collection_path": "body[2] = array of media rows",
+    "row.uuid_path": "row[0]",
+    "row.project_path": "row[1]",
+    "row.generation_path": "row[2]",
+    "row.details_path": "row[5] (array)"
+   },
+   "video_rules": "(row[7][1][0] and row[7][1][1] positive integers) OR (row[5][6][1][0][0] string AND row[5][8][0] integer)",
+   "image_rule": "row[6][2] positive_integer_pair",
+   "video_asb_url_paths": [
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     7,
+     4,
+     2
+    ]
+   ],
+   "image_asb_url_paths": [
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     6,
+     0,
+     13
+    ],
+    [
+     6,
+     1,
+     3
+    ]
+   ],
+   "validation": "validateMediaSchema: exactly keys version,enabled,collection_path,uuid_path,project_path,generation_path,details_path,media_types; paths length 1..8 ints 0..128; media_types exactly {image,video}; rules<=8; kinds string|integer|positive_integer|positive_integer_pair",
+   "limits": "This is the shape of NATIVE page responses the observer reads. It does not describe flow_v2_* Bridge outputs, which return UUID operationId/mediaId.",
+   "evidence": [
+    "OBS-schema-valid",
+    "OBS-rows",
+    "OBS-row-check",
+    "REL-publish"
+   ]
+  },
+  "media_url_route": {
+   "known_routes": [
+    "/fx/api/trpc/media.getMediaUrlRedirect"
+   ],
+   "url_substring": "getMediaUrlRedirect",
+   "uuid_regex": "^[a-f0-9-]{8,}$",
+   "note": "tRPC redirect used to serve media by UUID name (public config + FlowApiAdapter anchor); different from batchexecute",
+   "evidence": [
+    "AD-trpc"
+   ]
+  },
+  "flow_v2_web_correlation": {
+   "schema_version": 1,
+   "observation_only": false,
+   "allowed_surfaces": [
+    "gen",
+    "task",
+    "workflow"
+   ],
+   "allowed_media_types": [
+    "image",
+    "video"
+   ],
+   "parallel_surfaces": [
+    "gen",
+    "task",
+    "workflow"
+   ],
+   "parallel_media_types": [
+    "video",
+    "image"
+   ],
+   "parallel_max_quantity": {
+    "image": 16,
+    "video": 16
+   },
+   "max_active_operations": 16,
+   "observer_ack_timeout_ms": 10000,
+   "receipt_timeout_ms": 90000,
+   "attempt_ttl_ms": 900000,
+   "request_bind_timeout_ms": 300000
+  },
+  "flow_v2_driver": {
+   "enabled": true,
+   "meaning": "admin pause switch + localized pause messages for the DOM 'flow_v2' page driver (not the Bridge API driver)"
+  },
+  "page_urls": {
+   "flow_home_url": "https://labs.google/fx/tools/flow",
+   "tab_url_patterns": [
+    "https://labs.google/fx/*"
+   ],
+   "project_url_patterns": [
+    "https://labs.google/fx/tools/flow/project/*"
+   ],
+   "project_id_regex": "^https://labs\\.google/fx/tools/flow/project/([^/?#]+)",
+   "urls": {
+    "base": "https://flow.google.com",
+    "tab_query_patterns": [
+     "https://flow.google.com/*"
+    ],
+    "tab_query": "https://flow.google.com/*",
+    "create_url": "https://flow.google.com/"
+   }
+  },
+  "public_api_runtime_limits": {
+   "value": {
+    "request_timeout_ms": 30000,
+    "operation_deadline_ms": 900000,
+    "poll_interval_ms": 5000,
+    "upload_concurrency_min": 1,
+    "upload_concurrency_max": 3,
+    "pacing_ms": 350,
+    "retry_max_attempts": 3,
+    "retry_base_delay_ms": 1000,
+    "retry_max_delay_ms": 10000,
+    "dom_poll_interval_ms": 200,
+    "component_search_max_scrolls": 40,
+    "component_scroll_step_px": 320
+   },
+   "status": "actual public values",
+   "caveat": "Do NOT equate with private flow_api_v2_runtime (request_timeout_ms 30000 vs unknown); no consumer of this block was located in this pass, so it may belong to v1/DOM paths."
+  },
+  "execution_policy": {
+   "default_mode": "api",
+   "dom_fallback_enabled": true,
+   "fallback_on": [
+    "server_unavailable",
+    "captcha_failed",
+    "media_expired"
+   ],
+   "never_fallback_on": [
+    "quota_exceeded",
+    "content_blocked",
+    "tier_restricted",
+    "schema_changed",
+    "unknown_submission",
+    "unknown"
+   ],
+   "voice_not_found": "fail_item",
+   "character_not_found": "fail_item"
+  },
+  "other_public_keys_present": [
+   "api_runtime_limits",
+   "chain_config",
+   "dom_quantity_max",
+   "dom_ratio_suffix_mapping",
+   "download_resolutions",
+   "error_patterns",
+   "execution_policy",
+   "flow_home_url",
+   "flow_v2_driver",
+   "flow_v2_observer_transport",
+   "flow_v2_web_correlation",
+   "image_url_pattern",
+   "max_ref_images",
+   "native_project_media_identity",
+   "project_id_regex",
+   "project_url_patterns",
+   "quantity_range",
+   "radix_trigger_button_pattern",
+   "ratios",
+   "realtime_policy",
+   "reference_assignment_modes",
+   "supports",
+   "tab_url_patterns",
+   "tracker_policy",
+   "urls",
+   "video_durations",
+   "video_reference_limits",
+   "video_status_aliases"
+  ],
+  "still_unknown": [
+   "flow_api_v2_protocol (rpc ids, transport.video_upload)",
+   "flow_api_v2_models",
+   "flow_api_v2_schema (aspect_ratios, wire)",
+   "flow_api_v2_state_mapping",
+   "flow_api_v2_runtime",
+   "flow_api_v2_error_mapping",
+   "bridge_download_url"
+  ],
+  "why_still_unknown": "receipt.flowPrivateKeys == [] and entitled.flowApi == false; privateLoaded true but flow slug granted nothing. Public ratios (image 5, video 2) are public-config hints, NOT schema.aspect_ratios.",
+  "public_vs_private_ratios": {
+   "public_ratios": {
+    "image": [
+     "16:9",
+     "4:3",
+     "1:1",
+     "3:4",
+     "9:16"
+    ],
+    "video": [
+     "16:9",
+     "9:16"
+    ]
+   },
+   "note": "Not the private schema.aspect_ratios; do not copy into the required schema"
+  }
+ },
+ "unknowns": [
+  {
+   "id": "U1",
+   "what": "Real values of protocol.rpc.* (rpc ids), protocol.transport.video_upload",
+   "why": "Private config, only in RAM, not granted to sample account; Bridge not on disk"
+  },
+  {
+   "id": "U2",
+   "what": "models / schema.aspect_ratios / schema.wire (beyond 2 upscale ints) / state_mapping content / runtime numbers / error_mapping map",
+   "why": "same"
+  },
+  {
+   "id": "U3",
+   "what": "Bridge internals: how it builds requests, receipts storage lifetime, dedupe by commandId",
+   "why": "Bridge extension absent"
+  },
+  {
+   "id": "U4",
+   "what": "Response shape of flow_v2_upscale_image and of flow_v2_upload_* beyond ok/stage/mediaId",
+   "why": "ToolFlow forwards or only logs"
+  },
+  {
+   "id": "U5",
+   "what": "bridge_download_url value / Bridge package host",
+   "why": "Free runtime: flowPrivateKeys=[]; website placeholder URL 404; Web Store crx 404"
+  },
+  {
+   "id": "U6",
+   "what": "Whether video_timeout_ms <= 7200000 is enforced client side",
+   "why": "doc 05 claims it; not located in this pass"
+  },
+  {
+   "id": "U7",
+   "what": "BridgeClient.stream() protocol (port messages) - no caller",
+   "why": "dead code"
+  },
+  {
+   "id": "U8",
+   "what": "Exact format of IDs in outputs[].operationId vs mediaId (both UUID per client check, may differ)",
+   "why": "Only client regex"
+  }
+ ],
+ "evidence": {
+  "BC-id": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BRIDGE_ID const",
+   "offset": 294,
+   "anchor": "const BRIDGE_ID=\"heieobedadlfdkppgagnhfakcdapbfka\""
+  },
+  "BC-send": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._sendRaw",
+   "offset": 6183,
+   "anchor": "chrome.runtime.sendMessage(BRIDGE_ID,{method,params},res=>"
+  },
+  "BC-timeout": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._requestTimeout",
+   "offset": 2042,
+   "anchor": "static _requestTimeout(method,params)"
+  },
+  "BC-timeout-phases": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._requestTimeout phases",
+   "offset": 3661,
+   "anchor": "const phases=method===\"flow_v2_upscale_video\"||referenceRead?4:"
+  },
+  "BC-request": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request",
+   "offset": 6754,
+   "anchor": "static async request(method,params={},options={})"
+  },
+  "BC-cmdid": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request commandId",
+   "offset": 7025,
+   "anchor": "const commandId=v2Command?`v2-client-${Date.now()}-${Math.random().toString(36).slice(2)}`:null"
+  },
+  "BC-expires": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request commandExpiresAt",
+   "offset": 7261,
+   "anchor": "params={...params,commandExpiresAt:Date.now()+timeoutMs}"
+  },
+  "BC-cancel": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request cancel",
+   "offset": 7939,
+   "anchor": "void this._sendRaw(\"flow_v2_cancel_command\",{commandId,commandExpiresAt:params.commandExpiresAt},1e4)"
+  },
+  "BC-upload-receipt": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request upload receipt",
+   "offset": 8599,
+   "anchor": "this._sendRaw(\"flow_v2_get_upload_receipt\",{projectId:params.projectId,targetCommandId:commandId,runtime:params.runtime,commandExpiresAt:Date.now()+3e4},1e4)"
+  },
+  "BC-gen-receipt": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request generation receipt",
+   "offset": 9368,
+   "anchor": "this._sendRaw(\"flow_v2_get_generation_receipt\",{projectId:params.projectId||params.input?.projectId,targetCommandId:commandId,flowTabId:params.flowTabId,runtime:params.runtime,commandExpiresAt:Date.now()+3e4},1e4)"
+  },
+  "BC-uncertain": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._uncertainResult",
+   "offset": 863,
+   "anchor": "static _uncertainResult(method,error,detail=null)"
+  },
+  "BC-undelivered": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._undeliveredResult",
+   "offset": 1449,
+   "anchor": "static _undeliveredResult(method,error,detail=null)"
+  },
+  "BC-runtime-err": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._runtimeErrorCode",
+   "offset": 516,
+   "anchor": "static _runtimeErrorCode(message)"
+  },
+  "BC-ping": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.ping",
+   "offset": 11885,
+   "anchor": "const r=await this._sendRaw(\"ping\",{},BRIDGE_CONTROL_TIMEOUT_MS)"
+  },
+  "BC-status": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.getStatus",
+   "offset": 13648,
+   "anchor": "const r=await this._sendRaw(\"get_status\",{},BRIDGE_CONTROL_TIMEOUT_MS)"
+  },
+  "BC-maint": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.setFlowApiMaintenance",
+   "offset": 11457,
+   "anchor": "\"set_flow_api_maintenance\",{enabled:enabled===true}"
+  },
+  "BC-cookies": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.clearFlowCookiesAndReload",
+   "offset": 11161,
+   "anchor": "\"flow_clear_cookies_reload\",{tabId,projectId,userInitiated:true}"
+  },
+  "BC-cookie-cap": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.supportsFlowCookieRecovery",
+   "offset": 10445,
+   "anchor": "ping.capabilities?.includes(\"flow_clear_cookies_reload\")"
+  },
+  "BC-trace": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient._sendRaw trace fields",
+   "offset": 4479,
+   "anchor": "console.info(\"[FlowDownloadRuntime]\""
+  },
+  "BC-stream": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.stream (no caller)",
+   "offset": 14558,
+   "anchor": "static stream(){try{if(!chrome?.runtime?.connect)return null;const port=chrome.runtime.connect(BRIDGE_ID)"
+  },
+  "BC-auth": {
+   "file": "src/core/BridgeClient.js",
+   "symbol": "BridgeClient.request auth errors",
+   "offset": 10050,
+   "anchor": "authError===\"TOKEN_EXPIRED\"||authError===\"NO_FLOW_KEY\""
+  },
+  "V2-upload": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.uploadReference",
+   "offset": 4234,
+   "anchor": "window.BridgeClient.request(isSupportedVideo?\"flow_v2_upload_video\":\"flow_v2_upload_ref\",{projectId:targetProject,base64,fileName,mimeType,"
+  },
+  "V2-upload-resp": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.uploadReference response",
+   "offset": 4937,
+   "anchor": "if(response?.stage===\"receipt\"&&response?.ok!==true)"
+  },
+  "V2-submit": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._submitInSlot submit",
+   "offset": 49829,
+   "anchor": "response=await window.BridgeClient.request(method,{generationTransport,protocol:config.protocol,schema:config.schema,models:config.models,runtime:config.runtime,stateMapping:config.state_mapping,protocolRevision,protocolFingerprint,...this._flowTabPin(item),input:{itemId:item.id,"
+  },
+  "V2-submit-input": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._submitInSlot input tail",
+   "offset": 50540,
+   "anchor": "refMediaIds:referenceIds,refVideoMediaIds:videoReferenceIds}"
+  },
+  "V2-submit-validate": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._submitInSlot output validation",
+   "offset": 51622,
+   "anchor": "accepted.length!==expectedOutputCount||accepted.some(output=>!this._uuid(output.operationId)"
+  },
+  "V2-poll": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._drainAccepted",
+   "offset": 74298,
+   "anchor": "window.BridgeClient.request(\"flow_v2_poll_operations\",{protocol:config.protocol,models:config.models,schema:config.schema,stateMapping:config.state_mapping,runtime:config.runtime,operationIds:pendingIds,acceptedOperationIds:pendingIds"
+  },
+  "V2-resolve-uuid": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.resolveMedia uuidLookup",
+   "offset": 64444,
+   "anchor": "const response=await window.BridgeClient.request(\"flow_v2_resolve_media\",{protocol:config.protocol"
+  },
+  "V2-resolve-out": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.resolveMedia identity check",
+   "offset": 65434,
+   "anchor": "if(output2?.mediaId!==context.mediaId||output2?.projectId!==context.projectId){throw new Error(\"V2_RESOLVE_IDENTITY_MISMATCH\")}"
+  },
+  "V2-resolve-out2": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._resolveOutput",
+   "offset": 84277,
+   "anchor": "const request=()=>window.BridgeClient.request(\"flow_v2_resolve_media\",{protocol:config.protocol"
+  },
+  "V2-resolve-ref": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._readReferenceProjectPrimitive",
+   "offset": 13140,
+   "anchor": "return window.BridgeClient.request(\"flow_v2_resolve_media\",{protocol:config.protocol"
+  },
+  "V2-upscale-img": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.upscaleImage",
+   "offset": 68277,
+   "anchor": "return window.BridgeClient.request(\"flow_v2_upscale_image\",{"
+  },
+  "V2-upscale-vid": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.upscaleVideo",
+   "offset": 69423,
+   "anchor": "window.BridgeClient.request(\"flow_v2_upscale_video\",{...params,mediaId:context.mediaId,resolution:String(context.resolution||\"\").toLowerCase()}"
+  },
+  "V2-upscale-vid-poll": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.upscaleVideo poll",
+   "offset": 70608,
+   "anchor": "await read(\"flow_v2_poll_operations\",{...params,operationIds:[receipt.mediaId],acceptedOperationIds:[receipt.mediaId]})"
+  },
+  "V2-upscale-regex": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.upscaleVideo receipt regex",
+   "offset": 69715,
+   "anchor": "_upsampled$/i.test(receipt.mediaId)"
+  },
+  "V2-health": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._checkReadyUnshared health",
+   "offset": 30632,
+   "anchor": "healthFlight=window.BridgeClient.request(\"flow_v2_health\",{protocol:config.protocol"
+  },
+  "V2-health-resp": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver health response",
+   "offset": 31947,
+   "anchor": "return response?.ok&&response?.ready?{ready:true,protocolRevision,session:response.session||null"
+  },
+  "V2-health-diag": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver health diagnostic",
+   "offset": 31326,
+   "anchor": "sessionProof:[\"page_session_missing\",\"same_domain_header_missing\"]"
+  },
+  "V2-ready-order": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._checkReadyUnshared start",
+   "offset": 27705,
+   "anchor": "if(!config)return{ready:false,reason:\"V2_PRIVATE_CONFIG_MISSING\"};const protocolRevision"
+  },
+  "V2-ready-rev": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver revision check",
+   "offset": 27840,
+   "anchor": "protocolRevision!==Number(revision)||protocolRevision!==1"
+  },
+  "V2-ready-sm": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver state_mapping.verified",
+   "offset": 27978,
+   "anchor": "config.state_mapping?.verified!==true"
+  },
+  "V2-ready-rpc": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver required rpc keys",
+   "offset": 28091,
+   "anchor": "const requiredRpc=mediaType===\"video\"?[\"video_submit\",\"video_text_submit\",\"video_first_frame_submit\",\"video_first_last_submit\",\"video_poll\",\"media_resolve\"]:[\"image_submit\",\"media_resolve\"]"
+  },
+  "V2-ready-transport": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver transport",
+   "offset": 28448,
+   "anchor": "window.SystemConfig?.get?.(\"flow_api_v2_generation_transport\",null)"
+  },
+  "V2-ready-caps": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver required caps",
+   "offset": 28724,
+   "anchor": "if(generationTransport===\"fetch_request\"){requiredCapabilities.push(\"flow_v2_fetch_request_generation\")}"
+  },
+  "V2-required-caps": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.requiredCapabilities",
+   "offset": 11016,
+   "anchor": "static requiredCapabilities(mediaType)"
+  },
+  "V2-ping-uncertain": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver ping force",
+   "offset": 29692,
+   "anchor": "bridge.uncertain===true)&&window.BridgeClient?.ping){bridge=await window.BridgeClient.ping(true)"
+  },
+  "V2-bridge-unsupported": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver bridge capability gate",
+   "offset": 30199,
+   "anchor": "reason:\"V2_BRIDGE_VERSION_UNSUPPORTED\""
+  },
+  "V2-input": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.checkInputSupported",
+   "offset": 19652,
+   "anchor": "static async checkInputSupported({item,mediaType}={})"
+  },
+  "V2-runtimeInteger": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._runtimeInteger",
+   "offset": 10545,
+   "anchor": "static _runtimeInteger(config,key,min=1)"
+  },
+  "V2-opdeadline": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._operationDeadline",
+   "offset": 35793,
+   "anchor": "this._runtimeInteger(config,mediaType===\"video\"?\"video_timeout_ms\":\"image_timeout_ms\")"
+  },
+  "V2-pace": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver submit pacing",
+   "offset": 39539,
+   "anchor": "this._runtimeInteger(config,\"submit_pacing_ms\",50)"
+  },
+  "V2-maxconc": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver ref validation concurrency",
+   "offset": 14711,
+   "anchor": "concurrency=this._runtimeInteger(config,\"max_concurrent\")"
+  },
+  "V2-retry-keys": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver retry keys",
+   "offset": 73020,
+   "anchor": "this._runtimeInteger(config,\"max_retry_attempts\",0)"
+  },
+  "V2-session-refresh": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver session_refresh_max_attempts",
+   "offset": 73234,
+   "anchor": "this._runtimeInteger(config,\"session_refresh_max_attempts\",0)"
+  },
+  "V2-downloadready": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver.checkDownloadReady",
+   "offset": 63005,
+   "anchor": "static async checkDownloadReady(context={})"
+  },
+  "V2-upscale-img-cfg": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver upscale wire",
+   "offset": 63393,
+   "anchor": "Number.isInteger(config.schema?.wire?.image_upscale_level_2k)||!Number.isInteger(config.schema?.wire?.image_upscale_level_4k)"
+  },
+  "V2-upscale-vid-cfg": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver video upscale rpc",
+   "offset": 63162,
+   "anchor": "!config.protocol?.rpc?.video_upscale||!config.protocol?.rpc?.catalog_get"
+  },
+  "V2-videoedit": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver video edit gate",
+   "offset": 22793,
+   "anchor": "!mapping?.video_edit_video||!config.protocol?.rpc?.video_edit_submit"
+  },
+  "V2-videoedit-variant": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver video_edit_variants",
+   "offset": 23245,
+   "anchor": "variant.image_refs_idx!==8||![9,13].includes(variant.row_length)"
+  },
+  "V2-videoedit-frames": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver video_edit_frames",
+   "offset": 24160,
+   "anchor": "mapping.video_edit_frames.end>1e5"
+  },
+  "V2-layout": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver ingredients_layout",
+   "offset": 20907,
+   "anchor": "promptModelConfig.ingredients_layout!==\"canonical_v1\""
+  },
+  "V2-layout2": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver first_frame_layout",
+   "offset": 21080,
+   "anchor": "promptModelConfig.first_frame_layout!==\"canonical_v1\""
+  },
+  "V2-modelcfg": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._modelConfig",
+   "offset": 11241,
+   "anchor": "static _modelConfig(models,modelValue)"
+  },
+  "V2-capmodel": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._capabilityModel",
+   "offset": 11843,
+   "anchor": "static _capabilityModel(mapping,duration,resolution)"
+  },
+  "V2-bytratio": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver by_ratio",
+   "offset": 25874,
+   "anchor": "{...baseModelConfig,...baseModelConfig.by_ratio?.[item.settings?.ratio]}"
+  },
+  "V2-t2v": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver text_2_video",
+   "offset": 26248,
+   "anchor": "modelConfig?.text_2_video"
+  },
+  "V2-ratio-img": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver aspect_ratios.image",
+   "offset": 24808,
+   "anchor": "config.schema?.aspect_ratios?.image"
+  },
+  "V2-ratio-vid": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver aspect_ratios.video",
+   "offset": 23839,
+   "anchor": "config.schema?.aspect_ratios?.video"
+  },
+  "V2-promptmax": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver max_prompt_chars",
+   "offset": 20640,
+   "anchor": "const modelPromptLimit=promptModelConfig?.max_prompt_chars"
+  },
+  "V2-genres": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver generation_resolutions",
+   "offset": 26044,
+   "anchor": "modelConfig.generation_resolutions"
+  },
+  "V2-errmap": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._classifyProviderError",
+   "offset": 82496,
+   "anchor": "const mapping=config?.error_mapping&&typeof config.error_mapping===\"object\"?config.error_mapping:{}"
+  },
+  "V2-resperr": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._responseError",
+   "offset": 83049,
+   "anchor": "static _responseError(response,config)"
+  },
+  "V2-fp-use": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver fingerprint use",
+   "offset": 4553,
+   "anchor": "protocolFingerprint:window.FlowApiV2CheckpointStore?.fingerprint?.(config)"
+  },
+  "V2-pinned-mismatch": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver pinned config check",
+   "offset": 62963,
+   "anchor": "V2_PINNED_CONFIG_MISMATCH"
+  },
+  "V2-tabpin": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._flowTabPin",
+   "offset": 608,
+   "anchor": "static _flowTabPin(item)"
+  },
+  "V2-uuid": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._uuid",
+   "offset": 10733,
+   "anchor": "static _uuid(value)"
+  },
+  "V2-refid": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver._referenceId",
+   "offset": 10874,
+   "anchor": "static _referenceId(value)"
+  },
+  "V2-poll-resp": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver poll error path",
+   "offset": 74811,
+   "anchor": "const code=response?.error||\"V2_POLL_FAILED\""
+  },
+  "V2-poll-out-fields": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver durableUrl consumer",
+   "offset": 60401,
+   "anchor": "durableUrl"
+  },
+  "V2-failed-out": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver failureDetails consumer",
+   "offset": 61686,
+   "anchor": "failureDetails"
+  },
+  "V2-chkgate": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver entitlement gate",
+   "offset": 19737,
+   "anchor": "window.featureGate.canUse(\"flow_api_enabled\")!==true"
+  },
+  "V2-max-refs": {
+   "file": "src/core/flow-api/FlowApiV2Driver.js",
+   "symbol": "FlowApiV2Driver ping.flowV2MaxReferences",
+   "offset": 18228,
+   "anchor": "flowV2MaxReferences"
+  },
+  "SC-reconnect": {
+   "file": "src/core/flow-api/FlowApiSessionCoordinator.js",
+   "symbol": "FlowApiSessionCoordinator.reconnect",
+   "offset": 29111,
+   "anchor": "window.BridgeClient.request(\"flow_v2_reconnect\",{projectId,userInitiated:options.userInitiated===true"
+  },
+  "SC-normalized": {
+   "file": "src/core/flow-api/FlowApiSessionCoordinator.js",
+   "symbol": "FlowApiSessionCoordinator._normalized",
+   "offset": 1732,
+   "anchor": "_normalized("
+  },
+  "SC-actions": {
+   "file": "src/core/flow-api/FlowApiSessionCoordinator.js",
+   "symbol": "FlowApiSessionCoordinator action map",
+   "offset": 13972,
+   "anchor": "capability_missing:\"update_bridge\""
+  },
+  "SC-preserve": {
+   "file": "src/core/flow-api/FlowApiSessionCoordinator.js",
+   "symbol": "FlowApiSessionCoordinator preserve capability",
+   "offset": 27709,
+   "anchor": "\"flow_v2_preserve_page_reconnect\""
+  },
+  "SC-unusual": {
+   "file": "src/core/flow-api/FlowApiSessionCoordinator.js",
+   "symbol": "FlowApiSessionCoordinator unusual capability",
+   "offset": 27774,
+   "anchor": "\"flow_v2_unusual_reload\""
+  },
+  "CP-poll": {
+   "file": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+   "symbol": "FlowApiV2CheckpointStore.recoverCheckpoints",
+   "offset": 15595,
+   "anchor": "const requestPoll=()=>window.BridgeClient.request(\"flow_v2_poll_operations\""
+  },
+  "CP-resolve": {
+   "file": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+   "symbol": "FlowApiV2CheckpointStore._resolve",
+   "offset": 20373,
+   "anchor": "const response=await window.BridgeClient.request(\"flow_v2_resolve_media\""
+  },
+  "CP-terminal": {
+   "file": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+   "symbol": "FlowApiV2CheckpointStore._terminalKind",
+   "offset": 21079,
+   "anchor": "static _terminalKind"
+  },
+  "CP-fp": {
+   "file": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+   "symbol": "FlowApiV2CheckpointStore.fingerprint",
+   "offset": 1660,
+   "anchor": "static fingerprint("
+  },
+  "CP-key": {
+   "file": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+   "symbol": "FlowApiV2CheckpointStore storage key",
+   "offset": 21540,
+   "anchor": "tool_flow_api_checkpoints_v2_schema1"
+  },
+  "CP-save": {
+   "file": "src/core/flow-api/FlowApiV2CheckpointStore.js",
+   "symbol": "FlowApiV2CheckpointStore.save",
+   "offset": 3872,
+   "anchor": "static async save("
+  },
+  "FAC-prepare": {
+   "file": "src/core/flow-api/FlowApiFacade.js",
+   "symbol": "FlowApiFacade.prepare",
+   "offset": 803,
+   "anchor": "static async prepare("
+  },
+  "FAC-gate": {
+   "file": "src/core/flow-api/FlowApiFacade.js",
+   "symbol": "FlowApiFacade._runtimeGate",
+   "offset": 181,
+   "anchor": "_runtimeGate"
+  },
+  "RES-circuit": {
+   "file": "src/core/flow-api/FlowApiDriverResolver.js",
+   "symbol": "FlowApiDriverResolver.tripV2",
+   "offset": 1122,
+   "anchor": "schema_drift_threshold"
+  },
+  "RES-snapshot": {
+   "file": "src/core/flow-api/FlowApiDriverResolver.js",
+   "symbol": "FlowApiDriverResolver._systemSnapshot",
+   "offset": 3651,
+   "anchor": "_systemSnapshot"
+  },
+  "ERR-normalize": {
+   "file": "src/core/flow-api/FlowApiDriverError.js",
+   "symbol": "FlowApiDriverError.normalize",
+   "offset": 1807,
+   "anchor": "static normalize("
+  },
+  "ERR-failed": {
+   "file": "src/core/flow-api/FlowApiDriverError.js",
+   "symbol": "FlowApiDriverError.fromFailedOutputs",
+   "offset": 9478,
+   "anchor": "static fromFailedOutputs(outputs)"
+  },
+  "PCM-v2cfg": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager.getFlowApiV2ConfigSync",
+   "offset": 20648,
+   "anchor": "static getFlowApiV2ConfigSync(){const keys=[\"protocol\",\"models\",\"schema\",\"state_mapping\",\"runtime\",\"error_mapping\"]"
+  },
+  "PCM-fetchv2": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager.fetchFlowApiV2Configs",
+   "offset": 20939,
+   "anchor": "static async fetchFlowApiV2Configs(force=false)"
+  },
+  "PCM-getval": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager.getApiConfigValueSync",
+   "offset": 15906,
+   "anchor": "static getApiConfigValueSync(slug,key)"
+  },
+  "PCM-v2key": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager._isFlowApiV2Key",
+   "offset": 17629,
+   "anchor": "static _isFlowApiV2Key(key){return typeof key===\"string\"&&key.startsWith(\"flow_api_v2_\")}"
+  },
+  "PCM-gated": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager._GATED_API_CONFIG_KEYS",
+   "offset": 29542,
+   "anchor": "\"_GATED_API_CONFIG_KEYS\",[\"bridge_download_url\""
+  },
+  "PCM-fetchpriv": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager.fetchPrivateConfigs",
+   "offset": 17829,
+   "anchor": "static async fetchPrivateConfigs(force=false)"
+  },
+  "PCM-store": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager private store shape",
+   "offset": 18354,
+   "anchor": "const store=Object.fromEntries(Object.entries(json.data||{}).map(([slug,blob])=>[slug,blob?.configs||{}]))"
+  },
+  "PCM-granted": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager granted",
+   "offset": 18488,
+   "anchor": "this._privateGranted=json.meta?.granted||[]"
+  },
+  "PCM-bdu": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager bridge_download_url branch",
+   "offset": 16192,
+   "anchor": "if(key===\"bridge_download_url\"){"
+  },
+  "PCM-ttl": {
+   "file": "src/core/ProviderConfigManager.js",
+   "symbol": "ProviderConfigManager TTL",
+   "offset": 30342,
+   "anchor": "\"_PRIVATE_TTL_MS\",60*60*1e3"
+  },
+  "PCC-paths": {
+   "file": "src/core/ProtectedConfigClient.js",
+   "symbol": "ProtectedConfigClient.paths",
+   "offset": 104,
+   "anchor": "private:\"providers/private-configs\""
+  },
+  "PCC-fetch": {
+   "file": "src/core/ProtectedConfigClient.js",
+   "symbol": "ProtectedConfigClient.fetchConfig URL template",
+   "offset": 21822,
+   "anchor": "`extension-config/${paths[operation]}${suffix}`"
+  },
+  "SYS-strip": {
+   "file": "src/core/SystemConfig.js",
+   "symbol": "SystemConfig._publicSettings",
+   "offset": 7990,
+   "anchor": "delete settings.bridge_download_url"
+  },
+  "SYS-restore": {
+   "file": "src/core/SystemConfig.js",
+   "symbol": "SystemConfig.restoreFromStorage",
+   "offset": 7713,
+   "anchor": "Object.hasOwn(res.af_system_settings,\"bridge_download_url\")"
+  },
+  "SET-url": {
+   "file": "settings-page.js",
+   "symbol": "settings-page bridge card url",
+   "offset": 78258,
+   "anchor": "getApiConfigValueSync?.(\"flow\",\"bridge_download_url\")"
+  },
+  "SET-safe": {
+   "file": "settings-page.js",
+   "symbol": "settings-page._safeExternalHttpUrl",
+   "offset": 1947,
+   "anchor": "function _safeExternalHttpUrl(value)"
+  },
+  "SET-install": {
+   "file": "settings-page.js",
+   "symbol": "settings-page install card",
+   "offset": 93938,
+   "anchor": "settings.bridgeNeedInstall\",\"Install ToolBridge to use Flow API\")"
+  },
+  "SET-steps": {
+   "file": "settings-page.js",
+   "symbol": "settings-page install steps",
+   "offset": 94551,
+   "anchor": "settings.bridgeStep4\",\"Load unpacked"
+  },
+  "SET-nourl": {
+   "file": "settings-page.js",
+   "symbol": "settings-page no-url note",
+   "offset": 86219,
+   "anchor": "settings.bridgeNoUrl"
+  },
+  "SET-diag": {
+   "file": "settings-page.js",
+   "symbol": "settings-page download diagnostic",
+   "offset": 90852,
+   "anchor": "downloadValueState"
+  },
+  "BG-id": {
+   "file": "background.js",
+   "symbol": "background _FLOW_BRIDGE_ID",
+   "offset": 442794,
+   "anchor": "const _FLOW_BRIDGE_ID=\"heieobedadlfdkppgagnhfakcdapbfka\""
+  },
+  "BG-keys": {
+   "file": "background.js",
+   "symbol": "background _FLOW_DOWNLOAD_PRIVATE_KEYS",
+   "offset": 442851,
+   "anchor": "const _FLOW_DOWNLOAD_PRIVATE_KEYS=["
+  },
+  "BG-once": {
+   "file": "background.js",
+   "symbol": "background._flowDownloadBridgeRequestOnce",
+   "offset": 445358,
+   "anchor": "async function _flowDownloadBridgeRequestOnce(method,params={})"
+  },
+  "BG-req": {
+   "file": "background.js",
+   "symbol": "background._flowDownloadBridgeRequest",
+   "offset": 444532,
+   "anchor": "async function _flowDownloadBridgeRequest(method,params={})"
+  },
+  "BG-maint": {
+   "file": "background.js",
+   "symbol": "background._syncFlowApiMaintenanceSetting",
+   "offset": 443422,
+   "anchor": "async function _syncFlowApiMaintenanceSetting"
+  },
+  "BG-preflight": {
+   "file": "background.js",
+   "symbol": "background._flowApiDownloadPreflight",
+   "offset": 445769,
+   "anchor": "async function _flowApiDownloadPreflight(input={})"
+  },
+  "MAN-ext": {
+   "file": "manifest.json",
+   "symbol": "manifest externally_connectable",
+   "offset": 3937,
+   "anchor": "\"externally_connectable\""
+  },
+  "MAN-update": {
+   "file": "manifest.json",
+   "symbol": "manifest update_url",
+   "offset": 5575,
+   "anchor": "\"update_url\""
+  },
+  "GW-resolve-api": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._resolve api branch",
+   "offset": 67437,
+   "anchor": "const apiRead=root._flowUuidGatewayApiReadPrimitive||root.FlowApiFacade?._resolveMediaPrimitive?.bind(root.FlowApiFacade)"
+  },
+  "GW-apiread-args": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._resolve apiRead args",
+   "offset": 69062,
+   "anchor": "media_uuid:id,mediaId:id,projectId:context.expectedFlowTarget?.projectId||context.projectId,mediaType,apiDriver:health.driver,uuidLookup:true,identityOnly:true"
+  },
+  "GW-apistatus": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._apiStatus",
+   "offset": 59642,
+   "anchor": "static async _apiStatus(context)"
+  },
+  "GW-apistatus-ret": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._apiStatus return",
+   "offset": 61211,
+   "anchor": "return{...health,maxConcurrent:config?.runtime?.max_concurrent||null,"
+  },
+  "GW-target": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._target",
+   "offset": 58615,
+   "anchor": "static async _target(context)"
+  },
+  "GW-web": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._webPrimitive",
+   "offset": 61743,
+   "anchor": "sendToContentScript(\"flowUuidGatewayRead\",{identities:ids"
+  },
+  "GW-list": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.listMedia",
+   "offset": 64102,
+   "anchor": "sendToContentScript(\"scanFlowImages\",{deep:false,expectedFlowTarget:target}"
+  },
+  "GW-lookup": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.lookupCatalog",
+   "offset": 65240,
+   "anchor": "static async lookupCatalog(identities,options={})"
+  },
+  "GW-lookup-ret": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.lookupCatalog return",
+   "offset": 65575,
+   "anchor": "supported:target?.driverKey===\"flow_v2\""
+  },
+  "GW-trace": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._traceOperation",
+   "offset": 2636,
+   "anchor": "static async _traceOperation(operation,context,work)"
+  },
+  "GW-checkref": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.checkReferenceProject",
+   "offset": 77259,
+   "anchor": "static async checkReferenceProject("
+  },
+  "GW-checkref-ret": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.checkReferenceProject other_project",
+   "offset": 78457,
+   "anchor": "response?.error===\"LINEAGE_MISMATCH\"&&response?.diagnostic?.lineageCheck===\"resolved projectId\""
+  },
+  "GW-resolvemedia": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.resolveMedia",
+   "offset": 78792,
+   "anchor": "static async resolveMedia(input)"
+  },
+  "GW-resolvemedia-ret": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway.resolveMedia return",
+   "offset": 79834,
+   "anchor": "return{url:input.mediaType===\"image\"?info.image_url||info.thumbnail:info.video_url"
+  },
+  "GW-controlled": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway._controlledRefresh",
+   "offset": 81917,
+   "anchor": "rpc(\"flowUuidControlledBegin\")"
+  },
+  "GW-conc": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway api concurrency",
+   "offset": 67644,
+   "anchor": "Math.min(4,health.maxConcurrent)"
+  },
+  "GW-chunk": {
+   "file": "src/core/FlowUuidGateway.js",
+   "symbol": "FlowUuidGateway chunk 256",
+   "offset": 68134,
+   "anchor": "offset+=256"
+  },
+  "OBS-transport": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer onTransportConfig validation",
+   "offset": 1919,
+   "anchor": "const onTransportConfig=event=>{const config=event.detail;const paths=config?.paths;"
+  },
+  "OBS-path-re": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer transport path regex",
+   "offset": 2254,
+   "anchor": "/^\\/(?:[A-Za-z0-9_-]+\\/)*[A-Za-z0-9_-]+$/.test(path)"
+  },
+  "OBS-freq": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer parseCalls f.req",
+   "offset": 19508,
+   "anchor": "const envelope=JSON.parse(fReq||\"null\");return(Array.isArray(envelope?.[0])?envelope[0]:[]).filter(Array.isArray).map(row=>({rpcId:typeof row[0]===\"string\"?row[0]:null"
+  },
+  "OBS-wrb": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer walkFrame wrb.fr",
+   "offset": 35871,
+   "anchor": "if(frame[0]===\"wrb.fr\"&&typeof frame[2]===\"string\"){"
+  },
+  "OBS-rows": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer collection_path use",
+   "offset": 36067,
+   "anchor": "const rows=mediaPath(body,mediaSchema.collection_path)"
+  },
+  "OBS-row-check": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer row identity check",
+   "offset": 36281,
+   "anchor": "UUID_RE.test(uuid||\"\")&&mediaPath(row,mediaSchema.project_path)?.toLowerCase?.()===currentProject"
+  },
+  "OBS-schema-valid": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer validateMediaSchema",
+   "offset": 23192,
+   "anchor": "const validateMediaSchema=value=>"
+  },
+  "OBS-match-resp": {
+   "file": "flow-v2-correlation-observer.js",
+   "symbol": "observer matchingRpcResponse",
+   "offset": 41938,
+   "anchor": "if(node[0]===\"wrb.fr\"&&node[1]===rpcId){matched=true;for(const payload of[node[2],node[5]])"
+  },
+  "REL-publish": {
+   "file": "src/core/FlowObserverConfigRelay.js",
+   "symbol": "FlowObserverConfigRelay.publish",
+   "offset": 200,
+   "anchor": "const value=configs?.flow_v2_observer_transport;const schema=configs?.native_project_media_identity||null"
+  },
+  "AD-trpc": {
+   "file": "src/core/providers/FlowApiAdapter.js",
+   "symbol": "FlowApiAdapter getMediaUrlRedirect",
+   "offset": 40207,
+   "anchor": "getMediaUrlRedirect"
+  }
+ }
+}

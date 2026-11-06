@@ -1,0 +1,25 @@
+{
+  "purpose": "Local analysis snapshots of anonymous public Google JavaScript; no HTML/session/cookie/auth data",
+  "files": [
+    {
+      "name": "flow-boq-m_b.js",
+      "bytes": 1190932,
+      "sha256": "d38ec208798f030193d6e82482ab47b64b683fc1f037b309c376c8a02d14086d"
+    },
+    {
+      "name": "flow-boq-m_GK5kFd.js",
+      "bytes": 104934,
+      "sha256": "cdc9df3ac3707923eaff41381107e3cd41ef669286d07aabeb51fa89a04574fa"
+    },
+    {
+      "name": "flow-boq-m_wO1vlb.js",
+      "bytes": 3514612,
+      "sha256": "16607c80b4f85543850e475f1170b1dbf34cfc2c169337ce877111509096c83d"
+    },
+    {
+      "name": "flow-boq-m_XRV0Af.js",
+      "bytes": 4483037,
+      "sha256": "5ad3393f2d14411ddb1029fb67c7ef8229ce442c844a0cae2317f419cf9bb9e2"
+    }
+  ]
+}
