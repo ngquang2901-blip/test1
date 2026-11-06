@@ -2,3 +2,4 @@ node_modules/
 .token
 .idea/workspace.xml
 *.log
+__pycache__/
