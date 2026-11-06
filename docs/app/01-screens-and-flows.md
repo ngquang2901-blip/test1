@@ -1,6 +1,6 @@
 # 01 — Màn hình và luồng người dùng
 
-**Thiết kế chức năng đề xuất.** Desktop-first ở mức bố cục; chưa chốt extension/desktop hoặc phong cách hình ảnh. Không dùng screenshot trong nghiên cứu làm ảnh sản phẩm ToolFlow.
+**Thiết kế chức năng đề xuất.** Desktop-first ở mức bố cục. Nền tảng đã chốt: app desktop kèm extension làm cầu nối ([09](09-evidence-and-decisions.md) D-13); phong cách hình ảnh chưa chốt. Không dùng screenshot trong nghiên cứu làm ảnh sản phẩm ToolFlow.
 
 ## 1. Điều hướng
 
@@ -83,9 +83,11 @@ Chọn tab/project → kiểm tra khả năng ảnh/video → nhập prompt/ref 
 
 Chọn phiên GPT → nhập prompt ảnh/ref → preview → chạy → tạo conversation mới cho batch theo chiến lược driver → tuần tự từng turn → gán ảnh đúng turn → tải. Nếu không mở/định danh được conversation an toàn, dừng với hướng dẫn, không chuyển sang chat đang chứa việc khác.
 
-### U3 — Login/captcha/manual submit
+### U3 — Login/captcha/consent và gửi thủ công dự phòng
 
 Thông báo gồm lý do, provider, tab đích, item/attempt, thao tác được phép. **Mở đúng tab** → người dùng tự xử lý → **Kiểm tra lại**. Chỉ hết challenge chưa đủ để tự gửi lại; runner phải đọc dispatch stage.
+
+Với Flow, gửi tự động là đường chính ([ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md)). Màn hình này chỉ hiện khi auto không chạy được: người dùng tắt auto, có banner consent, listener/observer không đạt (fail-closed), hoặc `UNUSUAL_ACTIVITY` làm dừng auto cả profile. ChatGPT ở phase sau dùng manual theo [ADR-0001](adr/0001-manual-submit-khi-auto-chua-qualify.md) cho tới khi có auto được qualify.
 
 Với manual submit: chuẩn bị và baseline trước, ghi intent, mới cho người dùng bấm trên provider. Một nút "Tôi đã bấm" chỉ kích hoạt đối soát, không được coi là provider xác nhận.
 

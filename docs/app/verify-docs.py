@@ -64,8 +64,8 @@ def check(base=BASE, project=PROJECT):
         errors.append("Requirements must define TF-01 through TF-22 exactly once")
     if any(n != 1 for n in Counter(cases).values()):
         errors.append("Duplicate acceptance case ID")
-    if set(cases) != {f"AC-{i:02d}" for i in range(1, 34)}:
-        errors.append("Acceptance cases must define AC-01 through AC-33")
+    if set(cases) != {f"AC-{i:02d}" for i in range(1, 36)}:
+        errors.append("Acceptance cases must define AC-01 through AC-35")
     coverage = {req: [] for req in reqs}
     for case, field in rows:
         refs = re.findall(r"TF-\d+", field)
@@ -88,7 +88,7 @@ def check(base=BASE, project=PROJECT):
         "proposal_not_implementation": "chưa được cấp quyền triển khai" in acceptance,
         "confirmed_and_proposed_decisions_distinguished": all(
             term in decisions for term in ["XÁC NHẬN", "ĐỀ XUẤT", "CẦN CHỌN", "CHƯA KIỂM"]),
-        "platform_remains_open": "O-01" in decisions and "chưa được tự chọn stack" in decisions,
+        "platform_decided_by_user": all(f"| D-{n} | XÁC NHẬN |" in decisions for n in (13, 14, 15, 16, 17)) and "Đã chốt: D-13" in decisions,
         "research_points_to_app": "../app/README.md" in texts[project / "docs/research/README.md"],
         "bridge_deferred_in_research": "Bridge/Max Speed: tạm gác" in texts[project / "docs/research/README.md"],
     }

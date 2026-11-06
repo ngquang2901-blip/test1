@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-11-06T09:42:14.680299+00:00",
+  "checked_at": "2026-11-06T10:54:07.182234+00:00",
   "status": "PASS",
   "scope": "DOCUMENTS_ONLY",
   "markdown_files_checked": 16,
   "app_chapters": 10,
-  "local_links_checked": 144,
+  "local_links_checked": 156,
   "requirements": 22,
-  "acceptance_cases_specified": 33,
+  "acceptance_cases_specified": 35,
   "requirements_without_acceptance": [],
   "coverage": {
     "TF-01": [
@@ -31,14 +31,17 @@
     "TF-06": [
       "AC-06",
       "AC-29",
-      "AC-30"
+      "AC-30",
+      "AC-34",
+      "AC-35"
     ],
     "TF-07": [
       "AC-07",
       "AC-27"
     ],
     "TF-08": [
-      "AC-08"
+      "AC-08",
+      "AC-35"
     ],
     "TF-09": [
       "AC-09"
@@ -49,7 +52,8 @@
       "AC-24",
       "AC-25",
       "AC-29",
-      "AC-30"
+      "AC-30",
+      "AC-34"
     ],
     "TF-11": [
       "AC-11"
@@ -57,7 +61,8 @@
     "TF-12": [
       "AC-12",
       "AC-32",
-      "AC-33"
+      "AC-33",
+      "AC-34"
     ],
     "TF-13": [
       "AC-13",
@@ -104,7 +109,7 @@
     "acceptance_not_run": true,
     "proposal_not_implementation": true,
     "confirmed_and_proposed_decisions_distinguished": true,
-    "platform_remains_open": true,
+    "platform_decided_by_user": true,
     "research_points_to_app": true,
     "bridge_deferred_in_research": true
   },
@@ -113,23 +118,23 @@
   "product_tests": "NOT RUN",
   "provider_generation": "NOT RUN",
   "file_sha256": {
-    "docs/app/00-product-scope.md": "3a450e497c7e6ff71a8c6c8a7d2a9a1f2d9801896832a3664d4611b3600132be",
-    "docs/app/01-screens-and-flows.md": "875bd73b0cd44504812c584b3c14c3c58bcd85f0b98c40782e982874fa0e7a8a",
+    "docs/app/00-product-scope.md": "127250e96ba15dfecf5722e8bf5844344eeec99bd68fd8f5da8155df243f80a9",
+    "docs/app/01-screens-and-flows.md": "98b75bd65c0a9a1786160210a2e214fd1640c7633c985f6aa018080d74b8e0bc",
     "docs/app/02-domain-and-state.md": "b1e8f030469fda73e89b1f5220ec7400a8916587870c77180f48242e3637bcef",
-    "docs/app/03-architecture-and-contracts.md": "de0756bc34ba2e5e84ada19546fc3c9863f45a7b186e1c45cc04d355eaa770dd",
+    "docs/app/03-architecture-and-contracts.md": "3f1ed6230f64678fa5b3f835ef38fd1b3472fc20926c8559f16f904be9006e1e",
     "docs/app/04-flow-driver.md": "3e8d8f67bbe1ffc9fbaef743d2aacec2c862512cca6bb0e5a58bd0387793df63",
     "docs/app/05-chatgpt-driver.md": "dc49abac2398046513d45d6d07ba240694aaa8b6e3453577487e62898817375f",
     "docs/app/06-assets-and-downloads.md": "a5dd30f52f5a4f8c024828a69d20d6bb9c59c7d869d788ddef568a7dad0da19e",
     "docs/app/07-safety-and-recovery.md": "b808bd68c51b1737d4ecc6fd19a31fee6592dd478d28ceb70505b4f7134537cd",
-    "docs/app/08-acceptance-and-delivery.md": "488fa5208da7ad103e0c4b6521b5df3402061dcdad0d6b053bd3a57bb1c537e1",
-    "docs/app/09-evidence-and-decisions.md": "e641b0e447c5a45b13604eccb071cc8356b98b3275951cd8794ff0b1023827e2",
+    "docs/app/08-acceptance-and-delivery.md": "117e6c643616b8e475843a31646478bfce9d3b7c159a6745d5d475df2b24f3f8",
+    "docs/app/09-evidence-and-decisions.md": "38cbaa6290548b352600078fdeed84b9a7c827d303e4722a53a49ea7d78d31e2",
     "docs/app/README.md": "b8c4ec523701896429331fe3f6edc2ec97c92e5cb890d402da3f379ccb7886b2",
     "docs/app/adr/0001-manual-submit-khi-auto-chua-qualify.md": "3e22f596fa3ce2b913bcd868b99765d691ce8f87ada190ab6685411a442e651b",
     "docs/app/adr/0002-flow-auto-submit-trusted-listener.md": "40a72b3c7eb66e747a7640a3957312a398b9ab117f31567fc63a941b2dad3b5a",
     "docs/app/evidence/PARENT-DISPOSITION.md": "9a12a4c19db611048b4eaa12f20e67747785dcc4ea647ce0956ff6c999cbfe18",
     "README.md": "5504086409950b067549be148675003b85fbdd4c1b4e0d8d4b167f778e3a1c10",
     "docs/research/README.md": "955e1c34b0751f94675a4a3089119c1f34f41adeb047c2c60a932024277a132c",
-    "docs/app/verify-docs.py": "4311966a008c5e8be9849420cde382807bdc7d0832811f9515b85de9a19febe6"
+    "docs/app/verify-docs.py": "c7f2c5c80f1309da04211551be80a16d416184c65c1c502ffb2f1710eeda043a"
   },
   "limits": "Checks file/link existence, IDs, coverage and selected text assertions only; no semantic proof, external-link verification or live provider compatibility."
 }

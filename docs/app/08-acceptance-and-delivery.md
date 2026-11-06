@@ -24,7 +24,7 @@ TF ID được định nghĩa tại [00](00-product-scope.md). Hàng dưới là
 | AC-08 | TF-08 | Pause lúc queued/preparing/accepted và khi permit vừa giao connector. Sau fence không cấp permit mới; permit đã giao được giữ có thể đã gửi, không cancelled giả; resume kiểm stage. | Runner fault/phase tests với điều khiển thứ tự ACK/callback. |
 | AC-09 | TF-09 | Stop trước click, sau accepted và lúc uncertain. Item chưa gửi bị huỷ; lượt đã gửi không thành cancelled giả; uncertain giữ blocker. | Runner tests + UI timeline. |
 | AC-10 | TF-10 | Crash trước/sau intent, sau click trước ACK và sau output trước ghi. Không auto-resubmit. Archive chưa rõ cần xác nhận + local quiescence, giữ status/blocker cũ qua restart, chỉ cho user chạy target khác đã kiểm tách lineage. | Crash/archive matrix + persisted journal/driver counters. |
-| AC-11 | TF-11 | Login/captcha/consent/manual submit trước/sau intent. Mở đúng tab; Kiểm tra lại không là submit; user ACK không giả receipt. | Browser fixture + user-assisted qualification. |
+| AC-11 | TF-11 | Login/captcha/consent, hoặc auto bị tắt nên chuyển sang gửi thủ công dự phòng, trước/sau intent. Mở đúng tab; Kiểm tra lại không là submit; user ACK không giả receipt. | Browser fixture + user-assisted qualification. |
 | AC-12 | TF-12 | Flow từng mode được bật, có ref/model/ratio hợp lệ. Chạy đủ luồng tới output và file thật; slot Start có bằng chứng. | Live có ngân sách, record riêng từng combo. |
 | AC-13 | TF-13 | GPT không ref/có ref, nhiều ảnh/turn, text-only và conversation đổi. Gán đúng turn, text-only không completed, không lấy ảnh lịch sử. | Live có ngân sách + deterministic fixtures. |
 | AC-14 | TF-14 | Cùng xuất hiện output cũ, ref, ảnh người dùng tự tạo và output chưa rõ chủ. Chỉ bind đủ evidence; ambiguity vào needs_review. | Driver fixtures + live interleaving nếu được duyệt. |
@@ -47,6 +47,8 @@ TF ID được định nghĩa tại [00](00-product-scope.md). Hàng dưới là
 | AC-31 | TF-13, TF-18 | Prompt/history chứa “please retry”, alert chung hoặc nhiều mẫu trùng. Không phân loại sai thành lỗi mạng rồi generate lại; detector scoped đúng turn/alert. | Classifier false-positive fixtures. |
 | AC-32 | TF-12, TF-13, TF-18 | Chặn domain/backend của nguồn nghiên cứu trong môi trường test. App vẫn boot/lưu draft/chạy driver qualified mà không lấy license/config của nguồn nghiên cứu. | Dependency/network allowlist integration. |
 | AC-33 | TF-03, TF-12, TF-13 | Chỉ một combo đã qualify; mở các mode chưa qualify. UI không quảng cáo hoặc bật mode đó chỉ vì selector tồn tại. | Capability gating + release manifest inspection. |
+| AC-34 | TF-06, TF-10, TF-12 | Auto-submit Flow ([ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md)) trên một combo đã qualify. Listener ≠ 1, nút disabled, observer không đạt heartbeat, có cảnh báo credit, banner consent hoặc chip ref sai media id → không gọi listener, 0 request. Mỗi intent gọi listener đúng một lần; lệnh đọc trạng thái không tạo submit. Sau khi bấm mà không thấy request → `SUBMIT_UNCERTAIN`, không gửi lại. Chỉ 4 mã throttle trong chính response generate được gửi lại, tối đa 5 lần. `UNUSUAL_ACTIVITY` dừng auto cả profile. | Checklist [04 §7.1](04-flow-driver.md) + driver call ledger + test `packages/flow-protocol`. |
+| AC-35 | TF-06, TF-08 | Lô nhiều item với trần song song (D-16), có cả ảnh và video. Số lượt đang chạy không vượt trần; mỗi tab chờ receipt mới gửi lượt kế; bị throttle thì giảm trần; pause chặn cấp lượt mới nhưng vẫn theo dõi lượt đã gửi. | Runner test với fake driver + live đếm in-flight. |
 
 ## 3. Các tầng kiểm thử
 
@@ -72,7 +74,7 @@ Không gán deadline/ước lượng ngày trước khi chọn platform và ch�
 
 ## 5. Luồng Git/GitHub khi bắt đầu phát triển
 
-Hiện thư mục chưa là Git repo; tác vụ này chỉ viết tài liệu local, **không tạo remote/commit/push/PR**.
+Thư mục đã là Git repo local (nhánh `main`), có commit cho docs, spike 01 và `packages/flow-protocol`. Chưa có remote; **chưa push/PR** cho tới khi người dùng tạo/chọn repo và rà riêng tư xong.
 
 Flow đề xuất theo quy ước người dùng: repo private dưới `nthieuu205z` sau khi được phép tạo/chọn repo → branch cho từng phase → mỗi task hoàn tất test thì commit + push → draft PR phase → review/checks → PR ready → merge → phase tiếp theo từ main mới. Tên repo, chiến lược merge và nhánh cụ thể chưa chốt.
 

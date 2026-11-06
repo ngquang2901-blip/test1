@@ -13,10 +13,10 @@ ToolFlow là bàn điều khiển cho một người tạo nội dung bằng tà
 ## 2. Bản đầu đề xuất
 
 - Một người dùng cục bộ; không tài khoản ToolFlow, backend thương mại hay cổng license.
-- Một batch được runner chủ động chạy tại một thời điểm; không tự mở generation thứ hai. Có thể xếp nhiều batch Flow/GPT chờ. Lượt provider chưa rõ không tự biến mất: đường lưu hồ sơ chưa giải được và tiếp tục ở target khác có xác nhận tại chương 07, không hứa server đã dừng.
+- Một batch được runner chủ động chạy tại một thời điểm. Trong batch, các lượt chạy song song tới một trần do runner giữ ([09](09-evidence-and-decisions.md) D-16). Có thể xếp nhiều batch Flow/GPT chờ. Lượt provider chưa rõ không tự biến mất: đường lưu hồ sơ chưa giải được và tiếp tục ở target khác có xác nhận tại chương 07, không hứa server đã dừng.
 - Dùng một browser session được người dùng chọn; không sao chép cookie/credential để tự dựng session khác.
 - Flow: mục tiêu ảnh từ prompt, ảnh có ref, video từ prompt và video với khung đầu. Khung cuối/ingredients phức tạp để giai đoạn sau.
-- ChatGPT: mục tiêu ảnh từ prompt và ảnh có ref. Không video, không chatbot tổng quát/AI Agent ở bản đầu.
+- ChatGPT: ảnh từ prompt và ảnh có ref, **phase sau** (D-15), không thuộc lần phát hành đầu. Không video, không chatbot tổng quát/AI Agent.
 - Năng lực trên là **mục tiêu sản phẩm**, chưa phải kết quả đã chạy. Không thể qualify một tổ hợp thì tắt rõ tổ hợp đó, không đổi ngầm mode/model để chạy tiếp.
 
 Giới hạn cụ thể của ref/model/ratio được lấy từ capability do ToolFlow kiểm chứng, không lấy trần trong config trong nghiên cứu làm quyền của tài khoản.
@@ -32,12 +32,12 @@ Bảng này là nguồn định nghĩa ID yêu cầu. [08](08-acceptance-and-del
 | TF-03 | Chọn thông số theo capability | Chỉ chọn được mode/model/ratio/ref hợp lệ; không im lặng dùng giá trị khác. |
 | TF-04 | Chuẩn bị và gán ảnh tham chiếu | Xem chính xác ref của từng prompt; không cắt bớt/xoay vòng ngầm. |
 | TF-05 | Lưu batch với cấu hình bất biến | Đóng/mở UI vẫn thấy batch; sửa bản nháp không làm đổi lượt đã chạy. |
-| TF-06 | Chạy hàng đợi tuần tự và có khoá sở hữu | Hai cửa sổ không cùng gửi một item hoặc thao tác hai tab ngoài dự kiến. |
+| TF-06 | Chạy hàng đợi có trần song song và có khoá sở hữu | Hai cửa sổ không cùng gửi một item hoặc thao tác hai tab ngoài dự kiến. |
 | TF-07 | Theo dõi tiến độ bằng trạng thái thật | Phân biệt chờ gửi, có thể đã gửi, đang tạo, có kết quả, đã tải. |
 | TF-08 | Tạm dừng và tiếp tục | Không gửi item mới trong lúc pause; lượt đã gửi vẫn được đối soát an toàn. |
 | TF-09 | Dừng batch trung thực | Dừng gửi mới, giữ kết quả đã có; không tuyên bố đã huỷ phía provider. |
 | TF-10 | Phục hồi sau đóng UI/runner crash | Đọc journal và đối soát trước khi cho chạy tiếp; không replay submit mơ hồ. |
-| TF-11 | Hỗ trợ người dùng can thiệp | Có đường mở đúng tab cho login/captcha/manual submit và nút kiểm tra lại. |
+| TF-11 | Hỗ trợ người dùng can thiệp | Có đường mở đúng tab cho login/captcha/consent, gửi thủ công khi auto tắt, và nút kiểm tra lại. |
 | TF-12 | Driver Flow qua giao diện web | Chạy các tổ hợp đã qualify, xác nhận thông số/ref/project trước gửi. |
 | TF-13 | Driver ChatGPT qua giao diện web | Tạo ảnh đúng conversation/turn, báo text-only hoặc không có quyền thay vì nhận nhầm. |
 | TF-14 | Gắn kết quả đúng attempt | Kết quả không rõ chủ vào cần kiểm tra; không lấy ảnh cuối trang làm kết quả. |
@@ -68,6 +68,6 @@ Các mục này chỉ được đưa vào phiên bản sau khi có yêu cầu m�
 
 ## 6. Những việc cần chủ sản phẩm chọn
 
-Nền tảng extension hay desktop; hệ điều hành phát hành; ưu tiên ảnh/video ở bản đầu; hình thức giao diện và ngôn ngữ; ngân sách tài khoản/credit để qualify. Xem [09](09-evidence-and-decisions.md). Chưa có các lựa chọn này không cản việc thiết kế UX, nhưng cản việc đóng stack và release plan.
+Đã chốt ([09](09-evidence-and-decisions.md) D-13 → D-17): desktop Electron + TypeScript kèm extension MV3 làm cầu nối; Windows + Linux; bản đầu gồm Flow ảnh, ảnh có ref và video; gửi tự động có đường thủ công dự phòng, chạy song song có trần; tài khoản test và ngân sách. Còn chọn: hình thức giao diện và ngôn ngữ, framework UI, thư viện SQLite, phiên bản Chrome tối thiểu.
 
 **Nguồn tham khảo:** [rủi ro và bài học](../research/13-rui-ro-va-bai-hoc.md), [hàng đợi](../research/07-gen-batch-queue-tasks.md), [kiểm chứng runtime](../research/16-flow-gpt-runtime-findings.md). Những mô tả ToolFlow ở đây là thiết kế mới, không phải tính năng đã tồn tại.

@@ -14,16 +14,21 @@ Phân biệt bốn nhãn:
 |---|---|---|---|
 | D-01 | XÁC NHẬN | Chỉ phát triển cho Flow và ChatGPT. | Provider khác là tài liệu tham khảo, không phải chức năng app. |
 | D-02 | XÁC NHẬN | Tạm bỏ việc tìm/tải Bridge, để lấy Bridge. | Bridge/Max Speed không là dependency/blocker của thiết kế MVP; native RPC cũng tạm để nghiên cứu. |
-| D-03 | XÁC NHẬN | Chuyển nghiên cứu thành tài liệu app để người dùng thiết kế. | Chỉ có deliverable tài liệu; chưa được phép triển khai/publish/generate. |
-| D-04 | ĐỀ XUẤT | Một người, một batch/generation hoạt động, queue cục bộ bền. | Ưu tiên ownership/recovery, chưa multi-account/parallel. |
-| D-05 | ĐỀ XUẤT | Flow ảnh/video và GPT ảnh; ref theo capability đã qualify. | Không hứa mọi model/account; không quảng cáo mode chưa kiểm hoặc video trên GPT. |
+| D-03 | XÁC NHẬN | Chuyển nghiên cứu thành tài liệu app để người dùng thiết kế. | Chỉ có deliverable tài liệu; chưa được phép triển khai/publish/generate. Từ 05/11/2026 người dùng cho chạy spike và generate thử (D-17); app vẫn chưa được duyệt triển khai. |
+| D-04 | ĐỀ XUẤT | Một người, một batch hoạt động tại một thời điểm, queue cục bộ bền. | Ưu tiên ownership/recovery, chưa multi-account. Trong batch được chạy song song có giới hạn theo D-16. |
+| D-05 | ĐỀ XUẤT | Flow ảnh/video và GPT ảnh; ref theo capability đã qualify. Thứ tự phát hành đã chốt ở D-15. | Không hứa mọi model/account; không quảng cáo mode chưa kiểm hoặc video trên GPT. |
 | D-06 | ĐỀ XUẤT | Config/driver ToolFlow độc lập với nguồn nghiên cứu; không backend thương mại bản đầu. | Không copy license, pricing, secret hoặc private config làm dependency. |
-| D-07 | ĐỀ XUẤT | Desktop-first UX, chưa chốt runtime. | Có thể chuyển shell extension hoặc desktop sau mà giữ contract runner. |
+| D-07 | ĐỀ XUẤT → **thay bởi D-13** | Desktop-first UX, chưa chốt runtime. | Có thể chuyển shell extension hoặc desktop sau mà giữ contract runner. |
 | D-08 | ĐỀ XUẤT | Manual submit là đường rõ ràng nếu auto chưa qualify. [ADR-0001](adr/0001-manual-submit-khi-auto-chua-qualify.md) | Không lách trusted/captcha; không quảng cáo full-auto khi còn bước tay. Với Flow đã bị D-12 thay một phần; còn hiệu lực cho ChatGPT. |
 | D-09 | ĐỀ XUẤT | Một conversation GPT mới cho mỗi batch. | Không trộn việc người dùng trong chat khác; kiểm isolation/turn ownership. |
 | D-10 | ĐỀ XUẤT | Chưa nhận workflow canvas, MCP/Telegram, cloud, watermark, license. | Chỉ mở scope lại khi có yêu cầu mới. |
 | D-11 | ĐỀ XUẤT | Cho người dùng lưu hồ sơ chưa rõ sau local quiescence, giữ blocker target cũ và chỉ chủ động tiếp tục ở target khác. | Có đường tiếp tục mà không giả success/reset; có rủi ro credit/lượt provider cũ vẫn chạy, phải cảnh báo và qualify. |
 | D-12 | XÁC NHẬN | (06/11/2026) Người dùng chấp nhận rủi ro ToS/khoá tài khoản để **auto-submit trên Flow bằng cách gọi listener click của Flow với event `isTrusted:true` giả** (kỹ thuật như TobyFlow, [04 §4.3](../research/04-google-flow-dom-v1.md)). Không giải/giả reCAPTCHA: token vẫn do Flow tự tạo. Không humanize để né chấm điểm. [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md) | Thay D-08 cho Flow: auto là đường chính, manual là dự phòng. Driver phải fail-closed khi listener không tìm thấy; tất cả quy tắc intent/không gửi trùng (07) vẫn giữ. Bằng chứng spike: [spikes/01-flow-cdp/FINDINGS.md](../../spikes/01-flow-cdp/FINDINGS.md). |
+| D-13 | XÁC NHẬN | (05/11/2026) "Một app: desktop (UI, runner, SQLite, file) + extension làm cầu nối vào Chrome", chọn cách A "Extension mỏng, desktop giữ logic". Desktop là Electron + TypeScript theo mô tả cách A. | Desktop giữ runner, journal, driver và selector config; extension MV3 chỉ nhận lệnh nhỏ qua WebSocket `127.0.0.1` có token. Spike 01 bỏ `chrome.debugger` (bị `UNUSUAL_ACTIVITY`), extension thao tác bằng content script và gửi theo [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md). Framework UI và thư viện SQLite cụ thể chưa chọn. |
+| D-14 | XÁC NHẬN | (05/11/2026) Bản đầu chạy trên **Windows + Linux**. | Naming, file host, packaging và qualification phải chạy trên cả hai. |
+| D-15 | XÁC NHẬN | (05/11/2026) Lần phát hành đầu bắt buộc có: Flow ảnh từ prompt, Flow ảnh có ref, Flow video (từ prompt / khung đầu). | ChatGPT ảnh sang phase sau (P4); docs 05 giữ làm đặc tả cho phase đó. |
+| D-16 | XÁC NHẬN | (05–06/11/2026) Gửi: "Cả hai: tự động, có đường thủ công dự phòng"; Flow auto theo D-12. Nhịp chạy: "B nhưng đặt giới hạn số lượt chạy cùng lúc". | Gửi xong lượt này thì chuẩn bị ngay lượt sau, nhiều lượt chạy song song, có trần. Con số mặc định của trần vẫn là ĐỀ XUẤT ở [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md). |
+| D-17 | XÁC NHẬN | (05/11/2026) Kiểm thử dùng Chrome profile và project do người dùng chỉ định, "được phép tiêu thoải mái credit cho kiểm thử k cần xin". Từ lượt 10 đổi sang Profile 2 theo yêu cầu người dùng. | Không dùng tài khoản chính cho auto; ghi mọi lượt vào sổ spike/qualification. |
 
 D-02 xác nhận việc gác Bridge; quyết định mở rộng việc gác sang tự gọi native RPC trong bản đầu là định hướng thiết kế ở bộ docs này, không khẳng định người dùng đã bác vĩnh viễn native API.
 
@@ -31,13 +36,13 @@ D-02 xác nhận việc gác Bridge; quyết định mở rộng việc gác san
 
 | ID | Cần chọn | Chặn việc gì |
 |---|---|---|
-| O-01 | Extension hay desktop + cơ chế browser connector | Runtime, quyền host, storage, lifecycle, installer; chưa được tự chọn stack. |
-| O-02 | OS/browser phát hành và phiên bản hỗ trợ | File host, naming, tests/packaging. Máy đang soạn docs là Linux không đồng nghĩa product chỉ Linux. |
-| O-03 | Ảnh/video và ref nào là bắt buộc ở lần phát hành đầu | Thứ tự P2/P3/P4, qualification matrix và thông điệp MVP. |
-| O-04 | Hình thức UI, ngôn ngữ, mức tự động/manual chấp nhận | Mockup chi tiết và acceptance UX. Chưa có layout/brand được duyệt. |
-| O-05 | Tài khoản test, project, ngân sách generation và quyền thao tác | Mọi live qualification tạo nội dung; không tự dùng tài khoản chính/mua gói. |
+| O-01 | ~~Extension hay desktop + cơ chế browser connector~~ **Đã chốt: D-13.** Còn chọn: framework UI, thư viện SQLite, cách đóng gói/cài extension. | Installer và lifecycle. Không tự chọn stack ngoài D-13. |
+| O-02 | ~~OS phát hành~~ **Đã chốt: D-14 (Windows + Linux).** Còn chọn: phiên bản Chrome tối thiểu được hỗ trợ. | Tests/packaging. |
+| O-03 | ~~Mode bắt buộc ở lần phát hành đầu~~ **Đã chốt: D-15.** | — |
+| O-04 | Hình thức UI, ngôn ngữ. Mức tự động đã chốt ở D-16. | Mockup chi tiết và acceptance UX. Chưa có layout/brand được duyệt. |
+| O-05 | ~~Tài khoản test và ngân sách~~ **Đã chốt: D-17.** Còn chọn: tài khoản nào dùng cho qualification bản phát hành (gói có thể khác trần). | Live qualification. Không tự mua gói. |
 | O-06 | Retention, quyền đọc file và nơi lưu đầu ra mong muốn | Tính năng quản lý file và diagnostic export. |
-| O-07 | Repo GitHub cụ thể và quyền tạo/push/merge | Chỉ thực hiện khi chuyển sang tác vụ development được cho phép. |
+| O-07 | Repo GitHub cụ thể và quyền tạo/push/merge. Đã có Git repo local; chưa có remote. | Chỉ push khi người dùng tạo/chọn repo private và đã rà riêng tư. |
 
 ## 4. Bảng truy vết nghiên cứu → app
 

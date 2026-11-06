@@ -109,6 +109,8 @@
 
 ## KẾT LUẬN SPIKE (thay kết luận tạm bên dưới)
 
+> **Kết luận hiện hành (06/11/2026, lượt 1–34):** cách A **đạt** khi extension thao tác bằng content script và gửi tự động theo [ADR-0002](../../docs/app/adr/0002-flow-auto-submit-trusted-listener.md): gọi listener click của nút Gửi với `isTrusted` giả, không chạm reCAPTCHA. Chỉ đường CDP/`chrome.debugger` là **không đạt**. Ảnh, ảnh có ref, video text, video khung đầu và video Thành phần đều chạy tự động; ghép kết quả qua network. Các đoạn bên dưới ghi "trước D-12" hoặc "kết luận tạm" là lịch sử, đã lỗi thời.
+
 - **(Cập nhật bởi D-12 bên trên: auto-submit đạt.)** **Đường dùng được (trước D-12):** extension mỏng chạy **content script** (không `chrome.debugger`), làm hết phần chuẩn bị. **Người dùng bấm Generate** cho mỗi lượt. Đây đúng là D-08 "manual submit" trong docs. Auto-submit thật không có đường hợp lệ: event tổng hợp bị Flow bỏ qua, còn CDP thì bị reCAPTCHA chặn. Hai cách còn lại để auto là giả `isTrusted` hoặc né reCAPTCHA, cả hai đều bị docs cấm.
 - **Content script làm được:** đổi settings (Image/Video, Khung hình/Thành phần, ratio, 360p/720p, 4/6/8/10 s, x1–x4) và đọc lại bằng `aria-checked`; gõ prompt tiếng Việt khớp từng ký tự; gắn ref có sẵn trong project qua add-menu; điền ô Start/End của video bằng nút `empty-chip` "Bắt đầu"/"Kết thúc" (role xác định được theo slot, không theo thứ tự chip); xoá composer (`button.clear-button`); đọc tiles.
 - **Upload ref bằng content script:** `paste` một `File` (DataTransfer) vào editor → upload lên project **và** tự gắn chip sau khi upload xong (~5–10 s). `drop` → chỉ upload vào thư viện, không gắn chip. Mỗi lần gọi upload đúng 1 lần (đếm theo tile), nên cần journal chống upload trùng.
@@ -116,7 +118,7 @@
 - **Identity:** tile video **không có `data-media-id`**. Định danh tạm thời chỉ là `asb` URL (theo config: chỉ ổn định trong session). Ảnh có `data-media-id`. UI Profile 2 là tiếng Việt → mọi text matcher phải song ngữ.
 - `chrome.runtime.reload()` qua lệnh relay: cập nhật extension unpacked không cần người bấm.
 
-**Kết luận tạm:** reCAPTCHA Enterprise của Flow (`recaptcha/enterprise/reload` → `ogiZ0b` trả `PUBLIC_ERROR_UNUSUAL_ACTIVITY`) gắn cờ phiên trang có dùng `chrome.debugger`/CDP Input. Kể cả khi người bấm, hoặc đã gỡ debugger trước khi bấm (lượt 8–9), vẫn bị từ chối. Lượt 3 thành công chỉ là một mẫu lẻ, không chứng minh được auto-submit dùng ổn định. **Cách A với auto-submit qua CDP: KHÔNG ĐẠT.** Không thử "humanize" để qua reCAPTCHA vì tài liệu đã cấm né kiểm tra truy cập (00 §5, 07 §1.7).
+**Kết luận tạm (trước D-12, lỗi thời — chỉ còn đúng cho đường CDP):** reCAPTCHA Enterprise của Flow (`recaptcha/enterprise/reload` → `ogiZ0b` trả `PUBLIC_ERROR_UNUSUAL_ACTIVITY`) gắn cờ phiên trang có dùng `chrome.debugger`/CDP Input. Kể cả khi người bấm, hoặc đã gỡ debugger trước khi bấm (lượt 8–9), vẫn bị từ chối. Lượt 3 thành công chỉ là một mẫu lẻ, không chứng minh được auto-submit dùng ổn định. **Cách A với auto-submit qua CDP: KHÔNG ĐẠT.** Không thử "humanize" để qua reCAPTCHA vì tài liệu đã cấm né kiểm tra truy cập (00 §5, 07 §1.7).
 
 ## Những gì đã chạy tốt (dùng lại cho thiết kế)
 

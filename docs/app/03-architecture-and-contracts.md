@@ -1,6 +1,6 @@
 # 03 — Kiến trúc và contract
 
-**Mục tiêu:** tách quyết định sản phẩm khỏi nền tảng. Chưa chọn Electron, framework UI, database hay cơ chế điều khiển browser. Đây là ranh giới module đề xuất, không phải cấu trúc code đã tồn tại.
+**Mục tiêu:** tách quyết định sản phẩm khỏi nền tảng. Nền tảng đã chốt ở [09](09-evidence-and-decisions.md) D-13: desktop Electron + TypeScript, extension MV3 mỏng làm browser connector, journal SQLite. Framework UI và thư viện SQLite cụ thể chưa chọn. Đây là ranh giới module đề xuất, không phải cấu trúc code đã tồn tại.
 
 ## 1. Các khối
 
@@ -21,16 +21,16 @@ UI → Application commands → Durable queue / Runner → ProviderDriver
 - **Media/Download:** quản lý ref, output identity, đặt tên và xác nhận transfer độc lập generation.
 - **Diagnostics:** mã lỗi, evidence tối thiểu, gói xuất có preview; không telemetry mặc định.
 
-## 2. Hai cách đóng gói, chưa quyết định
+## 2. Cách đóng gói: kết hợp desktop + extension (đã chốt, D-13)
 
 | Cách | Lợi thế cho sản phẩm này | Ràng buộc cần chứng minh |
 |---|---|---|
 | Browser extension | Dùng tab đã đăng nhập, không cần browser attach từ app khác; có thể tận dụng API tải của browser | Quyền host hẹp, runtime có thể bị suspend; không giữ runner trong panel; thư mục tải bị browser giới hạn. |
 | Desktop app + connector | Không gian UI rộng, chủ động file local và tiến trình runner | Cần thiết kế kết nối browser/phiên đã đăng nhập, installer/permissions và bảo vệ kênh điều khiển; không tự lấy profile khác. |
 
-Chưa chọn vì người dùng đang thiết kế app. Gợi ý lựa chọn theo UX: nếu chủ yếu chạy cạnh tab thì cân nhắc extension; nếu cần workspace/file local rộng thì cân nhắc desktop. Không dùng lựa chọn đóng gói để thay đổi các bất biến [02](02-domain-and-state.md).
+Người dùng chọn kết hợp cả hai: desktop giữ UI, runner, journal, driver và selector config; extension trong Chrome đã đăng nhập chỉ nhận lệnh nhỏ (đọc DOM, gõ, chọn, gửi theo intent, upload, tải) qua WebSocket `127.0.0.1` có token ghép đôi và kiểm origin `chrome-extension://`. Spike 01 đã chạy đúng mô hình này. Extension **không dùng `chrome.debugger`** trên tab Flow (bị `UNUSUAL_ACTIVITY`); thao tác bằng content script, gửi theo [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md). Không dùng lựa chọn đóng gói để thay đổi các bất biến [02](02-domain-and-state.md).
 
-Nếu chọn extension, qualification phải bao gồm service-worker suspension và browser restart; không coi offscreen/keepalive là bảo đảm sống vô hạn. Nếu chọn desktop, phải chứng minh connector ownership, mất kết nối và sandbox/IPC. Không cần dựng cả hai trong MVP.
+Vì vậy phải chứng minh **cả hai** nhóm ràng buộc trong bảng: service-worker suspension, browser restart và tự nối lại (không coi keepalive là sống vô hạn); connector ownership, mất kết nối và sandbox/IPC của Electron. Xem Q-26 ở [04 §7.1](04-flow-driver.md).
 
 ## 3. Application commands
 
@@ -91,4 +91,4 @@ Event gửi UI có eventId, entityRevision, attemptId. UI bỏ bản cũ theo re
 
 Provider page, DOM, filename, prompt và message từ trang đều không đáng tin. Kiểm sender/origin/tab/frame, schema và attempt/epoch. DOM không có quyền ra lệnh submit/browse arbitrary URL/xuất dữ liệu. Bridge nội bộ nếu cần sau khi chọn platform phải có scope hẹp; không mở cổng điều khiển LAN mặc định.
 
-**Nguồn:** [kiến trúc](../research/01-kien-truc-va-messaging.md), [rủi ro](../research/13-rui-ro-va-bai-hoc.md), [runtime](../research/16-flow-gpt-runtime-findings.md). Đặc tả này chủ ý bỏ licensing/backend bên thứ ba và không chốt cơ chế trusted-input chưa kiểm thử.
+**Nguồn:** [kiến trúc](../research/01-kien-truc-va-messaging.md), [rủi ro](../research/13-rui-ro-va-bai-hoc.md), [runtime](../research/16-flow-gpt-runtime-findings.md). Đặc tả này chủ ý bỏ licensing/backend bên thứ ba. Cơ chế gửi tự động trên Flow đã chốt sau spike ở [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md).
