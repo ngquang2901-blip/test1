@@ -11,7 +11,7 @@ import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; slowClick?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -20,6 +20,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const gate = { hold: !!o.hold };
   const gateClick: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   let listenerless = !!o.noListener;
+  const obs = { dead: !!o.deadObserver };
   fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
   const driver: FlowDriver & { ledger: typeof fake.ledger; emit: typeof fake.emit } = {
     ...fake,
@@ -28,7 +29,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
       if (o.slowClick) await gateClick.p;
       return fake.click(tab, epoch);
     },
-    ping: async () => ({ ...(await fake.ping('x')), t: clock.now() }), // the observer ping must look fresh to the fake clock
+    ping: async () => ({ ...(await fake.ping('x')), t: clock.now(), ...(obs.dead ? { xhrSend: false } : {}) }), // the observer ping must look fresh to the fake clock
     prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
@@ -44,7 +45,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
     .map((r) => ({ id: r.id, ...(JSON.parse(r.j) as AttemptState) }));
   const deliver = (e: DriverEvent) => cbs.forEach((cb) => cb(e));
-  return { db, clock, driver, runner, batchId, step, release, states, held, deliver, openClick: gateClick.open };
+  return { db, obs, clock, driver, runner, batchId, step, release, states, held, deliver, openClick: gateClick.open };
 }
 const count = (item: string, rs: { item: string }[]) => rs.filter((s) => s.item === item).length;
 const batchRow = (db: Db, id: string) => db.prepare('select status from batch where id=?').get(id) as { status: string };
@@ -391,4 +392,76 @@ test('stop during prepare is a normal exit: no pause, no error log', async () =>
   expect(t.runner.lastError(t.batchId)).toBeNull();
   expect(spy).not.toHaveBeenCalled();
   spy.mockRestore();
+});
+
+test('N1: a fresh pause-level error on an attempt whose admission is already pause still pauses', async () => {
+  const t = rig(['throttled', 'image-ok'], { n: 2, noListener: true, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused'); // SUBMIT_LISTENER_MISSING
+  t.runner.resume(t.batchId);
+  await t.step(); // A clicked, its response held
+  const [h] = t.held.splice(0) as Extract<DriverEvent, { type: 'response' }>[];
+  // real throttled-ogiZ0b.json response with only the reason string swapped to a pause-level code (no fixture carries one)
+  t.deliver({ ...h, text: h.text.replace('PUBLIC_ERROR_USER_REQUESTS_THROTTLED', 'PUBLIC_ERROR_USER_QUOTA_REACHED') });
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1); // B never clicked
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(t.runner.lastError(t.batchId)).toBe('RATE_LIMIT') // classify keys on grpc 8 (same as the reported repro), admission pause;
+});
+
+test('N2: resuming with a still-dead observer pauses again instead of re-preparing every tick', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, deadObserver: true });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  const before = t.driver.ledger.prepares;
+  t.runner.resume(t.batchId);
+  await t.step(6);
+  expect(t.driver.ledger.prepares - before).toBe(1);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(t.driver.ledger.clicks).toBe(0);
+});
+
+test('N3: a response whose request is unparseable is never fed to the single awaiting attempt', async () => {
+  const t = rig(['image-ok'], { n: 1, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [h] = t.held.splice(0) as Extract<DriverEvent, { type: 'response' }>[];
+  t.deliver({ ...h, request: 'garbage' });
+  await t.step();
+  expect(t.states()[0].item).toBe('submitting');
+  expect(t.runner.lastError(t.batchId)).toBe('ATTRIBUTION_AMBIGUOUS');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+});
+
+test('N4: ProtocolDrift on a matched response blames the matched attempt\'s batch, not the tab slot\'s', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 1, hold: true });
+  const { batchId: b2 } = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: {}, mode: 'auto', prompts: ['other'], refs: [[]] });
+  t.runner.start(t.batchId); t.runner.start(b2);
+  await t.step(4); // A (batch 1) sent, then B (batch 2) clicked on the same tab → slot is B
+  expect(t.driver.ledger.clicks).toBe(2);
+  const [ha] = t.held.splice(0) as Extract<DriverEvent, { type: 'response' }>[];
+  t.deliver({ ...ha, text: 'garbage' });
+  await t.step();
+  expect(t.runner.lastError(t.batchId)).toBe('PROTOCOL_DRIFT');
+  expect(t.runner.lastError(b2)).toBeNull();
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(batchRow(t.db, b2).status).toBe('running');
+});
+
+test('a duplicate delivery of a settled response changes nothing', async () => {
+  const t = rig(['image-ok'], { n: 1, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [h] = t.held.splice(0);
+  t.deliver(h);
+  await t.step();
+  const settled = JSON.stringify(t.states());
+  expect(t.states()[0].item).toBe('ready');
+  t.deliver(h);
+  await t.step(2);
+  expect(JSON.stringify(t.states())).toBe(settled);
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+  expect(t.driver.ledger.clicks).toBe(1);
 });

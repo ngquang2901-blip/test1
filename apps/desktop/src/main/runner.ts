@@ -73,8 +73,9 @@ export function createRunner(o: {
     const s = applyEvent(db, id, ev, clock.now());
     const i = info(id);
     if (s.item === 'needs_review') db.prepare('insert or ignore into target_block(project_id, attempt_id, since) values(?,?,?)').run(i.project, id, clock.now());
-    // only a change pauses: a sticky admission must not re-pause after resume
-    const changed = s.admission !== prev.admission || (s.item === 'needs_review' && prev.item !== 'needs_review');
+    // only a change pauses (a sticky admission must not re-pause after resume), but a fresh error always counts
+    const changed = s.admission !== prev.admission || (s.item === 'needs_review' && prev.item !== 'needs_review')
+      || (s.error != null && JSON.stringify(s.error) !== JSON.stringify(prev.error));
     if (changed && s.admission !== 'continue' && s.admission !== 'throttle') pause(i.batch, s.error?.code ?? s.admission);
     return s;
   };
@@ -119,10 +120,12 @@ export function createRunner(o: {
     try { batchId = parseGenerateRequest(readFReq(e.request as string)).batchId; } catch { /* unmatched below */ }
     const hit = same.find((a) => req(a.id)?.batchId === batchId);
     if (!hit) { for (const b of new Set(same.map((a) => info(a.id).batch))) pause(b, 'ATTRIBUTION_AMBIGUOUS'); return; }
-    const r = parseRpcResponse(e.text, e.rpc) as { error?: { grpc: number; reasons: string[] }; payload?: unknown };
     let ev: AttemptEvent;
-    if (r.error) ev = { type: 'rejected', error: r.error, now: clock.now() };
-    else ev = { type: 'receipt', receipt: e.rpc === 'ogiZ0b' ? parseImageReceipt(r.payload) : parseVideoReceipt(r.payload) };
+    try { // blame the matched attempt's batch, not whoever holds the tab slot
+      const r = parseRpcResponse(e.text, e.rpc) as { error?: { grpc: number; reasons: string[] }; payload?: unknown };
+      if (r.error) ev = { type: 'rejected', error: r.error, now: clock.now() };
+      else ev = { type: 'receipt', receipt: e.rpc === 'ogiZ0b' ? parseImageReceipt(r.payload) : parseVideoReceipt(r.payload) };
+    } catch (err) { fail(info(hit.id).batch, err); return; }
     awaiting.splice(awaiting.indexOf(hit), 1);
     const kind = info(hit.id).kind;
     const s = apply(hit.id, ev);
