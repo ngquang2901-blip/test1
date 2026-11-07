@@ -7,7 +7,10 @@
   "exports": {
     "./parse": "./src/parse.mjs",
     "./errors": "./src/errors.mjs",
-    "./attempt": "./src/attempt.mjs",
+    "./attempt": {
+      "types": "./src/attempt.d.mts",
+      "default": "./src/attempt.mjs"
+    },
     "./heartbeat": "./src/heartbeat.mjs",
     "./project": "./src/project.mjs"
   },
