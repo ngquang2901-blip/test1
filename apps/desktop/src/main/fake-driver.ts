@@ -46,8 +46,8 @@ export function createFakeDriver(input: FakeScript) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
-    image: [...pairs('image-1x1-burst3', parseImageReceipt), ...pairs('image-9x16-x2', parseImageReceipt)],
-    video: [...pairs('video-t2v', parseVideoReceipt), ...pairs('video-ingredients', parseVideoReceipt)],
+    image: [...pairs('image-1x1-burst3', parseImageReceipt)],
+    video: [...pairs('video-t2v', parseVideoReceipt)],
     throttledImage: pairs('image-1x1-burst3'),
     throttledVideo: pairs('video-t2v'),
   };
@@ -72,6 +72,11 @@ export function createFakeDriver(input: FakeScript) {
       const step = script.shift();
       if (!step) throw new Error('fake driver: script exhausted');
       if (step === 'drop') { later({ tabId, type: 'disconnected' }); throw new ConnectorError('fake drop'); }
+      const prepared = kinds.get(tabId);
+      const to = prompts.get(tabId);
+      if (to === undefined || !prepared) throw new Error('fake: click before prepare');
+      const want = step.endsWith('-ok') ? step.slice(0, 5) : undefined;
+      if (want && want !== prepared) throw new Error(`fake: script kind ${want} does not match prepared kind ${prepared}`);
       if (step !== 'no-request') {
         let sent: Rec, done: Rec;
         if (step === 'throttled') {
@@ -79,7 +84,6 @@ export function createFakeDriver(input: FakeScript) {
           ({ sent } = video ? next('throttledVideo') : next('throttledImage'));
           done = fx(video ? 'throttled-YhhmEf' : 'throttled-ogiZ0b')[0];
         } else ({ sent, done } = step === 'image-ok' ? next('image') : next('video'));
-        const to = prompts.get(tabId) ?? promptOf(sent);
         const from = promptOf(sent);
         const oldBatch = parseGenerateRequest(fReqOf(sent)).batchId;
         const subs: Array<[string, string]> = [[from, to], [oldBatch, randomUUID()]];

@@ -34,7 +34,7 @@ test('image-ok: sent then response; receipt is owned and prompt is the attempt p
 });
 
 test('video-ok: parseVideoReceipt reads it and correlates', async () => {
-  const { got } = await events(['video-ok']);
+  const { got } = await events(['video-ok'], 'video');
   const { req, payload } = pair(got);
   expect(req.items[0].prompt).toBe(PROMPT);
   const rec = parseVideoReceipt(payload);
@@ -115,4 +115,44 @@ test('video-ok, throttled (video), video-ok on one driver', async () => {
   expect(b.req.rpc).toBe('YhhmEf');
   expect((got[3] as Extract<DriverEvent, { type: 'response' }>).rpc).toBe('YhhmEf');
   expect((parseRpcResponse((got[3] as Extract<DriverEvent, { type: 'response' }>).text, 'YhhmEf') as { error: { reasons: string[] } }).error.reasons).toContain('PUBLIC_ERROR_USER_REQUESTS_THROTTLED');
+});
+
+test('video-ok rotation never emits ingredients: t2v only, no refIds', async () => {
+  const d = createFakeDriver(Array(4).fill('video-ok'));
+  const got: DriverEvent[] = [];
+  d.onEvent((e) => got.push(e));
+  await d.prepare('t1', { prompt: PROMPT, kind: 'video', settings: {}, refIds: [] });
+  for (let i = 0; i < 4; i++) await d.click('t1', i + 1);
+  await new Promise((r) => setTimeout(r, 5));
+  for (let i = 0; i < 4; i++) {
+    const { req } = pair(got.slice(i * 2, i * 2 + 2));
+    expect(req.items.map((it) => it.refIds ?? [])).toEqual([[]]);
+    expect((got[i * 2 + 1] as Extract<DriverEvent, { type: 'response' }>).rpc).not.toBe('MZZa6b');
+  }
+});
+
+test('4 consecutive image-ok clicks all have 1 output', async () => {
+  const d = createFakeDriver(Array(4).fill('image-ok'));
+  const got: DriverEvent[] = [];
+  d.onEvent((e) => got.push(e));
+  await d.prepare('t1', { prompt: PROMPT, kind: 'image', settings: {}, refIds: [] });
+  for (let i = 0; i < 4; i++) await d.click('t1', i + 1);
+  await new Promise((r) => setTimeout(r, 5));
+  for (let i = 0; i < 4; i++) {
+    const { req, payload } = pair(got.slice(i * 2, i * 2 + 2));
+    expect(req.items).toHaveLength(1);
+    expect(parseImageReceipt(payload).outputs).toHaveLength(1);
+  }
+});
+
+test('click before prepare throws', async () => {
+  await expect(createFakeDriver(['image-ok']).click('t1', 1)).rejects.toThrow(/click before prepare/);
+});
+
+test('script kind must match prepared kind', async () => {
+  for (const [step, kind] of [['image-ok', 'video'], ['video-ok', 'image']] as const) {
+    const d = createFakeDriver([step]);
+    await d.prepare('t1', { prompt: PROMPT, kind, settings: {}, refIds: [] });
+    await expect(d.click('t1', 1)).rejects.toThrow(`fake: script kind ${step.slice(0, 5)} does not match prepared kind ${kind}`);
+  }
 });
