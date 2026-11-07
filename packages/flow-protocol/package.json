@@ -5,14 +5,26 @@
   "type": "module",
   "description": "Parsers, error table, attempt state machine, observer heartbeat and project reconciliation for Google Flow web traffic (fixtures from spike 01).",
   "exports": {
-    "./parse": "./src/parse.mjs",
-    "./errors": "./src/errors.mjs",
+    "./parse": {
+      "types": "./src/parse.d.mts",
+      "default": "./src/parse.mjs"
+    },
+    "./errors": {
+      "types": "./src/errors.d.mts",
+      "default": "./src/errors.mjs"
+    },
     "./attempt": {
       "types": "./src/attempt.d.mts",
       "default": "./src/attempt.mjs"
     },
-    "./heartbeat": "./src/heartbeat.mjs",
-    "./project": "./src/project.mjs"
+    "./heartbeat": {
+      "types": "./src/heartbeat.d.mts",
+      "default": "./src/heartbeat.mjs"
+    },
+    "./project": {
+      "types": "./src/project.d.mts",
+      "default": "./src/project.mjs"
+    }
   },
   "scripts": {
     "test": "node --test"

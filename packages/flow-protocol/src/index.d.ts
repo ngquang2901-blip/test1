@@ -1,2 +1,2 @@
-// Types for the TS consumers; the .mjs files are the source of truth. Only `attempt` is typed so far.
+// Types for the TS consumers; the .mjs files are the source of truth. One .d.mts per module.
 export * from './attempt.d.mts';
