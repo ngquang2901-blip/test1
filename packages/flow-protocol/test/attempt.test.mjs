@@ -178,3 +178,33 @@ test('fuzz: no event order clicks twice per intent, resubmits outside 07 §3, or
     assert.ok(s.resubmits <= BACKOFF_MS.length);
   }
 });
+
+// Manual submit: the user clicks Gửi; we only observe.
+const toManual = () => run(initial(imgReq.items[0].prompt), { type: 'prepare', now: NOW }, { type: 'intent', ping: ping(), now: NOW, manual: true });
+
+test('manual: intent waits for the user, sent goes on as auto', () => {
+  const w = toManual();
+  assert.deepEqual([w.item, w.stage, canClick(w)], ['awaiting_user', 'intent_recorded', false]);
+  const s = run(w, { type: 'sent', request: imgReq }, { type: 'receipt', receipt: imgRec });
+  assert.deepEqual([s.item, s.stage, s.outputs.length], ['ready', 'outcome_known', 1]);
+  assert.throws(() => next(w, { type: 'clicked', result: CLICK_OK }), IllegalTransition);
+});
+
+test('manual skip with continuous observer is not sent', () => {
+  const s = next(toManual(), { type: 'skip', ping: ping({ seq: 12 }), now: NOW });
+  assert.deepEqual([s.item, s.stage, s.creditSpent], ['cancelled', 'outcome_known', false]);
+});
+
+test('manual skip after reload is uncertain; dropped records too', () => {
+  for (const p of [ping({ id: 'obs-2' }), ping({ dropped: 1 })]) {
+    const s = next(toManual(), { type: 'skip', ping: p, now: NOW });
+    assert.deepEqual([s.item, s.error.code, s.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
+  }
+});
+
+test('manual never times out; restart is uncertain; skip is illegal once sent', () => {
+  const w = toManual();
+  assert.deepEqual(next(w, { type: 'deadline' }), w);
+  assert.equal(next(w, { type: 'restart' }).error.code, 'SUBMIT_UNCERTAIN');
+  assert.throws(() => next(toSent(imgReq), { type: 'skip', ping: ping(), now: NOW }), IllegalTransition);
+});
