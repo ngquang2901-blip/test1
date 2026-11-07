@@ -1,8 +1,9 @@
 import { test, expect } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initial } from '@toolflow/flow-protocol/attempt';
+import { parseRpcResponse, parseGenerateRequest, parseImageReceipt } from '@toolflow/flow-protocol/parse';
 import { openDb, type Db } from '../src/main/db';
 import { applyEvent } from '../src/main/journal';
 
@@ -52,4 +53,24 @@ test('intent write failure blocks click', () => {
   db.pragma('query_only = 0');
   expect(JSON.parse(stateJson(db)).item).toBe('preparing');
   expect(count(db)).toBe(1);
+});
+
+test('never persists signed urls', () => {
+  const recs = JSON.parse(readFileSync(join(__dirname, '../../../packages/flow-protocol/test/fixtures/image-1x1-burst3.json'), 'utf8')).records;
+  const sent = recs.filter((r: any) => r.phase === 'sent')[0];
+  const req = parseGenerateRequest(sent.req.slice('f.req='.length, sent.req.indexOf('&at=')));
+  const rec = recs.filter((r: any) => r.phase === 'done').map((r: any) => parseImageReceipt((parseRpcResponse(r.res, r.rpc) as any).payload)).find((r: any) => r.batchId === req.batchId);
+  const NOW = 1_800_000_000_000;
+  const db = fresh();
+  db.prepare("update attempt set state_json = ? where id = 'a'").run(JSON.stringify(initial(req.items[0].prompt)));
+  applyEvent(db, 'a', { type: 'prepare', now: NOW }, NOW);
+  applyEvent(db, 'a', { type: 'intent', ping: { ...ping, t: NOW }, now: NOW }, NOW);
+  applyEvent(db, 'a', { type: 'clicked', result: { found: true, disabled: false, listeners: 1, called: 1 } }, NOW);
+  applyEvent(db, 'a', { type: 'sent', request: req }, NOW);
+  const s = applyEvent(db, 'a', { type: 'receipt', receipt: rec }, NOW);
+  expect(s.outputs!.length).toBeGreaterThan(0);
+  expect(s.outputs!.every((o: any) => o.mediaId)).toBe(true);
+  expect(JSON.stringify(s)).toContain('Signature='); // in-memory state keeps urls
+  const stored = stateJson(db) + JSON.stringify(db.prepare('select payload_json from journal_event').all());
+  for (const bad of ['Signature=', 'flow-content.google', 'googleusercontent']) expect(stored).not.toContain(bad);
 });
