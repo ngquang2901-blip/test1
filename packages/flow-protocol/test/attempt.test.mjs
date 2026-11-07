@@ -161,6 +161,7 @@ test('fuzz: no event order clicks twice per intent, resubmits outside 07 §3, or
     { type: 'receipt', receipt: imgRec }, { type: 'receipt', receipt: otherImgRec }, { type: 'rejected', error: throttled, now: NOW },
     { type: 'rejected', error: { grpc: 8, reasons: ['PUBLIC_ERROR_UNUSUAL_ACTIVITY'] }, now: NOW }, { type: 'heartbeat', ping: ping({ dropped: 3 }), now: NOW },
     { type: 'deadline' }, { type: 'stop' }, { type: 'resolve', to: 'failed', evidence: 'x' }, { type: 'prep_failed', error: { code: 'SETTINGS_NOT_APPLIED' } },
+    { type: 'intent', ping: ping(), now: NOW, manual: true }, { type: 'skip', ping: ping(), now: NOW },
   ];
   for (let run = 0; run < 2000; run++) {
     let s = initial(imgReq.items[0].prompt), intents = 0, clicks = 0;
@@ -205,6 +206,15 @@ test('manual skip after reload is uncertain; dropped records too', () => {
 test('manual never times out; restart is uncertain; skip is illegal once sent', () => {
   const w = toManual();
   assert.deepEqual(next(w, { type: 'deadline' }), w);
-  assert.equal(next(w, { type: 'restart' }).error.code, 'SUBMIT_UNCERTAIN');
+  const r = next(w, { type: 'restart' });
+  assert.deepEqual([r.item, r.error.code, r.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
   assert.throws(() => next(toSent(imgReq), { type: 'skip', ping: ping(), now: NOW }), IllegalTransition);
+});
+
+test('skip then a late sent/receipt (request was in flight) => needs_review, credit spent', () => {
+  const sk = next(toManual(), { type: 'skip', ping: ping(), now: NOW });
+  for (const ev of [{ type: 'sent', request: imgReq }, { type: 'receipt', receipt: imgRec }]) {
+    const s = next(sk, ev);
+    assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true]);
+  }
 });

@@ -34,6 +34,8 @@ export const canClick = (s) => !s.manual && s.item === 'submitting' && s.stage =
 
 export function next(s, ev) {
   const bad = () => { throw new IllegalTransition(s, ev); };
+  // A request the observer saw before skip but the desktop got after it: real, so uncertain, not not-sent.
+  if (s.item === 'cancelled' && s.manual && !s.request && (ev.type === 'sent' || ev.type === 'receipt')) return review(s, 'SUBMIT_UNCERTAIN', { why: 'request after skip' });
   switch (ev.type) {
     case 'prepare': // queued → preparing; a resubmit waits for its backoff
       if (s.item !== 'queued' || s.stopRequested) bad();
