@@ -3,7 +3,7 @@ import type { Db } from './db';
 
 // R9: signed urls never reach the DB; the runner re-resolves them at download time.
 const redact = (k: string, v: unknown) =>
-  k === 'url' ? undefined : typeof v === 'string' && (v.includes('Signature=') || /^https?:\/\//.test(v)) ? 'REDACTED_URL' : v;
+  k === 'url' ? undefined : k !== 'prompt' && typeof v === 'string' && (v.includes('Signature=') || /^https?:\/\//.test(v)) ? 'REDACTED_URL' : v;
 
 /** Reads state, runs the state machine, writes state + journal_event atomically. Throws (and rolls back) on failure. */
 export function applyEvent(db: Db, attemptId: string, ev: AttemptEvent, now: number): AttemptState {

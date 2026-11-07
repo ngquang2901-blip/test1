@@ -74,3 +74,21 @@ test('never persists signed urls', () => {
   const stored = stateJson(db) + JSON.stringify(db.prepare('select payload_json from journal_event').all());
   for (const bad of ['Signature=', 'flow-content.google', 'googleusercontent']) expect(stored).not.toContain(bad);
 });
+
+test('keeps prompts that look like urls', () => {
+  const recs = JSON.parse(readFileSync(join(__dirname, '../../../packages/flow-protocol/test/fixtures/image-1x1-burst3.json'), 'utf8')).records;
+  const sent = recs.filter((r: any) => r.phase === 'sent')[0];
+  const req = parseGenerateRequest(sent.req.slice('f.req='.length, sent.req.indexOf('&at=')));
+  const prompt = 'https://example.com/ref.jpg a red bike';
+  req.items[0].prompt = prompt;
+  const NOW = 1_800_000_000_000;
+  const db = fresh();
+  db.prepare("update attempt set state_json = ? where id = 'a'").run(JSON.stringify(initial(prompt)));
+  applyEvent(db, 'a', { type: 'prepare', now: NOW }, NOW);
+  applyEvent(db, 'a', { type: 'intent', ping: { ...ping, t: NOW }, now: NOW }, NOW);
+  applyEvent(db, 'a', { type: 'clicked', result: { found: true, disabled: false, listeners: 1, called: 1 } }, NOW);
+  const s = applyEvent(db, 'a', { type: 'sent', request: req }, NOW);
+  expect(s.item).not.toBe('needs_review');
+  expect(stateJson(db)).toContain(JSON.stringify(prompt).slice(1, -1));
+  expect(stateJson(db)).not.toContain('REDACTED_URL');
+});
