@@ -3,6 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parsePrompts, mapRefs, enqueueBatch } from '../src/main/batch';
+import { initial } from '@toolflow/flow-protocol/attempt';
 import { openDb } from '../src/main/db';
 
 const bytes = (...b: number[]) => new Uint8Array(b);
@@ -64,5 +65,38 @@ test('enqueue is atomic and idempotent', () => {
   expect(r1.revision).toBe(1);
   expect([n(db, 'batch'), n(db, 'item'), n(db, 'attempt')]).toEqual([1, 2, 2]);
   expect(JSON.parse((db.prepare('select settings_json s from batch').get() as { s: string }).s)).toEqual({ x: 1, mode: 'manual' });
-  expect(() => enqueueBatch(db, { ...cmd, commandId: 'c2', refs: [] })).toThrow();
+  expect(() => enqueueBatch(db, { ...cmd, commandId: 'c2', refs: [] })).toThrow('prompts/refs length mismatch');
+  expect(n(db, 'batch')).toBe(1);
+});
+
+test('enqueue storage contract', () => {
+  const db = fresh();
+  const cmd = { commandId: 'c1', kind: 'video' as const, projectId: 'p', settings: {}, prompts: ['a', 'b', 'c'], refs: [['r1', 'r2'], [], ['r3']], mode: 'auto' as const };
+  const { batchId } = enqueueBatch(db, cmd);
+  const b = db.prepare('select revision, status from batch where id=?').get(batchId);
+  expect(b).toEqual({ revision: 1, status: 'queued' });
+  const rows = db.prepare('select i.ord, i.prompt, i.refs_json, i.source_line, i.attempt_id, a.id aid, a.ordinal, a.state_json from item i left join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batchId) as any[];
+  expect(rows.map((r) => r.ord)).toEqual([0, 1, 2]);
+  rows.forEach((r, i) => {
+    expect(r.refs_json).toBe(JSON.stringify(cmd.refs[i]));
+    expect(r.attempt_id).not.toBeNull();
+    expect(r.aid).toBe(r.attempt_id);
+    expect(r.ordinal).toBe(1);
+    expect(r.state_json).toBe(JSON.stringify(initial(cmd.prompts[i])));
+    expect(r.source_line).toBeNull();
+  });
+});
+
+test('enqueue stores sourceLines and validates length', () => {
+  const db = fresh();
+  const cmd = { commandId: 'c1', kind: 'image' as const, projectId: 'p', settings: {}, prompts: ['a', 'b'], refs: [[], []], mode: 'auto' as const };
+  expect(() => enqueueBatch(db, { ...cmd, sourceLines: [1] })).toThrow('prompts/sourceLines length mismatch');
+  expect(n(db, 'batch')).toBe(0);
+  enqueueBatch(db, { ...cmd, sourceLines: [3, 7] });
+  expect((db.prepare('select source_line s from item order by ord').all() as { s: number }[]).map((x) => x.s)).toEqual([3, 7]);
+});
+
+test('prompts are not trimmed; string BOM stripped', () => {
+  expect(parsePrompts('x\n  a b  \t\ny').items.map((x) => x.prompt)).toEqual(['x', '  a b  \t', 'y']);
+  expect(parsePrompts('\uFEFFa\nb').items.map((x) => x.prompt)).toEqual(['a', 'b']);
 });

@@ -48,9 +48,10 @@ export function mapRefs(count: number, pool: string[], mode: 'none' | 'all' | 's
 
 export function enqueueBatch(
   db: Db,
-  cmd: { commandId: string; kind: 'image' | 'video'; projectId: string; settings: object; prompts: string[]; refs: string[][]; mode: 'auto' | 'manual' },
+  cmd: { commandId: string; kind: 'image' | 'video'; projectId: string; settings: object; prompts: string[]; refs: string[][]; mode: 'auto' | 'manual'; sourceLines?: number[] },
 ): { batchId: string; revision: number } {
   if (cmd.prompts.length !== cmd.refs.length) throw new Error('prompts/refs length mismatch');
+  if (cmd.sourceLines && cmd.sourceLines.length !== cmd.prompts.length) throw new Error('prompts/sourceLines length mismatch');
   return db.transaction(() => {
     const prev = db.prepare('select result_json r from command where id=?').get(cmd.commandId) as { r: string } | undefined;
     if (prev) return JSON.parse(prev.r);
@@ -60,11 +61,10 @@ export function enqueueBatch(
     cmd.prompts.forEach((prompt, i) => {
       const itemId = randomUUID();
       const attemptId = randomUUID();
-      db.prepare('insert into item(id,batch_id,ord,source_line,prompt,refs_json,attempt_id) values(?,?,?,null,?,?,null)')
-        .run(itemId, batchId, i, prompt, JSON.stringify(cmd.refs[i]));
+      db.prepare('insert into item(id,batch_id,ord,source_line,prompt,refs_json,attempt_id) values(?,?,?,?,?,?,?)')
+        .run(itemId, batchId, i, cmd.sourceLines?.[i] ?? null, prompt, JSON.stringify(cmd.refs[i]), attemptId);
       db.prepare('insert into attempt(id,item_id,ordinal,state_json,revision) values(?,?,1,?,0)')
         .run(attemptId, itemId, JSON.stringify(initial(prompt)));
-      db.prepare('update item set attempt_id=? where id=?').run(attemptId, itemId);
     });
     const result = { batchId, revision: 1 };
     db.prepare('insert into command(id,result_json) values(?,?)').run(cmd.commandId, JSON.stringify(result));
