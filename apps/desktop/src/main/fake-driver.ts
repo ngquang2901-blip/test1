@@ -27,18 +27,28 @@ function swap(text: string, from: string, to: string): string {
   return text.split('\n').map((l) => (l.startsWith('[') ? JSON.stringify(walk(JSON.parse(l))) : l)).join('\n');
 }
 
-function pick(kind: 'image' | 'video' | 'throttled') {
-  if (kind === 'throttled') return { sent: fx('image-1x1-burst3').find((r) => r.phase === 'sent')!, done: fx('throttled-ogiZ0b')[0] };
-  const recs = fx(kind === 'image' ? 'image-1x1-burst3' : 'video-t2v');
-  const sent = recs.find((r) => r.phase === 'sent')!;
-  const batchId = parseGenerateRequest(fReqOf(sent)).batchId;
-  const done = recs.filter((r) => r.phase === 'done').find((r) => {
-    try { return JSON.stringify(payloadOf(r)).includes(batchId); } catch { return false; }
-  })!;
-  return { sent, done };
+// All distinct (sent, done) pairs of a fixture, matched by batchId.
+function pairs(name: string): Array<{ sent: Rec; done: Rec }> {
+  const recs = fx(name);
+  const dones = recs.filter((r) => r.phase === 'done');
+  return recs.filter((r) => r.phase === 'sent').map((sent) => {
+    const batchId = parseGenerateRequest(fReqOf(sent)).batchId;
+    const done = dones.find((r) => {
+      try { return JSON.stringify(payloadOf(r)).includes(batchId); } catch { return false; }
+    })!;
+    return { sent, done };
+  });
 }
 
-export function createFakeDriver(script: FakeScript) {
+export function createFakeDriver(input: FakeScript) {
+  const script = [...input];
+  const pools = { image: pairs('image-1x1-burst3'), video: pairs('video-t2v'), throttledImage: pairs('image-1x1-burst3') };
+  const used = { image: 0, video: 0, throttledImage: 0 };
+  const kinds = new Map<string, 'image' | 'video'>();
+  const next = (k: keyof typeof pools, label: string) => {
+    if (used[k] >= pools[k].length) throw new Error(`fake: no more distinct fixture pairs for ${label}`);
+    return pools[k][used[k]++];
+  };
   const listeners = new Set<(e: DriverEvent) => void>();
   const ledger = { clicks: 0, prepares: 0, readProject: 0 };
   const prompts = new Map<string, string>();
@@ -50,7 +60,7 @@ export function createFakeDriver(script: FakeScript) {
     async ping(): Promise<Ping> {
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },
-    async prepare(tabId, p) { ledger.prepares++; prompts.set(tabId, p.prompt); return { ok: true }; },
+    async prepare(tabId, p) { ledger.prepares++; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
     async checkBeforeClick() { return { ok: true }; },
     async click(tabId): Promise<ClickResult> {
       ledger.clicks++;
@@ -58,7 +68,12 @@ export function createFakeDriver(script: FakeScript) {
       if (!step) throw new Error('fake driver: script exhausted');
       if (step === 'drop') { later({ tabId, type: 'disconnected' }); throw new ConnectorError('fake drop'); }
       if (step !== 'no-request') {
-        const { sent, done } = pick(step === 'image-ok' ? 'image' : step === 'video-ok' ? 'video' : 'throttled');
+        let sent: Rec, done: Rec;
+        if (step === 'throttled') {
+          const video = kinds.get(tabId) === 'video';
+          ({ sent } = video ? next('video', 'throttled video') : next('throttledImage', 'throttled image'));
+          done = fx(video ? 'throttled-YhhmEf' : 'throttled-ogiZ0b')[0];
+        } else ({ sent, done } = step === 'image-ok' ? next('image', 'image-ok') : next('video', 'video-ok'));
         const to = prompts.get(tabId) ?? promptOf(sent);
         const from = promptOf(sent);
         const body = new URLSearchParams({ 'f.req': swap(fReqOf(sent), from, to) }).toString() + '&at=<redacted>';
