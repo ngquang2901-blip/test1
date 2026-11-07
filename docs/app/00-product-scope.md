@@ -68,6 +68,6 @@ Các mục này chỉ được đưa vào phiên bản sau khi có yêu cầu m�
 
 ## 6. Những việc cần chủ sản phẩm chọn
 
-Đã chốt ([09](09-evidence-and-decisions.md) D-13 → D-17): desktop Electron + TypeScript kèm extension MV3 làm cầu nối; Windows + Linux; bản đầu gồm Flow ảnh, ảnh có ref và video; gửi tự động có đường thủ công dự phòng, chạy song song có trần; tài khoản test và ngân sách. Còn chọn: hình thức giao diện và ngôn ngữ, framework UI, thư viện SQLite, phiên bản Chrome tối thiểu.
+Đã chốt ([09](09-evidence-and-decisions.md) D-13 → D-17): desktop Electron + TypeScript kèm extension MV3 làm cầu nối; Windows + Linux; bản đầu gồm Flow ảnh, ảnh có ref và video; gửi tự động có đường thủ công dự phòng, chạy song song có trần; tài khoản test và ngân sách. Stack và thứ tự phase chốt ở D-22 ([design doc](../superpowers/specs/2026-11-08-toolflow-design.md)). Còn chọn: bố cục và màu sắc giao diện.
 
 **Nguồn tham khảo:** [rủi ro và bài học](../research/13-rui-ro-va-bai-hoc.md), [hàng đợi](../research/07-gen-batch-queue-tasks.md), [kiểm chứng runtime](../research/16-flow-gpt-runtime-findings.md). Những mô tả ToolFlow ở đây là thiết kế mới, không phải tính năng đã tồn tại.

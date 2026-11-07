@@ -1,6 +1,6 @@
 # ToolFlow — Design doc bản đầu (Flow ảnh, ảnh có ref, video)
 
-**Ngày:** 08/11/2026 · **Trạng thái:** ĐANG CHỜ DUYỆT. Chưa có code sản phẩm.
+**Ngày:** 08/11/2026 · **Trạng thái:** ĐÃ DUYỆT 08/11/2026 (D-22). Chưa có code sản phẩm.
 **Đọc kèm:** bộ đặc tả [docs/app](../../app/README.md) (chương 00–09, ADR-0001/0002). Tài liệu này không chép lại các chương đó: nó chốt **cách xây**, chỉ ra chương nào là chuẩn cho phần nào, và liệt kê những gì còn để ngỏ.
 
 Quy ước nhãn: **[SH]** = Sư Huynh đã quyết (ghi ở [09](../../app/09-evidence-and-decisions.md)); **[em]** = em tự chọn, Sư Huynh sửa được; **[builder]** = người viết code tự quyết.

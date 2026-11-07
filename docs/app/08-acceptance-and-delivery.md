@@ -19,7 +19,7 @@ TF ID được định nghĩa tại [00](00-product-scope.md). Hàng dưới là
 | AC-03 | TF-03 | Chọn combo chưa qualify/không có model/ref quá trần; chạy draft. Bị chặn trước intent, không dùng default khác. | Command/driver fixture + live capability. |
 | AC-04 | TF-04 | Pool ref ít hơn số prompt hoặc có file hỏng; chọn sequential/all/start-frame. Preview đúng từng item, không xoay vòng/cắt bớt; upload pending chặn gửi. | Mapping test dùng chung mọi entry point + UI. |
 | AC-05 | TF-05 | Enqueue bị crash ở transaction, hoặc sửa draft sau chạy. Không có batch thiếu item; settings/ref của lượt cũ giữ nguyên. | Storage fault injection + restart. |
-| AC-06 | TF-06 | Hai cửa sổ/runner cùng start hoặc một lock hết lease còn uncertain. Chỉ một owner; takeover chỉ recover, không gửi trùng. | Concurrent commands + driver call counters. |
+| AC-06 | TF-06 | Mở app lần hai khi app đang chạy; hai kết nối extension cùng lúc; lock/lease hết hạn khi còn uncertain. Lần mở hai chỉ đưa cửa sổ cũ lên; chỉ kết nối mới nhất nhận lệnh, lệnh mang epoch cũ bị từ chối; takeover chỉ recover, không gửi trùng. | Single-instance test + concurrent connector + driver call counters. |
 | AC-07 | TF-07 | Driver đi từ chờ gửi tới ready rồi tải lỗi. UI không đánh đồng ready và đã lưu; không đạt 100% thành công giả. | Public state/events + UI. |
 | AC-08 | TF-08 | Pause lúc queued/preparing/accepted và khi permit vừa giao connector. Sau fence không cấp permit mới; permit đã giao được giữ có thể đã gửi, không cancelled giả; resume kiểm stage. | Runner fault/phase tests với điều khiển thứ tự ACK/callback. |
 | AC-09 | TF-09 | Stop trước click, sau accepted và lúc uncertain. Item chưa gửi bị huỷ; lượt đã gửi không thành cancelled giả; uncertain giữ blocker. | Runner tests + UI timeline. |
@@ -48,7 +48,7 @@ TF ID được định nghĩa tại [00](00-product-scope.md). Hàng dưới là
 | AC-32 | TF-12, TF-13, TF-18 | Chặn domain/backend của nguồn nghiên cứu trong môi trường test. App vẫn boot/lưu draft/chạy driver qualified mà không lấy license/config của nguồn nghiên cứu. | Dependency/network allowlist integration. |
 | AC-33 | TF-03, TF-12, TF-13 | Chỉ một combo đã qualify; mở các mode chưa qualify. UI không quảng cáo hoặc bật mode đó chỉ vì selector tồn tại. | Capability gating + release manifest inspection. |
 | AC-34 | TF-06, TF-10, TF-12 | Auto-submit Flow ([ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md)) trên một combo đã qualify. Tài khoản mới: auto tắt, chỉ bật được sau khi xác nhận cảnh báo. Profile selector/RPC lệch khi mở app → `PROTOCOL_DRIFT`, auto tắt. Listener ≠ 1, nút disabled, observer không đạt heartbeat, có cảnh báo credit, banner consent hoặc chip ref sai media id → không gọi listener, 0 request. Mỗi intent gọi listener đúng một lần; lệnh đọc trạng thái không tạo submit. Sau khi bấm mà không thấy request → `SUBMIT_UNCERTAIN`, không gửi lại. Chỉ 4 mã throttle trong chính response generate được gửi lại, tối đa 5 lần. `UNUSUAL_ACTIVITY` dừng auto cả profile. | Checklist [04 §7.1](04-flow-driver.md) + driver call ledger + test `packages/flow-protocol`. |
-| AC-35 | TF-06, TF-08 | Lô nhiều item với trần song song (D-16/D-18: mặc định 1 tab, 8 video / 12 ảnh; "Nhanh" 4 tab, 20 / 30), có cả ảnh và video. Số lượt đang chạy không vượt trần; mỗi tab chờ receipt mới gửi lượt kế; bị throttle thì giảm trần; pause chặn cấp lượt mới nhưng vẫn theo dõi lượt đã gửi. | Runner test với fake driver + live đếm in-flight. |
+| AC-35 | TF-06, TF-08 | Một lô ảnh rồi một lô video (mỗi lô một loại, D-20), mỗi lô nhiều item với trần song song (D-16/D-18: mặc định 1 tab, 8 video / 12 ảnh; "Nhanh" 4 tab, 20 / 30). Số lượt đang chạy không vượt trần; mỗi tab chờ receipt mới gửi lượt kế; bị throttle thì giảm trần; pause chặn cấp lượt mới nhưng vẫn theo dõi lượt đã gửi. | Runner test với fake driver + live đếm in-flight. |
 | AC-36 | TF-06, TF-10, TF-22 | Batch A còn lượt uncertain; batch B ở project khác đang chờ; app bị kill rồi mở lại. Mọi intent chưa có receipt thành uncertain, 0 lần gửi lại; runner nhả slot cho B, project của A vẫn bị chặn. Sau 10 phút job đối soát tìm được kết quả, hoặc người dùng xác nhận đã gửi/chưa gửi, thì project A được gỡ chặn; lượt uncertain vẫn tính đã tiêu credit; không có lượt chạy lại nào nếu người dùng không chọn. | Runner + journal crash test, driver call ledger, UI xác nhận. |
 
 ## 3. Các tầng kiểm thử
@@ -64,14 +64,14 @@ Seam kiểm chính là application command → persisted state/host outputs; đ�
 
 | Giai đoạn | Nội dung | Điều kiện qua |
 |---|---|---|
-| P0 — Thiết kế | Chốt nền tảng/OS/UX, phạm vi mode và trust boundary; cắt ticket từ tài liệu này | Các quyết định mở chặn implementation có câu trả lời. |
-| P1 — Nền móng | UI shell, storage, commands, runner/ownership/recovery với fake driver | Parser, atomic enqueue, crash/epoch/stop/aggregate không generate trùng; không giả dữ liệu live. |
-| P2 — Flow ảnh + tải | Flow ảnh, ref, ownership, file host | Mode bật qua qualification và file thật; lỗi tải không sinh lại. |
-| P3 — Flow video | Text-video, start-frame nếu vẫn thuộc bản đầu sau khi chốt ưu tiên | Test video riêng, role Start xác minh, tải playable file. |
-| P4 — ChatGPT ảnh | Isolation, ref gating, turn ownership và download | GPT không ref/có ref, text-only/challenge/limit và recovery đạt. |
-| P5 — Đóng gói | Lifecycle, permissions, retention/export, UX lỗi, release limits | Mọi mode quảng cáo có bằng chứng, hạn chế còn lại ghi rõ. |
+| P0 — Thiết kế | Design doc + sửa docs | Xong 08/11/2026 ([design doc](../superpowers/specs/2026-11-08-toolflow-design.md) được duyệt). |
+| P1 — Nền móng | Electron shell, SQLite + journal, runner (trần song song, đối soát, restart, gửi tay), extension sản phẩm + ghép đôi, self-check, fake driver | Theo design doc §13. |
+| P2 — Flow ảnh + ảnh có ref + tải | Driver ảnh thật, upload/gắn ref, tải file | Mode bật qua qualification và file thật; lỗi tải không sinh lại. |
+| P3 — Flow video | Nối video ↔ URL tải, fixture khung đầu, text-video, start-frame | Test video riêng, role Start xác minh, tải playable file; cần credit video. |
+| P4 — Đóng gói bản đầu | Installer Win/Linux, lifecycle, retention/export, UX lỗi | Mọi AC không thuộc ChatGPT đạt; hạn chế còn lại ghi rõ. |
+| P5 — ChatGPT ảnh | Isolation, ref gating, turn ownership và download | Phase sau, duyệt riêng. |
 
-Không gán deadline/ước lượng ngày trước khi chọn platform và chạy spike các rủi ro browser. Thứ tự là đề xuất, không phải roadmap đã được user duyệt.
+Thứ tự này người dùng đã duyệt cùng design doc (08/11/2026). Không gán deadline. Mỗi phase có plan riêng ở `docs/superpowers/plans/`, viết khi phase trước xong (P2, P3 phụ thuộc kết quả live).
 
 ## 5. Luồng Git/GitHub khi bắt đầu phát triển
 

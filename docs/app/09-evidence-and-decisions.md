@@ -31,6 +31,9 @@ Phân biệt bốn nhãn:
 | D-17 | XÁC NHẬN | (05/11/2026) Kiểm thử dùng Chrome profile và project do người dùng chỉ định, "được phép tiêu thoải mái credit cho kiểm thử k cần xin". Từ lượt 10 đổi sang Profile 2 theo yêu cầu người dùng. | Không dùng tài khoản chính cho auto; ghi mọi lượt vào sổ spike/qualification. |
 | D-18 | XÁC NHẬN | (06/11/2026, sửa cùng ngày) Trần song song mặc định của Flow: **1 tab, 8 video / 12 ảnh** đang chạy. Mức 4 tab / 20 video / 30 ảnh là tuỳ chọn **"Nhanh"**. | Chi tiết ở [ADR-0002](adr/0002-flow-auto-submit-trusted-listener.md). Throttle → giảm một nửa rồi tăng dần. |
 | D-19 | XÁC NHẬN | (06/11/2026, sửa cùng ngày) Auto mặc định **TẮT**; người dùng tự bật sau khi đọc cảnh báo. | Chưa bật thì Flow chạy bằng gửi thủ công (D-08). Bật lưu theo từng tài khoản, ghi thời điểm người dùng xác nhận cảnh báo. |
+| D-20 | XÁC NHẬN | (08/11/2026) Mỗi lô chỉ một loại: ảnh hoặc video. | Muốn cả hai thì tạo 2 lô, chạy lần lượt (D-04). |
+| D-21 | XÁC NHẬN | (08/11/2026) Đối soát 10 phút không quyết được lượt không rõ thì lô đứng chờ người dùng bấm "Đã gửi"/"Chưa gửi"; app không tự tạo project Flow mới. | Lô khác đã xếp ở project khác vẫn chạy (D-04). |
+| D-22 | XÁC NHẬN | (08/11/2026) Người dùng duyệt [design doc](../superpowers/specs/2026-11-08-toolflow-design.md): các lựa chọn [em] trong đó (React + Vite, better-sqlite3, electron-builder NSIS/AppImage, Chrome ≥ 156, extension load unpacked, single-instance, tải qua `chrome.downloads`) thành mặc định; thứ tự phase P0–P5 mới. | Đóng phần còn chọn của O-01, O-02; O-04 còn bố cục/màu sắc. |
 
 D-02 xác nhận việc gác Bridge; quyết định mở rộng việc gác sang tự gọi native RPC trong bản đầu là định hướng thiết kế ở bộ docs này, không khẳng định người dùng đã bác vĩnh viễn native API.
 
@@ -38,10 +41,10 @@ D-02 xác nhận việc gác Bridge; quyết định mở rộng việc gác san
 
 | ID | Cần chọn | Chặn việc gì |
 |---|---|---|
-| O-01 | ~~Extension hay desktop + cơ chế browser connector~~ **Đã chốt: D-13.** Còn chọn: framework UI, thư viện SQLite, cách đóng gói/cài extension. | Installer và lifecycle. Không tự chọn stack ngoài D-13. |
-| O-02 | ~~OS phát hành~~ **Đã chốt: D-14 (Windows + Linux).** Còn chọn: phiên bản Chrome tối thiểu được hỗ trợ. | Tests/packaging. |
+| O-01 | ~~Extension hay desktop + cơ chế browser connector~~ **Đã chốt: D-13, D-22.** | Installer và lifecycle. Không tự chọn stack ngoài D-13. |
+| O-02 | ~~OS phát hành~~ **Đã chốt: D-14 (Windows + Linux), Chrome ≥ 156 (D-22).** | Tests/packaging. |
 | O-03 | ~~Mode bắt buộc ở lần phát hành đầu~~ **Đã chốt: D-15.** | — |
-| O-04 | Hình thức UI, ngôn ngữ. Mức tự động đã chốt ở D-16. | Mockup chi tiết và acceptance UX. Chưa có layout/brand được duyệt. |
+| O-04 | Bố cục, màu sắc giao diện. Ngôn ngữ tiếng Việt (D-22); mức tự động đã chốt ở D-16. | Mockup chi tiết và acceptance UX. Chưa có layout/brand được duyệt. |
 | O-05 | ~~Tài khoản test và ngân sách~~ **Đã chốt: D-17.** Còn chọn: tài khoản nào dùng cho qualification bản phát hành (gói có thể khác trần). | Live qualification. Không tự mua gói. |
 | O-06 | Retention, quyền đọc file và nơi lưu đầu ra mong muốn | Tính năng quản lý file và diagnostic export. |
 | O-07 | Repo GitHub cụ thể và quyền tạo/push/merge. Đã có Git repo local; chưa có remote. Người dùng chọn **chưa push, giữ local** (06/11/2026). | Mọi phase làm trên branch local; push/PR chỉ khi người dùng đổi quyết định. |

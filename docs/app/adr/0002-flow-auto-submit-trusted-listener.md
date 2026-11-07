@@ -51,7 +51,7 @@ Nguồn chân lý là [`packages/flow-protocol/src/errors.mjs`](../../../package
 
 ### Mặc định song song (XÁC NHẬN 06/11/2026, D-18; số đo của 1 tài khoản Pro)
 
-- Mỗi tab gửi lần lượt: chờ receipt rồi mới gửi lượt kế tiếp. Riêng video, Flow client tự xếp hàng khoảng 6 giây mỗi lượt.
+- Mỗi tab gửi lần lượt. Ảnh: thấy request lượt trước rời trang (`sent`) là gửi lượt kế (response ảnh chính là kết quả; lượt 16, 18). Video: chờ receipt rồi mới gửi lượt kế, vì Flow client tự xếp hàng khoảng 6 giây mỗi lượt.
 - **Mặc định:** 1 tab, tối đa 8 video đang render và 12 ảnh đang chạy.
 - **Tuỳ chọn "Nhanh":** 4 tab, tối đa 20 video và 30 ảnh, dựa vào backoff khi bị chặn. Người dùng tự chọn trong app.
 - Bị throttle thì giảm một nửa số đang chạy và gửi lại đúng lượt đó theo ngoại lệ [07 §3](../07-safety-and-recovery.md); gửi trót lọt thì tăng dần lại tới trần.

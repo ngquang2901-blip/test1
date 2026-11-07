@@ -54,7 +54,7 @@ Mẫu đề xuất: `{batch}/{index}_{prompt}_{outputId}.{ext}`. Các token ch�
 6. ACK mất sau khi đã bắt đầu → needs_review; đối soát handle/hệ thống trước khi mở transfer mới.
 7. Tải thất bại rõ có thể retry cùng output. Không đi ngược sang prepare/submit.
 
-MVP xử lý từng item tới khi generation và download yêu cầu đã có kết luận trước item kế; không cạnh tranh context menu của ref/download. File transfer bất định chặn admission trên target cho tới đối soát.
+Tải chạy song song với việc sinh nội dung (D-16); cả ảnh và video tải qua `chrome.downloads` của extension vào thư mục tạm, desktop kiểm rồi chuyển sang thư mục đích ([design doc](../superpowers/specs/2026-11-08-toolflow-design.md) §8). Không dùng context menu tải của Flow. File transfer bất định chặn admission trên target cho tới đối soát.
 
 ## 7. Khi auto-download tắt
 
