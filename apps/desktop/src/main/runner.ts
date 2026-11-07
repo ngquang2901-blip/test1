@@ -74,9 +74,12 @@ export function createRunner(o: {
     const i = info(id);
     if (s.item === 'needs_review') db.prepare('insert or ignore into target_block(project_id, attempt_id, since) values(?,?,?)').run(i.project, id, clock.now());
     // only a change pauses (a sticky admission must not re-pause after resume), but a fresh error always counts
-    const changed = s.admission !== prev.admission || (s.item === 'needs_review' && prev.item !== 'needs_review')
-      || (s.error != null && JSON.stringify(s.error) !== JSON.stringify(prev.error));
-    if (changed && s.admission !== 'continue' && s.admission !== 'throttle') pause(i.batch, s.error?.code ?? s.admission);
+    const err = s.error as (AttemptState['error'] & { admission?: string }) | null;
+    const fresh = err != null && JSON.stringify(err) !== JSON.stringify(prev.error);
+    // a fresh error decides by its own admission (the sticky s.admission may be left over from an earlier pause)
+    const level = fresh ? (err.admission ?? s.admission) : s.admission;
+    const changed = fresh || s.admission !== prev.admission || (s.item === 'needs_review' && prev.item !== 'needs_review');
+    if (changed && level !== 'continue' && level !== 'throttle') pause(i.batch, s.error?.code ?? s.admission);
     return s;
   };
 
@@ -125,7 +128,11 @@ export function createRunner(o: {
       const r = parseRpcResponse(e.text, e.rpc) as { error?: { grpc: number; reasons: string[] }; payload?: unknown };
       if (r.error) ev = { type: 'rejected', error: r.error, now: clock.now() };
       else ev = { type: 'receipt', receipt: e.rpc === 'ogiZ0b' ? parseImageReceipt(r.payload) : parseVideoReceipt(r.payload) };
-    } catch (err) { fail(info(hit.id).batch, err); return; }
+    } catch (err) {
+      awaiting.splice(awaiting.indexOf(hit), 1);
+      if (state(hit.id).item === 'submitting') apply(hit.id, { type: 'deadline' }); // unreadable reply: uncertain + project blocked, never resent
+      fail(info(hit.id).batch, err); return;
+    }
     awaiting.splice(awaiting.indexOf(hit), 1);
     const kind = info(hit.id).kind;
     const s = apply(hit.id, ev);

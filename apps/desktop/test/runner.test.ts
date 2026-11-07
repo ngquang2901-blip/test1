@@ -407,7 +407,7 @@ test('N1: a fresh pause-level error on an attempt whose admission is already pau
   await t.step(3);
   expect(t.driver.ledger.clicks).toBe(1); // B never clicked
   expect(batchRow(t.db, t.batchId).status).toBe('paused');
-  expect(t.runner.lastError(t.batchId)).toBe('RATE_LIMIT') // classify keys on grpc 8 (same as the reported repro), admission pause;
+  expect(t.runner.lastError(t.batchId)).toBe('RATE_LIMIT'); // classification keys on the reason string (QUOTA_REACHED → RATE_LIMIT, pause), not grpc 8
 });
 
 test('N2: resuming with a still-dead observer pauses again instead of re-preparing every tick', async () => {
@@ -448,6 +448,37 @@ test('N4: ProtocolDrift on a matched response blames the matched attempt\'s batc
   expect(t.runner.lastError(b2)).toBeNull();
   expect(batchRow(t.db, t.batchId).status).toBe('paused');
   expect(batchRow(t.db, b2).status).toBe('running');
+  const a = t.states()[0];
+  expect([a.item, a.stage]).toEqual(['needs_review', 'uncertain']);
+  expect(blocks(t.db)).toEqual([{ project_id: 'p', attempt_id: a.id }]);
+  await t.step(4);
+  expect(t.driver.ledger.clicks).toBe(2); // project blocked: batch 2 gets no further clicks
+});
+
+test('R25: a stale pause admission does not pause on a later throttled response after stop', async () => {
+  const t = rig(['throttled', 'image-ok'], { n: 2, noListener: true, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  t.runner.resume(t.batchId);
+  await t.step(); // A clicked, its response held
+  t.runner.stop(t.batchId);
+  const [h] = t.held.splice(0) as Extract<DriverEvent, { type: 'response' }>[];
+  t.deliver(h);
+  await t.step(3);
+  expect(batchStatus(t.db, t.batchId)).toBe('stopped');
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+});
+
+test('R25: GENERATION_ALREADY_IN_PROGRESS is uncertain: needs_review, credit spent, project blocked', async () => {
+  const t = rig(['throttled', 'image-ok'], { n: 2, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [h] = t.held.splice(0) as Extract<DriverEvent, { type: 'response' }>[];
+  t.deliver({ ...h, text: h.text.replace('PUBLIC_ERROR_USER_REQUESTS_THROTTLED', 'PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS') });
+  await t.step(3);
+  const a = t.states()[0];
+  expect([a.item, a.stage, a.creditSpent]).toEqual(['needs_review', 'uncertain', true]);
+  expect(blocks(t.db)).toEqual([{ project_id: 'p', attempt_id: a.id }]);
 });
 
 test('a duplicate delivery of a settled response changes nothing', async () => {

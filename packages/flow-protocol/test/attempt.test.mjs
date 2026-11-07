@@ -76,6 +76,12 @@ test('throttled generate response: same attempt waits 30 s, 60 s… then RATE_LI
   assert.deepEqual([s.item, s.error.code, s.admission, s.error.exhausted], ['failed', 'RATE_LIMIT', 'pause', true]);
 });
 
+test('R25: GENERATION_ALREADY_IN_PROGRESS rejection is uncertain, not failed (D-04/D-11)', () => {
+  // no fixture frame exists; this is the {grpc, reasons} shape parseRpcResponse returns for that reason
+  const s = next(toSent(imgReq), { type: 'rejected', error: { grpc: 9, reasons: ['PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS'] }, now: NOW });
+  assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent, s.admission], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true, 'pause']);
+});
+
 test('non-resubmittable rejection settles the attempt; stop during backoff cancels (Flow created nothing)', () => {
   const blocked = next(toSent(imgReq), { type: 'rejected', error: { grpc: 3, reasons: ['PUBLIC_ERROR_UNSAFE_GENERATION'] }, now: NOW });
   assert.deepEqual([blocked.item, blocked.error.code], ['failed', 'CONTENT_BLOCKED']);
