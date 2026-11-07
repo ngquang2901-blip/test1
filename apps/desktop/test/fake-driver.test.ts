@@ -18,6 +18,7 @@ const pair = (got: DriverEvent[]) => {
   const [sent, response] = got as [Extract<DriverEvent, { type: 'sent' }>, Extract<DriverEvent, { type: 'response' }>];
   expect(sent.type).toBe('sent');
   expect(response.type).toBe('response');
+  expect(response.request).toBe(sent.request); // R24: the response carries the request it answers
   const req = parseGenerateRequest(readFReq(sent.request as string));
   const payload = (parseRpcResponse(response.text, response.rpc) as { payload: unknown }).payload;
   return { req, payload };

@@ -95,7 +95,7 @@ export function createFakeDriver(input: FakeScript) {
             if (decodeURIComponent(body.replace(/\+/g, ' ')).includes(needle) || text.includes(needle)) throw new Error(`fake: fixture value survived substitution: ${old}`);
           }
         }
-        later({ tabId, type: 'sent', request: body }, { tabId, type: 'response', rpc: done.rpc, text });
+        later({ tabId, type: 'sent', request: body }, { tabId, type: 'response', rpc: done.rpc, text, request: body });
       }
       return { found: true, disabled: false, listeners: 1, called: 1 };
     },

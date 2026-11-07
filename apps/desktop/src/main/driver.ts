@@ -2,7 +2,7 @@ export type Ping = { xhrSend: boolean; xhrOpen: boolean; fetch: boolean; id: str
 export type ClickResult = { found: boolean; disabled: boolean | null; listeners: number; called: number } | { noMainWorld: true };
 export type DriverEvent =
   | { tabId: string; type: 'sent'; request: unknown } // raw request body as captured; the runner must parse it (readFReq) and never persist it (reCAPTCHA token slot)
-  | { tabId: string; type: 'response'; rpc: string; text: string } // raw; runner parses with flow-protocol
+  | { tabId: string; type: 'response'; rpc: string; text: string; request: unknown } // request = raw body of the request this answers (same XHR closure); parse, never persist // raw; runner parses with flow-protocol
   | { tabId: string; type: 'disconnected' };
 export interface FlowDriver {
   ping(tabId: string): Promise<Ping>;

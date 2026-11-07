@@ -1,6 +1,6 @@
 import { canClick, type AttemptEvent, type AttemptState, type ItemState } from '@toolflow/flow-protocol/attempt';
 import { classifyGenerateError } from '@toolflow/flow-protocol/errors';
-import { correlate, parseGenerateRequest, parseImageReceipt, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
+import { parseGenerateRequest, parseImageReceipt, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
 import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
@@ -61,8 +61,7 @@ export function createRunner(o: {
   const pause = (b: string, reason: string | null = null) => { paused.set(b, reason); flush(); };
   const fail = (b: string, e: unknown) => {
     const code = (e as { code?: string }).code ?? '';
-    const reason = code === 'ILLEGAL_TRANSITION' || code === 'CONNECTOR_LOST' ? code
-      : (e as Error).name === 'ProtocolDrift' ? 'PROTOCOL_DRIFT'
+    const reason = ['ILLEGAL_TRANSITION', 'CONNECTOR_LOST', 'PROTOCOL_DRIFT'].includes(code) ? code // ProtocolDrift carries code, its name is plain Error
       : code.startsWith('SQLITE_') ? 'STORAGE_UNAVAILABLE' : 'INTERNAL_ERROR';
     if (reason === 'ILLEGAL_TRANSITION' || reason === 'INTERNAL_ERROR') console.error(`runner: ${reason}`, e);
     pause(b, reason);
@@ -70,10 +69,13 @@ export function createRunner(o: {
 
   /** The only caller of applyEvent: also blocks the project on needs_review and pauses on any pause-level admission. */
   const apply = (id: string, ev: AttemptEvent): AttemptState => {
+    const prev = state(id);
     const s = applyEvent(db, id, ev, clock.now());
     const i = info(id);
     if (s.item === 'needs_review') db.prepare('insert or ignore into target_block(project_id, attempt_id, since) values(?,?,?)').run(i.project, id, clock.now());
-    if (s.admission !== 'continue' && s.admission !== 'throttle') pause(i.batch, s.error?.code ?? s.admission);
+    // only a change pauses: a sticky admission must not re-pause after resume
+    const changed = s.admission !== prev.admission || (s.item === 'needs_review' && prev.item !== 'needs_review');
+    if (changed && s.admission !== 'continue' && s.admission !== 'throttle') pause(i.batch, s.error?.code ?? s.admission);
     return s;
   };
 
@@ -100,22 +102,27 @@ export function createRunner(o: {
     }
     if (e.type === 'sent') {
       const id = slot.get(e.tabId);
-      if (!id) return;
-      const request = parseGenerateRequest(readFReq(e.request)); // R11: journal the parsed request, never the raw body
+      if (!id || state(id).item === 'needs_review') return; // already uncertain: nothing legal to record
+      let request;
+      try { request = parseGenerateRequest(readFReq(e.request as string)); } catch (err) { // R11: journal the parsed request, never the raw body
+        if (state(id).item === 'submitting') apply(id, { type: 'deadline' }); // unprovable: uncertain + project blocked
+        throw err; // run() pauses the batch with PROTOCOL_DRIFT
+      }
       if (apply(id, { type: 'sent', request }).request) awaiting.push({ id, tab: e.tabId });
       return;
     }
-    const first = awaiting.find((a) => a.tab === e.tabId);
-    if (!first) return;
+    // A response belongs to the awaiting attempt with the same rpc and batchId, on any tab; anything else never feeds an attempt.
+    const req = (id: string) => state(id).request as unknown as { rpc: string; batchId: string } | null;
+    const same = awaiting.filter((a) => req(a.id)?.rpc === e.rpc);
+    if (!same.length) return; // not a generate response (07 §3: polls etc. never resubmit)
+    let batchId: string | undefined;
+    try { batchId = parseGenerateRequest(readFReq(e.request as string)).batchId; } catch { /* unmatched below */ }
+    const hit = same.find((a) => req(a.id)?.batchId === batchId);
+    if (!hit) { for (const b of new Set(same.map((a) => info(a.id).batch))) pause(b, 'ATTRIBUTION_AMBIGUOUS'); return; }
     const r = parseRpcResponse(e.text, e.rpc) as { error?: { grpc: number; reasons: string[] }; payload?: unknown };
-    let hit = first;
     let ev: AttemptEvent;
     if (r.error) ev = { type: 'rejected', error: r.error, now: clock.now() };
-    else {
-      const receipt = e.rpc === 'ogiZ0b' ? parseImageReceipt(r.payload) : parseVideoReceipt(r.payload);
-      hit = awaiting.find((a) => correlate(state(a.id).request, receipt).owned) ?? first; // no owner → state machine flags ownership ambiguity
-      ev = { type: 'receipt', receipt };
-    }
+    else ev = { type: 'receipt', receipt: e.rpc === 'ogiZ0b' ? parseImageReceipt(r.payload) : parseVideoReceipt(r.payload) };
     awaiting.splice(awaiting.indexOf(hit), 1);
     const kind = info(hit.id).kind;
     const s = apply(hit.id, ev);
@@ -126,18 +133,23 @@ export function createRunner(o: {
   async function dispatch(tab: string, id: string, i: Info, s0: AttemptState) {
     if (s0.item === 'queued') apply(id, { type: 'prepare', now: clock.now() });
     const settings = JSON.parse(i.settings) as { mode?: string };
+    const gone = () => state(id).item === 'cancelled'; // stop() landed during an await: a normal exit
     const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs) });
+    if (gone()) return;
     if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: 'continue' } }); return; }
     const chk = await driver.checkBeforeClick(tab, i.project);
+    if (gone()) return;
     if (!chk.ok) { pause(i.batch, chk.code); return; }
     const ping = await driver.ping(tab);
+    if (gone()) return;
     const manual = settings.mode === 'manual' || !o.autoAllowed(ping.email);
     const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), manual: true } : { type: 'intent', ping, now: clock.now() }); // R10: committed before click
     slot.set(tab, id);
+    if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) return; // manual, or intent refused (observer dead → batch paused by apply)
     let result;
     try { result = await driver.click(tab, 1); } catch { apply(id, { type: 'deadline' }); return; } // shortcut: epoch fixed at 1 until the connector issues epochs
-    apply(id, { type: 'clicked', result });
+    try { apply(id, { type: 'clicked', result }); } catch { apply(id, { type: 'deadline' }); } // e.g. stop() during the click: it may have gone out, so uncertain
   }
 
   async function admit(tab: string) {
@@ -161,16 +173,23 @@ export function createRunner(o: {
   let chain: Promise<unknown> = Promise.resolve();
   async function run() {
     flush();
-    while (queue.length) { // 1. events first, in arrival order
-      const e = queue.shift()!;
-      const owner = e.type === 'disconnected' ? undefined : (slot.get(e.tabId) ?? awaiting.find((a) => a.tab === e.tabId)?.id);
-      try { onEvent(e); } catch (err) { if (owner) fail(info(owner).batch, err); else console.error('runner: event without owner', err); }
-    }
+    const drain = () => {
+      while (queue.length) { // events in arrival order
+        const e = queue.shift()!;
+        const owner = e.type === 'disconnected' ? undefined : (slot.get(e.tabId) ?? awaiting.find((a) => a.tab === e.tabId)?.id);
+        try { onEvent(e); } catch (err) { if (owner) fail(info(owner).batch, err); else console.error('runner: event without owner', err); }
+      }
+    };
+    drain(); // 1.
     // 2. stop on an awaiting_user attempt ends with skip + a fresh ping (R18)
     const stopped = db.prepare('select id from batch where stop_requested=1').all() as { id: string }[];
     for (const b of stopped) for (const a of attempts(b.id)) {
       if ((JSON.parse(a.j) as AttemptState).item !== 'awaiting_user') continue;
-      try { apply(a.id, { type: 'skip', ping: await driver.ping([...slot].find(([, v]) => v === a.id)?.[0] ?? tabs[0]), now: clock.now() }); } catch (err) { fail(b.id, err); }
+      try {
+        const ping = await driver.ping([...slot].find(([, v]) => v === a.id)?.[0] ?? tabs[0]);
+        drain(); // R18: events that arrived during the ping come first; a late sent means it is no longer a skip
+        if (state(a.id).item === 'awaiting_user') apply(a.id, { type: 'skip', ping, now: clock.now() });
+      } catch (err) { fail(b.id, err); }
     }
     for (const tab of tabs) if (!busy(tab)) await admit(tab); // 3. admission
   }

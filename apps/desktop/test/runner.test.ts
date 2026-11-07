@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,22 +7,29 @@ import { openDb, type Db } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
 import { createFakeDriver, type FakeScript } from '../src/main/fake-driver';
 import type { DriverEvent, FlowDriver } from '../src/main/driver';
-import { createRunner, batchStatus } from '../src/main/runner';
+import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db) => void }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; slowClick?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
   const cbs = new Set<(e: DriverEvent) => void>();
   const held: DriverEvent[] = [];
   const gate = { hold: !!o.hold };
-  fake.onEvent((e) => (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))));
-  const driver: FlowDriver & { ledger: typeof fake.ledger } = {
+  const gateClick: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
+  let listenerless = !!o.noListener;
+  fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
+  const driver: FlowDriver & { ledger: typeof fake.ledger; emit: typeof fake.emit } = {
     ...fake,
+    click: async (tab, epoch) => {
+      if (listenerless) { listenerless = false; return { found: true, disabled: false, listeners: 0, called: 0 }; }
+      if (o.slowClick) await gateClick.p;
+      return fake.click(tab, epoch);
+    },
     ping: async () => ({ ...(await fake.ping('x')), t: clock.now() }), // the observer ping must look fresh to the fake clock
-    prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db); return r; },
+    prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
   };
@@ -36,7 +43,8 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const release = () => { gate.hold = false; held.splice(0).forEach((e) => cbs.forEach((cb) => cb(e))); };
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
     .map((r) => ({ id: r.id, ...(JSON.parse(r.j) as AttemptState) }));
-  return { db, clock, driver, runner, batchId, step, release, states };
+  const deliver = (e: DriverEvent) => cbs.forEach((cb) => cb(e));
+  return { db, clock, driver, runner, batchId, step, release, states, held, deliver, openClick: gateClick.open };
 }
 const count = (item: string, rs: { item: string }[]) => rs.filter((s) => s.item === item).length;
 const batchRow = (db: Db, id: string) => db.prepare('select status from batch where id=?').get(id) as { status: string };
@@ -210,4 +218,177 @@ test('journal never holds the raw request body (R11)', async () => {
   const rows = t.db.prepare('select type, payload_json p from journal_event').all() as { type: string; p: string }[];
   expect(rows.some((r) => r.type === 'sent')).toBe(true);
   for (const r of rows) expect(r.p).not.toMatch(/f\.req=|(^|[&"\\])at=/);
+});
+
+// A sent+response pair for `prompt` produced by an independent fake: a request this runner never clicked.
+async function foreign(prompt: string) {
+  const f = createFakeDriver(['image-ok']);
+  const got: DriverEvent[] = [];
+  f.onEvent((e) => got.push(e));
+  await f.prepare('x', { prompt, kind: 'image', settings: {}, refIds: [] });
+  await f.click('x', 1);
+  await flush();
+  return got as [Extract<DriverEvent, { type: 'sent' }>, Extract<DriverEvent, { type: 'response' }>];
+}
+const reqOf = (s: AttemptState) => s.request as unknown as { batchId: string; items: { prompt: string }[] };
+const blocks = (db: Db) => db.prepare('select project_id, attempt_id from target_block').all();
+
+test('out-of-order responses settle their own attempt; only the throttled one is resent', async () => {
+  const t = rig(['image-ok', 'image-ok', 'throttled', 'image-ok'], { n: 3, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(4);
+  expect(t.driver.ledger.clicks).toBe(3);
+  expect(t.held.length).toBe(3);
+  const [a, b, c] = t.states().map((s) => s.id);
+  const [ha, hb, hc] = t.held.splice(0);
+  for (const e of [hc, ha, hb]) t.deliver(e); // C (throttled) first, then A, then B
+  await t.step();
+  const s = t.states();
+  expect(s.map((x) => x.item)).toEqual(['ready', 'ready', 'queued']);
+  expect(s[2].resubmits).toBe(1);
+  expect(t.runner.caps().image).toBe(6 + 2); // 12 → 6 on the throttle, +1 per ok receipt
+  t.clock.t += 30_000;
+  await t.step(3);
+  t.release();
+  await t.step(2);
+  expect(t.driver.ledger.clicks).toBe(4);
+  expect(t.states().map((x) => x.item)).toEqual(['ready', 'ready', 'ready']);
+  const intents = (id: string) => (t.db.prepare("select count(*) c from journal_event where attempt_id=? and type='intent'").get(id) as { c: number }).c;
+  expect([intents(a), intents(b), intents(c)]).toEqual([1, 1, 2]);
+});
+
+test('a non-generate rpc carrying a throttle frame changes nothing', async () => {
+  const t = rig(['throttled'], { n: 1, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [h] = t.held.splice(0);
+  const hr = h as Extract<DriverEvent, { type: 'response' }>;
+  t.deliver({ ...hr, rpc: 'jwpduf', text: hr.text.replaceAll('ogiZ0b', 'jwpduf') }); // same throttle frame, but on a poll rpc
+  await t.step();
+  expect(t.states()[0].item).toBe('submitting');
+  expect(t.runner.caps().image).toBe(12);
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+  t.deliver(h);
+  await t.step();
+  expect(t.states()[0].item).toBe('queued'); // the real generate response still counts
+});
+
+test('a generate response matching no awaiting attempt pauses with ATTRIBUTION_AMBIGUOUS and feeds nobody', async () => {
+  const t = rig(['image-ok'], { n: 1, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [, resp] = await foreign('prompt 0');
+  t.deliver(resp);
+  await t.step();
+  expect(t.states()[0].item).toBe('submitting');
+  expect(t.runner.lastError(t.batchId)).toBe('ATTRIBUTION_AMBIGUOUS');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+});
+
+test('fast mode: a sent goes to the attempt waiting on its own tab', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, speed: 'fast', tabs: ['t1', 't2'], hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const s = t.states();
+  expect(s.map((x) => x.item)).toEqual(['submitting', 'submitting']);
+  expect(s.map((x) => reqOf(x).items[0].prompt)).toEqual(['prompt 0', 'prompt 1']);
+});
+
+test('stop on a manual awaiting_user attempt sends skip with a fresh ping → cancelled, no credit', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.runner.stop(t.batchId);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  await t.step();
+  const a = t.states()[0];
+  expect(a.item).toBe('cancelled');
+  expect(a.creditSpent).toBe(false);
+  const [sent] = await foreign('prompt 0'); // the user's request reaches the desktop after the skip
+  t.driver.emit({ ...sent, tabId: 't1' });
+  await t.step();
+  const b = t.states()[0];
+  expect([b.item, b.stage, b.creditSpent]).toEqual(['needs_review', 'uncertain', true]);
+  expect(blocks(t.db)).toEqual([{ project_id: 'p', attempt_id: a.id }]);
+});
+
+test('a sent already received when stop is ticked is processed before skip: never cancelled', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [sent] = await foreign('prompt 0');
+  t.runner.stop(t.batchId);
+  t.driver.emit({ ...sent, tabId: 't1' });
+  await t.step();
+  const a = t.states()[0];
+  expect(a.item).toBe('submitting');
+  expect(reqOf(a).items[0].prompt).toBe('prompt 0');
+});
+
+test('disconnected fences attempts awaiting a response on that tab', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  t.driver.emit({ tabId: 't1', type: 'disconnected' });
+  await t.step();
+  const [a, b] = t.states();
+  expect([a.item, a.stage]).toEqual(['needs_review', 'uncertain']);
+  expect([b.item, b.stage]).toEqual(['needs_review', 'uncertain']);
+  expect(blocks(t.db).length).toBe(1);
+  expect(t.driver.ledger.clicks).toBe(2);
+});
+
+test('stop while the click is pending ends uncertain and blocks the project', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, slowClick: true });
+  t.runner.start(t.batchId);
+  const tick = t.runner.tick();
+  await flush();
+  t.runner.stop(t.batchId);
+  t.openClick();
+  await tick;
+  await flush();
+  await t.step(2);
+  const a = t.states()[0];
+  expect([a.item, a.stage]).toEqual(['needs_review', 'uncertain']);
+  expect(blocks(t.db)).toEqual([{ project_id: 'p', attempt_id: a.id }]);
+  expect(t.states()[1].item).toBe('cancelled');
+  expect(t.runner.lastError(t.batchId)).not.toBe('ILLEGAL_TRANSITION');
+});
+
+test('SUBMIT_LISTENER_MISSING pauses once; resume clicks the next and stays running', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, noListener: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(t.driver.ledger.clicks).toBe(0);
+  t.runner.resume(t.batchId);
+  await t.step(6);
+  expect(t.driver.ledger.clicks).toBe(2);
+  expect(batchRow(t.db, t.batchId).status).toBe('running');
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+});
+
+test('unparseable sent: uncertain, project blocked, paused PROTOCOL_DRIFT', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, corruptSent: true, hold: true });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  const a = t.states()[0];
+  expect([a.item, a.stage]).toEqual(['needs_review', 'uncertain']);
+  expect(blocks(t.db)).toEqual([{ project_id: 'p', attempt_id: a.id }]);
+  expect(t.runner.lastError(t.batchId)).toBe('PROTOCOL_DRIFT');
+  expect(t.driver.ledger.clicks).toBe(1);
+});
+
+test('stop during prepare is a normal exit: no pause, no error log', async () => {
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  let stopped = false;
+  const t = rig(['image-ok'], { n: 1, afterPrepare: (_db, r) => { if (!stopped) { stopped = true; r.stop(t.batchId); } } });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(t.states()[0].item).toBe('cancelled');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+  expect(spy).not.toHaveBeenCalled();
+  spy.mockRestore();
 });
