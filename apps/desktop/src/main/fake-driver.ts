@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { parseRpcResponse, parseGenerateRequest } from '@toolflow/flow-protocol/parse';
+import { parseRpcResponse, parseGenerateRequest, parseImageReceipt, parseVideoReceipt } from '@toolflow/flow-protocol/parse';
 import { ConnectorError, type ClickResult, type DriverEvent, type FlowDriver, type Ping } from './driver';
 
 export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'no-request' | 'drop'>;
@@ -13,22 +14,22 @@ const fReqOf = (r: Rec) => r.req!.slice('f.req='.length, r.req!.indexOf('&at='))
 const promptOf = (r: Rec) => parseGenerateRequest(fReqOf(r)).items[0].prompt as string;
 const payloadOf = (r: Rec) => (parseRpcResponse(r.res!, r.rpc) as { payload: unknown }).payload;
 
-// The prompt sits in JSON-in-string at unknown depth: walk the tree, re-parsing string leaves that are themselves JSON.
+// Prompt and batchId sit in JSON-in-string at unknown depth: walk the tree, re-parsing string leaves that are themselves JSON.
 // Envelope chunk-length lines go stale after a swap; parseEnvelope ignores them.
-function swap(text: string, from: string, to: string): string {
+function swap(text: string, subs: Array<[string, string]>): string {
   const walk = (v: unknown): unknown => {
-    if (v === from) return to;
     if (Array.isArray(v)) return v.map(walk);
-    if (typeof v === 'string' && v.startsWith('[')) {
-      try { return JSON.stringify(walk(JSON.parse(v))); } catch { return v; }
+    if (typeof v !== 'string') return v;
+    if (v.startsWith('[')) {
+      try { return JSON.stringify(walk(JSON.parse(v))); } catch { /* plain string */ }
     }
-    return v;
+    return subs.reduce((acc, [from, to]) => acc.replaceAll(from, to), v);
   };
   return text.split('\n').map((l) => (l.startsWith('[') ? JSON.stringify(walk(JSON.parse(l))) : l)).join('\n');
 }
 
-// All distinct (sent, done) pairs of a fixture, matched by batchId.
-function pairs(name: string): Array<{ sent: Rec; done: Rec }> {
+// All (sent, done) pairs of a fixture, matched by batchId; `ok` drops pairs the real parser rejects.
+function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array<{ sent: Rec; done: Rec }> {
   const recs = fx(name);
   const dones = recs.filter((r) => r.phase === 'done');
   return recs.filter((r) => r.phase === 'sent').map((sent) => {
@@ -36,19 +37,23 @@ function pairs(name: string): Array<{ sent: Rec; done: Rec }> {
     const done = dones.find((r) => {
       try { return JSON.stringify(payloadOf(r)).includes(batchId); } catch { return false; }
     })!;
+    ok(payloadOf(done));
     return { sent, done };
   });
 }
 
 export function createFakeDriver(input: FakeScript) {
   const script = [...input];
-  const pools = { image: pairs('image-1x1-burst3'), video: pairs('video-t2v'), throttledImage: pairs('image-1x1-burst3') };
-  const used = { image: 0, video: 0, throttledImage: 0 };
-  const kinds = new Map<string, 'image' | 'video'>();
-  const next = (k: keyof typeof pools, label: string) => {
-    if (used[k] >= pools[k].length) throw new Error(`fake: no more distinct fixture pairs for ${label}`);
-    return pools[k][used[k]++];
+  // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
+  const pools = {
+    image: [...pairs('image-1x1-burst3', parseImageReceipt), ...pairs('image-9x16-x2', parseImageReceipt)],
+    video: [...pairs('video-t2v', parseVideoReceipt), ...pairs('video-ingredients', parseVideoReceipt)],
+    throttledImage: pairs('image-1x1-burst3'),
+    throttledVideo: pairs('video-t2v'),
   };
+  const used = { image: 0, video: 0, throttledImage: 0, throttledVideo: 0 };
+  const kinds = new Map<string, 'image' | 'video'>();
+  const next = (k: keyof typeof pools) => pools[k][used[k]++ % pools[k].length];
   const listeners = new Set<(e: DriverEvent) => void>();
   const ledger = { clicks: 0, prepares: 0, readProject: 0 };
   const prompts = new Map<string, string>();
@@ -71,13 +76,22 @@ export function createFakeDriver(input: FakeScript) {
         let sent: Rec, done: Rec;
         if (step === 'throttled') {
           const video = kinds.get(tabId) === 'video';
-          ({ sent } = video ? next('video', 'throttled video') : next('throttledImage', 'throttled image'));
+          ({ sent } = video ? next('throttledVideo') : next('throttledImage'));
           done = fx(video ? 'throttled-YhhmEf' : 'throttled-ogiZ0b')[0];
-        } else ({ sent, done } = step === 'image-ok' ? next('image', 'image-ok') : next('video', 'video-ok'));
+        } else ({ sent, done } = step === 'image-ok' ? next('image') : next('video'));
         const to = prompts.get(tabId) ?? promptOf(sent);
         const from = promptOf(sent);
-        const body = new URLSearchParams({ 'f.req': swap(fReqOf(sent), from, to) }).toString() + '&at=<redacted>';
-        later({ tabId, type: 'sent', request: body }, { tabId, type: 'response', rpc: done.rpc, text: swap(done.res!, from, to) });
+        const oldBatch = parseGenerateRequest(fReqOf(sent)).batchId;
+        const subs: Array<[string, string]> = [[from, to], [oldBatch, randomUUID()]];
+        const body = new URLSearchParams({ 'f.req': swap(fReqOf(sent), subs) }).toString() + '&at=<redacted>';
+        const text = swap(done.res!, subs);
+        // A silent swap miss would leak fixture identity into tests.
+        for (const old of [oldBatch, from]) {
+          for (const needle of [old, JSON.stringify(old).slice(1, -1)]) {
+            if (decodeURIComponent(body.replace(/\+/g, ' ')).includes(needle) || text.includes(needle)) throw new Error(`fake: fixture value survived substitution: ${old}`);
+          }
+        }
+        later({ tabId, type: 'sent', request: body }, { tabId, type: 'response', rpc: done.rpc, text });
       }
       return { found: true, disabled: false, listeners: 1, called: 1 };
     },

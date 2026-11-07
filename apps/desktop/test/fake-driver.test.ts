@@ -81,21 +81,38 @@ test('throttled after a video prepare: video request + YhhmEf throttle response'
   expect((parseRpcResponse(r.text, r.rpc) as { error: { reasons: string[] } }).error.reasons).toContain('PUBLIC_ERROR_USER_REQUESTS_THROTTLED');
 });
 
-test('image-ok rotates distinct fixture pairs, then throws; script is not mutated', async () => {
-  const script: Parameters<typeof createFakeDriver>[0] = ['image-ok', 'image-ok', 'image-ok', 'image-ok'];
+test('10 image-ok clicks: fresh owned batchIds, prompt preserved; script is not mutated', async () => {
+  const script: Parameters<typeof createFakeDriver>[0] = Array(10).fill('image-ok');
   const d = createFakeDriver(script);
   const got: DriverEvent[] = [];
   d.onEvent((e) => got.push(e));
   await d.prepare('t1', { prompt: PROMPT, kind: 'image', settings: {}, refIds: [] });
-  for (let i = 0; i < 3; i++) await d.click('t1', i + 1);
+  for (let i = 0; i < 10; i++) await d.click('t1', i + 1);
   await new Promise((r) => setTimeout(r, 5));
   const ids = new Set<string>();
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 10; i++) {
     const { req, payload } = pair(got.slice(i * 2, i * 2 + 2));
-    expect(correlate(req, parseImageReceipt(payload)).owned).toBe(true);
+    const rec = parseImageReceipt(payload);
+    expect(correlate(req, rec).owned).toBe(true);
+    expect(rec.outputs[0].prompt).toBe(PROMPT);
+    expect(req.items[0].prompt).toBe(PROMPT);
     ids.add(req.batchId);
   }
-  expect(ids.size).toBe(3);
-  await expect(d.click('t1', 4)).rejects.toThrow('fake: no more distinct fixture pairs for image-ok');
-  expect(script).toHaveLength(4);
+  expect(ids.size).toBe(10);
+  expect(script).toHaveLength(10);
+});
+
+test('video-ok, throttled (video), video-ok on one driver', async () => {
+  const d = createFakeDriver(['video-ok', 'throttled', 'video-ok']);
+  const got: DriverEvent[] = [];
+  d.onEvent((e) => got.push(e));
+  await d.prepare('t1', { prompt: PROMPT, kind: 'video', settings: {}, refIds: [] });
+  for (let i = 0; i < 3; i++) await d.click('t1', i + 1);
+  await new Promise((r) => setTimeout(r, 5));
+  const [a, b, c] = [0, 1, 2].map((i) => pair(got.slice(i * 2, i * 2 + 2)));
+  for (const x of [a, c]) expect(correlate(x.req, parseVideoReceipt(x.payload)).owned).toBe(true);
+  expect(a.req.batchId).not.toBe(c.req.batchId);
+  expect(b.req.rpc).toBe('YhhmEf');
+  expect((got[3] as Extract<DriverEvent, { type: 'response' }>).rpc).toBe('YhhmEf');
+  expect((parseRpcResponse((got[3] as Extract<DriverEvent, { type: 'response' }>).text, 'YhhmEf') as { error: { reasons: string[] } }).error.reasons).toContain('PUBLIC_ERROR_USER_REQUESTS_THROTTLED');
 });
