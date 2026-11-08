@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { initial, type AttemptState } from '@toolflow/flow-protocol/attempt';
 import { openDb, type Db } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
-import { createFakeDriver, type FakeScript } from '../src/main/fake-driver';
+import { FAKE_COMBOS, fakeCombo, createFakeDriver, type FakeScript } from '../src/main/fake-driver';
 import { ConnectorError, type DriverEvent, type FlowDriver } from '../src/main/driver';
 import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
@@ -43,10 +43,10 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   };
   const kind = o.kind ?? 'image';
   const { batchId } = enqueueBatch(db, {
-    commandId: 'c', kind, projectId: 'p', settings: {}, mode: o.mode ?? 'auto',
+    commandId: 'c', kind, projectId: 'p', settings: { combo: fakeCombo(kind) }, mode: o.mode ?? 'auto',
     prompts: Array.from({ length: o.n }, (_, i) => `prompt ${i}`), refs: Array.from({ length: o.n }, () => []),
   });
-  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }) });
+  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', combos: FAKE_COMBOS, autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }) });
   const step = async (n = 1) => { for (let i = 0; i < n; i++) { await runner.tick(); await flush(); } };
   const release = () => { gate.hold = false; held.splice(0).forEach((e) => cbs.forEach((cb) => cb(e))); };
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
@@ -185,7 +185,7 @@ test('connector drop during click is uncertain', async () => {
 test('batch status follows 02 §5', () => {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const run = (items: string[], o: { stop?: boolean; status?: string }) => {
-    const { batchId } = enqueueBatch(db, { commandId: `c${Math.random()}`, kind: 'image', projectId: 'p', settings: {}, mode: 'auto', prompts: items.map((_, i) => `p${i}`), refs: items.map(() => []) });
+    const { batchId } = enqueueBatch(db, { commandId: `c${Math.random()}`, kind: 'image', projectId: 'p', settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: items.map((_, i) => `p${i}`), refs: items.map(() => []) });
     db.prepare('update batch set stop_requested=?, status=? where id=?').run(o.stop ? 1 : 0, o.status ?? 'running', batchId);
     const ids = db.prepare('select attempt_id a from item where batch_id=? order by ord').all(batchId) as { a: string }[];
     ids.forEach((r, i) => db.prepare('update attempt set state_json=? where id=?').run(JSON.stringify({ ...initial('x'), item: items[i] }), r.a));
@@ -549,7 +549,7 @@ test('N3: a response whose request is unparseable is never fed to the single awa
 
 test('N4: ProtocolDrift on a matched response blames the matched attempt\'s batch, not the tab slot\'s', async () => {
   const t = rig(['image-ok', 'image-ok'], { n: 1, hold: true });
-  const { batchId: b2 } = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: {}, mode: 'auto', prompts: ['other'], refs: [[]] });
+  const { batchId: b2 } = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: ['other'], refs: [[]] });
   t.runner.start(t.batchId); t.runner.start(b2);
   await t.step(4); // A (batch 1) sent, then B (batch 2) clicked on the same tab → slot is B
   expect(t.driver.ledger.clicks).toBe(2);

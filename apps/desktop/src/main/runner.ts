@@ -6,7 +6,7 @@ import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
 import { CAPS, nextCap } from './caps';
-import { profile } from './profile';
+import { comboQualified, profile, type Combo } from './profile';
 import { CLICK_MS, RECONCILE_MS, runReconcile, unblock } from './reconcile';
 
 const SEND_DEADLINE_MS = 30_000; // a click whose request the observer never reports is uncertain after this (04 Q-09)
@@ -42,7 +42,8 @@ export function batchStatus(db: Db, id: string): BatchStatus {
 }
 
 export function createRunner(o: {
-  db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
+  db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; combos?: readonly Combo[]; // qualified combos (default: the profile's)
+  selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
 }): Runner {
   const { db, driver, clock } = o;
   const max = CAPS[o.speed];
@@ -176,13 +177,14 @@ export function createRunner(o: {
   }
 
   async function dispatch(tab: string, id: string, i: Info, s0: AttemptState) {
+    const settings = JSON.parse(i.settings) as { mode?: string; combo?: unknown };
+    if (!comboQualified(i.kind, settings.combo, o.combos)) { pause(i.batch, 'COMBO_NOT_QUALIFIED'); return; } // AC-03: before any state change, intent or page call
     if (s0.item === 'queued') apply(id, { type: 'prepare', now: clock.now() });
-    const settings = JSON.parse(i.settings) as { mode?: string };
     const gone = () => state(id).item === 'cancelled'; // stop() landed during an await: a normal exit
     const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs) });
     if (gone()) return;
     if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: 'continue' } }); return; }
-    const chk = await driver.checkBeforeClick(tab, i.project);
+    const chk = await driver.checkBeforeClick(tab, i.project, JSON.parse(i.refs));
     if (gone()) return;
     if (!chk.ok) { pause(i.batch, chk.code); return; }
     const ping = await driver.ping(tab);

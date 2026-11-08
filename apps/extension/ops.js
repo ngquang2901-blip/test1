@@ -1,5 +1,5 @@
 // Pure: the only commands the desktop may send. No eval / debugger / raw CDP.
-export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe'];
+export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe','settings'];
 
 const NEED_URL = new Set(['download', 'open']);
 
@@ -18,6 +18,7 @@ export function validate(msg) {
   if (op === 'arm' && !(Number.isInteger(args.epoch) || args.epoch === null)) return 'arm needs integer epoch or null';
   if (op === 'focus' && !Number.isInteger(args.tabId)) return 'focus needs integer tabId';
   if (op === 'probe' && !(args.selectors && typeof args.selectors === 'object' && !Array.isArray(args.selectors) && Object.values(args.selectors).every((v) => typeof v === 'string' && v.length < 300))) return 'probe needs a selectors map of strings';
+  if (op === 'settings' && !['mode', 'aspect', 'quality', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k])) return 'settings needs mode, aspect, quality, count, model';
   if (op === 'download' && !isAllowedDownloadUrl(args.url)) return 'download url not allowed';
   if (op === 'open' && !(typeof args.url === 'string' && args.url.startsWith('https://flow.google.com/'))) return 'open url not allowed';
   return null;

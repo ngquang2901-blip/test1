@@ -1,6 +1,7 @@
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
+import { DEFAULT_COMBO } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
@@ -80,7 +81,7 @@ export function createHandlers(d: Deps) {
       const { refs, errors } = mapRefs(parsed.items.length, [], 'none', 0); // shortcut: reference images arrive with uploads in P2
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
       if (o.dryRun === true) return { rows: parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i], error: null })), errors };
-      const r = enqueueBatch(d.db, { commandId, kind, projectId: d.projectId, settings: {}, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
+      const r = enqueueBatch(d.db, { commandId, kind, projectId: d.projectId, settings: { combo: DEFAULT_COMBO }, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
       d.emit('batch', r.batchId);
       return r;
     },

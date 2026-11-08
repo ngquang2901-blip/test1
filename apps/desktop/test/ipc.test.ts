@@ -3,7 +3,8 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
-import { createFakeDriver } from '../src/main/fake-driver';
+import { DEFAULT_COMBO } from '../src/main/profile';
+import { FAKE_COMBOS, createFakeDriver } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
 import { autoAllowed, enableAuto } from '../src/main/account';
 import { createHandlers, revisioned, parseDraft, type Draft } from '../src/main/ipc';
@@ -13,7 +14,7 @@ import { newer } from '../src/renderer/src/revision';
 function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')[] = ['image-ok', 'image-ok', 'image-ok']) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: 1_000_000, now() { return this.t; } };
-  const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', autoAllowed: (e) => autoAllowed(db, e) });
+  const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: (e) => autoAllowed(db, e) });
   const events: Array<{ entity: string; id: string; revision: number }> = [];
   let draft: Draft = { text: 't', kind: 'image', mode: 'auto', speed: 'default' };
   const h = createHandlers({ db, runner, grants: { use: () => {} }, projectId: 'p', email: async () => email, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock });
@@ -35,6 +36,7 @@ test('dryRun previews without creating; real call creates one item per non-empty
   expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 0 });
   const r = (await h.enqueueBatch(good)) as { batchId: string };
   expect(db.prepare('select count(*) n from item where batch_id=?').get(r.batchId)).toEqual({ n: 3 });
+  expect(JSON.parse((db.prepare('select settings_json s from batch where id=?').get(r.batchId) as { s: string }).s).combo).toEqual(DEFAULT_COMBO);
 });
 
 test('ids must be strings; confirmUncertain only accepts sent|not_sent', async () => {

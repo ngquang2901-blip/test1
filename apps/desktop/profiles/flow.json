@@ -1,4 +1,5 @@
 { "version": "2026.11.08-1",
   "selectors": { "editor": "flow-prompt-box .ProseMirror[contenteditable=\"true\"]", "submit": "flow-prompt-box button[type=\"submit\"]", "clear": "button.clear-button", "chip": "flow-image-ingredient-chip img", "tile": "flow-grid-tile-container", "creditWarning": "button.prompt-warning-button", "assetSearch": "flow-add-menu-popover-content input.search-input", "assetItem": "flow-add-menu-popover-content .asset-item" },
   "selfCheck": ["editor", "submit"],
+  "combos": [{ "kind": "image", "mode": "Image", "model": "Nano Banana 2.1", "aspect": "16:9", "quality": "High", "count": 2 }],
   "rpc": { "image": "ogiZ0b", "t2v": "YhhmEf", "poll": "jwpduf", "upload": "maseQ", "project": "Zzl0ze" } }

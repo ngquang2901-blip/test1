@@ -5,6 +5,11 @@ import flow from '../../profiles/flow.json';
 // version is the profile's identity for diagnostics.
 // Static import: the profile can only change with an app restart, and that is the safe boundary (AC-18): a running attempt never sees a swap.
 export const profile = flow;
+export type Combo = { kind: 'image' | 'video'; mode: string; model: string; aspect: string; quality: string; count: number };
+/** The only live-tested combo; a batch whose settings.combo is not one of profile.combos never reaches the page (AC-03). */
+export const DEFAULT_COMBO = flow.combos[0] as Combo;
+const norm = (o: unknown) => JSON.stringify(Object.entries((o && typeof o === 'object' ? o : {}) as object).sort(([a], [b]) => (a < b ? -1 : 1)));
+export const comboQualified = (kind: string, combo: unknown, list: readonly Combo[] = flow.combos as Combo[]): boolean => list.some((c) => c.kind === kind && norm(c) === norm(combo));
 export const PROFILE_PATH = 'profiles/flow.json';
 const SELECTORS = ['editor', 'submit', 'clear', 'chip', 'tile', 'creditWarning', 'assetSearch', 'assetItem'];
 const RPC = ['image', 't2v', 'poll', 'upload', 'project'];
@@ -21,6 +26,11 @@ export function validateProfile(p: unknown): string | null {
   for (const k of SELECTORS) if (!str(sel[k])) return `selectors.${k}`;
   if (!Array.isArray(root.selfCheck)) return 'selfCheck';
   for (const k of root.selfCheck) if (typeof k !== 'string' || !SELECTORS.includes(k)) return `selfCheck.${String(k)}`;
+  if (!Array.isArray(root.combos) || root.combos.length === 0) return 'combos';
+  for (const c of root.combos) {
+    const x = o(c);
+    if (!x || !['kind', 'mode', 'model', 'aspect', 'quality'].every((k) => str(x[k])) || !Number.isInteger(x.count) || (x.count as number) < 1) return 'combos';
+  }
   if (!rpc) return 'rpc';
   for (const k of RPC) if (!str(rpc[k])) return `rpc.${k}`;
   return null;

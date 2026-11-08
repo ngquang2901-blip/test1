@@ -5,8 +5,12 @@ import videoT2v from '../../../../packages/flow-protocol/test/fixtures/video-t2v
 import throttledVideo from '../../../../packages/flow-protocol/test/fixtures/throttled-YhhmEf.json';
 import throttledImage from '../../../../packages/flow-protocol/test/fixtures/throttled-ogiZ0b.json';
 import project from '../../../../packages/flow-protocol/test/fixtures/project-Zzl0ze.json';
+import { DEFAULT_COMBO, type Combo } from './profile';
 import { ConnectorError, type ClickResult, type DriverEvent, type FlowDriver, type Ping } from './driver';
 
+// Tests only: the profile qualifies the image combo alone, so video batches need a stand-in.
+export const FAKE_COMBOS: Combo[] = [DEFAULT_COMBO, { kind: 'video', mode: 'Video', model: 'fake', aspect: '16:9', quality: 'High', count: 1 }];
+export const fakeCombo = (kind: 'image' | 'video'): Combo => FAKE_COMBOS.find((c) => c.kind === kind)!;
 export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'no-request' | 'drop'>;
 type Rec = { phase: string; rpc: string; req?: string; res?: string };
 
@@ -46,7 +50,8 @@ function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array
   });
 }
 
-export function createFakeDriver(input: FakeScript) {
+// fail: codes returned (in order, one per call) by prepare / checkBeforeClick before they go back to ok.
+export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[] } = {}) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
@@ -59,7 +64,7 @@ export function createFakeDriver(input: FakeScript) {
   const kinds = new Map<string, 'image' | 'video'>();
   const next = (k: keyof typeof pools) => pools[k][used[k]++ % pools[k].length];
   const listeners = new Set<(e: DriverEvent) => void>();
-  const ledger = { clicks: 0, prepares: 0, readProject: 0, arms: 0, armLog: [] as Array<[string, number | null]> };
+  const ledger = { clicks: 0, prepares: 0, checks: 0, readProject: 0, arms: 0, armLog: [] as Array<[string, number | null]> };
   const focusLog: string[] = [];
   const armed = new Map<string, number | undefined>(); // page tracker: pending (key present) + the epoch it would stamp (undefined = ambiguous)
   const gens = new Map<string, number>(); // generate sends the page made (ours or not), reported by ping
@@ -96,8 +101,8 @@ export function createFakeDriver(input: FakeScript) {
     async ping(tabId): Promise<Ping> {
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },
-    async prepare(tabId, p) { ledger.prepares++; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
-    async checkBeforeClick() { return { ok: true }; },
+    async prepare(tabId, p) { ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code }; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
+    async checkBeforeClick() { ledger.checks++; const code = fail.check?.shift(); return code ? { ok: false, code: code as 'COVERED' } : { ok: true }; },
     async click(tabId, epoch): Promise<ClickResult> {
       ledger.clicks++;
       const step = script.shift();

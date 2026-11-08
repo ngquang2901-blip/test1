@@ -9,6 +9,8 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const $ = (s, root = document) => root.querySelector(s);
   const SUBMIT = 'flow-prompt-box button[type="submit"]';
+  const CLEAR = 'button.clear-button';
+  const TRIGGER = 'flow-prompt-box button.settings-trigger-button';
   const ask = (name, ms = 500, detail) => new Promise((resolve) => {
     const h = (e) => { clearTimeout(t); document.removeEventListener(name + '-result', h); resolve(JSON.parse(e.detail)); };
     const t = setTimeout(() => { document.removeEventListener(name + '-result', h); resolve(null); }, ms);
@@ -68,6 +70,16 @@
       await sleep(1500);
       return { chips: document.querySelectorAll('flow-prompt-box flow-image-ingredient-chip').length };
     },
+    // Radios by LABEL (settings-logic.js), re-read after every click; model is verified only. Opens/closes the panel, never touches submit.
+    async settings(a) {
+      const trigger = $(TRIGGER); if (!trigger) return { ok: false, current: null, mismatches: ['trigger'] };
+      if (!$('flow-prompt-box-settings')) trigger.click();
+      if (!(await until(() => $('flow-prompt-box-settings'), 3000))) return { ok: false, current: null, mismatches: ['panel'] };
+      const buttons = () => [...$('flow-prompt-box-settings').querySelectorAll('button')].map((el) => ({ role: el.getAttribute('role'), text: el.innerText, checked: el.getAttribute('aria-checked'), el }));
+      try {
+        return await TFSettings.converge({ mode: a.mode, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150) });
+      } finally { if ($('flow-prompt-box-settings')) trigger.click(); }
+    },
     // Never clicks submit. Types the prompt (and optional library asset) into the composer.
     async prep({ prompt, asset }) {
       const log = [];
@@ -84,11 +96,16 @@
       }
       const ed = $('flow-prompt-box .ProseMirror[contenteditable="true"]');
       if (!ed) return { ok: false, log: ['composer not found'] };
+      if (ed.innerText.trim()) { // stale text: clear it, and prove it is empty before typing (no doubled prompt)
+        const clear = $(CLEAR); if (clear) clear.click();
+        if (!(await until(() => !ed.innerText.trim(), 2000))) return { ok: false, log: ['clear failed'] };
+      }
       ed.focus();
-      const ok = document.execCommand('insertText', false, prompt);
+      const typed = document.execCommand('insertText', false, prompt);
       await sleep(400);
       const sub = $(SUBMIT);
-      return { ok, text: ed.innerText.trim(), textMatches: ed.innerText.trim() === prompt, submitDisabled: sub ? sub.disabled : null, log };
+      const textMatches = ed.innerText.trim() === prompt;
+      return { ok: typed && textMatches, text: ed.innerText.trim(), textMatches, submitDisabled: sub ? sub.disabled : null, log };
     },
   };
 

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { Draft } from '../types'
+import flow from '../../../../profiles/flow.json'
+
+const C = flow.combos[0] // the one qualified combo; no user choice yet
+const COMBO_LABEL = `Chế độ đã qualify: Ảnh · ${C.model} · ${C.aspect} · ${C.quality} · x${C.count}`
 
 type Row = { n: number; prompt: string; refs: string[]; error: string | null }
 
@@ -47,6 +51,7 @@ export default function NewBatch({ initial, onCreated }: { initial: Draft; onCre
         <label><input type="radio" name="mode" checked={d.mode === 'auto'} onChange={() => set({ mode: 'auto' })} /> Tự động</label>{' '}
         <label><input type="radio" name="mode" checked={d.mode === 'manual'} onChange={() => set({ mode: 'manual' })} /> Thủ công (bạn bấm Gửi trong Flow)</label>
       </fieldset>
+      <p data-testid="combo">{COMBO_LABEL}</p>
       <table data-testid="preview" aria-label="Xem trước">
         <thead><tr><th>#</th><th>prompt</th><th>refs</th><th>lỗi</th></tr></thead>
         <tbody>{rows.map((r) => <tr key={r.n}><td>{r.n}</td><td>{r.prompt}</td><td>{r.refs.length ? r.refs.join(', ') : '—'}</td><td className="err">{r.error}</td></tr>)}</tbody>

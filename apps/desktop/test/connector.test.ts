@@ -164,10 +164,8 @@ test('ext-driver: click puts runner epoch in msg.epoch, arm in args.epoch; ping 
   c.ws.send(JSON.stringify({ id: acc.id, epoch: acc.epoch, ok: true, result: 'a@b.c' }))
   expect(await ping).toMatchObject({ version: '0.1.0', email: 'a@b.c' })
 })
-test('ext-driver: unimplemented ops fail closed', async () => {
+test('ext-driver: readProject is not implemented yet (fails closed)', async () => {
   const d = createExtDriver(await boot())
-  expect(await d.prepare('1', { prompt: 'x', kind: 'image', settings: {}, refIds: [] })).toEqual({ ok: false, code: 'NOT_IMPLEMENTED' })
-  expect(await d.checkBeforeClick('1', 'p')).toEqual({ ok: false, code: 'TARGET_CHANGED' })
   await expect(d.readProject('p')).rejects.toThrow()
 })
 test('ext-driver: disconnect reaches onEvent subscribers', async () => {

@@ -42,7 +42,7 @@ test('drift guard: extension still hardcodes the profile selectors and rpc ids',
   const mw = readFileSync(join(__dirname, '../../extension/main-world.js'), 'utf8');
   // Known gap (extension untouched in P1): P2 closes it by moving these into page-ops.js.
   const missing = Object.entries(profile.selectors).filter(([, s]) => !src.includes(s)).map(([k]) => k);
-  expect(missing).toEqual(['clear', 'tile', 'assetSearch']);
+  expect(missing).toEqual(['tile', 'assetSearch']);
   for (const id of Object.values(profile.rpc)) expect(mw).toContain(id);
 });
 
@@ -121,4 +121,13 @@ test('autoGate: invalid profile or opted-out account ⇒ no auto', () => {
   expect(autoGate(db, 'a@x.com', null)).toBe(true);
   expect(autoGate(db, 'a@x.com', 'selectors')).toBe(false);
   expect(autoGate(db, 'b@x.com', null)).toBe(false);
+});
+
+test('validateProfile: combos must be a non-empty array of complete combos', () => {
+  for (const bad of [undefined, [], {}, [null], [{}], [{ kind: 'image', mode: 'Image', model: 'm', aspect: '16:9', quality: 'High' }], [{ kind: 'image', mode: 'Image', model: 'm', aspect: '16:9', quality: 'High', count: 0 }], [{ kind: 'image', mode: 'Image', model: '', aspect: '16:9', quality: 'High', count: 2 }], [{ kind: 'image', mode: 'Image', model: 'm', aspect: '16:9', quality: 'High', count: '2' }]]) {
+    const c = clone(); c.combos = bad;
+    expect(validateProfile(c), JSON.stringify(bad)).toBe('combos');
+  }
+  const d = clone(); delete d.combos;
+  expect(validateProfile(d)).toBe('combos');
 });
