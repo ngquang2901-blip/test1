@@ -95,6 +95,13 @@ if (process.env.PREP === '1' && tabs[0]) {
   await sleep(500)
   show('composer cleared', (await text()) === '')
 }
+// SC=1: run the product probeTab + the raw ops it uses, print the raw answers (read-only).
+if (process.env.SC === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  for (const [op, args] of [['ping', a], ['probe', { ...a, selectors: { editor: 'flow-prompt-box .ProseMirror[contenteditable="true"]', submit: 'flow-prompt-box button[type="submit"]' } }], ['listeners', a]] as const) {
+    try { console.log(op, JSON.stringify(await server.send(op, args as never))) } catch (e) { console.log(op, 'ERR', (e as Error).message) }
+  }
+}
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)
 if (watchMin > 0 && tabs[0]) {
