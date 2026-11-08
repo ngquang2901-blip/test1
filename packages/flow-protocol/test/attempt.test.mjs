@@ -22,7 +22,7 @@ const pollDone = parsePoll(payload(fx('poll-succeeded-2.json')[0]));
 const throttled = parseRpcResponse(fx('throttled-ogiZ0b.json')[0].res, 'ogiZ0b').error;
 
 const NOW = 1_800_000_000_000;
-const ping = (o = {}) => ({ xhrSend: true, xhrOpen: true, fetch: true, id: 'obs-1', seq: 10, dropped: 0, t: NOW, ...o });
+const ping = (o = {}) => ({ xhrSend: true, xhrOpen: true, fetch: true, id: 'obs-1', seq: 10, dropped: 0, gen: 3, t: NOW, ...o });
 const CLICK_OK = { found: true, disabled: false, listeners: 1, called: 1 };
 
 const run = (s, ...evs) => evs.reduce(next, s);
@@ -74,6 +74,19 @@ test('throttled generate response: same attempt waits 30 s, 60 s… then RATE_LI
   }
   s = next(s, { type: 'rejected', error: throttled, now: NOW });
   assert.deepEqual([s.item, s.error.code, s.admission, s.error.exhausted], ['failed', 'RATE_LIMIT', 'pause', true]);
+});
+
+test('R25: GENERATION_ALREADY_IN_PROGRESS rejection is uncertain, not failed (D-04/D-11)', () => {
+  // no fixture frame exists; this is the {grpc, reasons} shape parseRpcResponse returns for that reason
+  const s = next(toSent(imgReq), { type: 'rejected', error: { grpc: 9, reasons: ['PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS'] }, now: NOW });
+  assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent, s.admission], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true, 'pause']);
+});
+
+test('R26: an uncertain reason anywhere in a mixed frame is uncertain, whatever the pick order', () => {
+  for (const reasons of [['PUBLIC_ERROR_USER_QUOTA_REACHED', 'PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS'], ['PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS', 'PUBLIC_ERROR_USER_QUOTA_REACHED']]) {
+    const s = next(toSent(imgReq), { type: 'rejected', error: { grpc: 9, reasons }, now: NOW });
+    assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true]);
+  }
 });
 
 test('non-resubmittable rejection settles the attempt; stop during backoff cancels (Flow created nothing)', () => {
@@ -161,6 +174,7 @@ test('fuzz: no event order clicks twice per intent, resubmits outside 07 §3, or
     { type: 'receipt', receipt: imgRec }, { type: 'receipt', receipt: otherImgRec }, { type: 'rejected', error: throttled, now: NOW },
     { type: 'rejected', error: { grpc: 8, reasons: ['PUBLIC_ERROR_UNUSUAL_ACTIVITY'] }, now: NOW }, { type: 'heartbeat', ping: ping({ dropped: 3 }), now: NOW },
     { type: 'deadline' }, { type: 'stop' }, { type: 'resolve', to: 'failed', evidence: 'x' }, { type: 'prep_failed', error: { code: 'SETTINGS_NOT_APPLIED' } },
+    { type: 'intent', ping: ping(), now: NOW, manual: true }, { type: 'skip', ping: ping(), now: NOW },
   ];
   for (let run = 0; run < 2000; run++) {
     let s = initial(imgReq.items[0].prompt), intents = 0, clicks = 0;
@@ -176,5 +190,59 @@ test('fuzz: no event order clicks twice per intent, resubmits outside 07 §3, or
     }
     assert.ok(clicks <= intents, `clicks ${clicks} > intents ${intents}`);
     assert.ok(s.resubmits <= BACKOFF_MS.length);
+  }
+});
+
+// Manual submit: the user clicks Gửi; we only observe.
+const toManual = () => run(initial(imgReq.items[0].prompt), { type: 'prepare', now: NOW }, { type: 'intent', ping: ping(), now: NOW, manual: true });
+
+test('manual: intent waits for the user, sent goes on as auto', () => {
+  const w = toManual();
+  assert.deepEqual([w.item, w.stage, canClick(w)], ['awaiting_user', 'intent_recorded', false]);
+  const s = run(w, { type: 'sent', request: imgReq }, { type: 'receipt', receipt: imgRec });
+  assert.deepEqual([s.item, s.stage, s.outputs.length], ['ready', 'outcome_known', 1]);
+  assert.throws(() => next(w, { type: 'clicked', result: CLICK_OK }), IllegalTransition);
+});
+
+test('manual skip with continuous observer is not sent', () => {
+  const s = next(toManual(), { type: 'skip', ping: ping({ seq: 12 }), now: NOW });
+  assert.deepEqual([s.item, s.stage, s.creditSpent], ['cancelled', 'outcome_known', false]);
+});
+
+test('manual skip after reload is uncertain; dropped records too', () => {
+  for (const p of [ping({ id: 'obs-2' }), ping({ dropped: 1 })]) {
+    const s = next(toManual(), { type: 'skip', ping: p, now: NOW });
+    assert.deepEqual([s.item, s.error.code, s.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
+  }
+});
+
+test('manual skip: any page generate send since the baseline (gen differs or missing on either side) is uncertain', () => {
+  const noGen = (o) => { const p = ping(o); delete p.gen; return p; };
+  const cases = [[toManual(), ping({ gen: 4 })], [toManual(), noGen()], [run(initial('p'), { type: 'prepare', now: NOW }, { type: 'intent', ping: noGen(), now: NOW, manual: true }), ping()]];
+  for (const [w, p] of cases) {
+    const s = next(w, { type: 'skip', ping: p, now: NOW });
+    assert.deepEqual([s.item, s.error.code, s.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
+    assert.ok(s.error.reasons.includes('gen_mismatch'));
+  }
+});
+
+test('manual skip with armFailed is uncertain even when the observer looks continuous', () => {
+  const s = next(toManual(), { type: 'skip', ping: ping(), now: NOW, armFailed: true });
+  assert.deepEqual([s.item, s.error.code, s.creditSpent, s.error.reasons], ['needs_review', 'SUBMIT_UNCERTAIN', true, ['arm_failed']]);
+});
+
+test('manual never times out; restart is uncertain; skip is illegal once sent', () => {
+  const w = toManual();
+  assert.deepEqual(next(w, { type: 'deadline' }), w);
+  const r = next(w, { type: 'restart' });
+  assert.deepEqual([r.item, r.error.code, r.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
+  assert.throws(() => next(toSent(imgReq), { type: 'skip', ping: ping(), now: NOW }), IllegalTransition);
+});
+
+test('skip then a late sent/receipt (request was in flight) => needs_review, credit spent', () => {
+  const sk = next(toManual(), { type: 'skip', ping: ping(), now: NOW });
+  for (const ev of [{ type: 'sent', request: imgReq }, { type: 'receipt', receipt: imgRec }]) {
+    const s = next(sk, ev);
+    assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true]);
   }
 });

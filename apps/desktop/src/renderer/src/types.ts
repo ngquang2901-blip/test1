@@ -1,0 +1,27 @@
+export type Attempt = {
+  id: string; ordinal: number; item: string; stage: string; clickAt: number | null; reconcileAt: number | null
+  error: { code?: string; why?: string; reasons?: string[]; resolution?: string } | null
+  profileVersion: string | null; outputs: string[]; journal: { type: string; at: number }[]
+}
+export type Item = { id: string; ord: number; prompt: string; attemptId: string; attempts: Attempt[] }
+export type Batch = { id: string; kind: 'image' | 'video'; status: string; archived: boolean; createdAt: number; settings: { mode?: string }; items: Item[] }
+export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' }
+export type Session = {
+  fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number }; tabs: string[]; email: string | null; draft: Draft; autoEnabled: boolean
+  selfCheck: { ok: true } | { ok: false; code: string; reasons: string[] } | null
+}
+
+export const BATCH_LABEL: Record<string, string> = {
+  queued: 'Đang chờ', running: 'Đang chạy', paused: 'Tạm dừng', needs_review: 'Cần xem lại',
+  completed: 'Có kết quả (chưa tải)', partial_failed: 'Xong một phần', failed: 'Lỗi', stopped: 'Đã dừng'
+}
+export const ACTIVE = ['queued', 'running', 'paused', 'needs_review']
+export const KIND_LABEL = { image: 'Ảnh', video: 'Video' }
+export const MODE_LABEL: Record<string, string> = { auto: 'Tự động', manual: 'Thủ công' }
+
+export function itemLabel(a: Attempt): string {
+  if (a.item === 'needs_review') return a.stage === 'uncertain' ? 'Không rõ' : 'Cần xem lại'
+  return ({ queued: 'Đang chờ', preparing: 'Đang chuẩn bị', submitting: 'Đang gửi', awaiting_user: 'Chờ bạn bấm Gửi', generating: 'Đang tạo', ready: 'Có kết quả (chưa tải)', failed: 'Lỗi', cancelled: 'Đã huỷ' } as Record<string, string>)[a.item] ?? a.item
+}
+export const time = (ms: number): string => new Date(ms).toLocaleTimeString('vi-VN')
+export const current = (it: Item): Attempt => it.attempts.find((a) => a.id === it.attemptId) ?? it.attempts[it.attempts.length - 1]

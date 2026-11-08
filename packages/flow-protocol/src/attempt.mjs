@@ -3,7 +3,7 @@
 // (event, new state) before acting on it; the only side-effect gate is canClick().
 // shortcut: lives in flow-protocol until the app has a domain package; Item.state/dispatchStage names are 02's.
 import { correlate } from './parse.mjs';
-import { classifyGenerateError, classifyPollFailure, resubmitDelay } from './errors.mjs';
+import { classifyGenerateError, classifyPollFailure, resubmitDelay, PUBLIC_ERRORS } from './errors.mjs';
 import { checkHeartbeat } from './heartbeat.mjs';
 
 export class IllegalTransition extends Error {
@@ -16,7 +16,7 @@ export class IllegalTransition extends Error {
 export const initial = (prompt) => ({
   item: 'queued', stage: 'not_started', prompt, clicked: false, baseline: null,
   request: null, operations: null, outputs: null, resubmits: 0, retryAt: null,
-  error: null, admission: 'continue', stopRequested: false, creditSpent: false,
+  error: null, admission: 'continue', stopRequested: false, creditSpent: false, manual: false,
 });
 
 const fail = (s, e) => ({ ...s, item: 'failed', stage: 'outcome_known', error: e, admission: e.admission ?? 'continue' });
@@ -30,10 +30,12 @@ const awaitingReceipt = (s) => !!s.request && (s.item === 'submitting' || (s.ite
 const notSent = (s) => s.stage === 'not_started' || s.stage === 'rejected_before_dispatch';
 
 /** The one place that allows a click: intent recorded, not yet used. */
-export const canClick = (s) => s.item === 'submitting' && s.stage === 'intent_recorded' && !s.clicked && !s.stopRequested;
+export const canClick = (s) => !s.manual && s.item === 'submitting' && s.stage === 'intent_recorded' && !s.clicked && !s.stopRequested;
 
 export function next(s, ev) {
   const bad = () => { throw new IllegalTransition(s, ev); };
+  // A request the observer saw before skip but the desktop got after it: real, so uncertain, not not-sent.
+  if (s.item === 'cancelled' && s.manual && !s.request && (ev.type === 'sent' || ev.type === 'receipt')) return review(s, 'SUBMIT_UNCERTAIN', { why: 'request after skip' });
   switch (ev.type) {
     case 'prepare': // queued → preparing; a resubmit waits for its backoff
       if (s.item !== 'queued' || s.stopRequested) bad();
@@ -48,7 +50,7 @@ export function next(s, ev) {
       if (s.item !== 'preparing' || !notSent(s) || s.stopRequested) bad();
       const hb = checkHeartbeat(ev.ping, { now: ev.now });
       if (!hb.alive) return { ...s, error: { code: 'CONFIG_INCOMPLETE', signal: 'OBSERVER_DEAD', reasons: hb.reasons }, admission: 'pause' };
-      return { ...s, item: 'submitting', stage: 'intent_recorded', clicked: false, baseline: ev.ping, request: null, error: null };
+      return { ...s, item: ev.manual ? 'awaiting_user' : 'submitting', stage: 'intent_recorded', clicked: false, baseline: ev.ping, request: null, error: null, manual: !!ev.manual };
     }
 
     case 'clicked': { // result of the page script: {found, disabled, listeners, called}
@@ -59,15 +61,24 @@ export function next(s, ev) {
     }
 
     case 'sent': { // observer saw the generate request leave the page
-      if (s.item !== 'submitting' || !s.clicked) bad();
+      if (!(s.item === 'submitting' && s.clicked) && s.item !== 'awaiting_user') bad(); // manual: the user's click is not journaled
       if (s.request) return review(s, 'SUBMIT_UNCERTAIN', { double: true, why: 'second generate request for one click' });
       if (!ev.request.items.every((i) => i.prompt === s.prompt)) return review(s, 'USER_INTERFERENCE', { why: 'prompt on the wire differs' });
-      return { ...s, request: ev.request };
+      return { ...s, item: 'submitting', clicked: true, request: ev.request };
+    }
+
+    case 'skip': { // manual: the user passed; only a continuous observer proves nothing was sent
+      if (s.item !== 'awaiting_user') bad();
+      const hb = checkHeartbeat(ev.ping, { now: ev.now, baseline: s.baseline });
+      // gen: the page's own count of generate sends; any movement (or no count to compare) means a real send may have been dropped as stale/unarmed
+      const reasons = [...(ev.armFailed ? ['arm_failed'] : []), ...hb.reasons, ...(Number.isInteger(ev.ping?.gen) && ev.ping.gen === s.baseline?.gen ? [] : ['gen_mismatch'])];
+      return reasons.length ? review(s, 'SUBMIT_UNCERTAIN', { signal: 'OBSERVER_DEAD', reasons }) : { ...s, item: 'cancelled', stage: 'outcome_known' };
     }
 
     case 'rejected': { // RPC-level error on the generate response itself: Flow created nothing
       if (!awaitingReceipt(s)) bad();
       const c = classifyGenerateError(ev.error);
+      if (ev.error.reasons.some((r) => PUBLIC_ERRORS[r]?.code === 'SUBMIT_UNCERTAIN')) return review(s, 'SUBMIT_UNCERTAIN', { why: 'generation already in progress', reasons: c.reasons }); // may be ours: D-04, never settle as failed; any such reason counts, whatever pick() chose
       if (s.item === 'needs_review') return fail(s, c);                 // late evidence settles, never resubmits
       if (c.resubmit && s.stopRequested) return { ...s, item: 'cancelled', stage: 'outcome_known', error: c };
       const delay = c.resubmit ? resubmitDelay(s.resubmits) : null;
@@ -101,12 +112,13 @@ export function next(s, ev) {
 
     case 'deadline': // timeout is a limit of observation, not proof (07 §3); intent without a journaled click
       // may still have clicked before a crash (02 §3), so it is uncertain too
+      if (s.item === 'awaiting_user') return s; // manual has no wait limit
       if (s.item === 'submitting') return review(s, 'SUBMIT_UNCERTAIN');
       if (s.item === 'generating') return review(s, 'PROVIDER_ERROR_UNKNOWN', { why: 'no terminal poll before deadline' });
       return bad();
 
     case 'restart': // D-04: after a restart every intent without a receipt is uncertain, never resent
-      return s.item === 'submitting' ? review(s, 'SUBMIT_UNCERTAIN', { why: 'restart' }) : s;
+      return s.item === 'submitting' || s.item === 'awaiting_user' ? review(s, 'SUBMIT_UNCERTAIN', { why: 'restart' }) : s;
 
     case 'stop':
       if (['ready', 'failed', 'cancelled'].includes(s.item)) return s;
