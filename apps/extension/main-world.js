@@ -20,9 +20,9 @@
   const emit = (name, obj) => document.dispatchEvent(new CustomEvent(name, { detail: JSON.stringify(obj) }));
   const covered = (b) => { const r = b.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !(e && b.closest('flow-prompt-box').contains(e)); };
 
-  let cur; // epoch of the latest trusted submit; stamped onto the XHR it triggers
+  const tracker = globalThis.makeEpochTracker(); // epoch.js: one click ↔ one generate send, else undefined
   nativeAdd.call(document, 'toolflow:submit', (e) => {
-    try { cur = JSON.parse(e.detail).epoch; } catch (_) { cur = undefined; }
+    let ep; try { ep = JSON.parse(e.detail).epoch; } catch (_) { ep = undefined; }
     const b = document.querySelector(SUBMIT);
     const ls = b && reg.get(b);
     const out = { found: !!b, disabled: b?.disabled ?? null, listeners: ls ? ls.size : 0, called: 0 };
@@ -38,6 +38,7 @@
       });
       for (const l of ls) { out.called++; /* before the call: a throwing listener may still have sent */ try { typeof l === 'function' ? l.call(b, p) : l.handleEvent(p); } catch (e) { /* uncertain, not rejected */ } }
     }
+    tracker.submit(ep, out.called > 0);
     emit('toolflow:submit-result', out);
   });
   nativeAdd.call(document, 'toolflow:hit', () => {
@@ -62,7 +63,7 @@
   XMLHttpRequest.prototype.send = function (b) {
     const url = this.__tfUrl || '';
     if (RPCS.test(url)) {
-      const rpc = gen(url); const req = String(b || ''); const epoch = cur;
+      const rpc = gen(url); const req = String(b || ''); const epoch = rpc ? tracker.send() : undefined;
       if (rpc) emit('toolflow:event', { type: 'sent', epoch, request: req });
       nativeAdd.call(this, 'loadend', () => { try {
         push(url, b, this.status, this.responseText);

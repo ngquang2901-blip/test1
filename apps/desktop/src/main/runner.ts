@@ -51,7 +51,9 @@ export function createRunner(o: {
   const slot = new Map<string, string>(); // tab → attempt last given a click there
   const awaiting: { id: string; tab: string }[] = []; // sent, response not seen yet
   const epochs = new Map<string, number>(); // AC-30: bumped on every disconnect; older sent/response events are ignored
-  const epoch = (tab: string) => epochs.get(tab) ?? 1;
+  const epoch = (tab: string) => { // first epoch = clock, so a restarted app is above any epoch of its previous run (R38)
+    let e = epochs.get(tab); if (e === undefined) epochs.set(tab, (e = clock.now())); return e;
+  };
   const clicking = new Set<string>(); // attempts whose driver.click has not returned
   const paused = new Map<string, string | null>(); // authoritative even when the DB write failed; flushed each tick
   const unc = new Set<string>(); // batches whose current pause was set only because an attempt went uncertain: the only pause release() lifts

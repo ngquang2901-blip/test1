@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import '../epoch.js';
+const makeEpochTracker = globalThis.makeEpochTracker;
 import { OPS, validate, isAllowedDownloadUrl, forwardEvent } from '../ops.js';
 
 const ok = (o, a = {}) => ({ id: 1, epoch: 2, op: o, args: a });
@@ -25,7 +27,7 @@ test('download only https on Flow content hosts', () => {
   for (const u of ['https://flow-content.google/video/x.mp4', 'https://lh3.googleusercontent.com/a?b=1'])
     assert.equal(validate(ok('download', { url: u })), null, u);
   for (const u of ['http://flow-content.google/x', 'https://evil.com/x', 'https://googleusercontent.com.evil.com/x',
-    'https://notflow-content.google/x', 'https://flow-content.google.evil.com', 'https://x.googleusercontent.com.evil.com', 'https://flow-content.google@evil.com/x', 'file:///etc/passwd', 'nonsense', undefined])
+    'https://notflow-content.google/x', 'https://flow-content.google.evil.com', 'https://x.googleusercontent.com.evil.com', 'https://flow-content.google' + '@evil.com/x', 'file:///etc/passwd', 'nonsense', undefined])
     assert.ok(validate(ok('download', { url: u })), String(u));
   assert.equal(isAllowedDownloadUrl('https://FLOW-CONTENT.google/x'), true);
   assert.equal(isAllowedDownloadUrl('https://a.b.googleusercontent.com/x'), true);
@@ -53,4 +55,17 @@ test('forwardEvent keeps own epoch; no epoch => not forwarded', () => {
   assert.equal(forwardEvent(7, { type: 'sent', request: 'r' }), null);
   assert.equal(forwardEvent(7, { type: 'sent', epoch: '3' }), null);
   assert.equal(forwardEvent(7, null), null);
+});
+
+test('epoch tracker: one epoch per click, ambiguity fails closed', () => {
+  let t = makeEpochTracker();
+  t.submit(5, true); assert.equal(t.send(), 5, 'click then send');
+  assert.equal(t.send(), undefined, 'second send after one click');
+  t = makeEpochTracker(); t.submit(5, true); t.submit(6, true);
+  assert.equal(t.send(), undefined, 'two clicks before send: first');
+  assert.equal(t.send(), undefined, 'two clicks before send: second');
+  t = makeEpochTracker(); assert.equal(t.send(), undefined, 'send without click');
+  t = makeEpochTracker(); t.submit(5, false); assert.equal(t.send(), undefined, 'uncalled submit does not arm');
+  t = makeEpochTracker(); t.submit(5, true); t.submit(6, false); assert.equal(t.send(), 5, 'uncalled submit changes nothing');
+  t = makeEpochTracker(); t.submit(5, true); t.send(); t.submit(6, true); assert.equal(t.send(), 6, 'next click after a send');
 });

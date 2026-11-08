@@ -240,7 +240,7 @@ test('stale epoch response ignored; the next click carries the new epoch', async
   expect(t.states(a)[0].item).toBe('needs_review');
   t.runner.start(b);
   await t.step(); // B clicked at epoch 2, nothing seen yet
-  expect(t.epochs).toEqual([1, 2]);
+  expect(t.epochs).toEqual([RUN31.clickMs, RUN31.clickMs + 1]);
   const before = JSON.stringify([t.states(a), t.states(b)]);
   t.release(); // epoch-1 sent + response arrive now: they must not be taken for B's request
   await t.step(2);
@@ -261,7 +261,7 @@ test('C1: a send deadline fences the tab, so the late sent/response of A never b
   expect(t.states(a)[0].item).toBe('needs_review');
   t.runner.start(b);
   await t.step();
-  expect(t.epochs).toEqual([1, 2]);
+  expect(t.epochs).toEqual([RUN31.clickMs, RUN31.clickMs + 1]);
   const before = JSON.stringify(t.states(b));
   t.release(); // epoch-1 sent + response arrive late
   await t.step(2);
@@ -297,7 +297,7 @@ test('I1: a PROTOCOL_DRIFT pause survives the uncertain attempt being resolved',
   const a = t.add(PROJECT, [RUN31.prompt, 'second']);
   t.runner.start(a);
   await t.step(2);
-  t.deliver({ tabId: 't1', type: 'sent', epoch: 1, request: 'garbage' }); // unreadable: uncertain, then drift pause
+  t.deliver({ tabId: 't1', type: 'sent', epoch: t.epochs[0], request: 'garbage' }); // unreadable: uncertain, then drift pause
   await t.step();
   expect([t.states(a)[0].item, t.runner.lastError(a)]).toEqual(['needs_review', 'PROTOCOL_DRIFT']);
   t.clock.t = RUN31.clickMs + TEN_MIN;
@@ -437,10 +437,31 @@ test('a click that throws without a disconnect still fences the tab', async () =
   expect(t.states(a)[0].item).toBe('needs_review');
   t.runner.start(b);
   await t.step(2);
-  expect(t.epochs).toEqual([2]);
+  expect(t.epochs).toEqual([RUN31.clickMs + 1]);
   const before = JSON.stringify(t.states(b));
-  t.deliver({ tabId: 't1', type: 'sent', epoch: 1, request: 'late' }); // old epoch: must not bind to B
+  t.deliver({ tabId: 't1', type: 'sent', epoch: RUN31.clickMs, request: 'late' }); // old epoch: must not bind to B
   await t.step();
   expect(JSON.stringify(t.states(b))).toBe(before);
   expect(t.states(b)[0].item).toBe('submitting');
+});
+
+test('R38: a restarted runner seeds epochs from the clock, so a late event of the previous run is ignored', async () => {
+  const t = rig(['no-request'], { hold: true, holdSent: true });
+  const a = t.add(PROJECT, ['a1']);
+  const b = t.add('P2', ['b1']); // queued before the restart (command ids are per rig)
+  t.runner.start(a);
+  await t.step();
+  const eA = t.epochs[0];
+  t.db.close();
+  t.clock.t += TEN_MIN;
+  const t2 = rig(['no-request'], { file: t.file, clock: t.clock });
+  t2.runner.recover();
+  t2.runner.start(b);
+  await t2.step();
+  expect(t2.epochs[0]).toBeGreaterThan(eA);
+  const before = JSON.stringify(t2.states(b));
+  t2.deliver({ tabId: 't1', type: 'sent', epoch: eA, request: 'late' });
+  await t2.step();
+  expect(JSON.stringify(t2.states(b))).toBe(before);
+  expect(t2.states(b)[0].item).toBe('submitting');
 });

@@ -227,7 +227,7 @@ async function foreign(prompt: string) {
   const got: DriverEvent[] = [];
   f.onEvent((e) => got.push(e));
   await f.prepare('x', { prompt, kind: 'image', settings: {}, refIds: [] });
-  await f.click('x', 1);
+  await f.click('x', Number.MAX_SAFE_INTEGER); // never stale: models an event of the current connection
   await flush();
   return got as [Extract<DriverEvent, { type: 'sent' }>, Extract<DriverEvent, { type: 'response' }>];
 }
