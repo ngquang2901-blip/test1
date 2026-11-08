@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { hintOf } from '../hints'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, time, type Attempt, type Batch } from '../types'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
+const Hint = ({ a }: { a: Attempt }): React.JSX.Element | null => { const h = hintOf(a.error?.code); return h ? <div data-testid="hint">{h}</div> : null } // what to do, next to the raw code
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
 
 function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
@@ -37,6 +39,7 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
       {batches.map((b) => (
         <div key={b.id}>
           <h3>Lô {b.id.slice(0, 8)} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
+          {b.status === 'paused' && hintOf(b.pauseReason) && <p role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason)}</p>}
           <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
           <table>
             <thead><tr><th>#</th><th>prompt</th><th>trạng thái</th></tr></thead>
@@ -48,6 +51,7 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
                     <td>{it.ord + 1}</td><td>{it.prompt}</td>
                     <td>
                       {itemLabel(a)}{a.item === 'failed' && a.error?.code ? ` (${reasons(a)})` : ''}
+                      {(a.item === 'failed' || a.item === 'needs_review') && <Hint a={a} />}
                       {a.item === 'needs_review' && a.stage === 'uncertain' && (
                         <>
                           <Uncertain a={a} />

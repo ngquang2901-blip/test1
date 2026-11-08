@@ -1,10 +1,11 @@
-import { app, BrowserWindow, ipcMain, session as electronSession } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session as electronSession } from 'electron'
 import { join } from 'path'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
+import { createAssetStore } from './assets'
 import { createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
@@ -36,6 +37,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const db = openDb(join(userData, 'toolflow.db'))
   const draftFile = join(userData, 'draft.json')
   let draft = readDraft(draftFile)
+  const assets = createAssetStore(db)
   // E2E only: a clock that runs X times faster so the 30 s send deadline / 10 min reconcile fit a test (fake mode only).
   const t0 = Date.now()
   const x = FAKE ? clockFactor(process.env.TOOLFLOW_CLOCK_X) : 1
@@ -49,8 +51,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let extVersion: string = extManifest.version
   if (FAKE) {
     const scripted = (process.env.TOOLFLOW_FAKE_SCRIPT ?? '').split(',').filter(Boolean) as FakeScript
-    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')]) // default: everything succeeds
+    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets }) // default: everything succeeds
     rawPing = fake.ping
+    if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowFake?: unknown }).__toolflowFake = fake.ledger // test-only: lets e2e count uploads
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
     if (process.env.TOOLFLOW_FAKE_AUTO !== '0') enableAuto(db, 'fake@example.invalid', Date.now()) // test fixture: the fake account has opted in; '0' keeps D-19 default (off)
     extVersion = '0.0.0-fake'
@@ -62,7 +65,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const server = await startConnectorServer({ token, extensionId: EXT_ID })
       // shortcut: dev path only, packaged resources path in P4
       installExtension(process.env.TOOLFLOW_EXT_DIR ?? join(app.getAppPath(), '../extension'), userData, server.port)
-      driver = createExtDriver(server, { allow: (id) => grants.has(id) })
+      driver = createExtDriver(server, { allow: (id) => grants.has(id), assets })
       rawPing = driver.ping
       connected = server.connected
     } catch (e) {
@@ -81,6 +84,13 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const h = createHandlers({
     db, runner, clock, emit, email, grants,
     projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
+    // FAKE only: e2e names the files in a JSON list because Playwright cannot drive a native dialog; real mode always opens the dialog
+    async pickPaths() {
+      if (FAKE && process.env.TOOLFLOW_PICK_REFS) return JSON.parse(readFileSync(process.env.TOOLFLOW_PICK_REFS, 'utf8')) as string[]
+      const w = win(), o = { properties: ['openFile', 'multiSelections'] as ('openFile' | 'multiSelections')[], filters: [{ name: 'Ảnh', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] }
+      const r = await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))
+      return r.canceled ? [] : r.filePaths
+    },
     getDraft: () => draft,
     saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
     async session() {

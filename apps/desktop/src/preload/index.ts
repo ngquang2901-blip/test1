@@ -5,6 +5,7 @@ const call = (ch: string) => (arg?: unknown) => ipcRenderer.invoke(ch, arg)
 const api = {
   saveDraft: call('saveDraft'),
   enqueueBatch: call('enqueueBatch'),
+  pickRefs: call('pickRefs'),
   startBatch: call('startBatch'),
   pauseBatch: call('pauseBatch'),
   resumeBatch: call('resumeBatch'),

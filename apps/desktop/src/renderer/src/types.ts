@@ -4,7 +4,7 @@ export type Attempt = {
   profileVersion: string | null; outputs: string[]; journal: { type: string; at: number }[]
 }
 export type Item = { id: string; ord: number; prompt: string; attemptId: string; attempts: Attempt[] }
-export type Batch = { id: string; kind: 'image' | 'video'; status: string; archived: boolean; createdAt: number; settings: { mode?: string }; items: Item[] }
+export type Batch = { pauseReason?: string | null; id: string; kind: 'image' | 'video'; status: string; archived: boolean; createdAt: number; settings: { mode?: string }; items: Item[] }
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' }
 export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean }
 export type Session = {

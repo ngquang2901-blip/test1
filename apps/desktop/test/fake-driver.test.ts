@@ -71,7 +71,7 @@ test('ping, prepare, checkBeforeClick, readProject, ledger', async () => {
   await d.prepare('t1', { prompt: 'x', kind: 'image', settings: {}, refIds: [] });
   expect(await d.checkBeforeClick('t1', 'p')).toEqual({ ok: true });
   expect(await d.readProject('p')).toMatch(/^\)\]\}'/);
-  expect(d.ledger).toEqual({ clicks: 0, prepares: 1, checks: 1, readProject: 1, arms: 0, armLog: [] });
+  expect(d.ledger).toEqual({ clicks: 0, prepares: 1, checks: 1, readProject: 1, arms: 0, uploads: [], refs: [], armLog: [] });
 });
 
 test('throttled after a video prepare: video request + YhhmEf throttle response', async () => {

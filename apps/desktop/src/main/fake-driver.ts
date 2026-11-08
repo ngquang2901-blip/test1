@@ -7,6 +7,7 @@ import throttledImage from '../../../../packages/flow-protocol/test/fixtures/thr
 import project from '../../../../packages/flow-protocol/test/fixtures/project-Zzl0ze.json';
 import { DEFAULT_COMBO, profile, type Combo } from './profile';
 import type { ConnectorServer } from './connector/server';
+import type { AssetStore } from './assets';
 import { ConnectorError, type ClickResult, type DriverEvent, type FlowDriver, type Ping } from './driver';
 
 // Tests only: the profile qualifies the image combo alone, so video batches need a stand-in.
@@ -52,7 +53,7 @@ function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array
 }
 
 // fail: codes returned (in order, one per call) by prepare / checkBeforeClick before they go back to ok.
-export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[] } = {}) {
+export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore } = {}) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
@@ -65,7 +66,7 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
   const kinds = new Map<string, 'image' | 'video'>();
   const next = (k: keyof typeof pools) => pools[k][used[k]++ % pools[k].length];
   const listeners = new Set<(e: DriverEvent) => void>();
-  const ledger = { clicks: 0, prepares: 0, checks: 0, readProject: 0, arms: 0, armLog: [] as Array<[string, number | null]> };
+  const ledger = { clicks: 0, prepares: 0, checks: 0, readProject: 0, arms: 0, uploads: [] as string[], refs: [] as string[][], armLog: [] as Array<[string, number | null]> };
   const focusLog: string[] = [];
   const armed = new Map<string, number | undefined>(); // page tracker: pending (key present) + the epoch it would stamp (undefined = ambiguous)
   const gens = new Map<string, number>(); // generate sends the page made (ours or not), reported by ping
@@ -103,7 +104,13 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },
     async probeTab() { return { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true }; },
-    async prepare(tabId, p) { ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code }; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
+    async prepare(tabId, p) { ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code };
+      for (const id of p.refIds) { // like the real driver: an asset is uploaded once, then only attached
+        if (fail.assets && !fail.assets.get(id)) return { ok: false, code: 'REF_ASSET_MISSING' };
+        if (!ledger.uploads.includes(id)) ledger.uploads.push(id);
+      }
+      if (p.refIds.length) ledger.refs.push([...p.refIds]);
+      prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
     async checkBeforeClick() { ledger.checks++; const code = fail.check?.shift(); return code ? { ok: false, code: code as 'COVERED' } : { ok: true }; },
     async click(tabId, epoch): Promise<ClickResult> {
       ledger.clicks++;

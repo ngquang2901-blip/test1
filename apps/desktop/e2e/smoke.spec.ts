@@ -1,5 +1,5 @@
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -202,4 +202,85 @@ test('S1 lists the Flow tab; an ungranted tab runs nothing until "Dùng tab này
   await expect(page.getByText('Đang dùng')).toBeVisible()
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+})
+
+// ---- reference images (Task 5b): the e2e names its files in a JSON list because Playwright cannot drive the native dialog ----
+const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+function pngs(names: string[]): { list: string; dir: string } {
+  const dir = tmp()
+  const paths = names.map((n, i) => { const f = join(dir, n); writeFileSync(f, Buffer.concat([PNG1, Buffer.from(`-${i}`)])); return f })
+  const list = join(dir, 'pick.json')
+  writeFileSync(list, JSON.stringify(paths))
+  return { list, dir }
+}
+const ledger = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { __toolflowFake: { uploads: string[]; refs: string[][] } }).__toolflowFake)
+const row = (page: Page, i: number) => page.locator('[data-testid=preview] tbody tr').nth(i)
+
+test('sequential refs: preview shows names, the batch runs, two uploads and one ref per item', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await expect(page.getByTestId('pool')).toContainText('a.png')
+  await expect(page.locator('body')).not.toContainText(list) // names only, never paths
+  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png')
+  await expect(row(page, 1)).toContainText('b.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  const l = await ledger(app)
+  expect(l.uploads).toHaveLength(2)
+  expect(l.refs.map((r) => r.length)).toEqual([1, 1])
+  expect(new Set(l.refs.flat()).size).toBe(2)
+})
+
+test('3 prompts and 2 refs sequential: the error is shown and Tạo lô và chạy is disabled; Không dùng frees it', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một\nhai\nba')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
+  await expect(page.getByTestId('map-errors')).toContainText('Thiếu ảnh cho prompt nào')
+  await expect(page.getByTestId('map-errors')).toContainText('#3')
+  await expect(row(page, 2)).toContainText('Thiếu ảnh')
+  await expect(row(page, 2)).not.toContainText('a.png') // no rotation back to the first image
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
+  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
+  await expect(page.getByTestId('map-errors')).toContainText('Quá nhiều ảnh')
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
+  await page.getByLabel('Không dùng').check()
+  await expect(page.getByTestId('map-errors')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeEnabled()
+  expect((await ledger(app)).uploads).toHaveLength(0) // nothing uploads before a batch runs
+})
+
+test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await tabTo(page, 'Tạo lô')
+  await page.keyboard.press('Enter')
+  await tabTo(page, 'Danh sách prompt')
+  await page.keyboard.type('một\nhai')
+  await tabTo(page, 'Chọn ảnh…')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await tabTo(page, 'Không dùng')
+  await page.keyboard.press('ArrowDown') // radio group: arrows pick the next mode
+  await expect(page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự')).toBeChecked()
+  await tabTo(page, 'Số ảnh mỗi prompt')
+  await tabTo(page, 'Bỏ ảnh b.png')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toBeFocused() // focus is not lost with the removed button
+  await expect(page.getByTestId('map-errors')).toContainText('Thiếu ảnh cho prompt nào')
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
+  await page.keyboard.press('Enter') // pick again: b.png is back
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await tabTo(page, 'Tạo lô và chạy')
+  await page.keyboard.press('Enter')
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1, 1])
 })
