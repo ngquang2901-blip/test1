@@ -467,6 +467,7 @@ test('R25: a stale pause admission does not pause on a later throttled response 
   await t.step(3);
   expect(batchStatus(t.db, t.batchId)).toBe('stopped');
   expect(t.runner.lastError(t.batchId)).toBeNull();
+  expect(batchRow(t.db, t.batchId).status).not.toBe('paused');
 });
 
 test('R25: GENERATION_ALREADY_IN_PROGRESS is uncertain: needs_review, credit spent, project blocked', async () => {

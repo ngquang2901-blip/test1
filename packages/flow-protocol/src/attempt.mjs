@@ -3,7 +3,7 @@
 // (event, new state) before acting on it; the only side-effect gate is canClick().
 // shortcut: lives in flow-protocol until the app has a domain package; Item.state/dispatchStage names are 02's.
 import { correlate } from './parse.mjs';
-import { classifyGenerateError, classifyPollFailure, resubmitDelay } from './errors.mjs';
+import { classifyGenerateError, classifyPollFailure, resubmitDelay, PUBLIC_ERRORS } from './errors.mjs';
 import { checkHeartbeat } from './heartbeat.mjs';
 
 export class IllegalTransition extends Error {
@@ -76,7 +76,7 @@ export function next(s, ev) {
     case 'rejected': { // RPC-level error on the generate response itself: Flow created nothing
       if (!awaitingReceipt(s)) bad();
       const c = classifyGenerateError(ev.error);
-      if (c.code === 'SUBMIT_UNCERTAIN') return review(s, 'SUBMIT_UNCERTAIN', { why: 'generation already in progress', reasons: c.reasons }); // may be ours: D-04, never settle as failed
+      if (ev.error.reasons.some((r) => PUBLIC_ERRORS[r]?.code === 'SUBMIT_UNCERTAIN')) return review(s, 'SUBMIT_UNCERTAIN', { why: 'generation already in progress', reasons: c.reasons }); // may be ours: D-04, never settle as failed; any such reason counts, whatever pick() chose
       if (s.item === 'needs_review') return fail(s, c);                 // late evidence settles, never resubmits
       if (c.resubmit && s.stopRequested) return { ...s, item: 'cancelled', stage: 'outcome_known', error: c };
       const delay = c.resubmit ? resubmitDelay(s.resubmits) : null;

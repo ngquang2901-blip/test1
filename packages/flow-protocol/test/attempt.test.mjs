@@ -82,6 +82,13 @@ test('R25: GENERATION_ALREADY_IN_PROGRESS rejection is uncertain, not failed (D-
   assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent, s.admission], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true, 'pause']);
 });
 
+test('R26: an uncertain reason anywhere in a mixed frame is uncertain, whatever the pick order', () => {
+  for (const reasons of [['PUBLIC_ERROR_USER_QUOTA_REACHED', 'PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS'], ['PUBLIC_ERROR_GENERATION_ALREADY_IN_PROGRESS', 'PUBLIC_ERROR_USER_QUOTA_REACHED']]) {
+    const s = next(toSent(imgReq), { type: 'rejected', error: { grpc: 9, reasons }, now: NOW });
+    assert.deepEqual([s.item, s.stage, s.error.code, s.creditSpent], ['needs_review', 'uncertain', 'SUBMIT_UNCERTAIN', true]);
+  }
+});
+
 test('non-resubmittable rejection settles the attempt; stop during backoff cancels (Flow created nothing)', () => {
   const blocked = next(toSent(imgReq), { type: 'rejected', error: { grpc: 3, reasons: ['PUBLIC_ERROR_UNSAFE_GENERATION'] }, now: NOW });
   assert.deepEqual([blocked.item, blocked.error.code], ['failed', 'CONTENT_BLOCKED']);
