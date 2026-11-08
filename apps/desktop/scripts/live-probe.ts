@@ -61,6 +61,10 @@ const watchMin = Number(process.env.WATCH_MIN ?? 0)
 if (watchMin > 0 && tabs[0]) {
   console.log(`watching tab ${tabs[0].tabId} for ${watchMin} min: generate once by hand (read-only, nothing is clicked by us)`)
   let lastGen = -1
+  // ARM=1: act like the manual-mode runner: arm the tab with an epoch, then the user's own send must come back as events with that epoch.
+  const armEpoch = process.env.ARM === '1' ? Date.now() : null
+  server.onEvent((e) => console.log(`${new Date().toISOString().slice(11, 19)} EVENT ${e.type} tab=${e.tabId}` + ('epoch' in e ? ` epoch=${e.epoch === armEpoch ? 'ARMED' : e.epoch}` : '') + ('rpc' in e ? ` rpc=${e.rpc} text=${e.text.length}B` : '') + ('request' in e ? ` request=${String(e.request).length}B` : '')))
+  if (armEpoch !== null) { await server.send('arm', { tabId: tabs[0].tabId, epoch: armEpoch }); console.log('armed (manual mode): now send ONE generate in Flow') }
   for (const end = Date.now() + watchMin * 60_000; Date.now() < end; await sleep(1500)) {
     try {
       const p = (await server.send('ping', { tabId: tabs[0].tabId })) as { gen: number; id: string }

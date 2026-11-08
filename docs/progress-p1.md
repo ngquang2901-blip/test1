@@ -9,7 +9,7 @@ Check:
 - [x] App shows "Đã kết nối"; extension id equals `EXT_ID` (ext-id.ts). (Linux, pair-check.mjs)
 - [x] Quit and restart the app: extension reconnects within 30 s. (Linux: 29 s — at the limit)
 - [x] `pair.json` is re-read after the port changes (unpacked extension serves files from disk). (Linux)
-- [x] Generate transport checked live 2026-11-08 (Chrome Profile 1, real Flow): **ogiZ0b goes over `fetch`, not XHR** (also Zzl0ze and nzlxg). The P1 hooks only fed events from XHR, so no `sent`/`response` would have reached the desktop; fixed in p2-live-probe (fetch path now emits events; vm tests). Still to confirm live: events arrive end to end with an armed epoch.
+- [x] Generate transport checked live 2026-11-08 (Chrome Profile 1, real Flow): **ogiZ0b goes over `fetch`, not XHR** (also Zzl0ze and nzlxg). The P1 hooks only fed events from XHR, so no `sent`/`response` would have reached the desktop; fixed in p2-live-probe (fetch path now emits events; vm tests). Confirmed live end to end (see Live findings).
 - [ ] Main-world `arm` / `trusted` click path works end to end.
 
 ## P1 gate — Linux (2026-11-08, p1-foundation tip = the commit that contains this file; base 3611a88)
@@ -73,3 +73,7 @@ Check:
 - Transport: `ogiZ0b` (image generate), `Zzl0ze`, `nzlxg` all via `fetch`. XHR is not used for these. Generate took ~24 s from send to response.
 - `gen` moved 0→1 at the manual generate, so the skip-continuity rule (R40) works with the fetch path.
 - Selectors editor/submit were absent on the Flow home page (no project open) — expected; not yet checked inside a project.
+- **End to end manual-mode path confirmed live (23:52 local):** `arm(epoch)` → user clicks Gửi in Flow → `sent` event (epoch = armed epoch, request body ~9.4 KB) arrives at the desktop ~0.1 s after the click; `response` (rpc ogiZ0b, same epoch, request echoed) arrives ~21 s later. Tool: `npm run live-probe -w apps/desktop` with `ARM=1 WATCH_MIN=6`.
+- Lesson: Chrome reads content-script files when the extension is (re)loaded. After the extension code on disk changes, reload the extension **and then** F5 the Flow tab; a reload done before the files were copied injects the old code (this cost one wasted generate).
+- Inside a project: `editor`, `submit`, `tile` present; `submit` hit-test not covered; selfCheck's required selectors (editor+submit) pass. `clear`, `chip`, `assetSearch`, `assetItem` absent at idle as expected; `creditWarning` absent = healthy.
+- Not yet verified live: the auto path (`trusted` click via the Proxy listener), parse of the live request/response by `flow-protocol`, drift of `listeners` count (hit-test only), video RPCs.
