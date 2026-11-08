@@ -1,6 +1,5 @@
 import { test, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
+import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
@@ -13,23 +12,22 @@ const good = (): Probe => ({
   listeners: 1, sawProjectLoad: true, extVersion: '1.0',
   ping: { xhrSend: true, xhrOpen: true, fetch: true, id: 'o1', seq: 1, dropped: 0, gen: 1, t: now, version: '1.0', email: 'a@x.com' },
 });
-const drift = (p: Probe) => selfCheck(p);
 
 test('selfCheck ok', () => expect(selfCheck(good())).toEqual({ ok: true }));
 
 test('each drift reason, collected together', () => {
-  const p = good(); delete p.present.tile; p.present.submit = false;
-  expect(drift(p)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['selector:submit', 'selector:tile'] });
+  const p = good(); p.present.editor = false; p.present.submit = false;
+  expect(selfCheck(p)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['selector:editor', 'selector:submit'] });
   const l = good(); l.listeners = 2;
-  expect(drift(l)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['listeners:2'] });
+  expect(selfCheck(l)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['listeners:2'] });
   const l0 = good(); l0.listeners = 0;
-  expect(drift(l0)).toMatchObject({ reasons: ['listeners:0'] });
+  expect(selfCheck(l0)).toMatchObject({ reasons: ['listeners:0'] });
   const h = good(); h.ping.xhrSend = false;
-  expect(drift(h)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['heartbeat:hook_xhr_send'] });
+  expect(selfCheck(h)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['heartbeat:hook_xhr_send'] });
   const n = good(); n.sawProjectLoad = false;
-  expect(drift(n)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['no_project_load'] });
+  expect(selfCheck(n)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['no_project_load'] });
   const all = good(); all.listeners = 3; all.sawProjectLoad = false; all.present.editor = false; all.ping.fetch = false;
-  expect(drift(all)).toMatchObject({ reasons: ['selector:editor', 'listeners:3', 'heartbeat:hook_fetch', 'no_project_load'] });
+  expect(selfCheck(all)).toMatchObject({ reasons: ['selector:editor', 'listeners:3', 'heartbeat:hook_fetch', 'no_project_load'] });
 });
 
 test('version mismatch / missing ⇒ RELOAD_TAB, wins over drift', () => {
@@ -42,10 +40,32 @@ test('version mismatch / missing ⇒ RELOAD_TAB, wins over drift', () => {
 test('drift guard: extension still hardcodes the profile selectors and rpc ids', () => {
   const src = readFileSync(join(__dirname, '../../extension/page-ops.js'), 'utf8').replace(/\\"/g, '"');
   const mw = readFileSync(join(__dirname, '../../extension/main-world.js'), 'utf8');
-  // Known gap (reported, extension untouched in P1): not yet in page-ops.js.
+  // Known gap (extension untouched in P1): P2 closes it by moving these into page-ops.js.
   const missing = Object.entries(profile.selectors).filter(([, s]) => !src.includes(s)).map(([k]) => k);
   expect(missing).toEqual(['clear', 'tile', 'assetSearch']);
   for (const id of Object.values(profile.rpc)) expect(mw).toContain(id);
+});
+
+test('selfCheck requires only idle selectors (selfCheck list)', () => {
+  for (const k of profile.selfCheck) expect(Object.keys(profile.selectors)).toContain(k);
+  const p = good();
+  for (const k of ['creditWarning', 'chip', 'tile', 'assetSearch', 'assetItem', 'clear']) p.present[k] = false;
+  expect(selfCheck(p)).toEqual({ ok: true });
+  p.present.editor = false;
+  expect(selfCheck(p)).toEqual({ ok: false, code: 'PROTOCOL_DRIFT', reasons: ['selector:editor'] });
+  const q = good(); q.present = undefined as unknown as Probe['present'];
+  expect(selfCheck(q)).toMatchObject({ reasons: ['selector:editor', 'selector:submit'] });
+});
+
+test('ping missing / empty versions ⇒ RELOAD_TAB without throwing', () => {
+  const reload = { ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] };
+  for (const v of [undefined, null]) {
+    const p = good(); p.ping = v as unknown as Probe['ping'];
+    expect(selfCheck(p)).toEqual(reload);
+  }
+  const e = good(); e.extVersion = ''; expect(selfCheck(e)).toEqual(reload);
+  const f = good(); f.ping.version = ''; expect(selfCheck(f)).toEqual(reload);
+  const g = good(); g.ping.version = ''; g.extVersion = ''; expect(selfCheck(g)).toEqual(reload);
 });
 
 test('account auto switch', () => {
@@ -66,4 +86,7 @@ test('account auto switch', () => {
   disableAuto(db, 'A@x.com');
   expect(opt('a@x.com')).toBe(false);
   expect(db.prepare('select ack_at a, auto_enabled e from account_setting').get()).toEqual({ a: 123, e: 0 });
+  enableAuto(db, 'a@x.com', 456);
+  expect(autoAllowed(db, 'a@x.com')).toBe(true);
+  expect(db.prepare('select ack_at a from account_setting where email=?').get('a@x.com')).toEqual({ a: 456 });
 });
