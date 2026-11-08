@@ -166,3 +166,27 @@ test('fake driver scripted prepare failure ⇒ prep_failed (no click); check fai
     expect([t.fake.ledger.clicks, t.runner.lastError(t.batchId)]).toEqual([0, code])
   }
 })
+
+const PRESENT = { present: { editor: true, submit: true }, path: '/p' }
+const probeStub = (o: { listeners?: unknown; seen?: string[] | null } = {}) => stub((op) => (op === 'probe' ? PRESENT : op === 'listeners' ? (o.listeners === undefined ? { found: true, disabled: false, listeners: 1 } : o.listeners) : op === 'ping' ? (o.seen === null ? null : { seen: o.seen ?? ['Zzl0ze'] }) : new Error(op)))
+
+test('probeTab: selfCheck selectors + listeners + project-load proof, read-only ops only', async () => {
+  const { server, seen } = probeStub()
+  expect(await createExtDriver(server, OPEN).probeTab!('7')).toEqual({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true })
+  expect(seen.map((s) => s[0]).sort()).toEqual(['listeners', 'ping', 'probe'])
+  expect(seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: 7, selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
+})
+
+test('probeTab: no project RPC seen ⇒ sawProjectLoad false; no main world ⇒ listeners 0 and not seen', async () => {
+  const a = await createExtDriver(probeStub({ seen: ['ogiZ0b'] }).server, OPEN).probeTab!('7')
+  expect(a.sawProjectLoad).toBe(false)
+  const b = await createExtDriver(probeStub({ listeners: null, seen: null }).server, OPEN).probeTab!('7')
+  expect(b).toMatchObject({ listeners: 0, sawProjectLoad: false })
+})
+
+test('probeTab: ungranted tab never reaches the page', async () => {
+  const { server, seen } = probeStub()
+  await expect(createExtDriver(server, { allow: () => false }).probeTab!('7')).rejects.toThrow('tab not granted')
+  await expect(createExtDriver(server).probeTab!('7')).rejects.toThrow('tab not granted')
+  expect(seen).toEqual([])
+})

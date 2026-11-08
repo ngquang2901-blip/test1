@@ -1,5 +1,5 @@
 import { checkHeartbeat } from '@toolflow/flow-protocol/heartbeat';
-import type { Ping } from './driver';
+import type { FlowDriver, Ping, TabProbe } from './driver';
 import flow from '../../profiles/flow.json';
 
 // version is the profile's identity for diagnostics.
@@ -50,4 +50,11 @@ export function selfCheck(p: Probe, prof: typeof profile = profile): SelfCheck {
   for (const r of checkHeartbeat(p.ping).reasons) reasons.push(`heartbeat:${r}`);
   if (!p.sawProjectLoad) reasons.push('no_project_load');
   return reasons.length ? { ok: false, code: 'PROTOCOL_DRIFT', reasons } : { ok: true };
+}
+
+/** Probe one tab (read-only) and judge it. A driver without probeTab, or one that throws, gives an empty probe ⇒ never ok. */
+export async function selfCheckTab(driver: Pick<FlowDriver, 'probeTab'>, ping: Ping, tab: string, extVersion: string): Promise<SelfCheck> {
+  let probe: TabProbe = { present: {}, listeners: 0, sawProjectLoad: false };
+  try { probe = (await driver.probeTab?.(tab)) ?? probe; } catch { /* fail closed */ }
+  return selfCheck({ ...probe, ping, extVersion });
 }

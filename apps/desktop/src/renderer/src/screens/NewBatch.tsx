@@ -32,7 +32,7 @@ export default function NewBatch({ initial, onCreated }: { initial: Draft; onCre
       await window.api.startBatch(batchId)
       setCmd(crypto.randomUUID())
       onCreated()
-    } catch (e) { setMsg(`Không tạo được lô: ${(e as Error).message}`) }
+    } catch (e) { setMsg((e as Error).message.includes('NO_PROJECT_TAB') ? 'Chưa có tab Flow nào được cấp quyền — mở một dự án Flow rồi bấm “Dùng tab này”' : `Không tạo được lô: ${(e as Error).message}`) }
   }
 
   return (

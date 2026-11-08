@@ -7,7 +7,7 @@ import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
 import { createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
-import { selfCheck, validateProfile, profile, PROFILE_PATH, type Probe } from './profile'
+import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
 import { createFakeDriver, type FakeScript } from './fake-driver'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
@@ -44,7 +44,6 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let driver: FlowDriver
   let grants!: Grants // assigned once the runner exists; the ext driver only asks it lazily
   let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
-  let probe: () => Omit<Probe, 'extVersion' | 'ping'>
   let connected: (() => boolean) | null = null // real mode only
   let connectorError: string | null = null
   let extVersion: string = extManifest.version
@@ -55,10 +54,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
     if (process.env.TOOLFLOW_FAKE_AUTO !== '0') enableAuto(db, 'fake@example.invalid', Date.now()) // test fixture: the fake account has opted in; '0' keeps D-19 default (off)
     extVersion = '0.0.0-fake'
-    probe = () => ({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true })
   } else {
-    // shortcut: extension probe op, live in P2 — fail closed
-    probe = () => ({ present: {}, listeners: 0, sawProjectLoad: false })
     rawPing = () => Promise.reject(new Error('no driver'))
     driver = { onEvent: () => () => {} } as unknown as FlowDriver // connector failed: no tabs, so the runner never calls it
     try {
@@ -76,7 +72,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   }
 
   const runner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
-    selfCheckOk: async (t) => selfCheck({ ...probe(), ping: await rawPing(t), extVersion }).ok }) // wall-clock ping like session(); real mode: stub probe ⇒ manual
+    selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
   grants = createGrants(driver, runner)
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
   runner.recover()
@@ -84,7 +80,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const emit = revisioned((e) => win()?.webContents.send('state', e))
   const h = createHandlers({
     db, runner, clock, emit, email, grants,
-    projectId: FAKE ? 'fake-project' : 'unbound', // shortcut: project comes from the live tab in P2
+    projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
     getDraft: () => draft,
     saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
     async session() {
@@ -96,7 +92,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       return {
         fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
         autoEnabled: autoAllowed(db, em),
-        selfCheck: ping ? selfCheck({ ...probe(), ping, extVersion }) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
+        selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
   })

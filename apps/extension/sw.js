@@ -2,7 +2,7 @@ import { validate, forwardEvent } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings']);
+const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners']);
 
 async function connect() {
   if (connecting || (ws && ws.readyState <= 1)) return;

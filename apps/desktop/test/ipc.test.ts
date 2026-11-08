@@ -11,13 +11,13 @@ import { createHandlers, revisioned, parseDraft, type Draft } from '../src/main/
 import { clockFactor, errorCode } from '../src/main/boot-util';
 import { newer } from '../src/renderer/src/revision';
 
-function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')[] = ['image-ok', 'image-ok', 'image-ok']) {
+function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')[] = ['image-ok', 'image-ok', 'image-ok'], projectId: () => string | null = () => 'p') {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: 1_000_000, now() { return this.t; } };
   const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: (e) => autoAllowed(db, e) });
   const events: Array<{ entity: string; id: string; revision: number }> = [];
   let draft: Draft = { text: 't', kind: 'image', mode: 'auto', speed: 'default' };
-  const h = createHandlers({ db, runner, grants: { use: () => {} }, projectId: 'p', email: async () => email, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock });
+  const h = createHandlers({ db, runner, grants: { use: () => {} }, projectId, email: async () => email, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock });
   return { db, h, events, runner, clock, draft: () => draft };
 }
 const good = { commandId: 'c1', text: 'a\nb\n\nc', kind: 'image', mode: 'auto' };
@@ -129,4 +129,16 @@ test('archiveBatch needs {batchId, confirm: true}; anything else is INVALID_ARGS
 test('rerun needs {attemptId, confirmCost: true}', async () => {
   const { h } = rig();
   for (const bad of ['x', { attemptId: 'x' }, { attemptId: 'x', confirmCost: 1 }, { attemptId: 'x', confirmCost: false }, { confirmCost: true }, { attemptId: 7, confirmCost: true }, undefined]) await expect(h.rerun(bad)).rejects.toThrow(/INVALID_ARGS/);
+});
+
+test('enqueueBatch: project comes from the getter at call time; none ⇒ NO_PROJECT_TAB and nothing is created (dryRun still previews)', async () => {
+  let p: string | null = null;
+  const { h, db } = rig('a@b.c', undefined, () => p);
+  await expect(h.enqueueBatch(good)).rejects.toThrow(/NO_PROJECT_TAB/);
+  await expect(h.enqueueBatch(good)).rejects.toMatchObject({ code: 'NO_PROJECT_TAB' });
+  expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 0 });
+  expect(((await h.enqueueBatch({ ...good, dryRun: true })) as { rows: unknown[] }).rows).toHaveLength(3);
+  p = 'proj-1';
+  const r = (await h.enqueueBatch(good)) as { batchId: string };
+  expect(db.prepare('select target_project p from batch where id=?').get(r.batchId)).toEqual({ p: 'proj-1' });
 });

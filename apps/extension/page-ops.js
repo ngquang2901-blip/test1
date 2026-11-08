@@ -49,6 +49,7 @@
     },
     probe: (a) => ({ present: Object.fromEntries(Object.entries(a.selectors).map(([k, s]) => { try { return [k, !!document.querySelector(s)]; } catch (_) { return [k, false]; } })), path: location.pathname }), // read-only DOM presence check
     hit: () => ask('toolflow:hit'),
+    listeners: () => ask('toolflow:listeners'), // read-only: count of the submit button's click listeners
     async trusted(a) { return (await ask('toolflow:submit', 1000, { epoch: a.epoch })) || { noMainWorld: true }; },
     async arm(a) { const r = await ask('toolflow:arm', 1000, { epoch: a.epoch }); if (!r?.ok) throw new Error('arm: no ack from main world'); return true; },
     net: () => ask('toolflow:net'),

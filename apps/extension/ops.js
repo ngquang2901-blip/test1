@@ -1,5 +1,5 @@
 // Pure: the only commands the desktop may send. No eval / debugger / raw CDP.
-export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe','settings'];
+export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe','settings','listeners'];
 
 const NEED_URL = new Set(['download', 'open']);
 

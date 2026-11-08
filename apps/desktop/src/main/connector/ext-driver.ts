@@ -26,6 +26,8 @@ export function decideCheck(c: CheckInput, selfCheck: readonly string[] = profil
   return { ok: true }
 }
 
+const selfSelectors = () => Object.fromEntries(profile.selfCheck.map((k) => [k, profile.selectors[k as keyof typeof profile.selectors]]))
+
 const todo = (what: string): never => {
   throw new ConnectorError(`${what}: not implemented`)
 }
@@ -49,6 +51,13 @@ export function createExtDriver(server: ConnectorServer, o: { allow?(tabId: stri
       const email = (await server.send('account', tab(tabId))) as string | null // R2: main-world ping has no email
       return { ...p, email: email ?? null }
     },
+    // Self-check signals, all read-only. No main world (null) ⇒ 0 listeners / nothing seen, so the check fails.
+    async probeTab(tabId) {
+      granted(tabId)
+      const t = tab(tabId)
+      const [p, l, ping] = await Promise.all([server.send('probe', { ...t, selectors: selfSelectors() }), server.send('listeners', t), server.send('ping', t)]) as Array<{ present: Record<string, boolean>; listeners: number; seen?: string[] } | null>
+      return { present: p?.present ?? {}, listeners: l?.listeners ?? 0, sawProjectLoad: !!ping?.seen?.includes(profile.rpc.project) }
+    },
     // Settings (read back by label) then the prompt (must read back verbatim). Codes only: never the prompt text.
     async prepare(tabId, p) {
       granted(tabId)
@@ -71,7 +80,7 @@ export function createExtDriver(server: ConnectorServer, o: { allow?(tabId: stri
       try {
         const tabs = (await server.send('tabs', {})) as Array<{ tabId: number; path: string }>
         const here = tabs.find((x) => x.tabId === t.tabId)
-        const selectors = Object.fromEntries(profile.selfCheck.map((k) => [k, profile.selectors[k as keyof typeof profile.selectors]]))
+        const selectors = selfSelectors()
         const [ping, probe, state, hit] = await Promise.all([server.send('ping', t), server.send('probe', { ...t, selectors }), server.send('state', t), server.send('hit', t)]) as never[]
         return decideCheck({ tabProject: here ? projectIdOf(here.path) : null, projectId, ping, probe, state, hit, refIds })
       } catch { return { ok: false, code: 'TARGET_CHANGED' } }

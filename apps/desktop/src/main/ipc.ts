@@ -11,7 +11,7 @@ export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'man
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
-  db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId: string; clock: { now(): number };
+  db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId(): string | null | Promise<string | null>; clock: { now(): number };
   email(): Promise<string | null>; session(): Promise<object>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
 };
 
@@ -81,7 +81,9 @@ export function createHandlers(d: Deps) {
       const { refs, errors } = mapRefs(parsed.items.length, [], 'none', 0); // shortcut: reference images arrive with uploads in P2
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
       if (o.dryRun === true) return { rows: parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i], error: null })), errors };
-      const r = enqueueBatch(d.db, { commandId, kind, projectId: d.projectId, settings: { combo: DEFAULT_COMBO }, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
+      const projectId = await d.projectId(); // read at call time: the granted tab can change
+      if (!projectId) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
+      const r = enqueueBatch(d.db, { commandId, kind, projectId, settings: { combo: DEFAULT_COMBO }, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
       d.emit('batch', r.batchId);
       return r;
     },

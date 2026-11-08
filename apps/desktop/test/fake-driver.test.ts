@@ -167,3 +167,7 @@ test('R29: sent and response carry the epoch passed to click', async () => {
   await new Promise((r) => setTimeout(r, 5));
   expect(got.map((e) => (e as { epoch: number }).epoch)).toEqual([7, 7]);
 });
+
+test('probeTab: the fake tab always passes the self-check probe', async () => {
+  expect(await createFakeDriver([]).probeTab!('t1')).toEqual({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true });
+});

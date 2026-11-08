@@ -101,6 +101,7 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
     async ping(tabId): Promise<Ping> {
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },
+    async probeTab() { return { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true }; },
     async prepare(tabId, p) { ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code }; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
     async checkBeforeClick() { ledger.checks++; const code = fail.check?.shift(); return code ? { ok: false, code: code as 'COVERED' } : { ok: true }; },
     async click(tabId, epoch): Promise<ClickResult> {

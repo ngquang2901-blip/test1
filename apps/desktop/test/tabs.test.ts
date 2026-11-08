@@ -46,3 +46,12 @@ test('list() revokes a grant whose tab is gone or no longer ok', async () => {
   expect(r.g.has('1')).toBe(false);
   expect(r.set).toEqual([['1'], []]);
 });
+
+test('projectId() is the first granted tab\'s project from the last listing; null when nothing is granted', async () => {
+  const r = rig([tab({ tabId: '1', projectId: U }), tab({ tabId: '2', projectId: '0b4d3c1e-9999-4222-8333-444455556666' })]);
+  expect(r.g.projectId()).toBeNull();
+  await r.g.list();
+  expect(r.g.projectId()).toBeNull(); // listed but not granted
+  r.g.use(['2', '1']);
+  expect(r.g.projectId()).toBe('0b4d3c1e-9999-4222-8333-444455556666');
+});

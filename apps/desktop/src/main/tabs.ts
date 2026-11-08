@@ -26,6 +26,7 @@ export function createGrants(driver: Pick<FlowDriver, 'listTabs'>, runner: Pick<
       for (const id of ids as unknown[]) if (typeof id !== 'string' || !last.some((t) => t.tabId === id && tabStatus(t) === 'ok')) bad();
       set([...new Set(ids as string[])]);
     },
+    projectId: (): string | null => last.find((t) => t.tabId === granted[0])?.projectId ?? null, // project of the first granted tab, per the last listing
     has: (id: string): boolean => granted.includes(id),
     granted: (): string[] => [...granted],
   };

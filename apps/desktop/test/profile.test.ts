@@ -3,7 +3,7 @@ import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
-import { profile, selfCheck, type Probe } from '../src/main/profile';
+import { profile, selfCheck, selfCheckTab, type Probe } from '../src/main/profile';
 import { autoAllowed, autoGate, enableAuto, disableAuto } from '../src/main/account';
 
 const now = Date.now();
@@ -130,4 +130,19 @@ test('validateProfile: combos must be a non-empty array of complete combos', () 
   }
   const d = clone(); delete d.combos;
   expect(validateProfile(d)).toBe('combos');
+});
+
+// session() and the runner's selfCheckOk both go through selfCheckTab: the driver's probeTab decides, a missing/broken one fails closed
+test('selfCheckTab: scripted driver.probeTab drives the verdict; absent or throwing probeTab never passes', async () => {
+  const ping = good().ping;
+  const probe = { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true };
+  const run = (probeTab?: (t: string) => Promise<typeof probe>) => selfCheckTab({ probeTab }, ping, 't1', '1.0');
+  expect(await run(async () => probe)).toEqual({ ok: true });
+  expect(await run(async () => ({ ...probe, sawProjectLoad: false }))).toMatchObject({ ok: false, reasons: ['no_project_load'] });
+  expect(await run(async () => ({ ...probe, listeners: 0 }))).toMatchObject({ reasons: ['listeners:0'] });
+  expect(await run(async () => { throw new Error('gone'); })).toMatchObject({ ok: false, reasons: ['selector:editor', 'selector:submit', 'listeners:0', 'no_project_load'] });
+  expect((await run()).ok).toBe(false);
+  const tabs: string[] = [];
+  await run(async (t) => (tabs.push(t), probe));
+  expect(tabs).toEqual(['t1']);
 });
