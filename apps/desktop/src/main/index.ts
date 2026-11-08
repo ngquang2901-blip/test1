@@ -6,7 +6,7 @@ import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
 import { createRunner } from './runner'
-import { autoAllowed } from './account'
+import { autoAllowed, enableAuto } from './account'
 import { selfCheck, type Probe } from './profile'
 import { createFakeDriver, type FakeScript } from './fake-driver'
 import { createHandlers, registerIpc, revisioned, type Draft } from './ipc'
@@ -42,13 +42,16 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
 
   let driver: FlowDriver
   let tabs: string[]
+  let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
   let probe: () => Omit<Probe, 'extVersion' | 'ping'>
   let extVersion: string = extManifest.version
   if (FAKE) {
     const scripted = (process.env.TOOLFLOW_FAKE_SCRIPT ?? '').split(',').filter(Boolean) as FakeScript
     const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')]) // default: everything succeeds
+    rawPing = fake.ping
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
     tabs = ['t1']
+    if (process.env.TOOLFLOW_FAKE_AUTO !== '0') enableAuto(db, 'fake@example.invalid', Date.now()) // test fixture: the fake account has opted in; '0' keeps D-19 default (off)
     extVersion = '0.0.0-fake'
     probe = () => ({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true })
   } else {
@@ -57,6 +60,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     // shortcut: dev path only, packaged resources path in P4
     installExtension(join(app.getAppPath(), '../extension'), userData, server.port)
     driver = createExtDriver(server)
+    rawPing = driver.ping
     tabs = [] // shortcut: tab discovery is not built, live in P2
     // shortcut: extension probe op, live in P2 — fail closed
     probe = () => ({ present: {}, listeners: 0, sawProjectLoad: false })
@@ -72,7 +76,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
     async session() {
       const em = await email()
-      const ping = tabs[0] ? await driver.ping(tabs[0]) : null
+      const ping = tabs[0] ? await rawPing(tabs[0]) : null
       return {
         fake: FAKE, tabs, email: em, draft, speedInUse: runner.caps(),
         autoEnabled: autoAllowed(db, em),
