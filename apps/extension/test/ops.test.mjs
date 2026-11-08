@@ -30,6 +30,9 @@ test('isAllowedDownloadUrl (guards fetchMedia\'s src): only https on Flow conten
   for (const u of ['http://flow-content.google/x', 'https://evil.com/x', 'https://googleusercontent.com.evil.com/x',
     'https://notflow-content.google/x', 'https://flow-content.google.evil.com', 'https://x.googleusercontent.com.evil.com', 'https://flow-content.google' + '@evil.com/x', 'file:///etc/passwd', 'nonsense', undefined])
     assert.equal(isAllowedDownloadUrl(u), false, String(u));
+  assert.equal(isAllowedDownloadUrl('https://flow.google.com/asb/KEY=s1600-rw'), true); // measured: tile images
+  for (const u of ['https://flow.google.com/fx/api/trpc/x', 'https://flow.google.com/', 'https://flow.google.com/asbx', 'http://flow.google.com/asb/x', 'https://flow.google.com.evil.com/asb/x'])
+    assert.equal(isAllowedDownloadUrl(u), false, u); // the app's own API/pages are never fetched
   assert.equal(isAllowedDownloadUrl('https://FLOW-CONTENT.google/x'), true);
   assert.equal(isAllowedDownloadUrl('https://a.b.googleusercontent.com/x'), true);
 });

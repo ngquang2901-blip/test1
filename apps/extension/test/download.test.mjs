@@ -58,7 +58,7 @@ test('fetchMedia failures return codes only (no url, no message)', async () => {
   assert.deepEqual(await fetchMediaOp(chromeFake({ reply: { code: 'NOT_FOUND' } }), a), { ok: false, code: 'NOT_FOUND' });
   assert.deepEqual(await fetchMediaOp(chromeFake({ reply: new Error('no receiver ' + SRC) }), a), { ok: false, code: 'NO_CONTENT_SCRIPT' });
   const evil = chromeFake({ reply: { src: 'https://evil.example/x.png' } });
-  assert.deepEqual(await fetchMediaOp(evil, a), { ok: false, code: 'SRC_NOT_ALLOWED' });
+  assert.deepEqual(await fetchMediaOp(evil, a), { ok: false, code: 'SRC_NOT_ALLOWED', host: 'evil.example' }); // the host name only, never the url
   assert.equal(evil.calls.download.length, 0, 'a foreign host is never fetched');
   const refused = await fetchMediaOp(chromeFake({ reply: { src: SRC }, downloadId: new Error('Invalid URL ' + SRC) }), a);
   assert.deepEqual(refused, { ok: false, code: 'DOWNLOAD_REFUSED' });

@@ -7,7 +7,10 @@ export const validTmpName = (s) => typeof s === 'string' && /^[A-Za-z0-9][A-Za-z
 
 export function isAllowedDownloadUrl(s) {
   let u; try { u = new URL(s); } catch { return false; }
-  return u.protocol === 'https:' && (u.hostname === 'flow-content.google' || u.hostname.endsWith('.googleusercontent.com'));
+  if (u.protocol !== 'https:') return false;
+  // measured live: tile images are served from flow.google.com/asb/<key>=s<size>; other flow.google.com paths (the app's API) must never be fetched
+  if (u.hostname === 'flow.google.com') return u.pathname.startsWith('/asb/');
+  return u.hostname === 'flow-content.google' || u.hostname.endsWith('.googleusercontent.com');
 }
 
 export function validate(msg) {
@@ -44,7 +47,7 @@ export async function fetchMediaOp(c, a) {
   let r;
   try { r = await c.tabs.sendMessage(a.tabId, { tf: 'src', mediaId: a.mediaId }); } catch { return { ok: false, code: 'NO_CONTENT_SCRIPT' }; }
   if (!r || typeof r.src !== 'string') return { ok: false, code: codeOf(r?.code) };
-  if (!isAllowedDownloadUrl(r.src)) return { ok: false, code: 'SRC_NOT_ALLOWED' };
+  if (!isAllowedDownloadUrl(r.src)) { let host = '?'; try { host = new URL(r.src).hostname; } catch { /* keep ? */ } return { ok: false, code: 'SRC_NOT_ALLOWED', host }; } // host only: never the url
   try {
     const downloadId = await c.downloads.download({ url: r.src, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
     return Number.isInteger(downloadId) ? { ok: true, downloadId } : { ok: false, code: 'DOWNLOAD_REFUSED' };
