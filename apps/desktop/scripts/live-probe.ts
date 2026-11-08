@@ -60,6 +60,17 @@ for (const t of tabs) {
 }
 // FOCUS=1: bring the first Flow tab to the front (op `focus`), like manual mode does before arming.
 if (process.env.FOCUS === '1' && tabs[0]) console.log('focus:', JSON.stringify(await server.send('focus', { tabId: tabs[0].tabId })))
+// INSPECT=1: read-only look at the composer settings panel: open it, list its buttons (text/role/checked), close it again. Nothing is changed or sent.
+if (process.env.INSPECT === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  console.log('state:', JSON.stringify(await server.send('state', a)))
+  console.log('open settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
+  await sleep(1200)
+  console.log('radios:', JSON.stringify(await server.send('radios', a)))
+  console.log('close settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
+  await sleep(600)
+  console.log('radios after close:', JSON.stringify(await server.send('radios', a)))
+}
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)
 if (watchMin > 0 && tabs[0]) {
