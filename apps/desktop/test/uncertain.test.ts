@@ -201,7 +201,7 @@ test('archive is refused while a click is in flight', async () => {
   t.runner.start(a);
   const tick = t.runner.tick();
   await flush();
-  expect(() => t.runner.archive(a)).toThrow();
+  expect(() => t.runner.archive(a)).toThrow(expect.objectContaining({ code: 'CLICK_IN_FLIGHT' }));
   expect((t.db.prepare('select archived from batch where id=?').get(a) as { archived: number }).archived).toBe(0);
   t.open(); await tick; await flush();
 });
@@ -222,7 +222,7 @@ test('rerun needs confirmation and links the old attempt', async () => {
   expect((db_attempt(t.db, old.id).error as { userConfirmed?: boolean }).userConfirmed).toBe(true);
   expect(db_attempt(t.db, old.id).item).toBe('failed');
   expect(t.states(a)[0].id).toBe(id); // the item now points at the new attempt
-  expect(() => t.runner.rerun(old.id, true)).toThrow(); // already rerun: no second paid copy
+  expect(() => t.runner.rerun(old.id, true)).toThrow(expect.objectContaining({ code: 'ALREADY_RERUN' })); // already rerun: no second paid copy
   await t.step(6);
   expect(db_attempt(t.db, id).item).toBe('ready');
   expect(t.driver.ledger.clicks).toBe(3);
@@ -246,4 +246,117 @@ test('stale epoch response ignored; the next click carries the new epoch', async
   await t.step(2);
   expect(JSON.stringify([t.states(a), t.states(b)])).toBe(before);
   expect(t.states(b)[0].item).toBe('submitting');
+});
+
+const batchRow = (db: Db, id: string) => (db.prepare('select status from batch where id=?').get(id) as { status: string }).status;
+
+test('C1: a send deadline fences the tab, so the late sent/response of A never bind to B', async () => {
+  const t = rig(['image-ok', 'no-request'], { hold: true, holdSent: true });
+  const a = t.add(PROJECT, [RUN31.prompt]);
+  const b = t.add('P2', [RUN31.prompt]); // same prompt: the nastiest case
+  t.runner.start(a);
+  await t.step(); // A clicked at epoch 1; its sent + response are held back
+  t.clock.t += DEADLINE;
+  await t.step(); // A: deadline → uncertain, tab fenced
+  expect(t.states(a)[0].item).toBe('needs_review');
+  t.runner.start(b);
+  await t.step();
+  expect(t.epochs).toEqual([1, 2]);
+  const before = JSON.stringify(t.states(b));
+  t.release(); // epoch-1 sent + response arrive late
+  await t.step(2);
+  expect(JSON.stringify(t.states(b))).toBe(before);
+  expect(t.states(b)[0].item).toBe('submitting');
+  expect(t.states(a)[0].item).toBe('needs_review');
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  await t.step(3);
+  expect(t.states(a)[0].item).toBe('ready'); // reconcile still finds A's media: it was never taken by B
+  expect(t.states(b)[0].outputs ?? null).toBeNull();
+});
+
+test('I1: a user pause survives the uncertain attempt being resolved', async () => {
+  const t = rig(['no-request', 'image-ok']);
+  const a = t.add(PROJECT, [RUN31.prompt, 'second']);
+  t.runner.start(a);
+  await t.step(2);
+  t.runner.pause(a);
+  t.clock.t += DEADLINE;
+  await t.step(2);
+  expect(t.states(a)[0].item).toBe('needs_review');
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  await t.step(3);
+  expect(t.states(a)[0].item).toBe('ready');
+  expect([batchRow(t.db, a), t.driver.ledger.clicks]).toEqual(['paused', 1]);
+  t.runner.resume(a);
+  await t.step(3);
+  expect(t.states(a)[1].item).toBe('ready');
+});
+
+test('I1: a PROTOCOL_DRIFT pause survives the uncertain attempt being resolved', async () => {
+  const t = rig(['no-request', 'image-ok']);
+  const a = t.add(PROJECT, [RUN31.prompt, 'second']);
+  t.runner.start(a);
+  await t.step(2);
+  t.deliver({ tabId: 't1', type: 'sent', epoch: 1, request: 'garbage' }); // unreadable: uncertain, then drift pause
+  await t.step();
+  expect([t.states(a)[0].item, t.runner.lastError(a)]).toEqual(['needs_review', 'PROTOCOL_DRIFT']);
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  await t.step(3);
+  expect(t.states(a)[0].item).toBe('ready');
+  expect([batchRow(t.db, a), t.runner.lastError(a), t.driver.ledger.clicks]).toEqual(['paused', 'PROTOCOL_DRIFT', 1]);
+});
+
+test('I2: a drop mid-click still starts the reconcile window at the click', async () => {
+  const t = rig(['drop']);
+  const a = t.add(PROJECT, [RUN31.prompt]);
+  t.runner.start(a);
+  await t.step(2);
+  const [u] = t.states(a);
+  expect([u.item, u.c, u.r]).toEqual(['needs_review', RUN31.clickMs, RUN31.clickMs + TEN_MIN]);
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  await t.step(3);
+  expect(t.states(a)[0].item).toBe('ready');
+});
+
+test('I2: with click_at null (crash between intent and click write) reconcile uses the intent time', async () => {
+  const t = rig([]);
+  const a = t.add(PROJECT, [RUN31.prompt]);
+  leave(t.db, t.states(a)[0].id, RUN31.clickMs, null);
+  t.runner.recover();
+  t.clock.t = RUN31.clickMs + TEN_MIN + 1_000_000; // reconcile time far from the click
+  await t.step(2);
+  expect(t.states(a)[0].item).toBe('ready');
+});
+
+test('I3: the block stays until the last uncertain attempt of the project is settled', async () => {
+  const t = rig(['image-ok']);
+  const a = t.add(PROJECT, ['u1', 'u2', 'u3']);
+  t.runner.start(a);
+  const [x, y] = t.states(a);
+  leave(t.db, x.id, RUN31.clickMs, RUN31.clickMs);
+  leave(t.db, y.id, RUN31.clickMs, RUN31.clickMs);
+  t.runner.recover();
+  t.runner.confirm(x.id, 'not_sent');
+  expect(blocks(t.db)).toEqual([{ project_id: PROJECT }]);
+  expect(() => t.runner.rerun(x.id, true)).toThrow(expect.objectContaining({ code: 'TARGET_BLOCKED' }));
+  await t.step(3);
+  expect([batchRow(t.db, a), t.driver.ledger.clicks]).toEqual(['paused', 0]);
+  t.runner.confirm(y.id, 'sent');
+  expect(blocks(t.db)).toEqual([]);
+  await t.step(3);
+  expect([batchRow(t.db, a), t.driver.ledger.clicks, t.states(a)[2].item]).toEqual(['running', 1, 'ready']);
+});
+
+test('I4: archiving a batch with generating attempts keeps counting them against the caps', async () => {
+  const t = rig(Array(9).fill('video-ok') as FakeScript);
+  const a = t.add(PROJECT, Array.from({ length: 8 }, (_, i) => `v${i}`), 'video');
+  t.runner.start(a);
+  await t.step(10);
+  expect([t.driver.ledger.clicks, t.runner.inFlight().video]).toEqual([8, 8]);
+  t.runner.archive(a);
+  expect(t.runner.inFlight().video).toBe(8);
+  const b = t.add(PROJECT + '-2', ['w0'], 'video');
+  t.runner.start(b);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(8); // cap 8 still full
 });

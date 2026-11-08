@@ -6,11 +6,13 @@ import type { FlowDriver } from './driver';
 import { applyEvent } from './journal';
 
 export const RECONCILE_MS = 600_000; // D-11
+/** When the click happened: click_at, else the intent row (a drop or crash before click_at was written may still have clicked). */
+export const CLICK_MS = "coalesce(a.click_at, (select max(e.at) from journal_event e where e.attempt_id=a.id and e.type='intent'))";
 const WINDOW = { windowMs: 120_000, skewMs: 5_000 };
 type Row = { id: string; project: string; prompt: string; kind: 'image' | 'video'; clickAt: number | null; state: AttemptState };
 
 const rows = (db: Db, where: string, ...args: unknown[]): Row[] =>
-  (db.prepare(`select a.id, b.target_project project, i.prompt, b.kind, a.click_at clickAt, a.state_json j
+  (db.prepare(`select a.id, b.target_project project, i.prompt, b.kind, ${CLICK_MS} clickAt, a.state_json j
     from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where ${where}`).all(...args) as (Omit<Row, 'state'> & { j: string })[])
     .map(({ j, ...r }) => ({ ...r, state: JSON.parse(j) as AttemptState }));
 
