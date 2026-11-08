@@ -53,7 +53,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let extVersion: string = extManifest.version
   if (FAKE) {
     const scripted = (process.env.TOOLFLOW_FAKE_SCRIPT ?? '').split(',').filter(Boolean) as FakeScript
-    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets, downloads: (process.env.TOOLFLOW_FAKE_DOWNLOADS ?? '').split(',').filter(Boolean) as DownloadScript[] }) // default: everything succeeds
+    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets, downloads: (process.env.TOOLFLOW_FAKE_DOWNLOADS ?? '').split(',').filter(Boolean) as DownloadScript[], prepare: (process.env.TOOLFLOW_FAKE_PREPARE ?? '').split(',').filter(Boolean) }) // default: everything succeeds
     rawPing = fake.ping
     if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowFake?: unknown }).__toolflowFake = fake.ledger // test-only: lets e2e count uploads
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock

@@ -10,6 +10,7 @@ import { createFakeDriver, createFakeFlow, FAKE_COMBOS, type UploadScript } from
 import { registerAsset, uploadName, createAssetStore, type AssetStore, type Binding } from '../src/main/assets'
 import { createExtDriver, decideCheck, type CheckInput } from '../src/main/connector/ext-driver'
 import { DEFAULT_COMBO } from '../src/main/profile'
+import { createHandlers } from '../src/main/ipc'
 
 const P = 'cb7b8a3e-0000-4000-8000-000000000001'
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('payload-bytes')])
@@ -165,12 +166,32 @@ test('a binding left in uploading (crash after intent): never upload again; atta
   expect(t.m.store.binding(a, P)).toMatchObject({ state: 'bound', uploadName: 'tf-deadbeef-abc.png' })
 })
 
-test.each(['uploading', 'uncertain'] as const)('binding %s and not in the library: REF_UPLOAD_UNCERTAIN after ONE attach, still no upload', async (state) => {
+test('uncertain binding not in the library: REF_UPLOAD_UNCERTAIN after ONE attach, still no upload', async () => {
   const t = rig(), a = t.m.add()
-  t.m.store.writeBinding({ assetId: a, projectId: P, uploadName: 'tf-deadbeef-abc.png', mediaId: null, state, intentAt: 1 })
+  t.m.store.writeBinding({ assetId: a, projectId: P, uploadName: 'tf-deadbeef-abc.png', mediaId: null, state: 'uncertain', intentAt: 1 })
   expect(await t.prepare([a])).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' })
   expect(t.flow.uploads).toHaveLength(0)
   expect(t.flow.attaches).toBe(1)
+})
+
+test('I4a: an uploading binding found at prepare start (restart mid-upload) gets the same 30 s attach window as a fresh upload, then REF_UPLOAD_UNCERTAIN, still no upload', async () => {
+  const t = rig(), a = t.m.add()
+  t.m.store.writeBinding({ assetId: a, projectId: P, uploadName: 'tf-deadbeef-abc.png', mediaId: null, state: 'uploading', intentAt: 1 })
+  const t0 = t.clock.t
+  expect(await t.prepare([a])).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' })
+  expect(t.clock.t - t0).toBeGreaterThanOrEqual(30_000)
+  expect(t.flow.attaches).toBeGreaterThan(20)
+  expect(t.flow.uploads).toHaveLength(0)
+  expect(t.m.store.binding(a, P)!.state).toBe('uncertain')
+})
+
+test('I4a: an uploading binding whose upload is still processing shows up inside the window ⇒ bound, no new upload', async () => {
+  const t = rig(), a = t.m.add()
+  t.m.store.writeBinding({ assetId: a, projectId: P, uploadName: 'tf-deadbeef-abc.png', mediaId: null, state: 'uploading', intentAt: 1 })
+  t.flow.addToLibrary('tf-deadbeef-abc.png', 4) // answers NOT_FOUND four times first
+  expect(await t.prepare([a])).toEqual({ ok: true })
+  expect(t.flow.uploads).toHaveLength(0)
+  expect(t.m.store.binding(a, P)).toMatchObject({ state: 'bound' })
 })
 
 test('bound binding whose library item now resolves to another media ⇒ REF_MISMATCH (no silent rebind)', async () => {
@@ -219,6 +240,19 @@ test('refs without a project, an asset store or a known asset fail closed before
   expect(t.flow.uploads).toHaveLength(0)
 })
 
+test('I2: a tab on another project => TARGET_CHANGED before any page op; no upload, the binding table is untouched', async () => {
+  for (const tabPath of ['/fx/tools/flow/project/11111111-2222-4333-8444-555555555555', null]) {
+    const t = rig([], { tabPath }), a = t.m.add(), b = t.m.add()
+    t.m.store.writeBinding({ assetId: b, projectId: P, uploadName: 'tf-keep-1.png', mediaId: null, state: 'uncertain', intentAt: 1 })
+    const before = JSON.stringify([...t.m.rows])
+    expect(await t.prepare([a, b])).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+    expect(t.flow.ops).toEqual(['tabs']) // not settings / state / file / attach / prep
+    expect(t.flow.uploads).toHaveLength(0)
+    expect(JSON.stringify([...t.m.rows])).toBe(before)
+    expect(t.m.store.binding(a, P)).toBeNull()
+  }
+})
+
 // ---- checkBeforeClick: chip set == bound media ids ----
 const good = (): CheckInput => ({
   tabProject: P, projectId: P, refMedia: [],
@@ -237,6 +271,9 @@ test('decideCheck chip identity table', () => {
     ['unbound ref, empty chips', mut((c) => { c.refMedia = [null]; c.state!.chips = [] }), 'CHIP_MISMATCH'],
     ['chip without uuid', mut((c) => { c.refMedia = ['a']; c.state!.chips = [undefined] }), 'CHIP_MISMATCH'],
     ['chips on a no-ref prompt', mut((c) => { c.state!.chips = ['x'] }), 'CHIP_MISMATCH'],
+    ['I3: duplicate chips vs two distinct media', mut((c) => { c.refMedia = ['a', 'b']; c.state!.chips = ['a', 'a'] }), 'CHIP_MISMATCH'],
+    ['I3: duplicate chips vs one media', mut((c) => { c.refMedia = ['a']; c.state!.chips = ['a', 'a'] }), 'CHIP_MISMATCH'],
+    ['I3: duplicate chips, no refs', mut((c) => { c.state!.chips = ['a', 'a'] }), 'CHIP_MISMATCH'],
     ['same asset twice, one chip', mut((c) => { c.refMedia = ['a', 'a']; c.state!.chips = ['a'] }), null],
   ]
   for (const [name, c, code] of rows) expect(decideCheck(c), name).toEqual(code ? { ok: false, code } : { ok: true })
@@ -280,4 +317,22 @@ test('runner: prepare gets the project id, so bindings are per project', async (
   runner.start(batchId)
   await runner.tick()
   expect(seen).toEqual(['proj-9'])
+})
+
+test('I4b: after resetAssetBinding the next prepare uploads exactly once more (real asset store)', async () => {
+  const d = dir(), db = openDb(join(d, 't.db'))
+  writeFileSync(join(d, 'a.png'), PNG)
+  const { id } = registerAsset(db, join(d, 'a.png'), 1)
+  const store = createAssetStore(db), flow = createFakeFlow(['upload-no-ack', 'ok'])
+  const clock = { t: 1_700_000_000_000 }, driver = createExtDriver(flow.server, { allow: () => true, assets: store, now: () => clock.t, sleep: async (ms) => { clock.t += ms } })
+  const prepare = () => driver.prepare('7', { prompt: 'p', kind: 'image', settings: { combo: DEFAULT_COMBO }, refIds: [id], projectId: P })
+  expect(await prepare()).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' })
+  expect(await prepare()).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' }) // stuck: the hint loops
+  expect(flow.uploadsOf(id)).toBe(1)
+  const h = createHandlers({ db, projectId: () => P } as never)
+  await h.resetAssetBinding({ assetId: id, confirm: true })
+  expect(store.binding(id, P)).toBeNull()
+  expect(await prepare()).toEqual({ ok: true })
+  expect(flow.uploadsOf(id)).toBe(2)
+  expect(store.binding(id, P)).toMatchObject({ state: 'bound' })
 })

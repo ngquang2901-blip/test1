@@ -12,6 +12,7 @@ const api = {
   stopBatch: call('stopBatch'),
   confirmUncertain: call('confirmUncertain'),
   archiveBatch: call('archiveBatch'),
+  resetAssetBinding: call('resetAssetBinding'),
   rerun: call('rerun'),
   downloadBatch: call('downloadBatch'),
   retryDownload: call('retryDownload'),

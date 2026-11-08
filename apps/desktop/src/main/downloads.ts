@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { closeSync, constants, copyFileSync, linkSync, mkdirSync, openSync, readSync, realpathSync, rmSync, statSync, unlinkSync } from 'node:fs'
+import { closeSync, constants, copyFileSync, linkSync, lstatSync, mkdirSync, openSync, readSync, realpathSync, rmSync, unlinkSync } from 'node:fs'
 import { basename, dirname, extname, join, resolve, sep } from 'node:path'
 import type { AttemptState } from '@toolflow/flow-protocol/attempt'
 import { EXT, sniff } from './assets'
@@ -60,7 +60,7 @@ export function ensureDir(root: string, rel: string): string {
 }
 
 /** link + unlink instead of rename: rename silently replaces an existing file. EXDEV / no-hardlink file systems fall back to an exclusive copy. */
-function moveNoClobber(src: string, want: string): string {
+export function moveNoClobber(src: string, want: string): string {
   const ext = extname(want), stem = want.slice(0, want.length - ext.length)
   for (let n = 1; n < 1000; n++) {
     const dst = n === 1 ? want : `${stem}-${n}${ext}`
@@ -114,7 +114,9 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
     if (basename(dirname(path)) !== TMP_DIR || !basename(path).startsWith(prefix)) return set({ state: 'failed', error_code: 'DOWNLOAD_BAD_PATH' }) // never touch a path the browser did not put in our folder
     let size: number, mime: string | null
     try {
-      size = statSync(path).size
+      const st = lstatSync(path) // lstat: a symlink or a directory under our prefix is not a download (the target must never be moved or read)
+      if (!st.isFile()) return set({ state: 'failed', error_code: 'DOWNLOAD_BAD_FILE' })
+      size = st.size
       const head = Buffer.alloc(12)
       const fd = openSync(path, 'r')
       try { readSync(fd, head, 0, 12, 0) } finally { closeSync(fd) }

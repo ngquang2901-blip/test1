@@ -33,6 +33,11 @@ test('isAllowedDownloadUrl (guards fetchMedia\'s src): only https on Flow conten
   assert.equal(isAllowedDownloadUrl('https://flow.google.com/asb/KEY=s1600-rw'), true); // measured: tile images
   for (const u of ['https://flow.google.com/fx/api/trpc/x', 'https://flow.google.com/', 'https://flow.google.com/asbx', 'http://flow.google.com/asb/x', 'https://flow.google.com.evil.com/asb/x'])
     assert.equal(isAllowedDownloadUrl(u), false, u); // the app's own API/pages are never fetched
+  // m2: nothing after /asb/ may smuggle a path out of it (the parser keeps %2f; backslash and // are separators for some stacks)
+  for (const u of ['https://flow.google.com/asb/..%2ffx/api', 'https://flow.google.com/asb/%2e%2e/fx/api', 'https://flow.google.com/asb/%2E%2E%2Ffx', 'https://flow.google.com/asb/a%2fb', 'https://flow.google.com/asb/a%5cb',
+    'https://flow.google.com/asb/a\\..\\fx', 'https://flow.google.com/asb//fx/api', 'https://flow.google.com/asb/a//b', 'https://flow.google.com/asb/a/../b', 'https://flow.google.com/asb/..', 'https://flow.google.com/asb/k=s1%2e'])
+    assert.equal(isAllowedDownloadUrl(u), false, u);
+  assert.equal(isAllowedDownloadUrl('https://flow.google.com/asb/AbC-_dEf123=s1600-rw?x=1'), true);
   assert.equal(isAllowedDownloadUrl('https://FLOW-CONTENT.google/x'), true);
   assert.equal(isAllowedDownloadUrl('https://a.b.googleusercontent.com/x'), true);
 });

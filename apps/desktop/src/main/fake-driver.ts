@@ -188,21 +188,25 @@ type FakeFlowOptions = {
   stuckChips?: boolean // the clear button does nothing
   strayOnPrep?: boolean // typing the prompt drops an unrelated chip in
   onFile?: (name: string) => void
+  tabPath?: string | null // the granted tab's path (default: the fake project); null = the tab is gone
 }
+export const FAKE_FLOW_PROJECT = 'cb7b8a3e-0000-4000-8000-000000000001'
 /** Models what the live page showed: op `file` how=drop only uploads (library, no chip); `attach` opens the library by name and adds one chip. 'upload-no-ack' counts the upload but attach never finds it. */
 export function createFakeFlow(input: UploadScript[] = [], o: FakeFlowOptions = {}) {
   const script = [...input]
   const library: Array<{ name: string; uuid: string; wait: number }> = []
   let chips: string[] = [], text = ''
   const f = {
-    uploads: [] as string[], hows: [] as string[], attaches: 0,
+    uploads: [] as string[], hows: [] as string[], attaches: 0, ops: [] as string[],
     chips: () => [...chips], setChips: (c: string[]) => { chips = [...c] }, dropChips: () => { chips = [] }, setText: (t: string) => { text = t },
     uploadsOf: (assetId: string) => f.uploads.filter((n) => n.startsWith(`tf-${assetId.slice(0, 8)}-`)).length,
     addToLibrary: (name: string, wait = 0) => { const uuid = randomUUID(); library.push({ name, uuid, wait }); return uuid },
     libraryMedia: (name: string) => library.find((l) => l.name === name)?.uuid,
     server: {
       async send(op: string, args: Record<string, unknown>): Promise<unknown> {
+        f.ops.push(op)
         switch (op) {
+          case 'tabs': return o.tabPath === null ? [] : [{ tabId: Number(args.tabId ?? 7), path: o.tabPath ?? `/fx/tools/flow/project/${FAKE_FLOW_PROJECT}`, active: true }]
           case 'settings': return { ok: true, current: {}, mismatches: [] }
           case 'state': return { text, chips: [...chips], submitDisabled: false, creditWarning: false }
           case 'prep': text = args.prompt as string; if (o.strayOnPrep) chips.push(randomUUID()); return { ok: true, textMatches: true, log: [] }

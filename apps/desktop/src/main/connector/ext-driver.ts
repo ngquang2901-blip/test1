@@ -5,10 +5,10 @@ import { uploadName, type AssetStore } from '../assets'
 import type { ConnectorServer } from './server'
 
 type CheckCode = 'COVERED' | 'CREDIT_WARNING' | 'BUTTON_DISABLED' | 'CHIP_MISMATCH' | 'TARGET_CHANGED'
-/** Order-insensitive; a null in `want` (unbound ref) never matches. */
+/** Order-insensitive; a null in `want` (unbound ref) never matches; a chip listed twice never matches. */
 const sameSet = (chips: unknown, want: Array<string | null>): boolean => {
   const w = new Set(want)
-  return Array.isArray(chips) && !w.has(null) && chips.length === w.size && chips.every((x) => w.has(x as string))
+  return Array.isArray(chips) && !w.has(null) && new Set(chips).size === chips.length && chips.length === w.size && chips.every((x) => w.has(x as string))
 }
 
 export type CheckInput = {
@@ -86,11 +86,14 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       const call = async <T>(op: string, args: object, code: string): Promise<T | { fail: string }> => {
         try { return (await server.send(op, { ...tab(tabId), ...args })) as T } catch (e) { if (e instanceof ConnectorError) throw e; return { fail: code } }
       }
+      const refs = p.refIds, project = p.projectId
+      if (refs.length && !(project && o.assets)) return { ok: false, code: 'REF_ASSET_MISSING' }
+      // I2: the page is touched only when the tab is on the batch's project (settings, upload and typing would otherwise land in another project)
+      const here = ((await server.send('tabs', {})) as Array<{ tabId: number; path: string }>).find((x) => x.tabId === Number(tabId))
+      if (!project || !here || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
       const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, aspect: combo.aspect, quality: combo.quality, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
       if ('fail' in s) return { ok: false, code: s.fail }
       if (s?.ok !== true) return { ok: false, code: 'SETTINGS_MISMATCH' }
-      const refs = p.refIds, project = p.projectId
-      if (refs.length && !(project && o.assets)) return { ok: false, code: 'REF_ASSET_MISSING' }
       const live = (x: unknown): x is { text?: string; chips: string[] } => !!x && typeof x === 'object' && !('fail' in x) && Array.isArray((x as { chips?: unknown }).chips)
       const readState = async () => { const r = await call<{ text?: string; chips: string[] }>('state', {}, 'CHIP_MISMATCH'); return live(r) ? r : null }
       let st = await readState()
@@ -114,6 +117,14 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
         let b = o.assets!.binding(id, project!)
         if (b?.state === 'bound' && have.includes(b.mediaId!)) continue
         const attach = async (name: string) => await call<AttachResult>('attach', { name }, 'REF_ATTACH_ERROR')
+        const attachWait = async (name: string) => { // the upload is async: the library may need a while to show it
+          const t0 = now()
+          for (;;) {
+            const x = await attach(name)
+            if (!('fail' in x) && !x.ok && x.code === 'NOT_FOUND' && now() - t0 < (o.uploadWindowMs ?? UPLOAD_WINDOW_MS)) await sleep(1000)
+            else return x
+          }
+        }
         let r: AttachResult | { fail: string }
         if (b?.state === 'bound') { // chip lost (Q-19): attach only, and it must be the same media
           r = await attach(b.uploadName)
@@ -123,7 +134,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
           have = r.chips
           continue
         }
-        if (b) r = await attach(b.uploadName) // uploading/uncertain: a previous upload may have happened, so never upload again
+        if (b) r = b.state === 'uploading' ? await attachWait(b.uploadName) : await attach(b.uploadName) // uploading/uncertain: a previous upload may have happened, so never upload again; an uploading one may still be processing
         else {
           let bytes: Buffer
           try { bytes = asset.bytes() } catch { return { ok: false, code: 'REF_ASSET_MISSING' } }
@@ -131,12 +142,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
           o.assets!.writeBinding(b) // durable before the bytes leave
           const sent = await call('file', { how: 'drop', name: b.uploadName, mime: asset.mime, b64: bytes.toString('base64') }, 'REF_UPLOAD_UNCERTAIN')
           if (!sent || typeof sent !== 'object' || 'fail' in sent) { o.assets!.writeBinding({ ...b, state: 'uncertain' }); return { ok: false, code: 'REF_UPLOAD_UNCERTAIN' } }
-          const t0 = now() // the upload is async: the library may need a while to show it
-          for (;;) {
-            r = await attach(b.uploadName)
-            if (!('fail' in r) && !r.ok && r.code === 'NOT_FOUND' && now() - t0 < (o.uploadWindowMs ?? UPLOAD_WINDOW_MS)) await sleep(1000)
-            else break
-          }
+          r = await attachWait(b.uploadName)
         }
         if (!('fail' in r) && r.ok) { o.assets!.writeBinding({ ...b, state: 'bound', mediaId: r.added }); have = r.chips; continue }
         o.assets!.writeBinding({ ...b, state: 'uncertain' })

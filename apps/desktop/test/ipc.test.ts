@@ -3,6 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
+import { createAssetStore } from '../src/main/assets';
 import { DEFAULT_COMBO } from '../src/main/profile';
 import { FAKE_COMBOS, createFakeDriver } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
@@ -141,4 +142,35 @@ test('enqueueBatch: project comes from the getter at call time; none ⇒ NO_PROJ
   p = 'proj-1';
   const r = (await h.enqueueBatch(good)) as { batchId: string };
   expect(db.prepare('select target_project p from batch where id=?').get(r.batchId)).toEqual({ p: 'proj-1' });
+});
+
+test('I4b: resetAssetBinding needs {assetId, confirm: true}, a granted project, and deletes only that (asset, project) row', async () => {
+  let p: string | null = 'proj-1';
+  const { h, db } = rig('a@b.c', undefined, () => p);
+  const store = createAssetStore(db);
+  const bind = (assetId: string, projectId: string) => store.writeBinding({ assetId, projectId, uploadName: 'tf-x-1.png', mediaId: null, state: 'uncertain', intentAt: 1 });
+  bind('a1', 'proj-1'); bind('a1', 'proj-2'); bind('a2', 'proj-1');
+  const left = () => (db.prepare('select asset_id a, project_id p from asset_binding order by 1, 2').all() as { a: string; p: string }[]).map((r) => `${r.a}|${r.p}`);
+  for (const bad of ['a1', { assetId: 'a1' }, { assetId: 'a1', confirm: 'true' }, { assetId: 'a1', confirm: 1 }, { assetId: 'a1', confirm: false }, { confirm: true }, { assetId: 7, confirm: true }, { assetId: '', confirm: true }, null, undefined])
+    await expect(h.resetAssetBinding(bad)).rejects.toThrow(/INVALID_ARGS/);
+  expect(left()).toEqual(['a1|proj-1', 'a1|proj-2', 'a2|proj-1']);
+  p = null;
+  await expect(h.resetAssetBinding({ assetId: 'a1', confirm: true })).rejects.toMatchObject({ code: 'NO_PROJECT_TAB' });
+  expect(left()).toHaveLength(3);
+  p = 'proj-1';
+  await h.resetAssetBinding({ assetId: 'a1', confirm: true });
+  expect(left()).toEqual(['a1|proj-2', 'a2|proj-1']);
+});
+
+test('m4: rerun refuses an archived batch (nothing is added)', async () => {
+  const { h, db } = rig();
+  const { batchId } = (await h.enqueueBatch(good)) as { batchId: string };
+  db.prepare("update attempt set state_json=json_set(state_json,'$.item','failed') where id=(select a.id from attempt a join item i on i.id=a.item_id where i.batch_id=? order by i.ord limit 1)").run(batchId);
+  const a = (db.prepare('select a.id id from attempt a join item i on i.id=a.item_id where i.batch_id=? order by i.ord limit 1').get(batchId) as { id: string }).id;
+  db.prepare('update batch set archived=1 where id=?').run(batchId);
+  await expect(h.rerun({ attemptId: a, confirmCost: true })).rejects.toMatchObject({ code: 'BATCH_ARCHIVED' });
+  expect(db.prepare('select count(*) n from attempt where id!=? and item_id=(select item_id from attempt where id=?)').get(a, a)).toEqual({ n: 0 });
+  db.prepare('update batch set archived=0 where id=?').run(batchId);
+  await h.rerun({ attemptId: a, confirmCost: true }); // control: the same call works on a live batch
+  expect(db.prepare('select count(*) n from attempt where item_id=(select item_id from attempt where id=?)').get(a)).toEqual({ n: 2 });
 });

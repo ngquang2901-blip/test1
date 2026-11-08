@@ -11,7 +11,7 @@ import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; afterPing?: (runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -36,7 +36,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
       if (o.slowClick) await gateClick.p;
       return fake.click(tab, epoch);
     },
-    ping: async (tab) => { log.push('ping'); if (obs.throws) throw new ConnectorError('ping lost'); return { ...(await fake.ping(tab)), t: clock.now(), id: obs.id, ...(obs.dead ? { xhrSend: false } : {}), ...(obs.noFetch ? { fetch: false } : {}) }; }, // the observer ping must look fresh to the fake clock
+    ping: async (tab) => { log.push('ping'); if (obs.throws) throw new ConnectorError('ping lost'); const pg = await fake.ping(tab); o.afterPing?.(runner); return { ...pg, t: clock.now(), id: obs.id, ...(obs.dead ? { xhrSend: false } : {}), ...(obs.noFetch ? { fetch: false } : {}) }; }, // the observer ping must look fresh to the fake clock
     prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
@@ -505,6 +505,67 @@ test('stop during prepare is a normal exit: no pause, no error log', async () =>
   spy.mockRestore();
 });
 
+// ---- final review I1: Pause / Stop between admission and click ----
+const intents = (db: Db) => (db.prepare("select count(*) n from journal_event where type='intent'").get() as { n: number }).n;
+test('I1: pause during a slow prepare => no checkBeforeClick, zero intents, zero clicks; resume runs the attempt once', async () => {
+  let paused = false;
+  const t = rig(['image-ok'], { n: 1, afterPrepare: (_db, r) => { if (!paused) { paused = true; r.pause(t.batchId); } } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('preparing');
+  expect(t.driver.ledger).toMatchObject({ prepares: 1, checks: 0, clicks: 0 });
+  expect(intents(t.db)).toBe(0);
+  expect(t.log).not.toContain('ping');
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1); // the attempt stayed eligible: prepare ran again, the click happened once
+  expect(t.driver.ledger.prepares).toBe(2);
+  expect(intents(t.db)).toBe(1);
+});
+
+test('I1: pause during a slow checkBeforeClick => no ping, zero intents, zero clicks; resume runs the attempt once', async () => {
+  let paused = false;
+  const t = rig(['image-ok'], { n: 1, check: async () => { if (!paused) { paused = true; t.runner.pause(t.batchId); } return { ok: true }; } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('preparing');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(intents(t.db)).toBe(0);
+  expect(t.log).not.toContain('ping');
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(intents(t.db)).toBe(1);
+});
+
+test('I1: stop during a slow checkBeforeClick => zero intents, zero clicks; a later resume does not revive it', async () => {
+  let stopped = false;
+  const t = rig(['image-ok'], { n: 1, check: async () => { if (!stopped) { stopped = true; t.runner.stop(t.batchId); } return { ok: true }; } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('cancelled');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(intents(t.db)).toBe(0);
+  expect(t.log).not.toContain('ping');
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(0);
+});
+
+test('I1: pause during the guard ping (last await before the intent) => zero intents, zero clicks; resume runs it once', async () => {
+  let paused = false;
+  const t = rig(['image-ok'], { n: 1, afterPing: (r) => { if (!paused) { paused = true; r.pause(t.batchId); } } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('preparing');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(intents(t.db)).toBe(0);
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(intents(t.db)).toBe(1);
+});
+
 test('N1: a fresh pause-level error on an attempt whose admission is already pause still pauses', async () => {
   const t = rig(['throttled', 'image-ok'], { n: 2, noListener: true, hold: true });
   t.runner.start(t.batchId);
@@ -835,5 +896,7 @@ test('m2: a page id change seen at the next intent fences the tab first: the old
   t.obs.id = 'reloaded';
   await t.step(1);
   expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
-  expect(t.driver.ledger.clicks).toBe(2); // the next attempt goes on
+  expect(t.driver.ledger.clicks).toBe(1); // final review I1: the fence made the old one uncertain, which pauses the batch and blocks the project: the next attempt no longer clicks in the same dispatch
+  expect(t.states()[1].item).toBe('preparing');
+  expect(t.runner.lastError(t.batchId)).toBeTruthy(); // the uncertain pause lives in memory
 });

@@ -21,9 +21,10 @@ const stub = (h: Handler) => {
   return { server, seen }
 }
 // a clean composer for prepare's state reads (before refs and after the prompt)
-const clean = (h: Handler): Handler => (op, a) => (op === 'state' ? { text: '', chips: [] } : h(op, a))
+const here = (path = `/fx/tools/flow/project/${P}`) => [{ tabId: 7, path, active: true }]
+const clean = (h: Handler): Handler => (op, a) => (op === 'state' ? { text: '', chips: [] } : op === 'tabs' ? here() : h(op, a))
 const OPEN = { allow: () => true }
-const prep = { prompt: SECRET, kind: 'image' as const, settings: { combo: DEFAULT_COMBO }, refIds: [] }
+const prep = { prompt: SECRET, kind: 'image' as const, settings: { combo: DEFAULT_COMBO }, refIds: [], projectId: P }
 const SETTINGS_OK = { ok: true, current: {}, mismatches: [] }
 const PREP_OK = { ok: true, textMatches: true, log: [] }
 
@@ -31,6 +32,7 @@ test('prepare: settings (count as x2) then prep; ok only when both pass', async 
   const { server, seen } = stub(clean((op) => (op === 'settings' ? SETTINGS_OK : PREP_OK)))
   expect(await createExtDriver(server, OPEN).prepare('7', prep)).toEqual({ ok: true })
   expect(seen).toEqual([
+    ['tabs', {}],
     ['settings', { tabId: 7, mode: 'Image', aspect: '16:9', quality: 'High', count: 'x2', model: 'Nano Banana 2.1' }],
     ['state', { tabId: 7 }],
     ['prep', { tabId: 7, prompt: SECRET }],
@@ -50,7 +52,7 @@ test.each([
   const { server, seen } = stub(clean(h as Handler))
   const r = await createExtDriver(server, OPEN).prepare('7', prep)
   expect(r).toEqual({ ok: false, code })
-  expect(seen.map((s) => s[0])).toEqual(ops)
+  expect(seen.map((s) => s[0])).toEqual(['tabs', ...ops])
   expect(JSON.stringify(r)).not.toContain('SECRET')
 })
 
@@ -62,10 +64,30 @@ test('prepare: no combo in settings ⇒ SETTINGS_MISMATCH without touching the p
   await expect(createExtDriver(b.server, OPEN).prepare('7', prep)).rejects.toBeInstanceOf(ConnectorError)
 })
 
+test.each([
+  ['the tab is on another project', () => here('/fx/tools/flow/project/11111111-2222-4333-8444-555555555555')],
+  ['the tab is on the home page', () => here('/fx/tools/flow')],
+  ['the tab is gone', () => []],
+  ['another tab only', () => [{ tabId: 8, path: `/fx/tools/flow/project/${P}`, active: true }]],
+])('I2: prepare checks the tab project BEFORE any page-affecting op: %s => TARGET_CHANGED, only `tabs` was sent', async (_n, tabs) => {
+  const { server, seen } = stub((op) => (op === 'tabs' ? tabs() : new Error(`must not be sent: ${op}`)))
+  expect(await createExtDriver(server, OPEN).prepare('7', prep)).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+  expect(seen.map((s) => s[0])).toEqual(['tabs'])
+  expect(await createExtDriver(stub((op) => (op === 'tabs' ? here() : new Error(`must not be sent: ${op}`))).server, OPEN).prepare('7', { ...prep, projectId: undefined })).toEqual({ ok: false, code: 'TARGET_CHANGED' }) // no batch project: nothing to compare with, fail closed
+})
+
 test('prepare: ungranted tab never reaches the page', async () => {
   const { server, seen } = stub(() => SETTINGS_OK)
   await expect(createExtDriver(server, { allow: () => false }).prepare('7', prep)).rejects.toThrow('tab not granted')
   expect(seen).toEqual([])
+})
+
+test('m1: fetchMedia without a grant is refused and never reaches the extension (no allow option = nothing granted)', async () => {
+  const a = stub(() => ({ ok: true, downloadId: 1 }))
+  await expect(createExtDriver(a.server, { allow: () => false }).fetchMedia('7', { mediaId: 'm', filename: 'f.bin' })).rejects.toThrow('tab not granted')
+  await expect(createExtDriver(a.server).fetchMedia('7', { mediaId: 'm', filename: 'f.bin' })).rejects.toThrow('tab not granted')
+  expect(a.seen).toEqual([])
+  expect(await createExtDriver(a.server, OPEN).fetchMedia('7', { mediaId: 'm', filename: 'f.bin' })).toEqual({ ok: true, downloadId: 1 }) // control: granted goes through
 })
 
 const good = (): CheckInput => ({

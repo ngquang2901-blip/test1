@@ -290,6 +290,48 @@ test('the browser reports a path outside ToolFlow-tmp: nothing is read, moved or
   expect(onlyFiles(r.root)).toEqual([])
 })
 
+test('m1/m3: a file the browser reports inside ToolFlow-tmp but not named <attempt>_<media>… is never touched', async () => {
+  const r = rig()
+  mkdirSync(r.tmp, { recursive: true })
+  const other = join(r.tmp, 'someone-elses-download.png')
+  writeFileSync(other, TINY_PNG)
+  const s = stub({ list: () => [info({ id: 1, filename: other, state: 'complete', fileSize: 1 })] })
+  const row = await requestDownload(r.db, s.drv, r.args(), r.env)
+  expect([row.state, row.error_code]).toEqual(['failed', 'DOWNLOAD_BAD_PATH'])
+  expect(readFileSync(other).length).toBe(TINY_PNG.length)
+  expect(onlyFiles(r.root)).toEqual([])
+})
+
+test('m3: ToolFlow-tmp must be the folder SEGMENT: a lookalike or a nested folder is refused', async () => {
+  for (const sub of ['xToolFlow-tmp', join('ToolFlow-tmp', 'sub'), 'ToolFlow-tmp-2']) {
+    const r = rig()
+    const d = join(r.dir, 'tmp', sub)
+    mkdirSync(d, { recursive: true })
+    const f = join(d, `${A}_${M}.bin`)
+    writeFileSync(f, TINY_PNG)
+    const row = await requestDownload(r.db, stub({ list: () => [info({ id: 1, filename: f, state: 'complete', fileSize: 1 })] }).drv, r.args(), r.env)
+    expect([row.state, row.error_code], sub).toEqual(['failed', 'DOWNLOAD_BAD_PATH'])
+    expect(existsSync(f)).toBe(true)
+    expect(onlyFiles(r.root)).toEqual([])
+  }
+})
+
+test('m3: a reported path that is a symlink or a directory is refused (DOWNLOAD_BAD_FILE); the target is never moved or deleted', async () => {
+  for (const kind of ['symlink', 'dir'] as const) {
+    const r = rig()
+    mkdirSync(r.tmp, { recursive: true })
+    const target = join(r.dir, 'real.png')
+    writeFileSync(target, TINY_PNG)
+    const f = join(r.tmp, `${A}_${M}.bin`)
+    if (kind === 'symlink') symlinkSync(target, f)
+    else mkdirSync(f)
+    const row = await requestDownload(r.db, stub({ list: () => [info({ id: 1, filename: f, state: 'complete', fileSize: 1 })] }).drv, r.args(), r.env)
+    expect([row.state, row.error_code], kind).toEqual(['failed', 'DOWNLOAD_BAD_FILE'])
+    expect(readFileSync(target).length).toBe(TINY_PNG.length)
+    expect(onlyFiles(r.root)).toEqual([])
+  }
+})
+
 test('an interrupted transfer is failed with the browser code; a transfer that never ends is needs_review after the budget', async () => {
   const r = rig()
   const dead = stub({ list: () => [info({ id: 1, state: 'interrupted', error: 'NETWORK_FAILED' })] })

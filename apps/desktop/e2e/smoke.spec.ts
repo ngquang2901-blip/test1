@@ -342,3 +342,43 @@ test('ACK lost: the app finds the file the first transfer made instead of downlo
   expect(pngFiles(root)).toHaveLength(1)
   expect((await ledger(app)).fetches).toBe(1)
 })
+
+test('m5: a failed download shows an inline alert, never window.alert', async () => {
+  const dir = tmp()
+  const first = await launch(dir)
+  await create(first.page, ['một con mèo'])
+  await expect(items(first.page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await first.app.close()
+  const { page } = await launch(dir, '', { TOOLFLOW_FAKE_GRANT: '0' }) // no granted tab: downloadBatch rejects with NO_PROJECT_TAB
+  const dialogs: string[] = []
+  page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(page.getByRole('alert')).toContainText('NO_PROJECT_TAB')
+  expect(dialogs).toEqual([])
+})
+
+test('I4b: a batch paused on REF_UPLOAD_UNCERTAIN offers an inline two-step reset with Huỷ focused; no dialog', async () => {
+  const { list } = pngs(['a.png'])
+  const { page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list, TOOLFLOW_FAKE_PREPARE: 'REF_UPLOAD_UNCERTAIN' })
+  const dialogs: string[] = []
+  page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
+  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(page.getByTestId('pause-reason')).toBeVisible()
+  const ask = 'Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này.'
+  await page.getByRole('button', { name: 'Cho phép tải lại ảnh tham chiếu 1' }).click()
+  await expect(page.getByRole('group', { name: ask })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Huỷ' })).toBeFocused()
+  await page.keyboard.press('Enter') // a stray Enter cancels
+  await expect(page.getByRole('group', { name: ask })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Cho phép tải lại ảnh tham chiếu 1' }).click()
+  await page.getByRole('button', { name: 'Có, cho phép tải lại' }).click()
+  await expect(page.getByRole('group', { name: ask })).toHaveCount(0)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  expect(dialogs).toEqual([])
+})

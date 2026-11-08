@@ -5,7 +5,7 @@ export type Attempt = {
   downloads: Record<string, Download> // by output (media) id; absent = not requested yet
 }
 export type Download = { state: 'intent' | 'started' | 'completed' | 'failed' | 'needs_review'; actualName: string | null; errorCode: string | null }
-export type Item = { id: string; ord: number; prompt: string; attemptId: string; attempts: Attempt[] }
+export type Item = { id: string; ord: number; prompt: string; refs: string[]; attemptId: string; attempts: Attempt[] } // refs: asset ids
 export type Batch = { pauseReason?: string | null; id: string; kind: 'image' | 'video'; status: string; archived: boolean; createdAt: number; settings: { mode?: string }; items: Item[] }
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' }
 export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean }

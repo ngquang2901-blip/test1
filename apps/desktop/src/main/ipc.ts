@@ -117,6 +117,13 @@ export function createHandlers(d: Deps) {
       if (o.confirm !== true) bad();
       mut(id, () => d.runner.archive(id));
     },
+    async resetAssetBinding(a: unknown) { // the user's way out of a stuck uncertain upload: forget the old attempt so the next prepare uploads again (they checked the Flow library first)
+      const o = obj(a), assetId = str(o.assetId);
+      if (o.confirm !== true) bad();
+      const project = await d.projectId();
+      if (!project) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
+      d.db.prepare('delete from asset_binding where asset_id=? and project_id=?').run(assetId, project);
+    },
     async rerun(a: unknown) { // spends credit again: only with the user's explicit cost confirmation
       const o = obj(a), id = str(o.attemptId);
       if (o.confirmCost !== true) bad();

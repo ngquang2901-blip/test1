@@ -9,7 +9,7 @@ const src = (p: string) => readFileSync(join(root, p), 'utf8')
 const lits = (s: string) => [...s.matchAll(/'([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)'/g)].map((m) => m[1])
 
 // Codes thrown to the caller of an IPC command (shown by the command's own error), never stored on an attempt or a pause.
-const IPC_ONLY = ['ALREADY_RERUN', 'ATTRIBUTION_AMBIGUOUS', 'CLICK_IN_FLIGHT', 'COST_NOT_CONFIRMED', 'NOT_RERUNNABLE', 'TARGET_BLOCKED']
+const IPC_ONLY = ['ALREADY_RERUN', 'BATCH_ARCHIVED', 'ATTRIBUTION_AMBIGUOUS', 'CLICK_IN_FLIGHT', 'COST_NOT_CONFIRMED', 'NOT_RERUNNABLE', 'TARGET_BLOCKED']
 // Internal comparisons / signals inside a code, not codes themselves.
 const NOT_CODES = ['NOT_FOUND', 'OBSERVER_DEAD', 'SUBMIT_LISTENER_MISSING']
 

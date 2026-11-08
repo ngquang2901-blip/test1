@@ -44,7 +44,7 @@ export function selfCheck(p: Probe, prof: typeof profile = profile): SelfCheck {
   // A stale extension makes every other signal meaningless, so it wins.
   if (!p.ping?.version || p.ping.version !== p.extVersion) return { ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] };
   const reasons: string[] = [];
-  // shortcut: selfCheck list is editor+submit only, extend after live DOM check in P2
+  // the selfCheck list is the profile's (editor + submit, measured live); every listed selector must be present
   for (const k of prof.selfCheck) if (p.present?.[k] !== true) reasons.push(`selector:${k}`);
   if (p.listeners !== 1) reasons.push(`listeners:${p.listeners}`);
   for (const r of checkHeartbeat(p.ping).reasons) reasons.push(`heartbeat:${r}`);

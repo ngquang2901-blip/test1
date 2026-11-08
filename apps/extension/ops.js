@@ -9,7 +9,8 @@ export function isAllowedDownloadUrl(s) {
   let u; try { u = new URL(s); } catch { return false; }
   if (u.protocol !== 'https:') return false;
   // measured live: tile images are served from flow.google.com/asb/<key>=s<size>; other flow.google.com paths (the app's API) must never be fetched
-  if (u.hostname === 'flow.google.com') return u.pathname.startsWith('/asb/');
+  // after /asb/ no encoded or literal way to leave it: no %, no .., no backslash, no // (checked on the raw string too, the parser normalises some of them away)
+  if (u.hostname === 'flow.google.com') return u.pathname.startsWith('/asb/') && !/[%\\]|\.\.|\/\//.test(s.slice(s.indexOf('/asb/') + 4));
   return u.hostname === 'flow-content.google' || u.hostname.endsWith('.googleusercontent.com');
 }
 

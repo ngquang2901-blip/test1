@@ -191,11 +191,18 @@ export function createRunner(o: {
     if (!comboQualified(i.kind, settings.combo, o.combos)) { pause(i.batch, 'COMBO_NOT_QUALIFIED'); return; } // AC-03: before any state change, intent or page call
     if (s0.item === 'queued') apply(id, { type: 'prepare', now: clock.now() });
     const gone = () => state(id).item === 'cancelled'; // stop() landed during an await: a normal exit
+    // Pause / stop / not running since admission: leave the attempt as it is (still preparing) so a resume prepares it again. Checked after every await up to the intent.
+    const halted = () => {
+      if (gone() || paused.has(i.batch)) return true;
+      const b = db.prepare('select status, stop_requested s from batch where id=?').get(i.batch) as { status: string; s: number };
+      return b.status !== 'running' || b.s !== 0;
+    };
     const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs), projectId: i.project });
     if (gone()) return;
     if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: p.code === 'REF_UPLOAD_UNCERTAIN' ? 'pause' : 'continue' } }); return; } // a ref upload that may have happened waits for the user, no retry
+    if (halted()) return;
     const chk = await driver.checkBeforeClick(tab, i.project, JSON.parse(i.refs));
-    if (gone()) return;
+    if (halted()) return;
     if (!chk.ok) { pause(i.batch, chk.code); return; }
     const ping = await driver.ping(tab);
     if (gone()) return;
@@ -207,8 +214,8 @@ export function createRunner(o: {
     if (!manual && o.selfCheckOk) { manual = !(await o.selfCheckOk(tab).catch(() => false)); if (gone()) return; } // I1: drifted/blind tab never auto-clicks
     if (fenced.delete(tab)) { // a stale armed tracker may remain: disarm (best effort) before the intent, so a stop during it still ends before any click
       await driver.arm(tab, null).catch(() => {});
-      if (gone() || (db.prepare('select stop_requested s from batch where id=?').get(i.batch) as { s: number }).s) return;
     }
+    if (halted()) return; // last gate before the intent: nothing is journaled or clicked for a batch that is paused / stopping / not running
     const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), profileVersion: profile.version, manual: true } : { type: 'intent', ping, now: clock.now(), profileVersion: profile.version }); // AC-18: version stamped in the journal; R10: committed before click
     slot.set(tab, id);
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
@@ -331,6 +338,7 @@ export function createRunner(o: {
     rerun(id, confirmedCost) {
       if (confirmedCost !== true) throw coded('COST_NOT_CONFIRMED');
       const i = info(id);
+      if ((db.prepare('select archived a from batch where id=?').get(i.batch) as { a: number }).a) throw coded('BATCH_ARCHIVED'); // an archived batch keeps its record: no new paid attempt in it
       if (db.prepare('select 1 from target_block where project_id=?').get(i.project)) throw coded('TARGET_BLOCKED'); // AC-22: settle the uncertain one first
       return db.transaction(() => {
         const a = db.prepare('select item_id, ordinal from attempt where id=?').get(id) as { item_id: string; ordinal: number };

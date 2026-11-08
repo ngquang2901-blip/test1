@@ -30,6 +30,9 @@ function TwoStep({ label, ask, yes, go, safeFocus }: { label: string; ask: strin
   )
 }
 
+/** Asset ids of the items that stopped on REF_UPLOAD_UNCERTAIN, each once. */
+const stuckRefs = (b: Batch): string[] => [...new Set(b.items.filter((it) => current(it).error?.code === 'REF_UPLOAD_UNCERTAIN').flatMap((it) => it.refs))]
+
 export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Element {
   const [open, setOpen] = useState<string | null>(null)
   if (!batches.length) return <p>Chưa có lô nào.</p>
@@ -40,6 +43,9 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
         <div key={b.id}>
           <h3>Lô {b.id.slice(0, 8)} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
           {b.status === 'paused' && hintOf(b.pauseReason) && <p role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason)}</p>}
+          {b.status === 'paused' && b.pauseReason === 'REF_UPLOAD_UNCERTAIN' && stuckRefs(b).map((id, k) => ( // the way out of a binding stuck in uploading/uncertain: Huỷ has the focus, so a stray Enter changes nothing
+            <div key={id}><TwoStep label={`Cho phép tải lại ảnh tham chiếu ${k + 1}`} ask="Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này." yes="Có, cho phép tải lại" safeFocus go={() => run(() => window.api.resetAssetBinding({ assetId: id, confirm: true }))} /></div>
+          ))}
           <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
           <table>
             <thead><tr><th>#</th><th>prompt</th><th>trạng thái</th></tr></thead>

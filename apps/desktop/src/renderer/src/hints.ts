@@ -42,6 +42,7 @@ export const HINTS: Record<string, string> = {
   DOWNLOAD_TIMEOUT: 'Trình duyệt tải quá lâu. Xem mục Tải xuống của Chrome rồi bấm Thử lại',
   DOWNLOAD_RECONCILE_FAILED: 'Không hỏi được trình duyệt về lần tải này. Kiểm tra kết nối ở màn Kết nối rồi bấm Thử lại',
   DOWNLOAD_BAD_PATH: 'Trình duyệt báo file ở chỗ lạ nên app không đụng tới. Bấm Thử lại',
+  DOWNLOAD_BAD_FILE: 'File tạm không phải file thường (lối tắt hoặc thư mục) nên app không đụng tới. Bấm Thử lại',
   DOWNLOAD_MOVE_FAILED: 'Không chuyển được file vào thư mục đích (đầy ổ đĩa hoặc thiếu quyền). Giải phóng chỗ rồi bấm Thử lại, không phải tải lại',
   DOWNLOAD_FILE_MISSING: 'File tạm đã biến mất trước khi kiểm tra. Bấm Thử lại',
   DOWNLOAD_INTERRUPTED: 'Lần tải bị ngắt giữa chừng. Bấm Thử lại',
