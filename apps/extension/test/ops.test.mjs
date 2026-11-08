@@ -19,7 +19,7 @@ test('validate rejects unknown ops and malformed envelopes', () => {
 });
 
 test('OPS is the exact allowlist, no debugger-style ops', () => {
-  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account']);
+  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm']);
   for (const bad of ['cdp', 'attach', 'debugger']) assert.ok(!OPS.includes(bad));
 });
 
@@ -68,4 +68,18 @@ test('epoch tracker: one epoch per click, ambiguity fails closed', () => {
   t = makeEpochTracker(); t.submit(5, false); assert.equal(t.send(), undefined, 'uncalled submit does not arm');
   t = makeEpochTracker(); t.submit(5, true); t.submit(6, false); assert.equal(t.send(), 5, 'uncalled submit changes nothing');
   t = makeEpochTracker(); t.submit(5, true); t.send(); t.submit(6, true); assert.equal(t.send(), 6, 'next click after a send');
+});
+
+test('arm: tracker binds the user\'s send to the armed epoch, clear disarms, arming twice is ambiguous', () => {
+  let t = makeEpochTracker(); t.submit(7, true); assert.equal(t.send(), 7, 'armed send carries the epoch');
+  t = makeEpochTracker(); t.submit(7, true); t.clear(); assert.equal(t.send(), undefined, 'cleared: dropped');
+  t = makeEpochTracker(); t.clear(); assert.equal(t.send(), undefined, 'clear while idle');
+  t = makeEpochTracker(); t.submit(7, true); t.submit(8, true); assert.equal(t.send(), undefined, 'arm while pending is ambiguous');
+  t = makeEpochTracker(); t.submit(7, true); t.clear(); t.submit(8, true); assert.equal(t.send(), 8, 're-arm after clear');
+});
+
+test('validate arm: integer epoch or explicit null', () => {
+  assert.equal(validate(ok('arm', { epoch: 5, tabId: 1 })), null);
+  assert.equal(validate(ok('arm', { epoch: null, tabId: 1 })), null);
+  for (const a of [{}, { epoch: '5' }, { epoch: 1.5 }, { epoch: undefined }, { tabId: 1 }]) assert.ok(validate(ok('arm', a)), JSON.stringify(a));
 });

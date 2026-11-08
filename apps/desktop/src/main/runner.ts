@@ -189,7 +189,14 @@ export function createRunner(o: {
     const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), manual: true } : { type: 'intent', ping, now: clock.now() }); // R10: committed before click
     slot.set(tab, id);
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
-    if (!canClick(s)) return; // manual, or intent refused (observer dead → batch paused by apply)
+    if (!canClick(s)) { // manual, or intent refused (observer dead → batch paused by apply)
+      if (s.item !== 'awaiting_user') return;
+      try { await driver.arm(tab, epoch(tab)); } catch (err) { // R39: a blind tab must not be waited on. prep_failed is illegal after intent, so skip (fresh ping: cancelled if the observer was continuous, else uncertain)
+        try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now() }); } catch (e2) { fail(i.batch, e2); return; }
+        fail(i.batch, err);
+      }
+      return;
+    }
     let result;
     clicking.add(id);
     try { result = await driver.click(tab, epoch(tab)); } catch { db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); fence(tab); return; } finally { clicking.delete(id); } // a drop may still have sent it: window starts here too
@@ -229,10 +236,11 @@ export function createRunner(o: {
     const stopped = db.prepare('select id from batch where stop_requested=1').all() as { id: string }[];
     for (const b of stopped) for (const a of attempts(b.id)) {
       if ((JSON.parse(a.j) as AttemptState).item !== 'awaiting_user') continue;
+      const tab = [...slot].find(([, v]) => v === a.id)?.[0] ?? tabs[0];
       try {
-        const ping = await driver.ping([...slot].find(([, v]) => v === a.id)?.[0] ?? tabs[0]);
+        const ping = await driver.ping(tab);
         drain(); // R18: events that arrived during the ping come first; a late sent means it is no longer a skip
-        if (state(a.id).item === 'awaiting_user') apply(a.id, { type: 'skip', ping, now: clock.now() });
+        if (state(a.id).item === 'awaiting_user') { apply(a.id, { type: 'skip', ping, now: clock.now() }); await driver.arm(tab, null); } // R39: the tab no longer awaits the user
       } catch (err) { fail(b.id, err); }
     }
     // 3. a click that left no request is uncertain after its deadline; then every due reconcile (D-11)

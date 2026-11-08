@@ -6,12 +6,12 @@ import { initial, type AttemptState } from '@toolflow/flow-protocol/attempt';
 import { openDb, type Db } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
 import { createFakeDriver, type FakeScript } from '../src/main/fake-driver';
-import type { DriverEvent, FlowDriver } from '../src/main/driver';
+import { ConnectorError, type DriverEvent, type FlowDriver } from '../src/main/driver';
 import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -22,8 +22,9 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   let listenerless = !!o.noListener;
   const obs = { dead: !!o.deadObserver };
   fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
-  const driver: FlowDriver & { ledger: typeof fake.ledger; emit: typeof fake.emit } = {
+  const driver: typeof fake = {
     ...fake,
+    arm: async (tab, e) => { if (o.armThrows && e !== null) throw new ConnectorError('arm lost'); return fake.arm(tab, e); },
     click: async (tab, epoch) => {
       if (listenerless) { listenerless = false; return { found: true, disabled: false, listeners: 0, called: 0 }; }
       if (o.slowClick) await gateClick.p;
@@ -295,19 +296,49 @@ test('fast mode: a sent goes to the attempt waiting on its own tab', async () =>
   expect(s.map((x) => reqOf(x).items[0].prompt)).toEqual(['prompt 0', 'prompt 1']);
 });
 
-test('stop on a manual awaiting_user attempt sends skip with a fresh ping → cancelled, no credit', async () => {
+test('manual intent arms the tab with the tab epoch; the user\'s send is observed (awaiting_user → sent → ready)', async () => {
   const t = rig([], { n: 1, mode: 'manual' });
   t.runner.start(t.batchId);
   await t.step(2);
   expect(t.states()[0].item).toBe('awaiting_user');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(t.driver.ledger.armLog).toEqual([['t1', t.clock.t]]); // first epoch = clock (R38)
+  t.driver.userSends('t1', 'image');
+  await flush();
+  await t.step();
+  expect(reqOf(t.states()[0]).items[0].prompt).toBe('prompt 0'); // sent observed (a click-less submitting was passed through)
+  expect(t.states()[0].item).toBe('ready');
+  const j = t.db.prepare("select type from journal_event where attempt_id=? order by rowid").all(t.states()[0].id) as { type: string }[];
+  expect(j.map((r) => r.type)).toContain('sent');
+});
+
+test('skip disarms the tab: arm(tab, null); a user send afterwards is dropped (no epoch)', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
   t.runner.stop(t.batchId);
   expect(t.states()[0].item).toBe('awaiting_user');
   await t.step();
   const a = t.states()[0];
+  expect([a.item, a.creditSpent]).toEqual(['cancelled', false]);
+  expect(t.driver.ledger.armLog.at(-1)).toEqual(['t1', null]);
+  t.driver.userSends('t1', 'image'); // unarmed: epoch undefined
+  await flush();
+  await t.step();
+  expect(t.states()[0].item).toBe('cancelled');
+  expect(blocks(t.db)).toEqual([]);
+});
+
+test('a send that left just before the disarm and reaches the desktop after the skip is uncertain, not cancelled', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const [sent] = t.driver.userSends('t1', 'image', false); // stamped while armed, delivered late
+  t.runner.stop(t.batchId);
+  await t.step();
+  const a = t.states()[0];
   expect(a.item).toBe('cancelled');
-  expect(a.creditSpent).toBe(false);
-  const [sent] = await foreign('prompt 0'); // the user's request reaches the desktop after the skip
-  t.driver.emit({ ...sent, tabId: 't1' });
+  t.driver.emit(sent);
   await t.step();
   const b = t.states()[0];
   expect([b.item, b.stage, b.creditSpent]).toEqual(['needs_review', 'uncertain', true]);
@@ -318,13 +349,23 @@ test('a sent already received when stop is ticked is processed before skip: neve
   const t = rig([], { n: 1, mode: 'manual' });
   t.runner.start(t.batchId);
   await t.step(2);
-  const [sent] = await foreign('prompt 0');
+  const [sent] = t.driver.userSends('t1', 'image', false);
   t.runner.stop(t.batchId);
-  t.driver.emit({ ...sent, tabId: 't1' });
+  t.driver.emit(sent);
   await t.step();
   const a = t.states()[0];
   expect(a.item).toBe('submitting');
   expect(reqOf(a).items[0].prompt).toBe('prompt 0');
+});
+
+test('arm throws after a manual intent: fail closed — skip (observer alive → cancelled, no credit), batch paused, no blind wait', async () => {
+  const t = rig([], { n: 1, mode: 'manual', armThrows: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const a = t.states()[0];
+  expect([a.item, a.creditSpent]).toEqual(['cancelled', false]);
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
 });
 
 test('disconnected fences attempts awaiting a response on that tab', async () => {

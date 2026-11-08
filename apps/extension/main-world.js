@@ -21,6 +21,12 @@
   const covered = (b) => { const r = b.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !(e && b.closest('flow-prompt-box').contains(e)); };
 
   const tracker = globalThis.makeEpochTracker(); // epoch.js: one click ↔ one generate send, else undefined
+  delete globalThis.makeEpochTracker;
+  // manual mode: the user clicks Gửi, we only observe; arm(epoch) = same as our own click, null disarms
+  nativeAdd.call(document, 'toolflow:arm', (e) => {
+    let ep; try { ep = JSON.parse(e.detail).epoch; } catch (_) { return; }
+    if (Number.isInteger(ep)) tracker.submit(ep, true); else if (ep === null) tracker.clear();
+  });
   nativeAdd.call(document, 'toolflow:submit', (e) => {
     let ep; try { ep = JSON.parse(e.detail).epoch; } catch (_) { ep = undefined; }
     const b = document.querySelector(SUBMIT);
@@ -28,6 +34,7 @@
     const out = { found: !!b, disabled: b?.disabled ?? null, listeners: ls ? ls.size : 0, called: 0 };
     // fail closed: a cover (cookie banner, overlay) means nothing is sent
     if (b && ls && ls.size === 1 && !b.disabled && !covered(b)) {
+      tracker.submit(ep, true); // before the listener: a synchronous send inside it must already carry the epoch
       const ev = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window, detail: 1, button: 0 });
       const p = new Proxy(ev, {
         get(t, k) {
@@ -38,7 +45,6 @@
       });
       for (const l of ls) { out.called++; /* before the call: a throwing listener may still have sent */ try { typeof l === 'function' ? l.call(b, p) : l.handleEvent(p); } catch (e) { /* uncertain, not rejected */ } }
     }
-    tracker.submit(ep, out.called > 0);
     emit('toolflow:submit-result', out);
   });
   nativeAdd.call(document, 'toolflow:hit', () => {

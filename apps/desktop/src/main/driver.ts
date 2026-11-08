@@ -10,6 +10,7 @@ export interface FlowDriver {
   checkBeforeClick(tabId: string, projectId: string): Promise<{ ok: true } | { ok: false; code: 'COVERED' | 'CREDIT_WARNING' | 'BUTTON_DISABLED' | 'CHIP_MISMATCH' | 'TARGET_CHANGED' }>; // TARGET_CHANGED: URL tab không còn là project của lô (AC-23)
   click(tabId: string, epoch: number): Promise<ClickResult>; // throws ConnectorError on drop
   readProject(projectId: string): Promise<string>; // raw Zzl0ze body from a separate read tab
+  arm(tabId: string, epoch: number | null): Promise<void>; // manual mode: the page stamps the user's next generate send with epoch; null disarms. Throws when the tab cannot be armed.
   focusTab(tabId: string): Promise<void>;
   onEvent(cb: (e: DriverEvent) => void): () => void;
 }
