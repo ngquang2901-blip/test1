@@ -10,6 +10,9 @@ export function autoAllowed(db: Db, email: string | null): boolean {
   return r?.a === 1;
 }
 
+// Auto needs a usable profile AND an opted-in account (D-19, AC-18).
+export const autoGate = (db: Db, email: string | null, profileError: string | null): boolean => !profileError && autoAllowed(db, email);
+
 export function enableAuto(db: Db, email: string, ackAt: number): void {
   const e = norm(email);
   if (!e) throw new Error('email required');

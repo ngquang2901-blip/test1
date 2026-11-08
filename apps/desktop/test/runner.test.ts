@@ -11,7 +11,7 @@ import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -46,7 +46,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
     commandId: 'c', kind, projectId: 'p', settings: {}, mode: o.mode ?? 'auto',
     prompts: Array.from({ length: o.n }, (_, i) => `prompt ${i}`), refs: Array.from({ length: o.n }, () => []),
   });
-  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', autoAllowed: () => o.auto ?? true });
+  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }) });
   const step = async (n = 1) => { for (let i = 0; i < n; i++) { await runner.tick(); await flush(); } };
   const release = () => { gate.hold = false; held.splice(0).forEach((e) => cbs.forEach((cb) => cb(e))); };
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
@@ -607,5 +607,20 @@ test('a duplicate delivery of a settled response changes nothing', async () => {
   await t.step(2);
   expect(JSON.stringify(t.states())).toBe(settled);
   expect(t.runner.lastError(t.batchId)).toBeNull();
+  expect(t.driver.ledger.clicks).toBe(1);
+});
+
+test('failed self-check gates auto: manual intent, armed, no click', async () => {
+  const t = rig(['image-ok'], { n: 1, selfCheckOk: false });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  expect(t.driver.ledger.clicks).toBe(0);
+});
+
+test('passing self-check keeps auto', async () => {
+  const t = rig(['image-ok'], { n: 1, selfCheckOk: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
   expect(t.driver.ledger.clicks).toBe(1);
 });

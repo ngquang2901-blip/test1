@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import vm from 'node:vm';
 import '../epoch.js';
 const makeEpochTracker = globalThis.makeEpochTracker;
 import { OPS, validate, isAllowedDownloadUrl, forwardEvent } from '../ops.js';
@@ -89,4 +90,20 @@ test('validate arm: integer epoch or explicit null', () => {
   assert.equal(validate(ok('arm', { epoch: 5, tabId: 1 })), null);
   assert.equal(validate(ok('arm', { epoch: null, tabId: 1 })), null);
   for (const a of [{}, { epoch: '5' }, { epoch: 1.5 }, { epoch: undefined }, { tabId: 1 }]) assert.ok(validate(ok('arm', a)), JSON.stringify(a));
+});
+
+test('main-world fetch hook counts generate RPCs in gen (and only those)', async () => {
+  class ET { addEventListener(t, l) { (this.h ??= {})[t] = l; } removeEventListener() {} dispatchEvent(e) { this.h?.[e.type]?.(e); } }
+  const document = new ET(); document.querySelector = () => null;
+  const win = { fetch: async () => ({ status: 200, clone: () => ({ text: async () => '' }) }) };
+  const ctx = vm.createContext({ window: win, document, EventTarget: ET, HTMLButtonElement: class {}, XMLHttpRequest: class { open() {} send() {} },
+    crypto: { randomUUID: () => 'u' }, CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o.detail; } }, globalThis: undefined });
+  ctx.globalThis = ctx; vm.runInContext(readFileSync(new URL('../epoch.js', import.meta.url), 'utf8'), ctx);
+  vm.runInContext(readFileSync(new URL('../main-world.js', import.meta.url), 'utf8'), ctx);
+  let gen; document.addEventListener('toolflow:ping-result', (e) => { gen = JSON.parse(e.detail).gen; });
+  const gens = async () => { document.dispatchEvent({ type: 'toolflow:ping' }); return gen; };
+  assert.equal(await gens(), 0);
+  await win.fetch('https://x/batchexecute?rpcids=ogiZ0b'); assert.equal(await gens(), 1, 'fetch generate');
+  await win.fetch('https://x/batchexecute?rpcids=MZZa6b'); assert.equal(await gens(), 2);
+  await win.fetch('https://x/batchexecute?rpcids=jwpduf'); assert.equal(await gens(), 2, 'non-generate rpc');
 });

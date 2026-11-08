@@ -17,7 +17,7 @@ const RUN31 = { prompt: 'Cận cảnh đĩa bánh cuốn nóng, ảnh chụp đ�
 const DEADLINE = 31_000; // past the runner's send deadline (30 s)
 const TEN_MIN = 600_000;
 
-function rig(script: FakeScript, o: { file?: string; hold?: boolean; holdSent?: boolean; slowClick?: boolean; clock?: { t: number; now(): number } } = {}) {
+function rig(script: FakeScript, o: { file?: string; hold?: boolean; holdSent?: boolean; slowClick?: boolean; clock?: { t: number; now(): number }; manual?: boolean } = {}) {
   const file = o.file ?? join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db');
   const db = openDb(file);
   const clock = o.clock ?? { t: RUN31.clickMs, now() { return this.t; } };
@@ -38,7 +38,7 @@ function rig(script: FakeScript, o: { file?: string; hold?: boolean; holdSent?: 
   const runner = createRunner({ db, driver, clock, tabs: ['t1'], speed: 'default', autoAllowed: () => true });
   let n = 0;
   const add = (project: string, prompts: string[], kind: 'image' | 'video' = 'image') =>
-    enqueueBatch(db, { commandId: `c${n++}`, kind, projectId: project, settings: {}, mode: 'auto', prompts, refs: prompts.map(() => []) }).batchId;
+    enqueueBatch(db, { commandId: `c${n++}`, kind, projectId: project, settings: {}, mode: o.manual ? 'manual' : 'auto', prompts, refs: prompts.map(() => []) }).batchId;
   const step = async (k = 1) => { for (let i = 0; i < k; i++) { await runner.tick(); await flush(); } };
   const states = (batch: string) => (db.prepare('select a.id, a.click_at c, a.reconcile_at r, a.source_attempt_id src, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batch) as
     { id: string; c: number | null; r: number | null; src: string | null; j: string }[]).map((r) => ({ ...r, ...(JSON.parse(r.j) as AttemptState) }));
@@ -204,6 +204,24 @@ test('archive is refused while a click is in flight', async () => {
   expect(() => t.runner.archive(a)).toThrow(expect.objectContaining({ code: 'CLICK_IN_FLIGHT' }));
   expect((t.db.prepare('select archived from batch where id=?').get(a) as { archived: number }).archived).toBe(0);
   t.open(); await tick; await flush();
+});
+
+test('archive is refused while an item awaits the user; after stop → skip it is allowed and the tab is free', async () => {
+  const t = rig(['no-request', 'image-ok'], { manual: true });
+  const a = t.add(PROJECT, ['a1']);
+  t.runner.start(a);
+  await t.step(2);
+  expect(t.states(a)[0].item).toBe('awaiting_user');
+  expect(() => t.runner.archive(a)).toThrow(expect.objectContaining({ code: 'CLICK_IN_FLIGHT' }));
+  t.runner.stop(a);
+  await t.step(2);
+  t.runner.archive(a);
+  expect((t.db.prepare('select archived from batch where id=?').get(a) as { archived: number }).archived).toBe(1);
+  expect(t.states(a)[0].item).toBe('cancelled'); // nothing was sent
+  const b = t.add('P2', ['b1']);
+  t.runner.start(b);
+  await t.step(2);
+  expect(t.states(b)[0].item).toBe('awaiting_user'); // the tab is free again
 });
 
 test('rerun needs confirmation and links the old attempt', async () => {

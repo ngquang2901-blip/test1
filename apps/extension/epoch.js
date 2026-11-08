@@ -7,6 +7,7 @@ globalThis.makeEpochTracker = () => {
     submit(epoch, called) { if (!called) return; cur = pending ? undefined : epoch; pending = true; },
     clear() { pending = false; cur = undefined; },
     get gen() { return gen; }, // every generate send the page makes, ours or not: a manual skip is only "nothing sent" if this did not move
+    count() { gen++; }, // fetch-sent generates are not forwarded as events (no epoch), but they must still move gen so a manual skip is not 'cancelled'
     send() { gen++; if (!pending) return undefined; const e = cur; pending = false; cur = undefined; return e; },
   };
 };

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
 import { profile, selfCheck, type Probe } from '../src/main/profile';
-import { autoAllowed, enableAuto, disableAuto } from '../src/main/account';
+import { autoAllowed, autoGate, enableAuto, disableAuto } from '../src/main/account';
 
 const now = Date.now();
 const good = (): Probe => ({
@@ -113,4 +113,12 @@ test('validateProfile: missing selector key / wrong type / empty / bad selfCheck
 test('invalid profile ⇒ CONFIG_INCOMPLETE PROFILE_INVALID, even with a healthy probe', () => {
   const bad = clone(); delete bad.selectors.tile;
   expect(selfCheck(good(), bad)).toEqual({ ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['PROFILE_INVALID:profiles/flow.json'] });
+});
+
+test('autoGate: invalid profile or opted-out account ⇒ no auto', () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
+  enableAuto(db, 'a@x.com', 1);
+  expect(autoGate(db, 'a@x.com', null)).toBe(true);
+  expect(autoGate(db, 'a@x.com', 'selectors')).toBe(false);
+  expect(autoGate(db, 'b@x.com', null)).toBe(false);
 });

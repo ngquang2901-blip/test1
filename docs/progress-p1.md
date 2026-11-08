@@ -12,19 +12,19 @@ Check:
 - [ ] A generate goes over XHR (not fetch) and `sent`/`response` events arrive.
 - [ ] Main-world `arm` / `trusted` click path works end to end.
 
-## P1 gate — Linux (2026-11-08, HEAD 4c61fd5)
+## P1 gate — Linux (2026-11-08, p1-foundation tip = the commit that contains this file; base 3611a88)
 
 **Tóm tắt (VI):**
 - Trên Linux, cả 5 bộ kiểm tra đều chạy qua, không lỗi nào.
-- Trong 19 mục nghiệm thu của P1, 18 mục có test thật (dùng driver giả, bản thật làm ở P2); AC-01 hoãn sang P2 (chỉ kiểm được trên Chrome thật, cần Sư Huynh đồng ý). AC-07 mới kiểm phần giao diện, phần tải lỗi làm ở P2.
+- Trong 19 mục nghiệm thu của P1, 14 mục đạt (test thật, dùng driver giả, bản thật làm ở P2), 4 mục đạt MỘT PHẦN (AC-10, AC-11, AC-18, AC-22: còn thiếu giao diện hoặc e2e), và AC-01 hoãn sang P2 (chỉ kiểm được trên Chrome thật, cần Sư Huynh đồng ý). AC-07 mới kiểm phần giao diện, phần tải lỗi làm ở P2.
 - Còn 2 việc chờ: nối extension trên Chrome thật (cần Sư Huynh) và chạy lại bộ test trên Windows.
 
 ### (a) Command results
 | Command | Result |
 |---|---|
-| `npm test -w apps/desktop` | 10 files, 132 tests passed |
+| `npm test -w apps/desktop` | 10 files, 136 tests passed |
 | `node --test` in packages/flow-protocol | 53 pass, 0 fail |
-| `node --test` in apps/extension | 10 pass, 0 fail |
+| `node --test` in apps/extension | 11 pass, 0 fail |
 | `cd apps/desktop && xvfb-run -a npm run e2e` | 8 passed |
 | `python3 docs/app/verify-docs.py` | PASS (10 chapters, 22 requirements, 36 acceptance cases; documents only) |
 
@@ -38,12 +38,12 @@ Check:
 | AC-07 | Driver goes waiting → ready → download error; UI does not equate ready with saved; no fake 100% success | PASS for what P1 has; download-failure path → P2 | UI: ready shows "Có kết quả (chưa tải)", batch status `completed` shows "Có kết quả (chưa tải)" (not "Hoàn tất"), S4 lists outputs as "chưa tải". e2e "textarea batch runs to ready" asserts those and that no "Đã lưu" appears after a fully ready batch. Download error itself needs the download path → P2. |
 | AC-08 | Pause at queued/preparing/accepted and at permit hand-off: no new permit after fence; handed-over permit may have sent, not fake cancelled; resume checks stage | PASS | desktop/test/runner.test.ts "pause fences new clicks but follows sent ones"; "SUBMIT_LISTENER_MISSING pauses once; resume clicks the next…"; uncertain.test.ts "I1: a user pause survives the uncertain attempt being resolved"; "R25: a stale pause admission does not pause on a later throttled response after stop". Exact hand-off-instant ordering not separately tested. |
 | AC-09 | Stop before click / after accepted / while uncertain: unsent cancelled, sent not fake cancelled, uncertain keeps blocker | PASS | runner.test.ts "stop cancels unsent only", "stop while the click is pending ends uncertain and blocks the project", "a sent already received when stop is ticked is processed before skip: never cancelled"; flow-protocol/test/attempt.test.mjs "stop: cancels only what surely was not sent". |
-| AC-10 | Crash before/after intent, after click before ACK, after output before write: no auto-resubmit; archive needs confirmation, keeps blocker over restart | PASS | uncertain.test.ts "crash after intent commit, before click: recover makes it uncertain, no click…", "restart reschedules overdue reconcile, and rebuilds a lost target_block", "archive releases runner immediately but keeps block", "rerun needs confirmation and links the old attempt"; runner.test.ts "connector drop during click is uncertain"; attempt.test.mjs "D-04 restart: intent without receipt → uncertain…", "crash between intent and a journaled click…". "Crash after output before write" has no dedicated test. |
-| AC-11 | Login/captcha/consent or auto off → manual fallback: opens right tab, re-check is not a submit, user ACK is no fake receipt | PASS | runner.test.ts "auto off means no click", "manual intent arms the tab…(awaiting_user → sent → ready)", "skip disarms the tab…", "manual skip with no send from the page is still cancelled"; attempt.test.mjs "manual: intent waits for the user…", "manual skip after reload is uncertain". Login/captcha pages themselves are live-only. |
+| AC-10 | Crash before/after intent, after click before ACK, after output before write: no auto-resubmit; archive needs confirmation, keeps blocker over restart | PARTIAL — archive confirmation UI is missing (runner-level only) | uncertain.test.ts "crash after intent commit, before click: recover makes it uncertain, no click…", "restart reschedules overdue reconcile, and rebuilds a lost target_block", "archive releases runner immediately but keeps block", "rerun needs confirmation and links the old attempt"; runner.test.ts "connector drop during click is uncertain"; attempt.test.mjs "D-04 restart: intent without receipt → uncertain…", "crash between intent and a journaled click…". "Crash after output before write" has no dedicated test. |
+| AC-11 | Login/captcha/consent or auto off → manual fallback: opens right tab, re-check is not a submit, user ACK is no fake receipt | PARTIAL — focusTab / opening the right tab is not built | runner.test.ts "auto off means no click", "manual intent arms the tab…(awaiting_user → sent → ready)", "skip disarms the tab…", "manual skip with no send from the page is still cancelled"; attempt.test.mjs "manual: intent waits for the user…", "manual skip after reload is uncertain". Login/captcha pages themselves are live-only. |
 | AC-17 | Batch with many attempts/errors reopens after restart with correct trace, history not rewritten | PASS | desktop/e2e/smoke.spec.ts "history survives restart" (prompt, config, SUBMIT_UNCERTAIN error, journal timestamps after relaunch). |
-| AC-18 | Missing key / wrong schema / mid-job config update: block the operation, keep attempt version, update only at safe boundary | PASS (fake) | profile.test.ts `validateProfile` (missing key, wrong type, empty, selfCheck not a selector, rpc, non-object) and "invalid profile ⇒ CONFIG_INCOMPLETE PROFILE_INVALID" (self-check fails, S1 shows it, auto disabled in index.ts); config.test.ts: intent journal payload stores `profileVersion` (version only), shown in detail view (e2e "history survives restart"). Safe boundary: profile is a static import, so it changes only at app restart, which is the boundary; no hot reload exists. Auto-blocking on an invalid profile is wired in index.ts, covered by selfCheck test but not by an e2e. |
+| AC-18 | Missing key / wrong schema / mid-job config update: block the operation, keep attempt version, update only at safe boundary | PARTIAL — invalid-profile e2e still absent | profile.test.ts `validateProfile` (missing key, wrong type, empty, selfCheck not a selector, rpc, non-object) and "invalid profile ⇒ CONFIG_INCOMPLETE PROFILE_INVALID" (self-check fails, S1 shows it, auto disabled in index.ts); config.test.ts: intent journal payload stores `profileVersion` (version only), shown in detail view (e2e "history survives restart"). Safe boundary: profile is a static import, so it changes only at app restart, which is the boundary; no hot reload exists. Auto-blocking on an invalid profile is wired in index.ts, covered by selfCheck test but not by an e2e. Auto-block on drift is now covered: runner.test.ts "failed self-check gates auto: manual intent, armed, no click" and profile.test.ts "autoGate: invalid profile or opted-out account ⇒ no auto". |
 | AC-20 | Aggregate batch status for success/mixed/auto-download off/stopped/unresolved; unresolved never completed/stopped early | PASS | runner.test.ts "batch status follows 02 §5" (table-driven, 8 outcomes); e2e "uncertain shows confirm buttons" (batch held while first item unresolved). Auto-download-off row not present. |
-| AC-22 | Regenerating accepted/uncertain/failed: no auto-retry, cost confirmation, history/blocker kept, archived old target not rerunnable, new target is a draft | PASS | uncertain.test.ts "rerun needs confirmation and links the old attempt" (TARGET_BLOCKED until confirmed, ALREADY_RERUN, source_attempt_id link), "C1: a send deadline fences the tab, so the late sent/response of A never bind to B". Draft-for-other-target path not tested. |
+| AC-22 | Regenerating accepted/uncertain/failed: no auto-retry, cost confirmation, history/blocker kept, archived old target not rerunnable, new target is a draft | PARTIAL — rerun is not exposed in the UI (runner-level only) | uncertain.test.ts "rerun needs confirmation and links the old attempt" (TARGET_BLOCKED until confirmed, ALREADY_RERUN, source_attempt_id link), "C1: a send deadline fences the tab, so the late sent/response of A never bind to B". Draft-for-other-target path not tested. |
 | AC-23 | SPA/project/tab changes during await: re-check target revision before effect, no silent retarget | PASS | runner.test.ts "target changed blocks click" (TARGET_CHANGED → paused, 0 clicks), "disconnected fences attempts awaiting a response on that tab"; uncertain.test.ts "a click that throws without a disconnect still fences the tab". Real SPA race is live (P2). |
 | AC-29 | Storage rejects intent commit / crash at durability boundary: no submit without durable intent; recovery never assumes "not sent" | PASS | journal.test.ts "intent write failure blocks click", "wal and full sync"; runner.test.ts "intent write failure blocks click" (0 clicks, STORAGE_UNAVAILABLE, paused); uncertain.test.ts "crash after intent commit, before click…"; attempt.test.mjs "dead observer before intent: refuse…". |
 | AC-30 | Stale-epoch callback after takeover/stop does not overwrite new owner state or release blocker | PASS | uncertain.test.ts "stale epoch response ignored; the next click carries the new epoch", "R38: a restarted runner seeds epochs from the clock…"; connector.test.ts "newest connection wins… late old reply ignored"; runner.test.ts "a duplicate delivery of a settled response changes nothing". |
@@ -54,3 +54,14 @@ Check:
 ### (c) Gate rows still open
 - Extension connects/reconnects on Windows and Linux → **PENDING** (Task 9 Step 5, needs Sư Huynh).
 - Windows run of the suites → **PENDING** (Task 12 Step 2, needs a Windows machine).
+
+### Must carry to P2
+- Drain the net-record buffer, or stop counting `dropped` for skip continuity (manual mode becomes uncertain in long sessions).
+- Deadline for sent-without-response and for `generating`; heartbeat after click; poll wiring.
+- Disarm (arm null) before the first click after a fence.
+- Prepare must clear and verify composer text; per-op timeouts instead of a flat 30 s.
+- Double-send detection via gen +1 in auto.
+- Live check: is generate XHR or fetch? (fetch generates now bump `gen` but are not forwarded as events.)
+- Tab discovery + focusTab (AC-01 / AC-11).
+- Rerun + archive-confirm UI (AC-10 / AC-22).
+- Strip fake / `TOOLFLOW_EXT_DIR` env paths at P4.

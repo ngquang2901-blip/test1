@@ -41,7 +41,7 @@ export function batchStatus(db: Db, id: string): BatchStatus {
 }
 
 export function createRunner(o: {
-  db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean;
+  db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
 }): Runner {
   const { db, driver, clock } = o;
   const max = CAPS[o.speed];
@@ -186,7 +186,8 @@ export function createRunner(o: {
     if (!chk.ok) { pause(i.batch, chk.code); return; }
     const ping = await driver.ping(tab);
     if (gone()) return;
-    const manual = settings.mode === 'manual' || !o.autoAllowed(ping.email);
+    let manual = settings.mode === 'manual' || !o.autoAllowed(ping.email);
+    if (!manual && o.selfCheckOk) { manual = !(await o.selfCheckOk(tab).catch(() => false)); if (gone()) return; } // I1: drifted/blind tab never auto-clicks
     const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), profileVersion: profile.version, manual: true } : { type: 'intent', ping, now: clock.now(), profileVersion: profile.version }); // AC-18: version stamped in the journal; R10: committed before click
     slot.set(tab, id);
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
@@ -297,7 +298,7 @@ export function createRunner(o: {
     archive(b) { // no fence: responses bind to `awaiting` by rpc+batchId, so sent attempts of an archived batch keep being followed; the block stays too
       for (const a of attempts(b)) {
         const s = JSON.parse(a.j) as AttemptState;
-        if (clicking.has(a.id) || (s.item === 'submitting' && !s.request)) throw coded('CLICK_IN_FLIGHT');
+        if (clicking.has(a.id) || s.item === 'awaiting_user' || (s.item === 'submitting' && !s.request)) throw coded('CLICK_IN_FLIGHT');
       }
       db.prepare('update batch set archived=1, revision=revision+1 where id=?').run(b);
     },

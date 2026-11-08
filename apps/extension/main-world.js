@@ -82,6 +82,7 @@
   const of = window.fetch;
   window.fetch = async function (input, init) {
     const url = String(input?.url || input);
+    if (gen(url)) tracker.count();
     const r = await of.apply(this, arguments);
     if (RPCS.test(url)) r.clone().text().then((t) => push(url, '', r.status, t)).catch(() => {});
     return r;

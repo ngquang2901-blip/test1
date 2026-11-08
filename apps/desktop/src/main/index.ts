@@ -6,7 +6,7 @@ import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
 import { createRunner } from './runner'
-import { autoAllowed, enableAuto } from './account'
+import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheck, validateProfile, profile, PROFILE_PATH, type Probe } from './profile'
 import { createFakeDriver, type FakeScript } from './fake-driver'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
@@ -76,7 +76,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     }
   }
 
-  const runner = createRunner({ db, driver, clock, tabs, speed: draft.speed, autoAllowed: (e) => !validateProfile(profile) && autoAllowed(db, e) })
+  const runner = createRunner({ db, driver, clock, tabs, speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
+    selfCheckOk: async (t) => selfCheck({ ...probe(), ping: await rawPing(t), extVersion }).ok }) // wall-clock ping like session(); real mode: stub probe ⇒ manual
   runner.recover()
   const email = async (): Promise<string | null> => (tabs[0] ? (await driver.ping(tabs[0])).email : null)
   const emit = revisioned((e) => win()?.webContents.send('state', e))
