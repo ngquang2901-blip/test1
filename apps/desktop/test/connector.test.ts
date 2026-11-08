@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { startConnectorServer } from '../src/main/connector/server'
-import { installExtension } from '../src/main/connector/pairing'
+import { createServer } from 'node:net'
+import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
 import { createExtDriver } from '../src/main/connector/ext-driver'
 import { EXT_ID } from '../src/main/connector/ext-id'
 import { ConnectorError, type DriverEvent } from '../src/main/driver'
@@ -21,8 +22,8 @@ const boot = async () => {
   return s
 }
 type Client = { ws: WebSocket; msgs: any[]; closed: Promise<number>; next(): Promise<any> }
-const connect = async (port: number, o: { token?: string; origin?: string } = {}): Promise<Client> => {
-  const ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, { headers: { Origin: o.origin ?? ORIGIN } })
+const connect = async (port: number, o: { token?: string; origin?: string | null } = {}): Promise<Client> => {
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, { headers: o.origin === null ? {} : { Origin: o.origin ?? ORIGIN } })
   const msgs: any[] = []
   const waiters: Array<(m: any) => void> = []
   ws.on('message', (d) => { const m = JSON.parse(d.toString()); const w = waiters.shift(); if (w) w(m); else msgs.push(m) })
@@ -44,6 +45,17 @@ test('rejects wrong origin', async () => {
   expect(await (await connect(s.port, { origin: 'chrome-extension://' + 'a'.repeat(32) })).closed).toBe(4401)
   expect(await (await connect(s.port, { origin: 'https://evil.example' })).closed).toBe(4401)
 })
+test('rejects missing origin', async () => {
+  const s = await boot()
+  expect(await (await connect(s.port, { origin: null })).closed).toBe(4401)
+})
+test('listen failure rejects instead of hanging', async () => {
+  const blocker = createServer()
+  await new Promise<void>((r) => blocker.listen(0, '127.0.0.1', r))
+  closers.push(() => new Promise((r) => blocker.close(r)))
+  const port = (blocker.address() as { port: number }).port
+  await expect(startConnectorServer({ token: TOKEN, extensionId: EXT_ID, port })).rejects.toThrow()
+})
 test('server listens on loopback only', async () => {
   const s = await boot()
   expect(s.address().address).toBe('127.0.0.1')
@@ -64,6 +76,7 @@ test('ordinary round trip: id and connection epoch echoed', async () => {
   const m2 = await c.next()
   c.ws.send(JSON.stringify({ id: m2.id, epoch: m2.epoch, ok: false, error: 'boom' }))
   await expect(q).rejects.toThrow('boom')
+  await expect(q).rejects.toMatchObject({ code: 'EXTENSION_REFUSED' })
 })
 test('newest connection wins: old closed, epoch up, pending of old rejects, late old reply ignored', async () => {
   const s = await boot()
@@ -208,4 +221,24 @@ test('install keeps token across updates, overwrites files, rewrites port, 0600'
   expect(readFileSync(join(b.dir, 'sw.js'), 'utf8')).toBe('v2')
   expect(JSON.parse(readFileSync(join(b.dir, 'pair.json'), 'utf8'))).toEqual({ port: 2222, token: a.token })
   if (process.platform !== 'win32') expect(statSync(join(b.dir, 'pair.json')).mode & 0o777).toBe(0o600)
+})
+test('first run: one persisted token shared by server and pair.json; stable on repeat', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'tf-pair-'))
+  closers.push(() => rmSync(root, { recursive: true, force: true }))
+  const bundled = join(root, 'bundled')
+  mkdirSync(bundled)
+  writeFileSync(join(bundled, 'sw.js'), 'v1')
+  const ud = join(root, 'ud')
+  const token = readOrCreateToken(ud)
+  expect(readOrCreateToken(ud)).toBe(token)
+  const s = await startConnectorServer({ token, extensionId: EXT_ID })
+  closers.push(() => s.close())
+  const { dir } = installExtension(bundled, ud, s.port)
+  expect(JSON.parse(readFileSync(join(dir, 'pair.json'), 'utf8')).token).toBe(token)
+  expect(await Promise.race([connect(s.port, { token }).then((c) => c.closed.then(() => 'closed'), () => 'x'), tick().then(() => 'open')])).toBe('open')
+  writeFileSync(join(dir, 'pair.json'), '{corrupt')
+  const t2 = readOrCreateToken(ud)
+  expect(t2).toMatch(/^[0-9a-f]{64}$/)
+  expect(readOrCreateToken(ud)).toBe(t2)
+  if (process.platform !== 'win32') expect(statSync(join(dir, 'pair.json')).mode & 0o777).toBe(0o600)
 })

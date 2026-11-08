@@ -10,9 +10,13 @@ const SEND_TIMEOUT_MS = 30_000 // shortcut: one flat timeout for every op, per-o
 
 export type ConnectorServer = Awaited<ReturnType<typeof startConnectorServer>>
 
-export async function startConnectorServer(o: { token: string; extensionId: string }) {
-  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 })
-  await new Promise<void>((r) => wss.once('listening', r))
+export async function startConnectorServer(o: { token: string; extensionId: string; port?: number }) {
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0 })
+  await new Promise<void>((res, rej) => {
+    wss.once('listening', res)
+    wss.once('error', rej)
+  })
+  wss.on('error', () => {}) // a later server error must not crash the process
   let epoch = Date.now() // R41: monotonic across restarts; fences replies only (tab epochs belong to the runner)
   let cur: Conn | undefined
   let nextId = 1
@@ -68,7 +72,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
       clearTimeout(p.timer)
       pending.delete(m.id as number)
       if (m.ok === true) p.resolve(m.result)
-      else p.reject(new Error(String(m.error ?? 'extension error')))
+      else p.reject(Object.assign(new Error(String(m.error ?? 'extension error')), { code: 'EXTENSION_REFUSED' }))
     })
   })
 
