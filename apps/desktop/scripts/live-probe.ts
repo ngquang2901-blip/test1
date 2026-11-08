@@ -7,6 +7,8 @@ import { startConnectorServer } from '../src/main/connector/server'
 import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
 import { EXT_ID } from '../src/main/connector/ext-id'
 import flow from '../profiles/flow.json'
+import { createExtDriver } from '../src/main/connector/ext-driver'
+import { DEFAULT_COMBO } from '../src/main/profile'
 import { correlate, parseGenerateRequest, parseImageReceipt, parseRpcResponse, readFReq } from '@toolflow/flow-protocol/parse'
 
 const userData = process.env.TOOLFLOW_USER_DATA ?? join(homedir(), '.local/share/toolflow-live')
@@ -70,6 +72,28 @@ if (process.env.INSPECT === '1' && tabs[0]) {
   console.log('close settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
   await sleep(600)
   console.log('radios after close:', JSON.stringify(await server.send('radios', a)))
+}
+// PREP=1: product ext-driver on the real tab, never clicks Send: prepare (settings + prompt), pre-click checks, stale-text replace, settings round trip, then clears the composer.
+if (process.env.PREP === '1' && tabs[0]) {
+  const drv = createExtDriver(server, { allow: () => true })
+  const t = (await drv.listTabs())[0]
+  const show = (label: string, v: unknown): void => console.log(`${label}: ${JSON.stringify(v)}`)
+  const text = async (): Promise<string> => ((await server.send('state', { tabId: Number(t.tabId) })) as { text: string }).text
+  const P1 = 'prep probe one: a red kite', P2 = 'prep probe two: a blue boat'
+  const combo = { ...DEFAULT_COMBO }
+  show('listTabs', { hasProject: !!t.projectId, hasEmail: !!t.email })
+  show('prepare#1', await drv.prepare(t.tabId, { prompt: P1, kind: 'image', settings: { combo }, refIds: [] }))
+  show('composer == P1', (await text()) === P1)
+  show('checkBeforeClick', await drv.checkBeforeClick(t.tabId, t.projectId!, []))
+  show('checkBeforeClick wrong project', await drv.checkBeforeClick(t.tabId, '00000000-0000-4000-8000-000000000000', []))
+  show('prepare#2 (stale text present)', await drv.prepare(t.tabId, { prompt: P2, kind: 'image', settings: { combo }, refIds: [] }))
+  show('composer == P2 only', (await text()) === P2)
+  show('settings round trip x1', await drv.prepare(t.tabId, { prompt: P2, kind: 'image', settings: { combo: { ...combo, count: 1 } }, refIds: [] }))
+  show('settings back to x2', await drv.prepare(t.tabId, { prompt: P2, kind: 'image', settings: { combo }, refIds: [] }))
+  show('state settings', ((await server.send('state', { tabId: Number(t.tabId) })) as { settings: string }).settings)
+  await server.send('click', { tabId: Number(t.tabId), sel: 'button.clear-button' })
+  await sleep(500)
+  show('composer cleared', (await text()) === '')
 }
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)
