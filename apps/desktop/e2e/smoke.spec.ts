@@ -106,6 +106,11 @@ test('rerun shows the cost warning first; cancel sends nothing, confirm adds a s
   await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(2)
   await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
   await expect(first).toContainText('tốn thêm credit')
+  await expect(first.getByRole('button', { name: 'Huỷ' })).toBeFocused() // the costly step never autofocuses its confirm button
+  await page.keyboard.press('Enter') // an immediate Enter must not confirm the cost
+  await expect(first).not.toContainText('tốn thêm credit')
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(2)
+  await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
   await first.getByRole('button', { name: 'Huỷ' }).click()
   await page.getByRole('button', { name: 'Chi tiết' }).first().click()
   await expect(page.locator('[data-testid=detail]')).not.toContainText('Lượt 2')

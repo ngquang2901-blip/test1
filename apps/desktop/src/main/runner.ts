@@ -63,6 +63,7 @@ export function createRunner(o: {
   // ping.gen !== genBase + ours ⇒ the page made a generate we did not account for.
   const pages = new Map<string, { id: string; genBase: number; ours: number; beat: number }>();
   const fenced = new Set<string>(); // fenced since the last click there: a stale armed tracker may remain, disarm before the next click
+  const rearm = new Set<string>(); // fenced while the user was to send here: the armed tracker still stamps the old epoch
   const clicking = new Set<string>(); // attempts whose driver.click has not returned
   const paused = new Map<string, string | null>(); // authoritative even when the DB write failed; flushed each tick
   const unc = new Set<string>(); // batches whose current pause was set only because an attempt went uncertain: the only pause release() lifts
@@ -139,6 +140,7 @@ export function createRunner(o: {
   function fence(tab: string) {
     epochs.set(tab, epoch(tab) + 1);
     pages.delete(tab); fenced.add(tab);
+    const cur = slot.get(tab); if (cur && state(cur).item === 'awaiting_user') rearm.add(tab);
     const ids = new Set([slot.get(tab), ...awaiting.filter((a) => a.tab === tab).map((a) => a.id)]);
     for (let k = awaiting.length; k--;) if (awaiting[k].tab === tab) awaiting.splice(k, 1);
     for (const id of ids) if (id && state(id).item === 'submitting') apply(id, { type: 'deadline' });
@@ -198,28 +200,39 @@ export function createRunner(o: {
     const ping = await driver.ping(tab);
     if (gone()) return;
     const pg = pages.get(tab); // double-send guard (auto and manual): nothing is written or clicked when the page sent something we did not account for
+    if (pg && pg.id !== ping.id && awaiting.some((a) => a.tab === tab)) fence(tab); // reloaded under a pending response: uncertain before anything new goes out
     if (!pg || pg.id !== ping.id) pages.set(tab, { id: ping.id, genBase: ping.gen, ours: 0, beat: clock.now() });
     else if (ping.gen !== pg.genBase + pg.ours) { pg.genBase = ping.gen - pg.ours; pause(i.batch, 'UNEXPECTED_GENERATE'); return; } // rebased: resume goes on
     let manual = settings.mode === 'manual' || !o.autoAllowed(ping.email);
     if (!manual && o.selfCheckOk) { manual = !(await o.selfCheckOk(tab).catch(() => false)); if (gone()) return; } // I1: drifted/blind tab never auto-clicks
+    if (fenced.delete(tab)) { // a stale armed tracker may remain: disarm (best effort) before the intent, so a stop during it still ends before any click
+      await driver.arm(tab, null).catch(() => {});
+      if (gone() || (db.prepare('select stop_requested s from batch where id=?').get(i.batch) as { s: number }).s) return;
+    }
     const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), profileVersion: profile.version, manual: true } : { type: 'intent', ping, now: clock.now(), profileVersion: profile.version }); // AC-18: version stamped in the journal; R10: committed before click
     slot.set(tab, id);
-    if (s.item !== 'preparing' && fenced.delete(tab)) await driver.arm(tab, null).catch(() => {}); // best effort: only a stale armed tracker could make this click ambiguous
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) { // manual, or intent refused (observer dead → batch paused by apply)
       if (s.item !== 'awaiting_user') return;
       await driver.focusTab(tab).catch((e) => console.error('runner: focus failed', (e as { code?: string }).code)); // AC-11: the user sends in this tab; a failed focus never blocks arming
-      try { await driver.arm(tab, epoch(tab)); } catch (err) { // R39/R40: a blind tab must not be waited on, and the arm may have reached the page before it threw: the user may still send, so never cancelled. prep_failed is illegal after intent; skip+armFailed is the legal route to uncertain
-        try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now(), armFailed: true }); } catch (e2) { fail(i.batch, e2); return; }
-        fail(i.batch, err);
-      }
+      await armTab(tab, id, i.batch);
       return;
     }
+    if (!canClick(state(id))) return; // stop() may have landed since the intent
     let result;
     clicking.add(id);
     try { result = await driver.click(tab, epoch(tab)); } catch { db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); fence(tab); return; } finally { clicking.delete(id); } // a drop may still have sent it: window starts here too
     db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); // R27: the reconcile window starts here
     try { apply(id, { type: 'clicked', result }); } catch { apply(id, { type: 'deadline' }); } // e.g. stop() during the click: it may have gone out, so uncertain
+  }
+
+  // R39/R40: a blind tab must not be waited on, and the arm may have reached the page before it threw: the user may still send, so never cancelled.
+  // prep_failed is illegal after intent; skip+armFailed is the legal route to uncertain. again: drop the old tracker first (arming a pending one is ambiguous).
+  async function armTab(tab: string, id: string, batch: string, again = false) {
+    try { if (again) await driver.arm(tab, null); await driver.arm(tab, epoch(tab)); } catch (err) {
+      try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now(), armFailed: true }); } catch (e2) { fail(batch, e2); return; }
+      fail(batch, err);
+    }
   }
 
   async function admit(tab: string) {
@@ -271,7 +284,9 @@ export function createRunner(o: {
         } catch (err) { fail(info(r.id).batch, err); }
       }
     }
-    for (const a of [...awaiting]) if (awaiting.includes(a) && clock.now() - a.at >= RESPONSE_DEADLINE_MS) fence(a.tab); // no response in time: uncertain via the same deadline path as a lost tab
+    for (const a of [...awaiting]) if (awaiting.includes(a) && clock.now() - a.at >= RESPONSE_DEADLINE_MS) { // no response in time: uncertain via the same deadline path as a lost tab
+      try { fence(a.tab); } catch (err) { fail(info(a.id).batch, err); }
+    }
     for (const tab of new Set(awaiting.map((a) => a.tab))) { // heartbeat after click
       const pg = pages.get(tab);
       if (!pg || clock.now() - pg.beat < BEAT_MS) continue;
@@ -279,7 +294,13 @@ export function createRunner(o: {
       let lost = false;
       try { const p = await driver.ping(tab); lost = p.id !== pg.id || !p.xhrSend || !p.xhrOpen || !p.fetch; } catch { lost = true; }
       drain(); // events that arrived during the ping come first
-      if (lost && pages.get(tab) === pg && awaiting.some((a) => a.tab === tab)) fence(tab);
+      const own = awaiting.find((a) => a.tab === tab);
+      if (lost && pages.get(tab) === pg && own) try { fence(tab); } catch (err) { fail(info(own.id).batch, err); }
+    }
+    for (const tab of [...rearm]) { // after a fence: the awaiting_user attempt of the slot gets the new epoch
+      rearm.delete(tab);
+      const id = slot.get(tab);
+      if (id && tabs.includes(tab) && state(id).item === 'awaiting_user') await armTab(tab, id, info(id).batch, true);
     }
     for (const r of db.prepare('select id from attempt where reconcile_at is not null and reconcile_at <= ?').all(clock.now()) as { id: string }[]) {
       try { if (await runReconcile(db, driver, r.id, clock.now()) === 'found') release(r.id); } catch (err) { fail(info(r.id).batch, err); }

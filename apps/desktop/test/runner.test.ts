@@ -20,7 +20,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const gate = { hold: !!o.hold };
   const gateClick: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   let listenerless = !!o.noListener;
-  const obs = { dead: !!o.deadObserver, id: 'fake', throws: false };
+  const obs = { dead: !!o.deadObserver, id: 'fake', throws: false, noFetch: false };
   const log: string[] = [];
   const armGate: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
@@ -36,7 +36,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
       if (o.slowClick) await gateClick.p;
       return fake.click(tab, epoch);
     },
-    ping: async (tab) => { log.push('ping'); if (obs.throws) throw new ConnectorError('ping lost'); return { ...(await fake.ping(tab)), t: clock.now(), id: obs.id, ...(obs.dead ? { xhrSend: false } : {}) }; }, // the observer ping must look fresh to the fake clock
+    ping: async (tab) => { log.push('ping'); if (obs.throws) throw new ConnectorError('ping lost'); return { ...(await fake.ping(tab)), t: clock.now(), id: obs.id, ...(obs.dead ? { xhrSend: false } : {}), ...(obs.noFetch ? { fetch: false } : {}) }; }, // the observer ping must look fresh to the fake clock
     prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
@@ -393,10 +393,9 @@ test('disconnect fences the epoch while awaiting_user: the user\'s send is dropp
   t.runner.start(t.batchId);
   await t.step(2);
   t.driver.emit({ tabId: 't1', type: 'disconnected' });
+  t.driver.userSends('t1', 'image'); // sent with the old epoch, reaches the desktop after the fence
   await t.step();
   expect(t.states()[0].item).toBe('awaiting_user');
-  t.driver.userSends('t1', 'image');
-  await t.step();
   t.runner.stop(t.batchId);
   await t.step();
   uncertainNoCancel(t.states()[0]);
@@ -682,7 +681,7 @@ test('heartbeat after click: at most one ping per 5 s while a response is awaite
   expect(t.states()[0].item).toBe('submitting'); // a healthy heartbeat changes nothing
 });
 
-for (const [name, bad] of [['page id changed (reload)', (t: ReturnType<typeof rig>) => { t.obs.id = 'reloaded'; }], ['ping throws', (t: ReturnType<typeof rig>) => { t.obs.throws = true; }], ['hooks not intact', (t: ReturnType<typeof rig>) => { t.obs.dead = true; }]] as const) {
+for (const [name, bad] of [['page id changed (reload)', (t: ReturnType<typeof rig>) => { t.obs.id = 'reloaded'; }], ['ping throws', (t: ReturnType<typeof rig>) => { t.obs.throws = true; }], ['hooks not intact', (t: ReturnType<typeof rig>) => { t.obs.dead = true; }], ['fetch hook missing (others intact)', (t: ReturnType<typeof rig>) => { t.obs.noFetch = true; }]] as const) {
   test(`heartbeat: ${name} ⇒ tab fenced, awaiting attempt uncertain, never resent`, async () => {
     const t = await awaitingRig();
     bad(t); t.clock.t += 5000; await t.step();
@@ -754,4 +753,87 @@ test('double-send guard also holds in manual mode: pauses before the second arm'
   expect(t.runner.lastError(t.batchId)).toBe('UNEXPECTED_GENERATE');
   expect(t.states()[1].item).toBe('preparing');
   expect(t.driver.ledger.arms).toBe(1);
+});
+
+// ---- Task 3 fix round 1 ----
+const gated = () => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; };
+const until = async (f: () => boolean) => { for (let i = 0; i < 50 && !f(); i++) await flush(); expect(f()).toBe(true); };
+
+test('I1: stop during the post-fence disarm never clicks', async () => {
+  const t = go(['image-ok'], { n: 1 });
+  const g = gated(); let disarming = false;
+  const { arm } = t.driver;
+  t.driver.arm = async (tab, e) => { if (e === null) { disarming = true; await g.p; } return arm(tab, e); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  const tick = t.runner.tick();
+  await until(() => disarming);
+  t.runner.stop(t.batchId);
+  g.open(); await tick; await t.step(2);
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(t.states()[0].item).toBe('cancelled');
+});
+
+test('I2: after a fence an awaiting_user attempt is re-armed with the new epoch, so the user\'s send is not lost', async () => {
+  const t = go(['image-ok', 'image-ok'], { n: 2, mode: 'manual', hold: true });
+  await t.step(2);
+  t.driver.userSends('t1', 'image'); // A sent by the user, response held
+  await t.step(2);
+  expect(t.states().map((s) => s.item)).toEqual(['submitting', 'awaiting_user']); // B armed with the old epoch
+  const e0 = t.driver.ledger.armLog.at(-1)![1] as number;
+  t.obs.throws = true; t.clock.t += 5000; await t.step(1); // heartbeat ping throws ⇒ fence
+  t.obs.throws = false;
+  expect(t.states().map((s) => s.item)).toEqual(['needs_review', 'awaiting_user']);
+  expect(t.driver.ledger.armLog.at(-1)).toEqual(['t1', e0 + 1]);
+  t.release();
+  t.driver.userSends('t1', 'image'); // B
+  await t.step(2);
+  expect(t.states()[1].item).toBe('ready');
+});
+
+test('I2: a failing re-arm takes the skip+armFailed route: uncertain, paused, not stuck', async () => {
+  const t = go([], { n: 1, mode: 'manual' });
+  await t.step(2);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.driver.arm = async () => { throw new ConnectorError('arm lost'); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  await t.step(1);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+});
+
+test('m3: a throwing fence in the heartbeat pauses that batch only; the tick still runs admission', async () => {
+  const t = await awaitingRig();
+  const b2 = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: ['other'], refs: [[]] }).batchId;
+  t.runner.start(b2);
+  t.db.exec("create trigger boom before insert on journal_event when NEW.type='deadline' begin select raise(abort, 'boom'); end");
+  const { ping } = t.driver; let once = true;
+  t.driver.ping = async (tab) => { if (once) { once = false; throw new ConnectorError('ping lost'); } return ping(tab); }; // only the heartbeat's ping fails
+  t.clock.t += 5000;
+  await expect(t.runner.tick()).resolves.toBeUndefined();
+  expect(t.runner.lastError(t.batchId)).toBe('STORAGE_UNAVAILABLE');
+  await flush();
+  expect(t.driver.ledger.clicks).toBe(2); // batch 2 was admitted in the same tick
+});
+
+test('m4: a response that arrives while the heartbeat ping is in flight settles the attempt; it is not fenced', async () => {
+  const t = await awaitingRig();
+  const g = gated(); let pinging = false;
+  const { ping } = t.driver;
+  t.driver.ping = async (tab) => { pinging = true; await g.p; return ping(tab); };
+  t.obs.throws = true; t.clock.t += 5000;
+  const tick = t.runner.tick();
+  await until(() => pinging);
+  t.release(); // the response lands while the ping is out
+  g.open();
+  await tick;
+  expect(t.states()[0].item).toBe('ready');
+});
+
+test('m2: a page id change seen at the next intent fences the tab first: the old awaiting attempt is uncertain', async () => {
+  const t = go(['image-ok', 'image-ok'], { n: 2, hold: true });
+  await t.step(1);
+  t.obs.id = 'reloaded';
+  await t.step(1);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  expect(t.driver.ledger.clicks).toBe(2); // the next attempt goes on
 });

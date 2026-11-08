@@ -15,15 +15,15 @@ function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
   )
 }
 
-/** Inline two-step confirm (no window.confirm): the first button asks, the second does it; both are plain buttons, so the keyboard reaches them. */
-function TwoStep({ label, ask, yes, go }: { label: string; ask: string; yes: string; go: () => void }): React.JSX.Element {
+/** Inline two-step confirm (no window.confirm): the first button asks, the second does it (a costly one focuses Huỷ, so a stray Enter never pays); both are plain buttons, so the keyboard reaches them. */
+function TwoStep({ label, ask, yes, go, safeFocus }: { label: string; ask: string; yes: string; go: () => void; safeFocus?: boolean }): React.JSX.Element {
   const [on, setOn] = useState(false)
   if (!on) return <button onClick={() => setOn(true)}>{label}</button>
   return (
     <span role="group" aria-label={ask}>
       <span>{ask}</span>{' '}
-      <button autoFocus onClick={() => { setOn(false); go() }}>{yes}</button>{' '}
-      <button onClick={() => setOn(false)}>Huỷ</button>
+      <button autoFocus={!safeFocus} onClick={() => { setOn(false); go() }}>{yes}</button>{' '}
+      <button autoFocus={safeFocus} onClick={() => setOn(false)}>Huỷ</button>
     </span>
   )
 }
@@ -55,7 +55,7 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
                         </>
                       )}
                       {a.item === 'failed' && a.error?.resolution && ( // R30: the user settled it as not sent; a new paid copy needs a second click
-                        <TwoStep label="Chạy lại (tốn credit)" ask="Chạy lại sẽ gửi prompt này lần nữa và tốn thêm credit. Chắc chắn?" yes="Có, chạy lại" go={() => run(() => window.api.rerun({ attemptId: a.id, confirmCost: true }))} />
+                        <TwoStep label="Chạy lại (tốn credit)" ask="Chạy lại sẽ gửi prompt này lần nữa và tốn thêm credit. Chắc chắn?" yes="Có, chạy lại" safeFocus go={() => run(() => window.api.rerun({ attemptId: a.id, confirmCost: true }))} />
                       )}
                     </td>
                   </tr>
