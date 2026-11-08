@@ -1,15 +1,19 @@
-import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import { parseRpcResponse, parseGenerateRequest, parseImageReceipt, parseVideoReceipt } from '@toolflow/flow-protocol/parse';
+import burst3 from '../../../../packages/flow-protocol/test/fixtures/image-1x1-burst3.json';
+import videoT2v from '../../../../packages/flow-protocol/test/fixtures/video-t2v.json';
+import throttledVideo from '../../../../packages/flow-protocol/test/fixtures/throttled-YhhmEf.json';
+import throttledImage from '../../../../packages/flow-protocol/test/fixtures/throttled-ogiZ0b.json';
+import project from '../../../../packages/flow-protocol/test/fixtures/project-Zzl0ze.json';
 import { ConnectorError, type ClickResult, type DriverEvent, type FlowDriver, type Ping } from './driver';
 
 export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'no-request' | 'drop'>;
 type Rec = { phase: string; rpc: string; req?: string; res?: string };
 
 // Real redacted captures; the fake only swaps the prompt text and keeps their structure.
-const fx = (name: string): Rec[] =>
-  JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../packages/flow-protocol/test/fixtures/${name}.json`, import.meta.url)), 'utf8')).records;
+// Static imports so the bundled main process carries the fixtures (R53).
+const FIXTURES: Record<string, { records: Rec[] }> = { 'image-1x1-burst3': burst3, 'video-t2v': videoT2v, 'throttled-YhhmEf': throttledVideo, 'throttled-ogiZ0b': throttledImage, 'project-Zzl0ze': project } as never;
+const fx = (name: string): Rec[] => FIXTURES[name].records;
 const fReqOf = (r: Rec) => r.req!.slice('f.req='.length, r.req!.indexOf('&at='));
 const promptOf = (r: Rec) => parseGenerateRequest(fReqOf(r)).items[0].prompt as string;
 const payloadOf = (r: Rec) => (parseRpcResponse(r.res!, r.rpc) as { payload: unknown }).payload;
