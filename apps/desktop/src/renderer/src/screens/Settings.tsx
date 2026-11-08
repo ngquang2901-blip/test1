@@ -5,7 +5,7 @@ export default function Settings({ s, reload }: { s: Session; reload(): void }):
   const [ack, setAck] = useState(false)
   const [msg, setMsg] = useState('')
   const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(e.message))
-  const speed = (v: Draft['speed']): void => act(() => window.api.saveDraft({ ...s.draft, speed: v }))
+  const speed = (v: Draft['speed']): void => act(() => window.api.saveDraft({ speed: v }))
   return (
     <section aria-label="Cài đặt">
       <h2>Cài đặt</h2>
@@ -13,7 +13,7 @@ export default function Settings({ s, reload }: { s: Session; reload(): void }):
         <legend>Tốc độ</legend>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'default'} onChange={() => speed('default')} /> Mặc định</label>{' '}
         <label><input type="radio" name="speed" checked={s.draft.speed === 'fast'} onChange={() => speed('fast')} /> Nhanh</label>
-        <p>Áp dụng từ lần mở app sau.</p>
+        <p>Áp dụng từ lần mở app sau. Đang dùng: ảnh {s.speedInUse.image} song song, video {s.speedInUse.video} song song.</p>
       </fieldset>
       <h3>Tự động gửi theo tài khoản{s.email ? `: ${s.email}` : ''}</h3>
       <p>{s.autoEnabled ? 'Auto: bật' : 'Auto: tắt'}</p>

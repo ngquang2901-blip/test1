@@ -5,15 +5,19 @@ import { join } from 'node:path';
 import { openDb } from '../src/main/db';
 import { createFakeDriver } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
-import { autoAllowed } from '../src/main/account';
-import { createHandlers, revisioned } from '../src/main/ipc';
+import { autoAllowed, enableAuto } from '../src/main/account';
+import { createHandlers, revisioned, parseDraft, type Draft } from '../src/main/ipc';
+import { clockFactor, errorCode } from '../src/main/boot-util';
+import { newer } from '../src/renderer/src/revision';
 
-function rig(email: string | null = 'a@b.c') {
+function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')[] = ['image-ok', 'image-ok', 'image-ok']) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
-  const runner = createRunner({ db, driver: createFakeDriver(['image-ok', 'image-ok', 'image-ok']), clock: Date, tabs: ['t1'], speed: 'default', autoAllowed: (e) => autoAllowed(db, e) });
+  const clock = { t: 1_000_000, now() { return this.t; } };
+  const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', autoAllowed: (e) => autoAllowed(db, e) });
   const events: Array<{ entity: string; id: string; revision: number }> = [];
-  const h = createHandlers({ db, runner, projectId: 'p', email: async () => email, session: async () => ({}), saveDraft: () => {}, emit: revisioned((e) => events.push(e)), clock: Date });
-  return { db, h, events };
+  let draft: Draft = { text: 't', kind: 'image', mode: 'auto', speed: 'default' };
+  const h = createHandlers({ db, runner, projectId: 'p', email: async () => email, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock });
+  return { db, h, events, runner, clock, draft: () => draft };
 }
 const good = { commandId: 'c1', text: 'a\nb\n\nc', kind: 'image', mode: 'auto' };
 
@@ -59,4 +63,54 @@ test('mutations emit strictly increasing revisions; getBatch hides urls', async 
   const b = (await h.getBatch(batchId)) as { items: unknown[] };
   expect(b.items).toHaveLength(3);
   expect(JSON.stringify(b)).not.toMatch(/https?:|Signature=/);
+});
+
+test('confirmUncertain stores the user word as error.resolution (sent vs not_sent are not swapped)', async () => {
+  for (const to of ['sent', 'not_sent'] as const) {
+    const { h, db, runner, clock } = rig('a@b.c', ['no-request']);
+    enableAuto(db, 'fake@example.invalid', 0); // the account the fake driver reports
+    const { batchId } = (await h.enqueueBatch(good)) as { batchId: string };
+    await h.startBatch(batchId);
+    for (let i = 0; i < 2; i++) { await runner.tick(); await new Promise((r) => setTimeout(r, 0)); }
+    clock.t += 31_000;
+    for (let i = 0; i < 3; i++) { await runner.tick(); await new Promise((r) => setTimeout(r, 0)); }
+    type B = { items: { attempts: { id: string; item: string; error: { resolution?: string } | null }[] }[] };
+    const a = ((await h.getBatch(batchId)) as B).items[0].attempts[0];
+    expect(a.item).toBe('needs_review');
+    await h.confirmUncertain({ attemptId: a.id, to });
+    expect(((await h.getBatch(batchId)) as B).items[0].attempts[0].error?.resolution).toBe(to);
+  }
+});
+
+test('getBatch carries the current revision', async () => {
+  const { h } = rig();
+  const { batchId } = (await h.enqueueBatch(good)) as { batchId: string };
+  await h.startBatch(batchId);
+  expect(((await h.getBatch(batchId)) as { revision: number }).revision).toBe(2);
+});
+
+test('saveDraft merges a partial patch into the stored draft', async () => {
+  const { h, draft } = rig();
+  await h.saveDraft({ speed: 'fast' });
+  expect(draft()).toEqual({ text: 't', kind: 'image', mode: 'auto', speed: 'fast' });
+  await expect(h.saveDraft({ speed: 'warp' })).rejects.toThrow(/INVALID_ARGS/);
+});
+
+test('parseDraft: a bad draft on disk falls back to defaults', () => {
+  const def = { text: '', kind: 'image', mode: 'auto', speed: 'default' };
+  expect(parseDraft({ kind: 'mixed' })).toEqual(def);
+  expect(parseDraft('x')).toEqual(def);
+  expect(parseDraft({ text: 'hi', speed: 'fast' })).toEqual({ ...def, text: 'hi', speed: 'fast' });
+});
+
+test('revision guard: older or equal revisions are ignored', () => {
+  expect(newer(5, 6)).toBe(true);
+  expect(newer(5, 5)).toBe(false);
+  expect(newer(5, 4)).toBe(false);
+});
+
+test('clockFactor: non-numeric or <=0 means 1; errorCode never leaks messages', () => {
+  expect([clockFactor('30'), clockFactor(undefined), clockFactor('abc'), clockFactor('0'), clockFactor('-3'), clockFactor('Infinity')]).toEqual([30, 1, 1, 1, 1, 1]);
+  expect(errorCode(Object.assign(new Error('/home/x/secret'), { code: 'ENOENT' }))).toBe('ENOENT');
+  expect(errorCode(new Error('/home/x/token abc'))).toBe('CONNECTOR_FAILED');
 });

@@ -80,6 +80,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
     port: (wss.address() as { port: number }).port,
     address: () => wss.address() as { address: string; port: number },
     epoch: () => epoch,
+    connected: () => cur !== undefined,
     onEvent(cb: (e: DriverEvent) => void): () => void {
       listeners.add(cb)
       return () => void listeners.delete(cb)

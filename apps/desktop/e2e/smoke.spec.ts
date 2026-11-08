@@ -24,6 +24,13 @@ async function create(page: Page, lines: string[]): Promise<void> {
   await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(lines.length)
   await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
 }
+async function tabTo(page: Page, name: string): Promise<void> {
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press('Tab')
+    if (await page.evaluate((n) => ((document.activeElement as HTMLInputElement | null)?.labels?.[0]?.textContent ?? document.activeElement?.textContent ?? '').trim() === n || document.activeElement?.getAttribute('aria-label') === n, name)) return
+  }
+  throw new Error(`cannot Tab to ${name}`)
+}
 const items = (page: Page) => page.locator('[data-testid=item]')
 
 test('textarea batch runs to ready', async () => {
@@ -43,8 +50,14 @@ test('uncertain shows confirm buttons', async () => {
   await expect(first).toContainText('Không rõ')
   for (const n of ['Đã gửi', 'Chưa gửi', 'Lưu hồ sơ chưa rõ']) await expect(first.getByRole('button', { name: n })).toBeVisible()
   await expect(first).toContainText('Đối soát lúc')
+  await expect(items(page).filter({ hasText: 'Đang chờ' })).toHaveCount(2)
+  await page.waitForTimeout(1500) // the batch stays held (D-21): nothing may finish while the first item is unresolved
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(0)
   await first.getByRole('button', { name: 'Chưa gửi' }).click()
   await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(2)
+  await page.getByRole('button', { name: 'Chi tiết' }).first().click()
+  await expect(page.locator('[data-testid=detail]')).toContainText('(not_sent)') // the word the user gave, not the other one
+  await expect(page.locator('[data-testid=detail]')).not.toContainText('(sent)')
 })
 
 test('auto needs warning ack', async () => {
@@ -91,24 +104,26 @@ test('no outbound network', async () => {
 
 test('keyboard only', async () => {
   const { page } = await launch(tmp(), 'no-request,image-ok,image-ok')
-  const tabTo = async (name: string): Promise<void> => {
-    for (let i = 0; i < 40; i++) {
-      await page.keyboard.press('Tab')
-      if (await page.evaluate((n) => ((document.activeElement as HTMLInputElement | null)?.labels?.[0]?.textContent ?? document.activeElement?.textContent ?? '').trim() === n || document.activeElement?.getAttribute('aria-label') === n, name)) return
-    }
-    throw new Error(`cannot Tab to ${name}`)
-  }
-  await tabTo('Tạo lô')
+  await tabTo(page, 'Tạo lô')
   await page.keyboard.press('Enter')
-  await tabTo('Danh sách prompt')
+  await tabTo(page, 'Danh sách prompt')
   await page.keyboard.type('một\nhai\nba')
-  await tabTo('Tạo lô và chạy')
+  await tabTo(page, 'Tạo lô và chạy')
   await page.keyboard.press('Enter')
   await expect(items(page).first()).toContainText('Không rõ')
   // AC-27: Dừng is reachable by keyboard while the batch is active, from any screen
-  await tabTo('Dừng')
+  await tabTo(page, 'Dừng')
   await page.keyboard.press('Enter')
-  await items(page).first().getByRole('button', { name: 'Chưa gửi' }).click() // the uncertain item still needs the user's word
+  await tabTo(page, 'Chưa gửi') // the uncertain item still needs the user's word
+  await page.keyboard.press('Enter')
   await expect(items(page).filter({ hasText: 'Đã huỷ' })).toHaveCount(2)
   await expect(page.getByRole('heading', { name: /Đã dừng/ })).toBeVisible()
+})
+
+test('real mode survives a connector failure: window opens, S1 shows the error code only', async () => {
+  const missing = join(tmp(), 'no-such-extension')
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_DRIVER: '0', TOOLFLOW_EXT_DIR: missing })
+  await expect(page.getByRole('alert')).toContainText('ENOENT')
+  await expect(page.getByText('Chưa kết nối')).toBeVisible()
+  await expect(page.locator('body')).not.toContainText(missing)
 })

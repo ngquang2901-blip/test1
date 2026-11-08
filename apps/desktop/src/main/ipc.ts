@@ -7,9 +7,10 @@ import { disableAuto, enableAuto } from './account';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
+export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
   db: Db; runner: Runner; projectId: string; clock: { now(): number };
-  email(): Promise<string | null>; session(): Promise<object>; saveDraft(d: Draft): void; emit(entity: 'batch', id: string): void;
+  email(): Promise<string | null>; session(): Promise<object>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
 };
 
 const MAX_TEXT = 1_000_000;
@@ -20,9 +21,24 @@ const oneOf = <T extends string>(v: unknown, ...ok: T[]): T => (ok.includes(v as
 const text = (v: unknown): string => (typeof v === 'string' && v.length <= MAX_TEXT ? v : bad());
 
 /** Monotonic revision stamped in main; the renderer drops older ones. */
-export function revisioned(send: (e: StateEvent) => void): Deps['emit'] {
+export function revisioned(send: (e: StateEvent) => void): Emit {
   let rev = 0;
-  return (entity, id) => send({ entity, id, revision: ++rev });
+  return Object.assign((entity: 'batch', id: string) => send({ entity, id, revision: ++rev }), { revision: () => rev });
+}
+
+export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' };
+// Validates only the fields present; throws INVALID_ARGS on a bad one.
+const draftPatch = (a: unknown): Partial<Draft> => {
+  const o = obj(a), p: Partial<Draft> = {};
+  if (o.text !== undefined) p.text = text(o.text);
+  if (o.kind !== undefined) p.kind = oneOf(o.kind, 'image', 'video');
+  if (o.mode !== undefined) p.mode = oneOf(o.mode, 'auto', 'manual');
+  if (o.speed !== undefined) p.speed = oneOf(o.speed, 'default', 'fast');
+  return p;
+};
+/** A draft read from disk goes through the same validator as IPC; anything bad means defaults. */
+export function parseDraft(v: unknown): Draft {
+  try { return { ...DEFAULT_DRAFT, ...draftPatch(v) }; } catch { return DEFAULT_DRAFT; }
 }
 
 function view(db: Db, id: string) {
@@ -50,8 +66,7 @@ export function createHandlers(d: Deps) {
   const batchOf = (attemptId: string) => (d.db.prepare('select i.batch_id b from attempt a join item i on i.id=a.item_id where a.id=?').get(attemptId) as { b: string } | undefined)?.b ?? bad();
   return {
     async saveDraft(a: unknown) {
-      const o = obj(a);
-      d.saveDraft({ text: text(o.text), kind: oneOf(o.kind, 'image', 'video'), mode: oneOf(o.mode, 'auto', 'manual'), speed: oneOf(o.speed, 'default', 'fast') });
+      d.saveDraft({ ...d.getDraft(), ...draftPatch(a) }); // merge: a speed-only save must not clobber the text
     },
     async enqueueBatch(a: unknown) {
       const o = obj(a);
@@ -84,7 +99,7 @@ export function createHandlers(d: Deps) {
       const ids = d.db.prepare('select id from batch order by created_at desc, rowid desc').all() as { id: string }[];
       return { batches: ids.map((r) => view(d.db, r.id)), session: await d.session() };
     },
-    async getBatch(a: unknown) { return view(d.db, str(a)); },
+    async getBatch(a: unknown) { const rev = d.emit.revision(); return { ...view(d.db, str(a)), revision: rev }; }, // rev read first: never newer than the data
   };
 }
 export type Handlers = ReturnType<typeof createHandlers>;
