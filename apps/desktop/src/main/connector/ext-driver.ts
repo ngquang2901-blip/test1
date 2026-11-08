@@ -30,11 +30,11 @@ const todo = (what: string): never => {
   throw new ConnectorError(`${what}: not implemented`)
 }
 
-// allow: session grant. A tab the user did not grant never receives a page-acting op (prepare/click/arm), whatever the runner asks.
+// allow: session grant, fail closed: omitted ⇒ nothing is granted. A tab the user did not grant never receives a page-acting op (prepare/click/arm), whatever the runner asks.
 export function createExtDriver(server: ConnectorServer, o: { allow?(tabId: string): boolean } = {}): FlowDriver {
   const tab = (tabId: string): { tabId: number } => ({ tabId: Number(tabId) })
   const granted = (tabId: string): void => {
-    if (o.allow && !o.allow(tabId)) throw new ConnectorError('tab not granted')
+    if (!o.allow?.(tabId)) throw new ConnectorError('tab not granted')
   }
   return {
     async listTabs() {

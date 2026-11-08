@@ -89,7 +89,19 @@ export function createHandlers(d: Deps) {
     async pauseBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.pause(id)); },
     async resumeBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.resume(id)); },
     async stopBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.stop(id)); },
-    async archiveBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.archive(id)); },
+    async archiveBatch(a: unknown) { // the renderer asks twice; main refuses without the second answer
+      const o = obj(a), id = str(o.batchId);
+      if (o.confirm !== true) bad();
+      mut(id, () => d.runner.archive(id));
+    },
+    async rerun(a: unknown) { // spends credit again: only with the user's explicit cost confirmation
+      const o = obj(a), id = str(o.attemptId);
+      if (o.confirmCost !== true) bad();
+      const batch = batchOf(id);
+      let n = '';
+      mut(batch, () => { n = d.runner.rerun(id, true); });
+      return { attemptId: n };
+    },
     async confirmUncertain(a: unknown) {
       const o = obj(a), id = str(o.attemptId), to = oneOf(o.to, 'sent', 'not_sent');
       mut(batchOf(id), () => d.runner.confirm(id, to));

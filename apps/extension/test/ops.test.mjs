@@ -101,10 +101,11 @@ function loadMain(fetchImpl) {
   ctx.globalThis = ctx; vm.runInContext(readFileSync(new URL('../epoch.js', import.meta.url), 'utf8'), ctx);
   vm.runInContext(readFileSync(new URL('../main-world.js', import.meta.url), 'utf8'), ctx);
   const events = []; let ping;
-  document.addEventListener('toolflow:event', (e) => events.push(JSON.parse(e.detail)));
+  let breakEmit = false; // the test ET keeps one handler per type, so the collector doubles as the thrower
+  document.addEventListener('toolflow:event', (e) => { if (breakEmit) throw new Error('emit failed'); events.push(JSON.parse(e.detail)); });
   document.addEventListener('toolflow:ping-result', (e) => { ping = JSON.parse(e.detail); });
   const fire = (type, detail) => document.dispatchEvent({ type, detail: detail && JSON.stringify(detail) });
-  return { win, events, arm: (epoch) => fire('toolflow:arm', { epoch }), gen: () => { fire('toolflow:ping'); return ping.gen; } };
+  return { win, events, ping: () => { fire('toolflow:ping'); return ping; }, breakEmit: (v) => { breakEmit = v; }, arm: (epoch) => fire('toolflow:arm', { epoch }), gen: () => { fire('toolflow:ping'); return ping.gen; } };
 }
 const flush = () => new Promise((r) => setTimeout(r, 5));
 const okResp = (text = '') => async () => ({ status: 200, clone: () => ({ text: async () => text }) });
@@ -158,4 +159,22 @@ test('focus needs an integer tabId', () => {
   assert.equal(validate(ok('focus', { tabId: 4 })), null);
   assert.ok(validate(ok('focus', {})));
   assert.ok(validate(ok('focus', { tabId: '4' })));
+});
+
+test('net ring overflow is normal: 201 non-generate records never count as dropped', async () => {
+  const m = loadMain(okResp());
+  for (let i = 0; i < 201; i++) await m.win.fetch('https://x/batchexecute?rpcids=jwpduf');
+  await flush();
+  assert.equal(m.ping().dropped, 0);
+  assert.equal(m.ping().seq, 201);
+});
+
+test('dropped counts real observer failures: an emit that throws', async () => {
+  const m = loadMain(okResp('R'));
+  m.breakEmit(true);
+  await m.win.fetch(URLG, { method: 'POST', body: 'f.req=A' }); await flush();
+  assert.equal(m.ping().dropped, 2, 'sent and response both failed to emit');
+  m.breakEmit(false);
+  await m.win.fetch(URLG, { method: 'POST', body: 'f.req=B' }); await flush();
+  assert.equal(m.ping().dropped, 2);
 });

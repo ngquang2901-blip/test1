@@ -80,6 +80,41 @@ test('uncertain shows confirm buttons', async () => {
   await expect(page.locator('[data-testid=detail]')).not.toContainText('(sent)')
 })
 
+test('archive needs a second, inline confirmation: cancel keeps the batch, confirm archives', async () => {
+  const { page } = await launch(tmp(), 'no-request,image-ok,image-ok')
+  await create(page, ['a', 'b', 'c'])
+  const first = items(page).first()
+  await expect(first).toContainText('Không rõ')
+  page.on('dialog', () => { throw new Error('window.confirm/alert must not be used') })
+  await first.getByRole('button', { name: 'Lưu hồ sơ chưa rõ' }).click()
+  await expect(first).toContainText('Chắc chắn lưu hồ sơ?')
+  await first.getByRole('button', { name: 'Huỷ' }).click()
+  await expect(first).not.toContainText('Chắc chắn lưu hồ sơ?')
+  await expect(page.getByRole('heading', { level: 3 })).not.toContainText('đã lưu hồ sơ')
+  await first.getByRole('button', { name: 'Lưu hồ sơ chưa rõ' }).click()
+  await page.keyboard.press('Enter') // autofocus lands on the confirm button
+  await expect(page.getByRole('heading', { level: 3 })).toContainText('đã lưu hồ sơ')
+})
+
+test('rerun shows the cost warning first; cancel sends nothing, confirm adds a second attempt', async () => {
+  const { page } = await launch(tmp(), 'no-request,image-ok,image-ok,image-ok')
+  await create(page, ['a', 'b', 'c'])
+  const first = items(page).first()
+  await expect(first).toContainText('Không rõ')
+  await expect(first.getByRole('button', { name: /Chạy lại/ })).toHaveCount(0) // uncertain: not rerunnable yet
+  await first.getByRole('button', { name: 'Chưa gửi' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(2)
+  await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
+  await expect(first).toContainText('tốn thêm credit')
+  await first.getByRole('button', { name: 'Huỷ' }).click()
+  await page.getByRole('button', { name: 'Chi tiết' }).first().click()
+  await expect(page.locator('[data-testid=detail]')).not.toContainText('Lượt 2')
+  await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
+  await first.getByRole('button', { name: 'Có, chạy lại' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(3)
+  await expect(page.locator('[data-testid=detail]')).toContainText('Lượt 2')
+})
+
 test('auto needs warning ack', async () => {
   const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_AUTO: '0' })
   await page.getByRole('button', { name: 'Cài đặt' }).click()

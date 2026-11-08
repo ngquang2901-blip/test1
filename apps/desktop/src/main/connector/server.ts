@@ -6,11 +6,17 @@ type Conn = { ws: WebSocket; tabs: Set<string> }
 type Pending = { conn: Conn; resolve: (v: unknown) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }
 
 const digest = (s: string): Buffer => createHash('sha256').update(s).digest()
-const SEND_TIMEOUT_MS = 30_000 // shortcut: one flat timeout for every op, per-op budgets in P2
+// Per-op budgets (ms): reads fail fast, composer work and file work get room; unlisted ops use `default`.
+export const OP_TIMEOUT_MS: Record<string, number> = {
+  ping: 3000, account: 3000,
+  state: 5000, hit: 5000, probe: 5000, tabs: 5000, focus: 5000, net: 5000, arm: 5000, trusted: 5000,
+  settings: 20000, prep: 20000, file: 60000, default: 30000
+}
 
 export type ConnectorServer = Awaited<ReturnType<typeof startConnectorServer>>
 
-export async function startConnectorServer(o: { token: string; extensionId: string; port?: number }) {
+export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number> }) {
+  const budgets = { ...OP_TIMEOUT_MS, ...o.budgets } // injectable so tests need no real 20 s waits
   const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0 })
   await new Promise<void>((res, rej) => {
     wss.once('listening', res)
@@ -95,7 +101,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
         const timer = setTimeout(() => {
           pending.delete(id)
           reject(new ConnectorError('extension did not answer'))
-        }, SEND_TIMEOUT_MS)
+        }, budgets[op] ?? budgets.default)
         pending.set(id, { conn, resolve, reject, timer })
         conn.ws.send(JSON.stringify({ id, epoch: msgEpoch ?? epoch, op, args }), (err) => {
           if (!err) return

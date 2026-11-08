@@ -32,7 +32,7 @@ function rig(script: FakeScript, o: { file?: string; hold?: boolean; holdSent?: 
   const driver: FlowDriver & { ledger: typeof fake.ledger } = {
     ...fake,
     click: async (tab, epoch) => { epochs.push(epoch); if (o.slowClick) await opened; return fake.click(tab, epoch); },
-    ping: async () => ({ ...(await fake.ping('x')), t: clock.now() }),
+    ping: async (tab) => ({ ...(await fake.ping(tab)), t: clock.now() }), // the real tab: gen must match what was clicked there
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
   };
   const runner = createRunner({ db, driver, clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true });

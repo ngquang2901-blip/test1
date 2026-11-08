@@ -20,13 +20,14 @@ const stub = (h: Handler) => {
   const server = { send: async (op: string, args: Record<string, unknown>) => { seen.push([op, args]); const r = h(op, args); if (r instanceof Error) throw r; return r }, onEvent: () => () => {} } as unknown as ConnectorServer
   return { server, seen }
 }
+const OPEN = { allow: () => true }
 const prep = { prompt: SECRET, kind: 'image' as const, settings: { combo: DEFAULT_COMBO }, refIds: [] }
 const SETTINGS_OK = { ok: true, current: {}, mismatches: [] }
 const PREP_OK = { ok: true, textMatches: true, log: [] }
 
 test('prepare: settings (count as x2) then prep; ok only when both pass', async () => {
   const { server, seen } = stub((op) => (op === 'settings' ? SETTINGS_OK : PREP_OK))
-  expect(await createExtDriver(server).prepare('7', prep)).toEqual({ ok: true })
+  expect(await createExtDriver(server, OPEN).prepare('7', prep)).toEqual({ ok: true })
   expect(seen).toEqual([
     ['settings', { tabId: 7, mode: 'Image', aspect: '16:9', quality: 'High', count: 'x2', model: 'Nano Banana 2.1' }],
     ['prep', { tabId: 7, prompt: SECRET }],
@@ -43,7 +44,7 @@ test.each([
   ['prep throws', (op: string) => (op === 'settings' ? SETTINGS_OK : new Error('boom')), 'PROMPT_MISMATCH', ['settings', 'prep']],
 ])('prepare fails closed: %s', async (_n, h, code, ops) => {
   const { server, seen } = stub(h as Handler)
-  const r = await createExtDriver(server).prepare('7', prep)
+  const r = await createExtDriver(server, OPEN).prepare('7', prep)
   expect(r).toEqual({ ok: false, code })
   expect(seen.map((s) => s[0])).toEqual(ops)
   expect(JSON.stringify(r)).not.toContain('SECRET')
@@ -51,10 +52,10 @@ test.each([
 
 test('prepare: no combo in settings ⇒ SETTINGS_MISMATCH without touching the page; a lost connector propagates', async () => {
   const a = stub(() => SETTINGS_OK)
-  expect(await createExtDriver(a.server).prepare('7', { ...prep, settings: {} })).toEqual({ ok: false, code: 'SETTINGS_MISMATCH' })
+  expect(await createExtDriver(a.server, OPEN).prepare('7', { ...prep, settings: {} })).toEqual({ ok: false, code: 'SETTINGS_MISMATCH' })
   expect(a.seen).toEqual([])
   const b = stub(() => new ConnectorError('gone'))
-  await expect(createExtDriver(b.server).prepare('7', prep)).rejects.toBeInstanceOf(ConnectorError)
+  await expect(createExtDriver(b.server, OPEN).prepare('7', prep)).rejects.toBeInstanceOf(ConnectorError)
 })
 
 test('prepare: ungranted tab never reaches the page', async () => {
@@ -99,7 +100,7 @@ test('checkBeforeClick: ops flow into the decision; any thrown op error ⇒ TARG
     ping: { xhrSend: true, xhrOpen: true, fetch: true }, probe: { present: { editor: true, submit: true } },
     state: { submitDisabled: false, creditWarning: false, chips: [] }, hit: { covered: false },
   } as Record<string, unknown>)[op])
-  const d = (h: Handler) => createExtDriver(stub(h).server)
+  const d = (h: Handler) => createExtDriver(stub(h).server, OPEN)
   expect(await d(world()).checkBeforeClick('7', P)).toEqual({ ok: true })
   expect(await d(world()).checkBeforeClick('7', 'other')).toEqual({ ok: false, code: 'TARGET_CHANGED' })
   expect(await d(world({ tabs: [] })).checkBeforeClick('7', P)).toEqual({ ok: false, code: 'TARGET_CHANGED' })
@@ -108,7 +109,7 @@ test('checkBeforeClick: ops flow into the decision; any thrown op error ⇒ TARG
   expect(await d(world()).checkBeforeClick('7', P, ['r1'])).toEqual({ ok: false, code: 'CHIP_MISMATCH' })
   for (const op of ['tabs', 'ping', 'probe', 'state', 'hit']) expect(await d(world({ [op]: new Error('x') })).checkBeforeClick('7', P), op).toEqual({ ok: false, code: 'TARGET_CHANGED' })
   const probe = stub(world())
-  await createExtDriver(probe.server).checkBeforeClick('7', P)
+  await createExtDriver(probe.server, OPEN).checkBeforeClick('7', P)
   expect(probe.seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: 7, selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
 })
 

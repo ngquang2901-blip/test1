@@ -20,7 +20,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const gate = { hold: !!o.hold };
   const gateClick: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   let listenerless = !!o.noListener;
-  const obs = { dead: !!o.deadObserver };
+  const obs = { dead: !!o.deadObserver, id: 'fake', throws: false };
   const log: string[] = [];
   const armGate: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
@@ -36,7 +36,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
       if (o.slowClick) await gateClick.p;
       return fake.click(tab, epoch);
     },
-    ping: async (tab) => (log.push('ping'), { ...(await fake.ping(tab)), t: clock.now(), ...(obs.dead ? { xhrSend: false } : {}) }), // the observer ping must look fresh to the fake clock
+    ping: async (tab) => { log.push('ping'); if (obs.throws) throw new ConnectorError('ping lost'); return { ...(await fake.ping(tab)), t: clock.now(), id: obs.id, ...(obs.dead ? { xhrSend: false } : {}) }; }, // the observer ping must look fresh to the fake clock
     prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
@@ -650,4 +650,108 @@ test('manual: the tab is focused before it is armed, and a focus failure does no
   await t.step(2);
   expect(order).toEqual(['focus t1', 'arm']);
   expect(t.states()[0].item).toBe('awaiting_user');
+});
+
+// ---- Task 3: runtime deadlines, heartbeat after click, disarm, double-send guard ----
+const go = (...a: Parameters<typeof rig>) => { const t = rig(...a); t.runner.start(t.batchId); return t; };
+const RESPONSE_DEADLINE = 120_000;
+const awaitingRig = async () => { const t = go(['image-ok', 'image-ok'], { n: 1, hold: true }); await t.step(2); expect(t.states()[0]).toMatchObject({ item: 'submitting' }); return t; };
+
+test('response never comes: uncertain at 120 s, project blocked, no second click, late response ignored', async () => {
+  const t = await awaitingRig();
+  t.clock.t += RESPONSE_DEADLINE - 1; await t.step();
+  expect(t.states()[0].item).toBe('submitting');
+  t.clock.t += 1; await t.step();
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  expect(t.db.prepare('select count(*) n from target_block').get()).toEqual({ n: 1 });
+  t.release(); await t.step(3);
+  expect(t.states()[0].item).toBe('needs_review'); // the late response belongs to a fenced epoch
+  expect(t.driver.ledger.clicks).toBe(1);
+});
+
+test('heartbeat after click: at most one ping per 5 s while a response is awaited', async () => {
+  const t = await awaitingRig();
+  const pings = () => t.log.filter((l) => l === 'ping').length;
+  const n0 = pings();
+  t.clock.t += 2000; await t.step(); t.clock.t += 2000; await t.step();
+  expect(pings()).toBe(n0);
+  t.clock.t += 1000; await t.step();
+  expect(pings()).toBe(n0 + 1);
+  t.clock.t += 4000; await t.step();
+  expect(pings()).toBe(n0 + 1);
+  expect(t.states()[0].item).toBe('submitting'); // a healthy heartbeat changes nothing
+});
+
+for (const [name, bad] of [['page id changed (reload)', (t: ReturnType<typeof rig>) => { t.obs.id = 'reloaded'; }], ['ping throws', (t: ReturnType<typeof rig>) => { t.obs.throws = true; }], ['hooks not intact', (t: ReturnType<typeof rig>) => { t.obs.dead = true; }]] as const) {
+  test(`heartbeat: ${name} ⇒ tab fenced, awaiting attempt uncertain, never resent`, async () => {
+    const t = await awaitingRig();
+    bad(t); t.clock.t += 5000; await t.step();
+    expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+    t.release(); await t.step(2);
+    expect(t.driver.ledger.clicks).toBe(1);
+  });
+}
+
+test('first click after a fence disarms the tab first: arm(tab, null) before click', async () => {
+  const t = go(['image-ok'], { n: 1 });
+  const order: string[] = [];
+  const { arm, click } = t.driver;
+  t.driver.arm = async (tab, e) => { order.push(`arm:${e}`); return arm(tab, e); };
+  t.driver.click = async (tab, e) => { order.push('click'); return click(tab, e); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  await t.step(3);
+  expect(order).toEqual(['arm:null', 'click']);
+});
+
+test('disarm failure is ignored; an unfenced tab is never disarmed', async () => {
+  const t = go(['image-ok'], { n: 1 });
+  t.driver.arm = async () => { throw new ConnectorError('gone'); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+  const u = go(['image-ok', 'image-ok'], { n: 2 }); await u.step(6);
+  expect(u.driver.ledger.arms).toBe(0);
+});
+
+const userSend = (t: ReturnType<typeof rig>) => t.driver.userSends('t1', 'image', false); // the page made a generate we did not click
+
+test('double-send guard: an extra send between two clicks pauses UNEXPECTED_GENERATE, no intent, no click; resume goes on', async () => {
+  const t = go(['image-ok', 'image-ok', 'image-ok'], { n: 3 });
+  await t.step(1); userSend(t);
+  await t.step(1);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(t.runner.lastError(t.batchId)).toBe('UNEXPECTED_GENERATE');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(t.db.prepare("select count(*) n from journal_event where type='intent'").get()).toEqual({ n: 1 });
+  expect(t.states()[1].item).toBe('preparing');
+  t.runner.resume(t.batchId); await t.step(8);
+  expect(count('ready', t.states())).toBe(3);
+});
+
+test('double-send guard: five normal clicks never trip it; a fence rebases it', async () => {
+  const t = go(Array(5).fill('image-ok') as FakeScript, { n: 5 });
+  await t.step(14);
+  expect(count('ready', t.states())).toBe(5);
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+  const u = go(['image-ok', 'image-ok'], { n: 2 });
+  await u.step(1); userSend(u); u.deliver({ type: 'disconnected', tabId: 't1' });
+  await u.step(4);
+  expect(u.driver.ledger.clicks).toBe(2);
+  expect(u.runner.lastError(u.batchId)).toBeNull();
+  const v = go(['image-ok', 'image-ok'], { n: 2 });
+  await v.step(1); userSend(v); v.obs.id = 'reloaded';
+  await v.step(4);
+  expect(v.driver.ledger.clicks).toBe(2); // new page id ⇒ new base
+});
+
+test('double-send guard also holds in manual mode: pauses before the second arm', async () => {
+  const t = go(['image-ok', 'image-ok'], { n: 2, mode: 'manual' });
+  await t.step(1);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.driver.userSends('t1', 'image'); // armed and delivered: accounted for
+  userSend(t); // one more nobody armed
+  await t.step(2);
+  expect(t.runner.lastError(t.batchId)).toBe('UNEXPECTED_GENERATE');
+  expect(t.states()[1].item).toBe('preparing');
+  expect(t.driver.ledger.arms).toBe(1);
 });

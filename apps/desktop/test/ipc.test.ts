@@ -116,3 +116,17 @@ test('clockFactor: non-numeric or <=0 means 1; errorCode never leaks messages', 
   expect(errorCode(Object.assign(new Error('/home/x/secret'), { code: 'ENOENT' }))).toBe('ENOENT');
   expect(errorCode(new Error('/home/x/token abc'))).toBe('CONNECTOR_FAILED');
 });
+
+test('archiveBatch needs {batchId, confirm: true}; anything else is INVALID_ARGS and archives nothing', async () => {
+  const { h, db } = rig();
+  const { batchId } = (await h.enqueueBatch(good)) as { batchId: string };
+  for (const bad of [batchId, { batchId }, { batchId, confirm: 'true' }, { batchId, confirm: false }, { confirm: true }, null]) await expect(h.archiveBatch(bad)).rejects.toThrow(/INVALID_ARGS/);
+  expect(db.prepare('select archived a from batch where id=?').get(batchId)).toEqual({ a: 0 });
+  await h.archiveBatch({ batchId, confirm: true });
+  expect(db.prepare('select archived a from batch where id=?').get(batchId)).toEqual({ a: 1 });
+});
+
+test('rerun needs {attemptId, confirmCost: true}', async () => {
+  const { h } = rig();
+  for (const bad of ['x', { attemptId: 'x' }, { attemptId: 'x', confirmCost: 1 }, { attemptId: 'x', confirmCost: false }, { confirmCost: true }, { attemptId: 7, confirmCost: true }, undefined]) await expect(h.rerun(bad)).rejects.toThrow(/INVALID_ARGS/);
+});
