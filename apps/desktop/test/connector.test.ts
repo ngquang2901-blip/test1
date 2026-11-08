@@ -1,0 +1,211 @@
+import { test, expect, afterEach } from 'vitest'
+import WebSocket from 'ws'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, statSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { createHash } from 'node:crypto'
+import { startConnectorServer } from '../src/main/connector/server'
+import { installExtension } from '../src/main/connector/pairing'
+import { createExtDriver } from '../src/main/connector/ext-driver'
+import { EXT_ID } from '../src/main/connector/ext-id'
+import { ConnectorError, type DriverEvent } from '../src/main/driver'
+
+const TOKEN = 'ab'.repeat(32)
+const ORIGIN = `chrome-extension://${EXT_ID}`
+const closers: Array<() => unknown> = []
+afterEach(async () => { for (const c of closers.splice(0).reverse()) await c() })
+
+const boot = async () => {
+  const s = await startConnectorServer({ token: TOKEN, extensionId: EXT_ID })
+  closers.push(() => s.close())
+  return s
+}
+type Client = { ws: WebSocket; msgs: any[]; closed: Promise<number>; next(): Promise<any> }
+const connect = async (port: number, o: { token?: string; origin?: string } = {}): Promise<Client> => {
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, { headers: { Origin: o.origin ?? ORIGIN } })
+  const msgs: any[] = []
+  const waiters: Array<(m: any) => void> = []
+  ws.on('message', (d) => { const m = JSON.parse(d.toString()); const w = waiters.shift(); if (w) w(m); else msgs.push(m) })
+  const closed = new Promise<number>((r) => ws.on('close', (c) => r(c)))
+  ws.on('error', () => {})
+  await new Promise((r) => { ws.once('open', r); ws.once('close', r) })
+  closers.push(() => ws.terminate())
+  return { ws, msgs, closed, next: () => (msgs.length ? Promise.resolve(msgs.shift()) : new Promise((r) => waiters.push(r))) }
+}
+const tick = () => new Promise((r) => setTimeout(r, 20))
+
+test('rejects wrong token', async () => {
+  const s = await boot()
+  expect(await (await connect(s.port, { token: 'cd'.repeat(32) })).closed).toBe(4401)
+  expect(await (await connect(s.port, { token: 'x' })).closed).toBe(4401)
+})
+test('rejects wrong origin', async () => {
+  const s = await boot()
+  expect(await (await connect(s.port, { origin: 'chrome-extension://' + 'a'.repeat(32) })).closed).toBe(4401)
+  expect(await (await connect(s.port, { origin: 'https://evil.example' })).closed).toBe(4401)
+})
+test('server listens on loopback only', async () => {
+  const s = await boot()
+  expect(s.address().address).toBe('127.0.0.1')
+})
+test('send with no connection rejects ConnectorError', async () => {
+  const s = await boot()
+  await expect(s.send('ping', { tabId: 1 })).rejects.toBeInstanceOf(ConnectorError)
+})
+test('ordinary round trip: id and connection epoch echoed', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  const p = s.send('state', { tabId: 7 })
+  const m = await c.next()
+  expect(m).toMatchObject({ op: 'state', args: { tabId: 7 }, epoch: s.epoch() })
+  c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: { x: 1 } }))
+  expect(await p).toEqual({ x: 1 })
+  const q = s.send('state', { tabId: 7 })
+  const m2 = await c.next()
+  c.ws.send(JSON.stringify({ id: m2.id, epoch: m2.epoch, ok: false, error: 'boom' }))
+  await expect(q).rejects.toThrow('boom')
+})
+test('newest connection wins: old closed, epoch up, pending of old rejects, late old reply ignored', async () => {
+  const s = await boot()
+  const events: DriverEvent[] = []
+  s.onEvent((e) => events.push(e))
+  const c1 = await connect(s.port)
+  const e1 = s.epoch()
+  const old = s.send('state', { tabId: 5 })
+  const oldRejected = expect(old).rejects.toBeInstanceOf(ConnectorError)
+  const oldMsg = await c1.next()
+  ;(c1.ws as any)._socket.pause() // keep the old client unaware of the close so its late reply really reaches the server
+  const c2 = await connect(s.port)
+  expect(s.epoch()).toBe(e1 + 1)
+  await oldRejected
+  const fresh = s.send('state', { tabId: 5 })
+  const m = await c2.next()
+  expect(m.id).not.toBe(oldMsg.id)
+  // old socket (already closing) tries to answer the new call's id and the old one: both must be ignored
+  c1.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: 'evil' }))
+  await tick()
+  c2.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: 'good' }))
+  expect(await fresh).toBe('good')
+  ;(c1.ws as any)._socket.resume()
+  await c1.closed
+  expect(events).toEqual([{ type: 'disconnected', tabId: '5' }])
+})
+test('reply with unknown id is dropped; keepalive ignored', async () => {
+  const s = await boot()
+  const events: DriverEvent[] = []
+  s.onEvent((e) => events.push(e))
+  const c = await connect(s.port)
+  c.ws.send(JSON.stringify({ id: 9999, ok: true, result: 1 }))
+  c.ws.send(JSON.stringify({ keepalive: Date.now() }))
+  c.ws.send('not json')
+  await tick()
+  expect(events).toEqual([])
+  const p = s.send('state', { tabId: 1 })
+  const m = await c.next()
+  c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: 'still fine' }))
+  expect(await p).toBe('still fine')
+})
+test('sent/response events pass through unchanged; disconnected once per addressed or seen tab', async () => {
+  const s = await boot()
+  const events: DriverEvent[] = []
+  s.onEvent((e) => events.push(e))
+  const c = await connect(s.port)
+  const sent = { type: 'sent', tabId: 3, epoch: 42, request: 'f.req=x' }
+  const resp = { type: 'response', tabId: 3, epoch: 42, rpc: 'r', text: 't', request: 'f.req=x' }
+  c.ws.send(JSON.stringify(sent))
+  c.ws.send(JSON.stringify(resp))
+  void s.send('state', { tabId: 8 }).catch(() => {})
+  await tick()
+  expect(events).toEqual([{ ...sent, tabId: '3' }, { ...resp, tabId: '3' }])
+  c.ws.close()
+  await c.closed
+  await tick()
+  const gone = events.slice(2)
+  expect(gone).toHaveLength(2)
+  expect(gone).toEqual(expect.arrayContaining([{ type: 'disconnected', tabId: '3' }, { type: 'disconnected', tabId: '8' }]))
+  await tick()
+  expect(events).toHaveLength(4)
+})
+test('ext-driver: click puts runner epoch in msg.epoch, arm in args.epoch; ping merges account email', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  const d = createExtDriver(s)
+  const CLICK = { found: true, disabled: false, listeners: 1, called: 1 }
+  const click = d.click('11', 777)
+  const m = await c.next()
+  expect(m).toMatchObject({ op: 'trusted', epoch: 777, args: { tabId: 11 } })
+  expect(m.epoch).not.toBe(s.epoch())
+  c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: CLICK }))
+  expect(await click).toEqual(CLICK)
+  const arm = d.arm('11', 5)
+  const a = await c.next()
+  expect(a).toMatchObject({ op: 'arm', epoch: s.epoch(), args: { tabId: 11, epoch: 5 } })
+  c.ws.send(JSON.stringify({ id: a.id, epoch: a.epoch, ok: true, result: true }))
+  await arm
+  const ping = d.ping('11')
+  const p = await c.next()
+  expect(p.op).toBe('ping')
+  c.ws.send(JSON.stringify({ id: p.id, epoch: p.epoch, ok: true, result: { version: '0.1.0', seq: 1 } }))
+  const acc = await c.next()
+  expect(acc.op).toBe('account')
+  c.ws.send(JSON.stringify({ id: acc.id, epoch: acc.epoch, ok: true, result: 'a@b.c' }))
+  expect(await ping).toMatchObject({ version: '0.1.0', email: 'a@b.c' })
+})
+test('ext-driver: unimplemented ops fail closed', async () => {
+  const d = createExtDriver(await boot())
+  expect(await d.prepare('1', { prompt: 'x', kind: 'image', settings: {}, refIds: [] })).toEqual({ ok: false, code: 'NOT_IMPLEMENTED' })
+  expect(await d.checkBeforeClick('1', 'p')).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+  await expect(d.readProject('p')).rejects.toThrow()
+})
+test('ext-driver: disconnect reaches onEvent subscribers', async () => {
+  const s = await boot()
+  const got: DriverEvent[] = []
+  createExtDriver(s).onEvent((e) => got.push(e))
+  const c = await connect(s.port)
+  void s.send('state', { tabId: 2 }).catch(() => {})
+  await tick()
+  c.ws.close()
+  await c.closed
+  await tick()
+  expect(got).toEqual([{ type: 'disconnected', tabId: '2' }])
+})
+test('token never appears in errors or console output', async () => {
+  const logs: string[] = []
+  const spies = (['log', 'error', 'warn', 'info'] as const).map((k) => { const o = console[k]; console[k] = (...a: unknown[]) => void logs.push(a.join(' ')); return () => { console[k] = o } })
+  try {
+    const s = await boot()
+    const bad = await connect(s.port, { token: 'cd'.repeat(32) })
+    await bad.closed
+    const errs: string[] = []
+    await s.send('ping', { tabId: 1 }).catch((e) => errs.push(String(e), e.stack ?? ''))
+    const c = await connect(s.port)
+    const p = s.send('ping', { tabId: 1 }).catch((e) => errs.push(String(e)))
+    await c.next()
+    c.ws.terminate()
+    await p
+    expect([...errs, ...logs].join('\n')).not.toContain(TOKEN)
+    expect(errs.length).toBeGreaterThan(0)
+  } finally { spies.forEach((f) => f()) }
+})
+test('ext id from key is 32 [a-p] chars and matches an independent computation', () => {
+  expect(EXT_ID).toMatch(/^[a-p]{32}$/)
+  const key = JSON.parse(readFileSync(new URL('../../extension/manifest.json', import.meta.url), 'utf8')).key
+  const hex = createHash('sha256').update(Buffer.from(key, 'base64')).digest('hex').slice(0, 32)
+  expect([...hex].map((c) => 'abcdefghijklmnop'[parseInt(c, 16)]).join('')).toBe(EXT_ID)
+})
+test('install keeps token across updates, overwrites files, rewrites port, 0600', () => {
+  const root = mkdtempSync(join(tmpdir(), 'tf-pair-'))
+  closers.push(() => rmSync(root, { recursive: true, force: true }))
+  const bundled = join(root, 'bundled')
+  mkdirSync(bundled)
+  writeFileSync(join(bundled, 'sw.js'), 'v1')
+  const a = installExtension(bundled, join(root, 'ud'), 1111)
+  expect(a.token).toMatch(/^[0-9a-f]{64}$/)
+  writeFileSync(join(a.dir, 'sw.js'), 'tampered')
+  writeFileSync(join(bundled, 'sw.js'), 'v2')
+  const b = installExtension(bundled, join(root, 'ud'), 2222)
+  expect(b.token).toBe(a.token)
+  expect(readFileSync(join(b.dir, 'sw.js'), 'utf8')).toBe('v2')
+  expect(JSON.parse(readFileSync(join(b.dir, 'pair.json'), 'utf8'))).toEqual({ port: 2222, token: a.token })
+  if (process.platform !== 'win32') expect(statSync(join(b.dir, 'pair.json')).mode & 0o777).toBe(0o600)
+})
