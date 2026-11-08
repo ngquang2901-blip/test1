@@ -7,9 +7,11 @@ import { startConnectorServer } from '../src/main/connector/server'
 import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
 import { EXT_ID } from '../src/main/connector/ext-id'
 import flow from '../profiles/flow.json'
+import { correlate, parseGenerateRequest, parseImageReceipt, parseRpcResponse, readFReq } from '@toolflow/flow-protocol/parse'
 
 const userData = process.env.TOOLFLOW_USER_DATA ?? join(homedir(), '.local/share/toolflow-live')
 const mask = (e: unknown): string => (typeof e === 'string' ? e.replace(/^(.{2}).*(@.*)$/, '$1***$2') : String(e))
+const PROMPT = process.env.PROMPT ?? 'a single yellow lemon on a blue plate'
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 const server = await startConnectorServer({ token: readOrCreateToken(userData), extensionId: EXT_ID })
@@ -63,8 +65,39 @@ if (watchMin > 0 && tabs[0]) {
   let lastGen = -1
   // ARM=1: act like the manual-mode runner: arm the tab with an epoch, then the user's own send must come back as events with that epoch.
   const armEpoch = process.env.ARM === '1' ? Date.now() : null
-  server.onEvent((e) => console.log(`${new Date().toISOString().slice(11, 19)} EVENT ${e.type} tab=${e.tabId}` + ('epoch' in e ? ` epoch=${e.epoch === armEpoch ? 'ARMED' : e.epoch}` : '') + ('rpc' in e ? ` rpc=${e.rpc} text=${e.text.length}B` : '') + ('request' in e ? ` request=${String(e.request).length}B` : '')))
+  // AUTO=1: act like the auto runner: fill the composer (prep, never submits), then our own trusted click with a fresh epoch. Needs an empty composer.
+  const autoEpoch = process.env.AUTO === '1' && armEpoch === null ? Date.now() : null
+  // Parse the live traffic with the product parser, in memory only; print structure facts, never ids/urls/bodies.
+  let liveReq: ReturnType<typeof parseGenerateRequest> | undefined
+  const check = (e: { type: string; request?: unknown; text?: string; rpc?: string }): void => {
+    try {
+      if (e.type === 'sent') {
+        liveReq = parseGenerateRequest(readFReq(e.request as string))
+        console.log(`  parse request OK: rpc=${liveReq.rpc} items=${liveReq.items.length} batchId=uuid prompt0Matches=${liveReq.items[0].prompt === PROMPT} aspect=${liveReq.items[0].aspectCode} seedInt=${Number.isInteger(liveReq.items[0].seed)}`)
+      } else if (e.type === 'response' && liveReq) {
+        const r = parseRpcResponse(e.text ?? '', e.rpc ?? '') as { error?: unknown; payload?: unknown }
+        if (r.error) { console.log('  response is an error:', JSON.stringify(r.error)); return }
+        const rc = parseImageReceipt(r.payload) as { batchId: string; outputs: unknown[] }
+        const c = correlate(liveReq, rc as never) as { owned: boolean; reason?: string; outputs?: unknown[] }
+        console.log(`  parse response OK: outputs=${rc.outputs.length} correlate owned=${c.owned}${c.reason ? ' reason=' + c.reason : ''} batchMatches=${rc.batchId === liveReq.batchId}`)
+      }
+    } catch (err) { console.log('  PARSE FAILED:', (err as Error).message.slice(0, 160)) }
+  }
+  server.onEvent((e) => { if ((e.type === 'sent' || e.type === 'response') && ('epoch' in e)) check(e) })
+  server.onEvent((e) => console.log(`${new Date().toISOString().slice(11, 19)} EVENT ${e.type} tab=${e.tabId}` + ('epoch' in e ? ` epoch=${e.epoch === armEpoch || e.epoch === autoEpoch ? 'OURS' : e.epoch}` : '') + ('rpc' in e ? ` rpc=${e.rpc} text=${e.text.length}B` : '') + ('request' in e ? ` request=${String(e.request).length}B` : '')))
   if (armEpoch !== null) { await server.send('arm', { tabId: tabs[0].tabId, epoch: armEpoch }); console.log('armed (manual mode): now send ONE generate in Flow') }
+  if (autoEpoch !== null) {
+    const a = { tabId: tabs[0].tabId }
+    const st = (await server.send('state', a)) as { text: string | null }
+    if (st.text) console.log('AUTO aborted: composer is not empty')
+    else {
+      const prep = (await server.send('prep', { ...a, prompt: PROMPT })) as { ok: boolean; textMatches: boolean; submitDisabled: boolean | null }
+      console.log(`prep: ok=${prep.ok} textMatches=${prep.textMatches} submitDisabled=${prep.submitDisabled}`)
+      if (prep.ok && prep.textMatches && prep.submitDisabled === false) {
+        console.log('click result:', JSON.stringify(await server.send('trusted', a, autoEpoch)))
+      } else console.log('AUTO aborted: composer not ready, no click made')
+    }
+  }
   for (const end = Date.now() + watchMin * 60_000; Date.now() < end; await sleep(1500)) {
     try {
       const p = (await server.send('ping', { tabId: tabs[0].tabId })) as { gen: number; id: string }
