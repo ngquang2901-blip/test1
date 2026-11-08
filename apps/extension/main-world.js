@@ -79,12 +79,23 @@
     }
     return xs.apply(this, arguments);
   };
+  // Live finding: Flow sends generate (ogiZ0b) via fetch, so this path must feed the same sent/response events as XHR.
+  const readBody = (input, init) => { try { // sync part runs before the page fetch can consume a Request body
+    if (init && init.body != null) return Promise.resolve(String(init.body));
+    if (input && typeof input.clone === 'function') return input.clone().text();
+  } catch (_) { /* unreadable body: desktop fails closed on an empty request */ } return Promise.resolve(''); };
   const of = window.fetch;
   window.fetch = async function (input, init) {
     const url = String(input?.url || input);
-    if (gen(url)) tracker.count();
+    const rpc = gen(url);
+    const reqP = rpc ? readBody(input, init).catch(() => '') : null;
+    const epoch = rpc ? tracker.send() : undefined; // counts gen too, so a skip can never read 'nothing sent'
+    if (reqP) reqP.then((request) => emit('toolflow:event', { type: 'sent', epoch, request })).catch(() => {});
     const r = await of.apply(this, arguments);
-    if (RPCS.test(url)) r.clone().text().then((t) => push(url, '', r.status, t, 'fetch')).catch(() => {});
+    if (RPCS.test(url)) r.clone().text().then(async (t) => {
+      push(url, '', r.status, t, 'fetch');
+      if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: t, request: await reqP });
+    }).catch(() => {});
     return r;
   };
   nativeAdd.call(document, 'toolflow:net', () => emit('toolflow:net-result', net.splice(0, net.length)));

@@ -9,7 +9,7 @@ Check:
 - [x] App shows "Đã kết nối"; extension id equals `EXT_ID` (ext-id.ts). (Linux, pair-check.mjs)
 - [x] Quit and restart the app: extension reconnects within 30 s. (Linux: 29 s — at the limit)
 - [x] `pair.json` is re-read after the port changes (unpacked extension serves files from disk). (Linux)
-- [ ] A generate goes over XHR (not fetch) and `sent`/`response` events arrive.
+- [x] Generate transport checked live 2026-11-08 (Chrome Profile 1, real Flow): **ogiZ0b goes over `fetch`, not XHR** (also Zzl0ze and nzlxg). The P1 hooks only fed events from XHR, so no `sent`/`response` would have reached the desktop; fixed in p2-live-probe (fetch path now emits events; vm tests). Still to confirm live: events arrive end to end with an armed epoch.
 - [ ] Main-world `arm` / `trusted` click path works end to end.
 
 ## P1 gate — Linux (2026-11-08, p1-foundation tip = the commit that contains this file; base 3611a88)
@@ -66,3 +66,10 @@ Check:
 - Tab discovery + focusTab (AC-01 / AC-11).
 - Rerun + archive-confirm UI (AC-10 / AC-22).
 - Strip fake / `TOOLFLOW_EXT_DIR` env paths at P4.
+
+## Live findings (2026-11-08, Chrome Profile 1, real Flow tab)
+- Extension paired and hooks intact on a real Flow tab; account label read; tab listing works (`tabs` op).
+- Flow URL is `https://flow.google.com/...` (matches the manifest).
+- Transport: `ogiZ0b` (image generate), `Zzl0ze`, `nzlxg` all via `fetch`. XHR is not used for these. Generate took ~24 s from send to response.
+- `gen` moved 0→1 at the manual generate, so the skip-continuity rule (R40) works with the fetch path.
+- Selectors editor/submit were absent on the Flow home page (no project open) — expected; not yet checked inside a project.
