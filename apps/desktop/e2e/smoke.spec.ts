@@ -148,3 +148,18 @@ test('real mode survives a connector failure: window opens, S1 shows the error c
   await expect(page.getByText('Chưa kết nối')).toBeVisible()
   await expect(page.locator('body')).not.toContainText(missing)
 })
+
+test('S1 lists the Flow tab; an ungranted tab runs nothing until "Dùng tab này" (AC-01, AC-27)', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.locator('[data-testid=flow-tab]')).toHaveCount(1)
+  await create(page, ['một con mèo'])
+  await page.waitForTimeout(1500)
+  await expect(items(page).filter({ hasText: 'Đang chờ' })).toHaveCount(1) // nothing was sent: no tab granted
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await tabTo(page, 'Dùng tab này') // keyboard reachable
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Đang dùng')).toBeVisible()
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+})

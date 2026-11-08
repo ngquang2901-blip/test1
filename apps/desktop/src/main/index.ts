@@ -16,6 +16,7 @@ import { createExtDriver } from './connector/ext-driver'
 import { startConnectorServer } from './connector/server'
 import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
+import { createGrants, tabStatus, type Grants } from './tabs'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -41,7 +42,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const clock = { now: () => t0 + (Date.now() - t0) * x }
 
   let driver: FlowDriver
-  let tabs: string[]
+  let grants!: Grants // assigned once the runner exists; the ext driver only asks it lazily
   let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
   let probe: () => Omit<Probe, 'extVersion' | 'ping'>
   let connected: (() => boolean) | null = null // real mode only
@@ -52,12 +53,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')]) // default: everything succeeds
     rawPing = fake.ping
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
-    tabs = ['t1']
     if (process.env.TOOLFLOW_FAKE_AUTO !== '0') enableAuto(db, 'fake@example.invalid', Date.now()) // test fixture: the fake account has opted in; '0' keeps D-19 default (off)
     extVersion = '0.0.0-fake'
     probe = () => ({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true })
   } else {
-    tabs = [] // shortcut: tab discovery is not built, live in P2
     // shortcut: extension probe op, live in P2 — fail closed
     probe = () => ({ present: {}, listeners: 0, sawProjectLoad: false })
     rawPing = () => Promise.reject(new Error('no driver'))
@@ -67,7 +66,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const server = await startConnectorServer({ token, extensionId: EXT_ID })
       // shortcut: dev path only, packaged resources path in P4
       installExtension(process.env.TOOLFLOW_EXT_DIR ?? join(app.getAppPath(), '../extension'), userData, server.port)
-      driver = createExtDriver(server)
+      driver = createExtDriver(server, { allow: (id) => grants.has(id) })
       rawPing = driver.ping
       connected = server.connected
     } catch (e) {
@@ -76,19 +75,24 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     }
   }
 
-  const runner = createRunner({ db, driver, clock, tabs, speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
+  const runner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
     selfCheckOk: async (t) => selfCheck({ ...probe(), ping: await rawPing(t), extVersion }).ok }) // wall-clock ping like session(); real mode: stub probe ⇒ manual
+  grants = createGrants(driver, runner)
+  if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
   runner.recover()
-  const email = async (): Promise<string | null> => (tabs[0] ? (await driver.ping(tabs[0])).email : null)
+  const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emit = revisioned((e) => win()?.webContents.send('state', e))
   const h = createHandlers({
-    db, runner, clock, emit, email,
+    db, runner, clock, emit, email, grants,
     projectId: FAKE ? 'fake-project' : 'unbound', // shortcut: project comes from the live tab in P2
     getDraft: () => draft,
     saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
     async session() {
       const em = await email()
-      const ping = tabs[0] ? await rawPing(tabs[0]) : null
+      const t0 = grants.granted()[0]
+      const ping = t0 ? await rawPing(t0) : null
+      const list = await grants.list().catch(() => []) // extension absent ⇒ empty list
+      const tabs = list.map((t) => ({ ...t, status: tabStatus(t), granted: grants.has(t.tabId) }))
       return {
         fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
         autoEnabled: autoAllowed(db, em),

@@ -624,3 +624,30 @@ test('passing self-check keeps auto', async () => {
   await t.step(2);
   expect(t.driver.ledger.clicks).toBe(1);
 });
+
+test('setTabs: a removed tab with a sent attempt is fenced (uncertain, late response ignored), never dropped; an added tab takes work', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, tabs: [], hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(t.driver.ledger.clicks).toBe(0); // no tab, no work
+  t.runner.setTabs(['t1']);
+  await t.step(2);
+  expect(t.states()[0].item).toBe('submitting');
+  t.runner.setTabs(['t2']);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain', creditSpent: true });
+  t.release(); // the old tab's response arrives under the old epoch
+  await t.step();
+  expect(t.states()[0].item).toBe('needs_review');
+});
+
+test('manual: the tab is focused before it is armed, and a focus failure does not block arming', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  const order: string[] = [];
+  const arm = t.driver.arm;
+  t.driver.arm = async (tab, e) => { order.push('arm'); return arm(tab, e); };
+  t.driver.focusTab = async (tab) => { order.push(`focus ${tab}`); throw new ConnectorError('focus lost'); };
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(order).toEqual(['focus t1', 'arm']);
+  expect(t.states()[0].item).toBe('awaiting_user');
+});

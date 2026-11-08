@@ -242,3 +242,36 @@ test('first run: one persisted token shared by server and pair.json; stable on r
   expect(readOrCreateToken(ud)).toBe(t2)
   if (process.platform !== 'win32') expect(statSync(join(dir, 'pair.json')).mode & 0o777).toBe(0o600)
 })
+
+test('listTabs composes tabs + account (no content script ⇒ email null); only a granted tab ever receives trusted/arm', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  const U = (n: number) => `0b4d3c1e-1111-4222-8333-44445555666${n}`
+  const answer = async () => {
+    const seen: any[] = []
+    c.ws.on('message', (d) => {
+      const m = JSON.parse(d.toString()); seen.push(m)
+      const reply = (r: unknown, ok = true) => c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ...(ok ? { ok, result: r } : { ok, error: r }) }))
+      if (m.op === 'tabs') reply([{ tabId: 1, path: '/fx/tools/flow', active: true }, { tabId: 2, path: `/fx/tools/flow/project/${U(1)}`, active: false }, { tabId: 3, path: `/fx/tools/flow/project/${U(2)}`, active: false }])
+      else if (m.op === 'account') m.args.tabId === 3 ? reply('no content script in tab', false) : reply(`u${m.args.tabId}@x.y`)
+      else reply(true)
+    })
+    return seen
+  }
+  const seen = await answer()
+  const d = createExtDriver(s, { allow: (t) => t === '2' })
+  expect(await d.listTabs()).toEqual([
+    { tabId: '1', projectId: null, email: 'u1@x.y', active: true },
+    { tabId: '2', projectId: U(1), email: 'u2@x.y', active: false },
+    { tabId: '3', projectId: U(2), email: null, active: false },
+  ])
+  seen.length = 0
+  for (const t of ['1', '2', '3']) {
+    await d.click(t, 5).catch(() => {})
+    await d.arm(t, 5).catch(() => {})
+    await d.prepare(t, { prompt: 'p', kind: 'image', settings: {}, refIds: [] }).catch(() => {})
+  }
+  expect(seen.map((m) => [m.op, m.args.tabId])).toEqual([['trusted', 2], ['arm', 2]])
+  await d.focusTab('3') // focus is not a trusted op: no grant needed (the user may need to see any tab)
+  expect(seen.at(-1)).toMatchObject({ op: 'focus', args: { tabId: 3 } })
+})

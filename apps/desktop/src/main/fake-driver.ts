@@ -60,6 +60,7 @@ export function createFakeDriver(input: FakeScript) {
   const next = (k: keyof typeof pools) => pools[k][used[k]++ % pools[k].length];
   const listeners = new Set<(e: DriverEvent) => void>();
   const ledger = { clicks: 0, prepares: 0, readProject: 0, arms: 0, armLog: [] as Array<[string, number | null]> };
+  const focusLog: string[] = [];
   const armed = new Map<string, number | undefined>(); // page tracker: pending (key present) + the epoch it would stamp (undefined = ambiguous)
   const gens = new Map<string, number>(); // generate sends the page made (ours or not), reported by ping
   const bump = (tab: string) => gens.set(tab, (gens.get(tab) ?? 0) + 1);
@@ -90,8 +91,8 @@ export function createFakeDriver(input: FakeScript) {
     return [{ tabId, type: 'sent', epoch, request: body }, { tabId, type: 'response', epoch, rpc: done.rpc, text, request: body }];
   };
 
-  const driver: FlowDriver & { ledger: typeof ledger; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[] } = {
-    ledger, emit,
+  const driver: FlowDriver & { ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[] } = {
+    ledger, emit, focusLog,
     async ping(tabId): Promise<Ping> {
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },
@@ -114,7 +115,8 @@ export function createFakeDriver(input: FakeScript) {
       ledger.readProject++;
       return fx('project-Zzl0ze').find((r) => r.phase === 'done')!.res!;
     },
-    async focusTab() {},
+    async listTabs() { return [{ tabId: 't1', projectId: '0b4d3c1e-1111-4222-8333-444455556666', email: 'fake@example.invalid', active: true }]; },
+    async focusTab(tabId) { focusLog.push(tabId); },
     async arm(tabId, epoch) { ledger.arms++; ledger.armLog.push([tabId, epoch]); if (epoch === null) armed.delete(tabId); else armed.set(tabId, armed.has(tabId) ? undefined : epoch); }, // arming while pending is ambiguous
     // The user clicks Gửi in Flow: the page stamps the ARMED epoch (undefined when not armed) and the tracker is spent.
     userSends(tabId, kind, deliver = true) {

@@ -4,12 +4,13 @@ import type { Db } from './db';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
+import type { Grants } from './tabs';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
-  db: Db; runner: Runner; projectId: string; clock: { now(): number };
+  db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId: string; clock: { now(): number };
   email(): Promise<string | null>; session(): Promise<object>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
 };
 
@@ -92,6 +93,7 @@ export function createHandlers(d: Deps) {
       const o = obj(a), id = str(o.attemptId), to = oneOf(o.to, 'sent', 'not_sent');
       mut(batchOf(id), () => d.runner.confirm(id, to));
     },
+    async useTabs(a: unknown) { d.grants.use(a); }, // validates against the last listing; session-only
     async enableAuto(a: unknown) {
       if (obj(a ?? {}).ack !== true) throw Object.assign(new Error('ACK_REQUIRED'), { code: 'ACK_REQUIRED' });
       const email = await d.email();

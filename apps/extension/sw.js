@@ -36,6 +36,7 @@ async function handle(op, a, epoch) {
   }
   switch (op) {
     case 'tabs': return (await chrome.tabs.query({ url: 'https://flow.google.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only, no query string
+    case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;
     case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await chrome.tabs.reload(a.tabId); return true;
     case 'download': return await chrome.downloads.download({ url: a.url, filename: a.filename, conflictAction: 'uniquify' });

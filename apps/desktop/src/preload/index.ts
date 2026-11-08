@@ -11,6 +11,7 @@ const api = {
   stopBatch: call('stopBatch'),
   confirmUncertain: call('confirmUncertain'),
   archiveBatch: call('archiveBatch'),
+  useTabs: call('useTabs'),
   enableAuto: call('enableAuto'),
   disableAuto: call('disableAuto'),
   listBatches: call('listBatches'),

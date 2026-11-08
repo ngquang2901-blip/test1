@@ -20,7 +20,7 @@ test('validate rejects unknown ops and malformed envelopes', () => {
 });
 
 test('OPS is the exact allowlist, no debugger-style ops', () => {
-  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','probe']);
+  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe']);
   for (const bad of ['cdp', 'attach', 'debugger']) assert.ok(!OPS.includes(bad));
 });
 
@@ -152,4 +152,10 @@ test('probe needs a selectors map of strings; tabs takes no args', () => {
   for (const bad of [{}, { selectors: [] }, { selectors: { x: 1 } }, { selectors: { x: 'a'.repeat(300) } }, { selectors: 'x' }])
     assert.ok(validate(ok('probe', { tabId: 1, ...bad })), JSON.stringify(bad));
   assert.equal(validate(ok('tabs')), null);
+});
+
+test('focus needs an integer tabId', () => {
+  assert.equal(validate(ok('focus', { tabId: 4 })), null);
+  assert.ok(validate(ok('focus', {})));
+  assert.ok(validate(ok('focus', { tabId: '4' })));
 });

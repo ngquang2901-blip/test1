@@ -16,6 +16,7 @@ type Kind = 'image' | 'video';
 export type BatchStatus = 'queued' | 'running' | 'paused' | 'needs_review' | 'completed' | 'partial_failed' | 'failed' | 'stopped';
 export type Runner = {
   tick(): Promise<void>;
+  setTabs(ids: string[]): void; // dynamic tab set (session grant)
   rerun(attemptId: string, confirmedCost: true): string;
   start(batchId: string): void; pause(batchId: string): void; resume(batchId: string): void; stop(batchId: string): void;
   confirm(attemptId: string, to: 'sent' | 'not_sent'): void; archive(batchId: string): void; recover(): void;
@@ -45,7 +46,7 @@ export function createRunner(o: {
 }): Runner {
   const { db, driver, clock } = o;
   const max = CAPS[o.speed];
-  const tabs = o.tabs.slice(0, max.tabs);
+  let tabs = o.tabs.slice(0, max.tabs);
   const caps: Record<Kind, number> = { image: max.image, video: max.video };
   const queue: DriverEvent[] = [];
   driver.onEvent((e) => queue.push(e));
@@ -193,6 +194,7 @@ export function createRunner(o: {
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) { // manual, or intent refused (observer dead → batch paused by apply)
       if (s.item !== 'awaiting_user') return;
+      await driver.focusTab(tab).catch((e) => console.error('runner: focus failed', (e as { code?: string }).code)); // AC-11: the user sends in this tab; a failed focus never blocks arming
       try { await driver.arm(tab, epoch(tab)); } catch (err) { // R39/R40: a blind tab must not be waited on, and the arm may have reached the page before it threw: the user may still send, so never cancelled. prep_failed is illegal after intent; skip+armFailed is the legal route to uncertain
         try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now(), armFailed: true }); } catch (e2) { fail(i.batch, e2); return; }
         fail(i.batch, err);
@@ -262,6 +264,11 @@ export function createRunner(o: {
   }
 
   return {
+    setTabs(ids) { // a dropped tab loses observation: same fence as a disconnect, so its in-flight attempts turn uncertain instead of vanishing
+      const next = ids.slice(0, max.tabs);
+      for (const t of tabs) if (!next.includes(t)) fence(t);
+      tabs = next;
+    },
     tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p; },
     start(b) { paused.delete(b); unc.delete(b); setStatus(b, 'queued', 'running'); },
     pause(b) { setStatus(b, 'running', 'paused'); paused.set(b, null); unc.delete(b); },
