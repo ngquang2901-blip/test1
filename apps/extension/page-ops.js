@@ -45,6 +45,7 @@
       const e = $(a.sel); if (!e) return 'NOTFOUND';
       e.focus(); e.value = a.text; e.dispatchEvent(new Event('input', { bubbles: true })); await sleep(a.wait || 1500); return 'filled';
     },
+    probe: (a) => ({ present: Object.fromEntries(Object.entries(a.selectors).map(([k, s]) => { try { return [k, !!document.querySelector(s)]; } catch (_) { return [k, false]; } })), path: location.pathname }), // read-only DOM presence check
     hit: () => ask('toolflow:hit'),
     async trusted(a) { return (await ask('toolflow:submit', 1000, { epoch: a.epoch })) || { noMainWorld: true }; },
     async arm(a) { const r = await ask('toolflow:arm', 1000, { epoch: a.epoch }); if (!r?.ok) throw new Error('arm: no ack from main world'); return true; },

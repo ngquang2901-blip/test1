@@ -59,9 +59,9 @@
   const BIG = /^(Zzl0ze|bOKtO)$/;
   const net = [];
   const obs = { id: crypto.randomUUID(), seq: 0, dropped: 0 };
-  const push = (url, body, status, text) => {
+  const push = (url, body, status, text, via) => {
     const m = RPCS.exec(url); if (!m) return;
-    const rec = { t: Date.now(), rpc: m[1], status, res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000), seq: ++obs.seq };
+    const rec = { t: Date.now(), rpc: m[1], via, status, res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000), seq: ++obs.seq };
     net.push(rec); if (net.length > 200) { net.shift(); obs.dropped++; }
   };
   const gen = (url) => { const m = RPCS.exec(url); return m && GEN.test(m[1]) ? m[1] : null; };
@@ -73,18 +73,29 @@
       const rpc = gen(url); const req = String(b || ''); const epoch = rpc ? tracker.send() : undefined;
       if (rpc) emit('toolflow:event', { type: 'sent', epoch, request: req });
       nativeAdd.call(this, 'loadend', () => { try {
-        push(url, b, this.status, this.responseText);
+        push(url, b, this.status, this.responseText, 'xhr');
         if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: this.responseText, request: req });
       } catch (e) { /* observer must never break the page */ } });
     }
     return xs.apply(this, arguments);
   };
+  // Live finding: Flow sends generate (ogiZ0b) via fetch, so this path must feed the same sent/response events as XHR.
+  const readBody = (input, init) => { try { // sync part runs before the page fetch can consume a Request body
+    if (init && init.body != null) return Promise.resolve(String(init.body));
+    if (input && typeof input.clone === 'function') return input.clone().text();
+  } catch (_) { /* unreadable body: desktop fails closed on an empty request */ } return Promise.resolve(''); };
   const of = window.fetch;
   window.fetch = async function (input, init) {
     const url = String(input?.url || input);
-    if (gen(url)) tracker.count();
+    const rpc = gen(url);
+    const reqP = rpc ? readBody(input, init).catch(() => '') : null;
+    const epoch = rpc ? tracker.send() : undefined; // counts gen too, so a skip can never read 'nothing sent'
+    if (reqP) reqP.then((request) => emit('toolflow:event', { type: 'sent', epoch, request })).catch(() => {});
     const r = await of.apply(this, arguments);
-    if (RPCS.test(url)) r.clone().text().then((t) => push(url, '', r.status, t)).catch(() => {});
+    if (RPCS.test(url)) r.clone().text().then(async (t) => {
+      push(url, '', r.status, t, 'fetch');
+      if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: t, request: await reqP });
+    }).catch(() => {});
     return r;
   };
   nativeAdd.call(document, 'toolflow:net', () => emit('toolflow:net-result', net.splice(0, net.length)));

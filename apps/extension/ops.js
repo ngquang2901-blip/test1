@@ -1,5 +1,5 @@
 // Pure: the only commands the desktop may send. No eval / debugger / raw CDP.
-export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm'];
+export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','probe'];
 
 const NEED_URL = new Set(['download', 'open']);
 
@@ -16,6 +16,7 @@ export function validate(msg) {
   if (!OPS.includes(op)) return `op not allowed: ${op}`;
   if (!args || typeof args !== 'object' || Array.isArray(args)) return 'args must be an object';
   if (op === 'arm' && !(Number.isInteger(args.epoch) || args.epoch === null)) return 'arm needs integer epoch or null';
+  if (op === 'probe' && !(args.selectors && typeof args.selectors === 'object' && !Array.isArray(args.selectors) && Object.values(args.selectors).every((v) => typeof v === 'string' && v.length < 300))) return 'probe needs a selectors map of strings';
   if (op === 'download' && !isAllowedDownloadUrl(args.url)) return 'download url not allowed';
   if (op === 'open' && !(typeof args.url === 'string' && args.url.startsWith('https://flow.google.com/'))) return 'open url not allowed';
   return null;
