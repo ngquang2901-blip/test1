@@ -20,16 +20,24 @@ test('validate rejects unknown ops and malformed envelopes', () => {
 });
 
 test('OPS is the exact allowlist, no debugger-style ops', () => {
-  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','probe']);
-  for (const bad of ['cdp', 'attach', 'debugger']) assert.ok(!OPS.includes(bad));
+  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate']);
+  for (const bad of ['cdp', 'eval', 'debugger']) assert.ok(!OPS.includes(bad));
 });
 
-test('download only https on Flow content hosts', () => {
+test('isAllowedDownloadUrl (guards fetchMedia\'s src): only https on Flow content hosts', () => {
   for (const u of ['https://flow-content.google/video/x.mp4', 'https://lh3.googleusercontent.com/a?b=1'])
-    assert.equal(validate(ok('download', { url: u })), null, u);
+    assert.equal(isAllowedDownloadUrl(u), true, u);
   for (const u of ['http://flow-content.google/x', 'https://evil.com/x', 'https://googleusercontent.com.evil.com/x',
     'https://notflow-content.google/x', 'https://flow-content.google.evil.com', 'https://x.googleusercontent.com.evil.com', 'https://flow-content.google' + '@evil.com/x', 'file:///etc/passwd', 'nonsense', undefined])
-    assert.ok(validate(ok('download', { url: u })), String(u));
+    assert.equal(isAllowedDownloadUrl(u), false, String(u));
+  assert.equal(isAllowedDownloadUrl('https://flow.google.com/asb/KEY=s1600-rw'), true); // measured: tile images
+  for (const u of ['https://flow.google.com/fx/api/trpc/x', 'https://flow.google.com/', 'https://flow.google.com/asbx', 'http://flow.google.com/asb/x', 'https://flow.google.com.evil.com/asb/x'])
+    assert.equal(isAllowedDownloadUrl(u), false, u); // the app's own API/pages are never fetched
+  // m2: nothing after /asb/ may smuggle a path out of it (the parser keeps %2f; backslash and // are separators for some stacks)
+  for (const u of ['https://flow.google.com/asb/..%2ffx/api', 'https://flow.google.com/asb/%2e%2e/fx/api', 'https://flow.google.com/asb/%2E%2E%2Ffx', 'https://flow.google.com/asb/a%2fb', 'https://flow.google.com/asb/a%5cb',
+    'https://flow.google.com/asb/a\\..\\fx', 'https://flow.google.com/asb//fx/api', 'https://flow.google.com/asb/a//b', 'https://flow.google.com/asb/a/../b', 'https://flow.google.com/asb/..', 'https://flow.google.com/asb/k=s1%2e'])
+    assert.equal(isAllowedDownloadUrl(u), false, u);
+  assert.equal(isAllowedDownloadUrl('https://flow.google.com/asb/AbC-_dEf123=s1600-rw?x=1'), true);
   assert.equal(isAllowedDownloadUrl('https://FLOW-CONTENT.google/x'), true);
   assert.equal(isAllowedDownloadUrl('https://a.b.googleusercontent.com/x'), true);
 });
@@ -94,17 +102,21 @@ test('validate arm: integer epoch or explicit null', () => {
 
 function loadMain(fetchImpl) {
   class ET { addEventListener(t, l) { (this.h ??= {})[t] = l; } removeEventListener() {} dispatchEvent(e) { this.h?.[e.type]?.(e); } }
-  const document = new ET(); document.querySelector = () => null;
+  class HB extends ET {} // a button the registry will record listeners on
+  const btn = new HB(); btn.disabled = false; let shown = false;
+  const document = new ET(); document.querySelector = () => (shown ? btn : null);
   const win = { fetch: fetchImpl };
-  const ctx = vm.createContext({ window: win, document, EventTarget: ET, HTMLButtonElement: class {}, XMLHttpRequest: class { open() {} send() {} },
+  const ctx = vm.createContext({ window: win, document, EventTarget: ET, HTMLButtonElement: HB, XMLHttpRequest: class { open() {} send() {} },
     crypto: { randomUUID: () => 'u' }, CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o?.detail; } }, globalThis: undefined });
   ctx.globalThis = ctx; vm.runInContext(readFileSync(new URL('../epoch.js', import.meta.url), 'utf8'), ctx);
   vm.runInContext(readFileSync(new URL('../main-world.js', import.meta.url), 'utf8'), ctx);
   const events = []; let ping;
-  document.addEventListener('toolflow:event', (e) => events.push(JSON.parse(e.detail)));
+  let breakEmit = false; // the test ET keeps one handler per type, so the collector doubles as the thrower
+  document.addEventListener('toolflow:event', (e) => { if (breakEmit) throw new Error('emit failed'); events.push(JSON.parse(e.detail)); });
   document.addEventListener('toolflow:ping-result', (e) => { ping = JSON.parse(e.detail); });
   const fire = (type, detail) => document.dispatchEvent({ type, detail: detail && JSON.stringify(detail) });
-  return { win, events, arm: (epoch) => fire('toolflow:arm', { epoch }), gen: () => { fire('toolflow:ping'); return ping.gen; } };
+  let lis; document.addEventListener('toolflow:listeners-result', (e) => { lis = JSON.parse(e.detail); });
+  return { win, events, btn, show: (v) => { shown = v; }, listeners: () => { lis = undefined; fire('toolflow:listeners'); return lis; }, ping: () => { fire('toolflow:ping'); return ping; }, breakEmit: (v) => { breakEmit = v; }, arm: (epoch) => fire('toolflow:arm', { epoch }), gen: () => { fire('toolflow:ping'); return ping.gen; } };
 }
 const flush = () => new Promise((r) => setTimeout(r, 5));
 const okResp = (text = '') => async () => ({ status: 200, clone: () => ({ text: async () => text }) });
@@ -152,4 +164,50 @@ test('probe needs a selectors map of strings; tabs takes no args', () => {
   for (const bad of [{}, { selectors: [] }, { selectors: { x: 1 } }, { selectors: { x: 'a'.repeat(300) } }, { selectors: 'x' }])
     assert.ok(validate(ok('probe', { tabId: 1, ...bad })), JSON.stringify(bad));
   assert.equal(validate(ok('tabs')), null);
+});
+
+test('focus needs an integer tabId', () => {
+  assert.equal(validate(ok('focus', { tabId: 4 })), null);
+  assert.ok(validate(ok('focus', {})));
+  assert.ok(validate(ok('focus', { tabId: '4' })));
+});
+
+test('net ring overflow is normal: 201 non-generate records never count as dropped', async () => {
+  const m = loadMain(okResp());
+  for (let i = 0; i < 201; i++) await m.win.fetch('https://x/batchexecute?rpcids=jwpduf');
+  await flush();
+  assert.equal(m.ping().dropped, 0);
+  assert.equal(m.ping().seq, 201);
+});
+
+test('dropped counts real observer failures: an emit that throws', async () => {
+  const m = loadMain(okResp('R'));
+  m.breakEmit(true);
+  await m.win.fetch(URLG, { method: 'POST', body: 'f.req=A' }); await flush();
+  assert.equal(m.ping().dropped, 2, 'sent and response both failed to emit');
+  m.breakEmit(false);
+  await m.win.fetch(URLG, { method: 'POST', body: 'f.req=B' }); await flush();
+  assert.equal(m.ping().dropped, 2);
+});
+
+test('listeners op is read-only: reports found/disabled/count, never calls the listener, never arms', async () => {
+  const m = loadMain(okResp('R'));
+  assert.deepEqual(m.listeners(), { found: false, disabled: null, listeners: 0 });
+  m.show(true);
+  assert.deepEqual(m.listeners(), { found: true, disabled: false, listeners: 0 });
+  let called = 0; m.btn.addEventListener('click', () => { called++; });
+  m.btn.disabled = true;
+  assert.deepEqual(m.listeners(), { found: true, disabled: true, listeners: 1 });
+  assert.equal(called, 0, 'the page listener must not run');
+  await m.win.fetch(URLG, { body: 'f.req=A' }); await flush();
+  assert.ok(m.events.every((e) => e.epoch === undefined), 'listeners must not arm an epoch');
+});
+
+test('ping reports the rpc names seen complete since load, names only', async () => {
+  const m = loadMain(okResp('SECRET-BODY'));
+  assert.deepEqual(m.ping().seen, []);
+  await m.win.fetch('https://x/batchexecute?rpcids=Zzl0ze&sig=SECRET', { body: 'f.req=SECRET' }); await flush();
+  await m.win.fetch(URLG, { body: 'x' }); await flush();
+  assert.deepEqual([...m.ping().seen].sort(), ['Zzl0ze', 'ogiZ0b']);
+  assert.ok(!JSON.stringify(m.ping()).includes('SECRET'));
 });

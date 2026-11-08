@@ -5,13 +5,13 @@ import { join } from 'node:path';
 import { initial, type AttemptState } from '@toolflow/flow-protocol/attempt';
 import { openDb, type Db } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
-import { createFakeDriver, type FakeScript } from '../src/main/fake-driver';
+import { FAKE_COMBOS, fakeCombo, createFakeDriver, type FakeScript } from '../src/main/fake-driver';
 import { ConnectorError, type DriverEvent, type FlowDriver } from '../src/main/driver';
 import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; afterPing?: (runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -20,7 +20,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const gate = { hold: !!o.hold };
   const gateClick: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   let listenerless = !!o.noListener;
-  const obs = { dead: !!o.deadObserver };
+  const obs = { dead: !!o.deadObserver, id: 'fake', throws: false, noFetch: false };
   const log: string[] = [];
   const armGate: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
@@ -36,17 +36,17 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
       if (o.slowClick) await gateClick.p;
       return fake.click(tab, epoch);
     },
-    ping: async (tab) => (log.push('ping'), { ...(await fake.ping(tab)), t: clock.now(), ...(obs.dead ? { xhrSend: false } : {}) }), // the observer ping must look fresh to the fake clock
+    ping: async (tab) => { log.push('ping'); if (obs.throws) throw new ConnectorError('ping lost'); const pg = await fake.ping(tab); o.afterPing?.(runner); return { ...pg, t: clock.now(), id: obs.id, ...(obs.dead ? { xhrSend: false } : {}), ...(obs.noFetch ? { fetch: false } : {}) }; }, // the observer ping must look fresh to the fake clock
     prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
   };
   const kind = o.kind ?? 'image';
   const { batchId } = enqueueBatch(db, {
-    commandId: 'c', kind, projectId: 'p', settings: {}, mode: o.mode ?? 'auto',
+    commandId: 'c', kind, projectId: 'p', settings: { combo: fakeCombo(kind) }, mode: o.mode ?? 'auto',
     prompts: Array.from({ length: o.n }, (_, i) => `prompt ${i}`), refs: Array.from({ length: o.n }, () => []),
   });
-  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }) });
+  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', combos: FAKE_COMBOS, autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }) });
   const step = async (n = 1) => { for (let i = 0; i < n; i++) { await runner.tick(); await flush(); } };
   const release = () => { gate.hold = false; held.splice(0).forEach((e) => cbs.forEach((cb) => cb(e))); };
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
@@ -185,7 +185,7 @@ test('connector drop during click is uncertain', async () => {
 test('batch status follows 02 §5', () => {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const run = (items: string[], o: { stop?: boolean; status?: string }) => {
-    const { batchId } = enqueueBatch(db, { commandId: `c${Math.random()}`, kind: 'image', projectId: 'p', settings: {}, mode: 'auto', prompts: items.map((_, i) => `p${i}`), refs: items.map(() => []) });
+    const { batchId } = enqueueBatch(db, { commandId: `c${Math.random()}`, kind: 'image', projectId: 'p', settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: items.map((_, i) => `p${i}`), refs: items.map(() => []) });
     db.prepare('update batch set stop_requested=?, status=? where id=?').run(o.stop ? 1 : 0, o.status ?? 'running', batchId);
     const ids = db.prepare('select attempt_id a from item where batch_id=? order by ord').all(batchId) as { a: string }[];
     ids.forEach((r, i) => db.prepare('update attempt set state_json=? where id=?').run(JSON.stringify({ ...initial('x'), item: items[i] }), r.a));
@@ -393,10 +393,9 @@ test('disconnect fences the epoch while awaiting_user: the user\'s send is dropp
   t.runner.start(t.batchId);
   await t.step(2);
   t.driver.emit({ tabId: 't1', type: 'disconnected' });
+  t.driver.userSends('t1', 'image'); // sent with the old epoch, reaches the desktop after the fence
   await t.step();
   expect(t.states()[0].item).toBe('awaiting_user');
-  t.driver.userSends('t1', 'image');
-  await t.step();
   t.runner.stop(t.batchId);
   await t.step();
   uncertainNoCancel(t.states()[0]);
@@ -506,6 +505,67 @@ test('stop during prepare is a normal exit: no pause, no error log', async () =>
   spy.mockRestore();
 });
 
+// ---- final review I1: Pause / Stop between admission and click ----
+const intents = (db: Db) => (db.prepare("select count(*) n from journal_event where type='intent'").get() as { n: number }).n;
+test('I1: pause during a slow prepare => no checkBeforeClick, zero intents, zero clicks; resume runs the attempt once', async () => {
+  let paused = false;
+  const t = rig(['image-ok'], { n: 1, afterPrepare: (_db, r) => { if (!paused) { paused = true; r.pause(t.batchId); } } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('preparing');
+  expect(t.driver.ledger).toMatchObject({ prepares: 1, checks: 0, clicks: 0 });
+  expect(intents(t.db)).toBe(0);
+  expect(t.log).not.toContain('ping');
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1); // the attempt stayed eligible: prepare ran again, the click happened once
+  expect(t.driver.ledger.prepares).toBe(2);
+  expect(intents(t.db)).toBe(1);
+});
+
+test('I1: pause during a slow checkBeforeClick => no ping, zero intents, zero clicks; resume runs the attempt once', async () => {
+  let paused = false;
+  const t = rig(['image-ok'], { n: 1, check: async () => { if (!paused) { paused = true; t.runner.pause(t.batchId); } return { ok: true }; } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('preparing');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(intents(t.db)).toBe(0);
+  expect(t.log).not.toContain('ping');
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(intents(t.db)).toBe(1);
+});
+
+test('I1: stop during a slow checkBeforeClick => zero intents, zero clicks; a later resume does not revive it', async () => {
+  let stopped = false;
+  const t = rig(['image-ok'], { n: 1, check: async () => { if (!stopped) { stopped = true; t.runner.stop(t.batchId); } return { ok: true }; } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('cancelled');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(intents(t.db)).toBe(0);
+  expect(t.log).not.toContain('ping');
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(0);
+});
+
+test('I1: pause during the guard ping (last await before the intent) => zero intents, zero clicks; resume runs it once', async () => {
+  let paused = false;
+  const t = rig(['image-ok'], { n: 1, afterPing: (r) => { if (!paused) { paused = true; r.pause(t.batchId); } } });
+  t.runner.start(t.batchId);
+  await t.step(3);
+  expect(t.states()[0].item).toBe('preparing');
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(intents(t.db)).toBe(0);
+  t.runner.resume(t.batchId);
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(intents(t.db)).toBe(1);
+});
+
 test('N1: a fresh pause-level error on an attempt whose admission is already pause still pauses', async () => {
   const t = rig(['throttled', 'image-ok'], { n: 2, noListener: true, hold: true });
   t.runner.start(t.batchId);
@@ -549,7 +609,7 @@ test('N3: a response whose request is unparseable is never fed to the single awa
 
 test('N4: ProtocolDrift on a matched response blames the matched attempt\'s batch, not the tab slot\'s', async () => {
   const t = rig(['image-ok', 'image-ok'], { n: 1, hold: true });
-  const { batchId: b2 } = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: {}, mode: 'auto', prompts: ['other'], refs: [[]] });
+  const { batchId: b2 } = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: ['other'], refs: [[]] });
   t.runner.start(t.batchId); t.runner.start(b2);
   await t.step(4); // A (batch 1) sent, then B (batch 2) clicked on the same tab → slot is B
   expect(t.driver.ledger.clicks).toBe(2);
@@ -623,4 +683,220 @@ test('passing self-check keeps auto', async () => {
   t.runner.start(t.batchId);
   await t.step(2);
   expect(t.driver.ledger.clicks).toBe(1);
+});
+
+test('setTabs: a removed tab with a sent attempt is fenced (uncertain, late response ignored), never dropped; an added tab takes work', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, tabs: [], hold: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(t.driver.ledger.clicks).toBe(0); // no tab, no work
+  t.runner.setTabs(['t1']);
+  await t.step(2);
+  expect(t.states()[0].item).toBe('submitting');
+  t.runner.setTabs(['t2']);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain', creditSpent: true });
+  t.release(); // the old tab's response arrives under the old epoch
+  await t.step();
+  expect(t.states()[0].item).toBe('needs_review');
+});
+
+test('manual: the tab is focused before it is armed, and a focus failure does not block arming', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  const order: string[] = [];
+  const arm = t.driver.arm;
+  t.driver.arm = async (tab, e) => { order.push('arm'); return arm(tab, e); };
+  t.driver.focusTab = async (tab) => { order.push(`focus ${tab}`); throw new ConnectorError('focus lost'); };
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(order).toEqual(['focus t1', 'arm']);
+  expect(t.states()[0].item).toBe('awaiting_user');
+});
+
+// ---- Task 3: runtime deadlines, heartbeat after click, disarm, double-send guard ----
+const go = (...a: Parameters<typeof rig>) => { const t = rig(...a); t.runner.start(t.batchId); return t; };
+const RESPONSE_DEADLINE = 120_000;
+const awaitingRig = async () => { const t = go(['image-ok', 'image-ok'], { n: 1, hold: true }); await t.step(2); expect(t.states()[0]).toMatchObject({ item: 'submitting' }); return t; };
+
+test('response never comes: uncertain at 120 s, project blocked, no second click, late response ignored', async () => {
+  const t = await awaitingRig();
+  t.clock.t += RESPONSE_DEADLINE - 1; await t.step();
+  expect(t.states()[0].item).toBe('submitting');
+  t.clock.t += 1; await t.step();
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  expect(t.db.prepare('select count(*) n from target_block').get()).toEqual({ n: 1 });
+  t.release(); await t.step(3);
+  expect(t.states()[0].item).toBe('needs_review'); // the late response belongs to a fenced epoch
+  expect(t.driver.ledger.clicks).toBe(1);
+});
+
+test('heartbeat after click: at most one ping per 5 s while a response is awaited', async () => {
+  const t = await awaitingRig();
+  const pings = () => t.log.filter((l) => l === 'ping').length;
+  const n0 = pings();
+  t.clock.t += 2000; await t.step(); t.clock.t += 2000; await t.step();
+  expect(pings()).toBe(n0);
+  t.clock.t += 1000; await t.step();
+  expect(pings()).toBe(n0 + 1);
+  t.clock.t += 4000; await t.step();
+  expect(pings()).toBe(n0 + 1);
+  expect(t.states()[0].item).toBe('submitting'); // a healthy heartbeat changes nothing
+});
+
+for (const [name, bad] of [['page id changed (reload)', (t: ReturnType<typeof rig>) => { t.obs.id = 'reloaded'; }], ['ping throws', (t: ReturnType<typeof rig>) => { t.obs.throws = true; }], ['hooks not intact', (t: ReturnType<typeof rig>) => { t.obs.dead = true; }], ['fetch hook missing (others intact)', (t: ReturnType<typeof rig>) => { t.obs.noFetch = true; }]] as const) {
+  test(`heartbeat: ${name} ⇒ tab fenced, awaiting attempt uncertain, never resent`, async () => {
+    const t = await awaitingRig();
+    bad(t); t.clock.t += 5000; await t.step();
+    expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+    t.release(); await t.step(2);
+    expect(t.driver.ledger.clicks).toBe(1);
+  });
+}
+
+test('first click after a fence disarms the tab first: arm(tab, null) before click', async () => {
+  const t = go(['image-ok'], { n: 1 });
+  const order: string[] = [];
+  const { arm, click } = t.driver;
+  t.driver.arm = async (tab, e) => { order.push(`arm:${e}`); return arm(tab, e); };
+  t.driver.click = async (tab, e) => { order.push('click'); return click(tab, e); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  await t.step(3);
+  expect(order).toEqual(['arm:null', 'click']);
+});
+
+test('disarm failure is ignored; an unfenced tab is never disarmed', async () => {
+  const t = go(['image-ok'], { n: 1 });
+  t.driver.arm = async () => { throw new ConnectorError('gone'); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+  const u = go(['image-ok', 'image-ok'], { n: 2 }); await u.step(6);
+  expect(u.driver.ledger.arms).toBe(0);
+});
+
+const userSend = (t: ReturnType<typeof rig>) => t.driver.userSends('t1', 'image', false); // the page made a generate we did not click
+
+test('double-send guard: an extra send between two clicks pauses UNEXPECTED_GENERATE, no intent, no click; resume goes on', async () => {
+  const t = go(['image-ok', 'image-ok', 'image-ok'], { n: 3 });
+  await t.step(1); userSend(t);
+  await t.step(1);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(t.runner.lastError(t.batchId)).toBe('UNEXPECTED_GENERATE');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(t.db.prepare("select count(*) n from journal_event where type='intent'").get()).toEqual({ n: 1 });
+  expect(t.states()[1].item).toBe('preparing');
+  t.runner.resume(t.batchId); await t.step(8);
+  expect(count('ready', t.states())).toBe(3);
+});
+
+test('double-send guard: five normal clicks never trip it; a fence rebases it', async () => {
+  const t = go(Array(5).fill('image-ok') as FakeScript, { n: 5 });
+  await t.step(14);
+  expect(count('ready', t.states())).toBe(5);
+  expect(t.runner.lastError(t.batchId)).toBeNull();
+  const u = go(['image-ok', 'image-ok'], { n: 2 });
+  await u.step(1); userSend(u); u.deliver({ type: 'disconnected', tabId: 't1' });
+  await u.step(4);
+  expect(u.driver.ledger.clicks).toBe(2);
+  expect(u.runner.lastError(u.batchId)).toBeNull();
+  const v = go(['image-ok', 'image-ok'], { n: 2 });
+  await v.step(1); userSend(v); v.obs.id = 'reloaded';
+  await v.step(4);
+  expect(v.driver.ledger.clicks).toBe(2); // new page id ⇒ new base
+});
+
+test('double-send guard also holds in manual mode: pauses before the second arm', async () => {
+  const t = go(['image-ok', 'image-ok'], { n: 2, mode: 'manual' });
+  await t.step(1);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.driver.userSends('t1', 'image'); // armed and delivered: accounted for
+  userSend(t); // one more nobody armed
+  await t.step(2);
+  expect(t.runner.lastError(t.batchId)).toBe('UNEXPECTED_GENERATE');
+  expect(t.states()[1].item).toBe('preparing');
+  expect(t.driver.ledger.arms).toBe(1);
+});
+
+// ---- Task 3 fix round 1 ----
+const gated = () => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; };
+const until = async (f: () => boolean) => { for (let i = 0; i < 50 && !f(); i++) await flush(); expect(f()).toBe(true); };
+
+test('I1: stop during the post-fence disarm never clicks', async () => {
+  const t = go(['image-ok'], { n: 1 });
+  const g = gated(); let disarming = false;
+  const { arm } = t.driver;
+  t.driver.arm = async (tab, e) => { if (e === null) { disarming = true; await g.p; } return arm(tab, e); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  const tick = t.runner.tick();
+  await until(() => disarming);
+  t.runner.stop(t.batchId);
+  g.open(); await tick; await t.step(2);
+  expect(t.driver.ledger.clicks).toBe(0);
+  expect(t.states()[0].item).toBe('cancelled');
+});
+
+test('I2: after a fence an awaiting_user attempt is re-armed with the new epoch, so the user\'s send is not lost', async () => {
+  const t = go(['image-ok', 'image-ok'], { n: 2, mode: 'manual', hold: true });
+  await t.step(2);
+  t.driver.userSends('t1', 'image'); // A sent by the user, response held
+  await t.step(2);
+  expect(t.states().map((s) => s.item)).toEqual(['submitting', 'awaiting_user']); // B armed with the old epoch
+  const e0 = t.driver.ledger.armLog.at(-1)![1] as number;
+  t.obs.throws = true; t.clock.t += 5000; await t.step(1); // heartbeat ping throws ⇒ fence
+  t.obs.throws = false;
+  expect(t.states().map((s) => s.item)).toEqual(['needs_review', 'awaiting_user']);
+  expect(t.driver.ledger.armLog.at(-1)).toEqual(['t1', e0 + 1]);
+  t.release();
+  t.driver.userSends('t1', 'image'); // B
+  await t.step(2);
+  expect(t.states()[1].item).toBe('ready');
+});
+
+test('I2: a failing re-arm takes the skip+armFailed route: uncertain, paused, not stuck', async () => {
+  const t = go([], { n: 1, mode: 'manual' });
+  await t.step(2);
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.driver.arm = async () => { throw new ConnectorError('arm lost'); };
+  t.deliver({ type: 'disconnected', tabId: 't1' });
+  await t.step(1);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+});
+
+test('m3: a throwing fence in the heartbeat pauses that batch only; the tick still runs admission', async () => {
+  const t = await awaitingRig();
+  const b2 = enqueueBatch(t.db, { commandId: 'c2', kind: 'image', projectId: 'p', settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: ['other'], refs: [[]] }).batchId;
+  t.runner.start(b2);
+  t.db.exec("create trigger boom before insert on journal_event when NEW.type='deadline' begin select raise(abort, 'boom'); end");
+  const { ping } = t.driver; let once = true;
+  t.driver.ping = async (tab) => { if (once) { once = false; throw new ConnectorError('ping lost'); } return ping(tab); }; // only the heartbeat's ping fails
+  t.clock.t += 5000;
+  await expect(t.runner.tick()).resolves.toBeUndefined();
+  expect(t.runner.lastError(t.batchId)).toBe('STORAGE_UNAVAILABLE');
+  await flush();
+  expect(t.driver.ledger.clicks).toBe(2); // batch 2 was admitted in the same tick
+});
+
+test('m4: a response that arrives while the heartbeat ping is in flight settles the attempt; it is not fenced', async () => {
+  const t = await awaitingRig();
+  const g = gated(); let pinging = false;
+  const { ping } = t.driver;
+  t.driver.ping = async (tab) => { pinging = true; await g.p; return ping(tab); };
+  t.obs.throws = true; t.clock.t += 5000;
+  const tick = t.runner.tick();
+  await until(() => pinging);
+  t.release(); // the response lands while the ping is out
+  g.open();
+  await tick;
+  expect(t.states()[0].item).toBe('ready');
+});
+
+test('m2: a page id change seen at the next intent fences the tab first: the old awaiting attempt is uncertain', async () => {
+  const t = go(['image-ok', 'image-ok'], { n: 2, hold: true });
+  await t.step(1);
+  t.obs.id = 'reloaded';
+  await t.step(1);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  expect(t.driver.ledger.clicks).toBe(1); // final review I1: the fence made the old one uncertain, which pauses the batch and blocks the project: the next attempt no longer clicks in the same dispatch
+  expect(t.states()[1].item).toBe('preparing');
+  expect(t.runner.lastError(t.batchId)).toBeTruthy(); // the uncertain pause lives in memory
 });

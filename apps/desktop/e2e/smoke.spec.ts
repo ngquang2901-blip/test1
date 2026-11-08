@@ -1,5 +1,5 @@
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -46,7 +46,7 @@ test('textarea batch runs to ready', async () => {
   await expect(page.getByRole('heading', { name: /Hoàn tất|100%/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Kết quả' }).click() // S4
   await expect(page.locator('[data-testid=output]').first()).toBeVisible()
-  await expect(page.locator('[data-testid=output]').first()).toContainText('chưa tải')
+  await expect(page.locator('[data-testid=output]').first()).toContainText('Chưa tải')
   await expect(page.locator('body')).not.toContainText('Đã lưu')
 })
 
@@ -78,6 +78,46 @@ test('uncertain shows confirm buttons', async () => {
   await page.getByRole('button', { name: 'Chi tiết' }).first().click()
   await expect(page.locator('[data-testid=detail]')).toContainText('(not_sent)') // the word the user gave, not the other one
   await expect(page.locator('[data-testid=detail]')).not.toContainText('(sent)')
+})
+
+test('archive needs a second, inline confirmation: cancel keeps the batch, confirm archives', async () => {
+  const { page } = await launch(tmp(), 'no-request,image-ok,image-ok')
+  await create(page, ['a', 'b', 'c'])
+  const first = items(page).first()
+  await expect(first).toContainText('Không rõ')
+  page.on('dialog', () => { throw new Error('window.confirm/alert must not be used') })
+  await first.getByRole('button', { name: 'Lưu hồ sơ chưa rõ' }).click()
+  await expect(first).toContainText('Chắc chắn lưu hồ sơ?')
+  await first.getByRole('button', { name: 'Huỷ' }).click()
+  await expect(first).not.toContainText('Chắc chắn lưu hồ sơ?')
+  await expect(page.getByRole('heading', { level: 3 })).not.toContainText('đã lưu hồ sơ')
+  await first.getByRole('button', { name: 'Lưu hồ sơ chưa rõ' }).click()
+  await page.keyboard.press('Enter') // autofocus lands on the confirm button
+  await expect(page.getByRole('heading', { level: 3 })).toContainText('đã lưu hồ sơ')
+})
+
+test('rerun shows the cost warning first; cancel sends nothing, confirm adds a second attempt', async () => {
+  const { page } = await launch(tmp(), 'no-request,image-ok,image-ok,image-ok')
+  await create(page, ['a', 'b', 'c'])
+  const first = items(page).first()
+  await expect(first).toContainText('Không rõ')
+  await expect(first.getByRole('button', { name: /Chạy lại/ })).toHaveCount(0) // uncertain: not rerunnable yet
+  await first.getByRole('button', { name: 'Chưa gửi' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(2)
+  await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
+  await expect(first).toContainText('tốn thêm credit')
+  await expect(first.getByRole('button', { name: 'Huỷ' })).toBeFocused() // the costly step never autofocuses its confirm button
+  await page.keyboard.press('Enter') // an immediate Enter must not confirm the cost
+  await expect(first).not.toContainText('tốn thêm credit')
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(2)
+  await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
+  await first.getByRole('button', { name: 'Huỷ' }).click()
+  await page.getByRole('button', { name: 'Chi tiết' }).first().click()
+  await expect(page.locator('[data-testid=detail]')).not.toContainText('Lượt 2')
+  await first.getByRole('button', { name: 'Chạy lại (tốn credit)' }).click()
+  await first.getByRole('button', { name: 'Có, chạy lại' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(3)
+  await expect(page.locator('[data-testid=detail]')).toContainText('Lượt 2')
 })
 
 test('auto needs warning ack', async () => {
@@ -147,4 +187,198 @@ test('real mode survives a connector failure: window opens, S1 shows the error c
   await expect(page.getByRole('alert')).toContainText('ENOENT')
   await expect(page.getByText('Chưa kết nối')).toBeVisible()
   await expect(page.locator('body')).not.toContainText(missing)
+})
+
+test('S1 lists the Flow tab; an ungranted tab runs nothing until "Dùng tab này" (AC-01, AC-27)', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.locator('[data-testid=flow-tab]')).toHaveCount(1)
+  await create(page, ['một con mèo'])
+  await page.waitForTimeout(1500)
+  await expect(items(page).filter({ hasText: 'Đang chờ' })).toHaveCount(1) // nothing was sent: no tab granted
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await tabTo(page, 'Dùng tab này') // keyboard reachable
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Đang dùng')).toBeVisible()
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+})
+
+// ---- reference images (Task 5b): the e2e names its files in a JSON list because Playwright cannot drive the native dialog ----
+const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+function pngs(names: string[]): { list: string; dir: string } {
+  const dir = tmp()
+  const paths = names.map((n, i) => { const f = join(dir, n); writeFileSync(f, Buffer.concat([PNG1, Buffer.from(`-${i}`)])); return f })
+  const list = join(dir, 'pick.json')
+  writeFileSync(list, JSON.stringify(paths))
+  return { list, dir }
+}
+const ledger = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { __toolflowFake: { uploads: string[]; refs: string[][]; clicks: number; prepares: number; arms: number; fetches: number } }).__toolflowFake)
+const row = (page: Page, i: number) => page.locator('[data-testid=preview] tbody tr').nth(i)
+
+test('sequential refs: preview shows names, the batch runs, two uploads and one ref per item', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await expect(page.getByTestId('pool')).toContainText('a.png')
+  await expect(page.locator('body')).not.toContainText(list) // names only, never paths
+  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png')
+  await expect(row(page, 1)).toContainText('b.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  const l = await ledger(app)
+  expect(l.uploads).toHaveLength(2)
+  expect(l.refs.map((r) => r.length)).toEqual([1, 1])
+  expect(new Set(l.refs.flat()).size).toBe(2)
+})
+
+test('3 prompts and 2 refs sequential: the error is shown and Tạo lô và chạy is disabled; Không dùng frees it', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một\nhai\nba')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
+  await expect(page.getByTestId('map-errors')).toContainText('Thiếu ảnh cho prompt nào')
+  await expect(page.getByTestId('map-errors')).toContainText('#3')
+  await expect(row(page, 2)).toContainText('Thiếu ảnh')
+  await expect(row(page, 2)).not.toContainText('a.png') // no rotation back to the first image
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
+  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
+  await expect(page.getByTestId('map-errors')).toContainText('Quá nhiều ảnh')
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
+  await page.getByLabel('Không dùng').check()
+  await expect(page.getByTestId('map-errors')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeEnabled()
+  expect((await ledger(app)).uploads).toHaveLength(0) // nothing uploads before a batch runs
+})
+
+test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await tabTo(page, 'Tạo lô')
+  await page.keyboard.press('Enter')
+  await tabTo(page, 'Danh sách prompt')
+  await page.keyboard.type('một\nhai')
+  await tabTo(page, 'Chọn ảnh…')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await tabTo(page, 'Không dùng')
+  await page.keyboard.press('ArrowDown') // radio group: arrows pick the next mode
+  await expect(page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự')).toBeChecked()
+  await tabTo(page, 'Số ảnh mỗi prompt')
+  await tabTo(page, 'Bỏ ảnh b.png')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toBeFocused() // focus is not lost with the removed button
+  await expect(page.getByTestId('map-errors')).toContainText('Thiếu ảnh cho prompt nào')
+  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
+  await page.keyboard.press('Enter') // pick again: b.png is back
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await tabTo(page, 'Tạo lô và chạy')
+  await page.keyboard.press('Enter')
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1, 1])
+})
+
+// ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
+const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).filter((f) => f.endsWith('.png')).sort()
+const outputs = (page: Page) => page.locator('[data-testid=output]')
+
+test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only after each completes', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await create(page, ['một con mèo', 'một con chó', 'một con cá'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page)).toHaveCount(3)
+  await expect(outputs(page).filter({ hasText: 'Chưa tải' })).toHaveCount(3)
+  await expect(page.locator('body')).not.toContainText('Đã lưu') // AC-07: generated is not saved
+  await expect(page.locator('body')).not.toContainText('100%')
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).filter({ hasText: 'Đã lưu' })).toHaveCount(3)
+  const files = pngFiles(root)
+  expect(files).toHaveLength(3)
+  for (const f of files) expect(readFileSync(join(root, f)).subarray(0, 4).toString('hex')).toBe('89504e47')
+  expect(files.every((f) => /^\d{4}-\d\d-\d\d_[0-9a-f]{8}\/00[123]_.+_[0-9a-f]{8}\.png$/.test(f))).toBe(true)
+  await expect(page.locator('body')).not.toContainText('Lỗi tải')
+})
+
+test('a bad download is Lỗi tải with no completed file; Thử lại completes it under the same name without generating again', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_DOWNLOADS: 'download-html' })
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  const before = await ledger(app)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).first()).toContainText('Lỗi tải')
+  await expect(page.locator('body')).not.toContainText('Đã lưu')
+  expect(pngFiles(root)).toEqual([])
+  const retry = page.getByRole('button', { name: 'Thử lại' })
+  await expect(retry).toBeVisible()
+  await retry.click()
+  await expect(outputs(page).first()).toContainText('Đã lưu')
+  const files = pngFiles(root)
+  expect(files).toHaveLength(1)
+  await expect(outputs(page).first()).toContainText(files[0]) // the name shown is the planned name, relative
+  const after = await ledger(app)
+  expect([after.clicks, after.prepares, after.arms]).toEqual([before.clicks, before.prepares, before.arms]) // AC-16: no new generate
+  expect(after.fetches).toBe(2)
+})
+
+test('ACK lost: the app finds the file the first transfer made instead of downloading again (AC-26)', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_DOWNLOADS: 'download-ack-lost' })
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).first()).toContainText('Đã lưu')
+  expect(pngFiles(root)).toHaveLength(1)
+  expect((await ledger(app)).fetches).toBe(1)
+})
+
+test('m5: a failed download shows an inline alert, never window.alert', async () => {
+  const dir = tmp()
+  const first = await launch(dir)
+  await create(first.page, ['một con mèo'])
+  await expect(items(first.page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await first.app.close()
+  const { page } = await launch(dir, '', { TOOLFLOW_FAKE_GRANT: '0' }) // no granted tab: downloadBatch rejects with NO_PROJECT_TAB
+  const dialogs: string[] = []
+  page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(page.getByRole('alert')).toContainText('NO_PROJECT_TAB')
+  expect(dialogs).toEqual([])
+})
+
+test('I4b: a batch paused on REF_UPLOAD_UNCERTAIN offers an inline two-step reset with Huỷ focused; no dialog', async () => {
+  const { list } = pngs(['a.png'])
+  const { page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list, TOOLFLOW_FAKE_PREPARE: 'REF_UPLOAD_UNCERTAIN' })
+  const dialogs: string[] = []
+  page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
+  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(page.getByTestId('pause-reason')).toBeVisible()
+  const ask = 'Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này.'
+  await page.getByRole('button', { name: 'Cho phép tải lại ảnh tham chiếu 1' }).click()
+  await expect(page.getByRole('group', { name: ask })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Huỷ' })).toBeFocused()
+  await page.keyboard.press('Enter') // a stray Enter cancels
+  await expect(page.getByRole('group', { name: ask })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Cho phép tải lại ảnh tham chiếu 1' }).click()
+  await page.getByRole('button', { name: 'Có, cho phép tải lại' }).click()
+  await expect(page.getByRole('group', { name: ask })).toHaveCount(0)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  expect(dialogs).toEqual([])
 })

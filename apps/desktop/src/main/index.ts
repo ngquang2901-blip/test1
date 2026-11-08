@@ -1,14 +1,17 @@
-import { app, BrowserWindow, ipcMain, session as electronSession } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session as electronSession } from 'electron'
 import { join } from 'path'
+import { homedir } from 'os'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
+import { createAssetStore } from './assets'
 import { createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
-import { selfCheck, validateProfile, profile, PROFILE_PATH, type Probe } from './profile'
-import { createFakeDriver, type FakeScript } from './fake-driver'
+import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
+import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
+import { createDownloader, recoverDownloads } from './downloads'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
@@ -16,6 +19,7 @@ import { createExtDriver } from './connector/ext-driver'
 import { startConnectorServer } from './connector/server'
 import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
+import { createGrants, tabStatus, type Grants } from './tabs'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -35,31 +39,27 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const db = openDb(join(userData, 'toolflow.db'))
   const draftFile = join(userData, 'draft.json')
   let draft = readDraft(draftFile)
+  const assets = createAssetStore(db)
   // E2E only: a clock that runs X times faster so the 30 s send deadline / 10 min reconcile fit a test (fake mode only).
   const t0 = Date.now()
   const x = FAKE ? clockFactor(process.env.TOOLFLOW_CLOCK_X) : 1
   const clock = { now: () => t0 + (Date.now() - t0) * x }
 
   let driver: FlowDriver
-  let tabs: string[]
+  let grants!: Grants // assigned once the runner exists; the ext driver only asks it lazily
   let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
-  let probe: () => Omit<Probe, 'extVersion' | 'ping'>
   let connected: (() => boolean) | null = null // real mode only
   let connectorError: string | null = null
   let extVersion: string = extManifest.version
   if (FAKE) {
     const scripted = (process.env.TOOLFLOW_FAKE_SCRIPT ?? '').split(',').filter(Boolean) as FakeScript
-    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')]) // default: everything succeeds
+    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets, downloads: (process.env.TOOLFLOW_FAKE_DOWNLOADS ?? '').split(',').filter(Boolean) as DownloadScript[], prepare: (process.env.TOOLFLOW_FAKE_PREPARE ?? '').split(',').filter(Boolean) }) // default: everything succeeds
     rawPing = fake.ping
+    if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowFake?: unknown }).__toolflowFake = fake.ledger // test-only: lets e2e count uploads
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
-    tabs = ['t1']
     if (process.env.TOOLFLOW_FAKE_AUTO !== '0') enableAuto(db, 'fake@example.invalid', Date.now()) // test fixture: the fake account has opted in; '0' keeps D-19 default (off)
     extVersion = '0.0.0-fake'
-    probe = () => ({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true })
   } else {
-    tabs = [] // shortcut: tab discovery is not built, live in P2
-    // shortcut: extension probe op, live in P2 — fail closed
-    probe = () => ({ present: {}, listeners: 0, sawProjectLoad: false })
     rawPing = () => Promise.reject(new Error('no driver'))
     driver = { onEvent: () => () => {} } as unknown as FlowDriver // connector failed: no tabs, so the runner never calls it
     try {
@@ -67,7 +67,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const server = await startConnectorServer({ token, extensionId: EXT_ID })
       // shortcut: dev path only, packaged resources path in P4
       installExtension(process.env.TOOLFLOW_EXT_DIR ?? join(app.getAppPath(), '../extension'), userData, server.port)
-      driver = createExtDriver(server)
+      driver = createExtDriver(server, { allow: (id) => grants.has(id), assets })
       rawPing = driver.ping
       connected = server.connected
     } catch (e) {
@@ -76,23 +76,39 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     }
   }
 
-  const runner = createRunner({ db, driver, clock, tabs, speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
-    selfCheckOk: async (t) => selfCheck({ ...probe(), ping: await rawPing(t), extVersion }).ok }) // wall-clock ping like session(); real mode: stub probe ⇒ manual
+  const runner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
+    selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
+  grants = createGrants(driver, runner)
+  if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
   runner.recover()
-  const email = async (): Promise<string | null> => (tabs[0] ? (await driver.ping(tabs[0])).email : null)
+  const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emit = revisioned((e) => win()?.webContents.send('state', e))
+  recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
+  // The root is not user-configurable yet; TOOLFLOW_DOWNLOAD_ROOT redirects it in fake mode only (e2e).
+  const downloadRoot = FAKE && process.env.TOOLFLOW_DOWNLOAD_ROOT ? process.env.TOOLFLOW_DOWNLOAD_ROOT : join(homedir(), 'Downloads', 'ToolFlow')
+  const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
   const h = createHandlers({
-    db, runner, clock, emit, email,
-    projectId: FAKE ? 'fake-project' : 'unbound', // shortcut: project comes from the live tab in P2
+    db, runner, clock, emit, email, grants, downloader,
+    projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
+    // FAKE only: e2e names the files in a JSON list because Playwright cannot drive a native dialog; real mode always opens the dialog
+    async pickPaths() {
+      if (FAKE && process.env.TOOLFLOW_PICK_REFS) return JSON.parse(readFileSync(process.env.TOOLFLOW_PICK_REFS, 'utf8')) as string[]
+      const w = win(), o = { properties: ['openFile', 'multiSelections'] as ('openFile' | 'multiSelections')[], filters: [{ name: 'Ảnh', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] }
+      const r = await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))
+      return r.canceled ? [] : r.filePaths
+    },
     getDraft: () => draft,
     saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
     async session() {
       const em = await email()
-      const ping = tabs[0] ? await rawPing(tabs[0]) : null
+      const t0 = grants.granted()[0]
+      const ping = t0 ? await rawPing(t0) : null
+      const list = await grants.list().catch(() => []) // extension absent ⇒ empty list
+      const tabs = list.map((t) => ({ ...t, status: tabStatus(t), granted: grants.has(t.tabId) }))
       return {
         fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
         autoEnabled: autoAllowed(db, em),
-        selfCheck: ping ? selfCheck({ ...probe(), ping, extVersion }) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
+        selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
   })

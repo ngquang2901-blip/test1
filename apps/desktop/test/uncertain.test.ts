@@ -6,7 +6,7 @@ import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import { openDb, type Db } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
 import { applyEvent } from '../src/main/journal';
-import { createFakeDriver, type FakeScript } from '../src/main/fake-driver';
+import { FAKE_COMBOS, fakeCombo, createFakeDriver, type FakeScript } from '../src/main/fake-driver';
 import type { DriverEvent, FlowDriver } from '../src/main/driver';
 import { createRunner, batchStatus } from '../src/main/runner';
 
@@ -32,13 +32,13 @@ function rig(script: FakeScript, o: { file?: string; hold?: boolean; holdSent?: 
   const driver: FlowDriver & { ledger: typeof fake.ledger } = {
     ...fake,
     click: async (tab, epoch) => { epochs.push(epoch); if (o.slowClick) await opened; return fake.click(tab, epoch); },
-    ping: async () => ({ ...(await fake.ping('x')), t: clock.now() }),
+    ping: async (tab) => ({ ...(await fake.ping(tab)), t: clock.now() }), // the real tab: gen must match what was clicked there
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
   };
-  const runner = createRunner({ db, driver, clock, tabs: ['t1'], speed: 'default', autoAllowed: () => true });
+  const runner = createRunner({ db, driver, clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true });
   let n = 0;
   const add = (project: string, prompts: string[], kind: 'image' | 'video' = 'image') =>
-    enqueueBatch(db, { commandId: `c${n++}`, kind, projectId: project, settings: {}, mode: o.manual ? 'manual' : 'auto', prompts, refs: prompts.map(() => []) }).batchId;
+    enqueueBatch(db, { commandId: `c${n++}`, kind, projectId: project, settings: { combo: fakeCombo(kind) }, mode: o.manual ? 'manual' : 'auto', prompts, refs: prompts.map(() => []) }).batchId;
   const step = async (k = 1) => { for (let i = 0; i < k; i++) { await runner.tick(); await flush(); } };
   const states = (batch: string) => (db.prepare('select a.id, a.click_at c, a.reconcile_at r, a.source_attempt_id src, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batch) as
     { id: string; c: number | null; r: number | null; src: string | null; j: string }[]).map((r) => ({ ...r, ...(JSON.parse(r.j) as AttemptState) }));

@@ -1,16 +1,21 @@
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
+import { DEFAULT_COMBO } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
+import { AssetError, registerAsset } from './assets';
+import type { Grants } from './tabs';
+import type { Downloader } from './downloads';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
-  db: Db; runner: Runner; projectId: string; clock: { now(): number };
-  email(): Promise<string | null>; session(): Promise<object>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
+  db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId(): string | null | Promise<string | null>; clock: { now(): number };
+  email(): Promise<string | null>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
+  downloader: Pick<Downloader, 'batch' | 'retry'>;
 };
 
 const MAX_TEXT = 1_000_000;
@@ -18,6 +23,7 @@ const bad = (): never => { throw Object.assign(new Error('INVALID_ARGS'), { code
 const str = (v: unknown): string => (typeof v === 'string' && v.length > 0 && v.length < 200 ? v : bad());
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : bad());
 const oneOf = <T extends string>(v: unknown, ...ok: T[]): T => (ok.includes(v as T) ? (v as T) : bad());
+const MODES = ['none', 'all', 'sequential', 'start'] as const;
 const text = (v: unknown): string => (typeof v === 'string' && v.length <= MAX_TEXT ? v : bad());
 
 /** Monotonic revision stamped in main; the renderer drops older ones. */
@@ -58,6 +64,8 @@ function view(db: Db, id: string) {
         ...a, profileVersion: profileVersion(a.id), item: s.item, stage: s.stage, error: s.error, creditSpent: s.creditSpent,
         outputs: ((s.outputs ?? []) as { mediaId: string }[]).map((o) => o.mediaId), // ids only: no signed urls (R54)
         journal: db.prepare('select type, at from journal_event where attempt_id=? order by id').all(a.id),
+        // per output: state + the name relative to the download folder (no absolute path, no url)
+        downloads: Object.fromEntries((db.prepare('select media_id m, state, actual_name actualName, error_code errorCode from download where attempt_id=?').all(a.id) as { m: string; state: string; actualName: string | null; errorCode: string | null }[]).map(({ m, ...r }) => [m, r])),
       };
     });
     return { id: it.id, ord: it.ord, sourceLine: it.sourceLine, prompt: it.prompt, refs: JSON.parse(it.refs), attemptId: it.cur, attempts };
@@ -76,22 +84,69 @@ export function createHandlers(d: Deps) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
       const parsed = parsePrompts(src);
-      const { refs, errors } = mapRefs(parsed.items.length, [], 'none', 0); // shortcut: reference images arrive with uploads in P2
+      const ra = o.refs === undefined ? { assetIds: [], mode: 'none', perItem: 1 } : obj(o.refs);
+      const ids = Array.isArray(ra.assetIds) ? ra.assetIds.map(str) : bad();
+      const rmode = oneOf(ra.mode, ...MODES), perItem = Number.isInteger(ra.perItem) && (ra.perItem as number) >= 1 && (ra.perItem as number) <= 8 ? (ra.perItem as number) : bad();
+      if (new Set(ids).size !== ids.length) bad();
+      const names = ids.map((id) => (d.db.prepare('select name from asset where id=?').get(id) as { name: string } | undefined)?.name ?? bad());
+      if (kind === 'video' && rmode !== 'none' && ids.length) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // shortcut: video refs (start frame) arrive after P2
+      const { refs, errors } = mapRefs(parsed.items.length, ids, rmode, perItem);
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
-      if (o.dryRun === true) return { rows: parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i], error: null })), errors };
-      const r = enqueueBatch(d.db, { commandId, kind, projectId: d.projectId, settings: {}, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
+      const rows = parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i].map((id) => names[ids.indexOf(id)]), error: errors.find((e) => e.index === i)?.code ?? null }));
+      if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
+      const projectId = await d.projectId(); // read at call time: the granted tab can change
+      if (!projectId) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
+      const r = enqueueBatch(d.db, { commandId, kind, projectId, settings: { combo: DEFAULT_COMBO }, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
       d.emit('batch', r.batchId);
       return r;
+    },
+    async pickRefs() { // codes only: a path in the result would reach the renderer
+      const assets: { id: string; name: string; bytes: number }[] = [], errors: { code: string }[] = [];
+      for (const path of await d.pickPaths()) {
+        try { const { id, name, bytes } = registerAsset(d.db, path, d.clock.now()); assets.push({ id, name, bytes }); }
+        catch (e) { errors.push({ code: e instanceof AssetError ? e.code : 'ASSET_UNREADABLE' }); }
+      }
+      return { assets, errors };
     },
     async startBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.start(id)); },
     async pauseBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.pause(id)); },
     async resumeBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.resume(id)); },
     async stopBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.stop(id)); },
-    async archiveBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.archive(id)); },
+    async archiveBatch(a: unknown) { // the renderer asks twice; main refuses without the second answer
+      const o = obj(a), id = str(o.batchId);
+      if (o.confirm !== true) bad();
+      mut(id, () => d.runner.archive(id));
+    },
+    async resetAssetBinding(a: unknown) { // the user's way out of a stuck uncertain upload: forget the old attempt so the next prepare uploads again (they checked the Flow library first)
+      const o = obj(a), assetId = str(o.assetId);
+      if (o.confirm !== true) bad();
+      const project = await d.projectId();
+      if (!project) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
+      d.db.prepare('delete from asset_binding where asset_id=? and project_id=?').run(assetId, project);
+    },
+    async rerun(a: unknown) { // spends credit again: only with the user's explicit cost confirmation
+      const o = obj(a), id = str(o.attemptId);
+      if (o.confirmCost !== true) bad();
+      const batch = batchOf(id);
+      let n = '';
+      mut(batch, () => { n = d.runner.rerun(id, true); });
+      return { attemptId: n };
+    },
     async confirmUncertain(a: unknown) {
       const o = obj(a), id = str(o.attemptId), to = oneOf(o.to, 'sent', 'not_sent');
       mut(batchOf(id), () => d.runner.confirm(id, to));
     },
+    async downloadBatch(a: unknown) { // every output of the batch that is not saved yet; never generates anything
+      const id = str(a);
+      await d.downloader.batch(id);
+      d.emit('batch', id);
+    },
+    async retryDownload(a: unknown) { // the user's Thử lại on one output
+      const o = obj(a), attemptId = str(o.attemptId), mediaId = str(o.mediaId);
+      await d.downloader.retry(attemptId, mediaId);
+      d.emit('batch', batchOf(attemptId));
+    },
+    async useTabs(a: unknown) { d.grants.use(a); }, // validates against the last listing; session-only
     async enableAuto(a: unknown) {
       if (obj(a ?? {}).ack !== true) throw Object.assign(new Error('ACK_REQUIRED'), { code: 'ACK_REQUIRED' });
       const email = await d.email();
@@ -101,9 +156,9 @@ export function createHandlers(d: Deps) {
     async disableAuto() { const email = await d.email(); if (email) disableAuto(d.db, email); },
     async listBatches() {
       const ids = d.db.prepare('select id from batch order by created_at desc, rowid desc').all() as { id: string }[];
-      return { batches: ids.map((r) => view(d.db, r.id)), session: await d.session() };
+      return { batches: ids.map((r) => ({ ...view(d.db, r.id), pauseReason: d.runner.lastError(r.id) })), session: await d.session() };
     },
-    async getBatch(a: unknown) { const rev = d.emit.revision(); return { ...view(d.db, str(a)), revision: rev }; }, // rev read first: never newer than the data
+    async getBatch(a: unknown) { const rev = d.emit.revision(); const id = str(a); return { ...view(d.db, id), pauseReason: d.runner.lastError(id), revision: rev }; }, // rev read first: never newer than the data
   };
 }
 export type Handlers = ReturnType<typeof createHandlers>;

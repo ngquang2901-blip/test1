@@ -9,6 +9,8 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const $ = (s, root = document) => root.querySelector(s);
   const SUBMIT = 'flow-prompt-box button[type="submit"]';
+  const CLEAR = 'button.clear-button';
+  const TRIGGER = 'flow-prompt-box button.settings-trigger-button';
   const ask = (name, ms = 500, detail) => new Promise((resolve) => {
     const h = (e) => { clearTimeout(t); document.removeEventListener(name + '-result', h); resolve(JSON.parse(e.detail)); };
     const t = setTimeout(() => { document.removeEventListener(name + '-result', h); resolve(null); }, ms);
@@ -22,7 +24,17 @@
     try { chrome.runtime.sendMessage({ tf: 'event', ev: JSON.parse(e.detail) }).catch(() => {}); } catch (_) { /* extension reloaded */ }
   });
 
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // The one result tile of a media uuid; anything but exactly one is a code, never a guess.
+  const tile = (id) => {
+    if (typeof id !== 'string' || !UUID.test(id)) return { code: 'BAD_ID' };
+    const l = document.querySelectorAll(`img[data-media-id="${CSS.escape(id)}"]`);
+    return l.length === 1 ? { img: l[0] } : { code: l.length ? 'AMBIGUOUS' : 'NOT_FOUND' };
+  };
+
   const OPS = {
+    // Read-only. Reports size, never the (signed) url.
+    locate(a) { const t = tile(a.mediaId); return t.img ? { ok: true, w: t.img.naturalWidth, h: t.img.naturalHeight, complete: t.img.complete } : { ok: false, code: t.code }; },
     state() {
       const ed = $('flow-prompt-box .ProseMirror[contenteditable="true"]'); const s = $(SUBMIT);
       return { text: ed && ed.innerText.trim(), submitDisabled: s && s.disabled,
@@ -47,6 +59,7 @@
     },
     probe: (a) => ({ present: Object.fromEntries(Object.entries(a.selectors).map(([k, s]) => { try { return [k, !!document.querySelector(s)]; } catch (_) { return [k, false]; } })), path: location.pathname }), // read-only DOM presence check
     hit: () => ask('toolflow:hit'),
+    listeners: () => ask('toolflow:listeners'), // read-only: count of the submit button's click listeners
     async trusted(a) { return (await ask('toolflow:submit', 1000, { epoch: a.epoch })) || { noMainWorld: true }; },
     async arm(a) { const r = await ask('toolflow:arm', 1000, { epoch: a.epoch }); if (!r?.ok) throw new Error('arm: no ack from main world'); return true; },
     net: () => ask('toolflow:net'),
@@ -68,6 +81,31 @@
       await sleep(1500);
       return { chips: document.querySelectorAll('flow-prompt-box flow-image-ingredient-chip').length };
     },
+    // Radios by LABEL (settings-logic.js), re-read after every click; model is verified only. Opens/closes the panel, never touches submit.
+    async settings(a) {
+      const trigger = $(TRIGGER); if (!trigger) return { ok: false, current: null, mismatches: ['trigger'] };
+      if (!$('flow-prompt-box-settings')) trigger.click();
+      if (!(await until(() => $('flow-prompt-box-settings'), 3000))) return { ok: false, current: null, mismatches: ['panel'] };
+      const buttons = () => [...$('flow-prompt-box-settings').querySelectorAll('button')].map((el) => ({ role: el.getAttribute('role'), text: el.innerText, checked: el.getAttribute('aria-checked'), el }));
+      try {
+        return await TFSettings.converge({ mode: a.mode, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150) });
+      } finally { if ($('flow-prompt-box-settings')) trigger.click(); }
+    },
+    // Library -> chip by upload name (ref-logic.js). Opens/closes the '+' popover, never touches submit; returns codes only.
+    async attach(a) {
+      const pop = () => $('flow-add-menu-popover-content');
+      const plus = () => { const bs = [...document.querySelectorAll('flow-prompt-box button')].filter((b) => !b.closest('flow-add-menu-popover-content')); const i = TFRef.plusIndex(bs.map((b) => ({ text: b.innerText, label: b.getAttribute('aria-label') }))); return i < 0 ? null : bs[i]; };
+      const env = {
+        chips: () => OPS.state().chips,
+        isOpen: () => !!pop(),
+        open: async () => { const b = plus(); if (!b) return false; b.click(); return !!(await until(pop, 3000)); },
+        close: () => { const b = plus(); if (b) b.click(); },
+        setSearch: (q) => { const e = $('flow-add-menu-popover-content input.search-input'); if (!e) return; e.focus(); e.value = q; e.dispatchEvent(new Event('input', { bubbles: true })); },
+        items: () => [...document.querySelectorAll('flow-add-menu-popover-content .asset-item')].map((el) => ({ text: el.innerText, click: () => el.click() })),
+        addButton: () => { const b = [...(pop()?.querySelectorAll('button') || [])].filter((x) => x.innerText.trim() === 'Add to prompt'); return b.length === 1 ? b[0] : null; },
+      };
+      return TFRef.attach(env, a.name, { until, chipMs: 15000 }); // a fresh upload shows its chip long before the image src (uuid) is readable (measured >10 s)
+    },
     // Never clicks submit. Types the prompt (and optional library asset) into the composer.
     async prep({ prompt, asset }) {
       const log = [];
@@ -84,15 +122,26 @@
       }
       const ed = $('flow-prompt-box .ProseMirror[contenteditable="true"]');
       if (!ed) return { ok: false, log: ['composer not found'] };
+      if (ed.innerText.trim()) { // stale text: clear it, and prove it is empty before typing (no doubled prompt)
+        const clear = $(CLEAR); if (clear) clear.click();
+        if (!(await until(() => !ed.innerText.trim(), 2000))) return { ok: false, log: ['clear failed'] };
+      }
       ed.focus();
-      const ok = document.execCommand('insertText', false, prompt);
+      const typed = document.execCommand('insertText', false, prompt);
       await sleep(400);
       const sub = $(SUBMIT);
-      return { ok, text: ed.innerText.trim(), textMatches: ed.innerText.trim() === prompt, submitDisabled: sub ? sub.disabled : null, log };
+      const textMatches = ed.innerText.trim() === prompt;
+      return { ok: typed && textMatches, text: ed.innerText.trim(), textMatches, submitDisabled: sub ? sub.disabled : null, log };
     },
   };
 
-  chrome.runtime.onMessage.addListener((m, _s, reply) => {
+  chrome.runtime.onMessage.addListener((m, s, reply) => {
+    if (m?.tf === 'src') { // INTERNAL: only our own service worker may ask; the src goes to chrome.downloads and nowhere else
+      if (s?.id !== chrome.runtime.id) return;
+      const t = tile(m.mediaId);
+      reply(t.img && t.img.src ? { src: t.img.src } : { code: t.code ?? 'NOT_FOUND' });
+      return;
+    }
     if (m?.tf !== 'op') return;
     const f = OPS[m.op];
     if (!f) { reply({ error: 'unknown page op ' + m.op }); return; }

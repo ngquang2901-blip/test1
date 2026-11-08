@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { hintOf } from '../hints'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, time, type Attempt, type Batch } from '../types'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
+const Hint = ({ a }: { a: Attempt }): React.JSX.Element | null => { const h = hintOf(a.error?.code); return h ? <div data-testid="hint">{h}</div> : null } // what to do, next to the raw code
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
 
 function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
@@ -15,6 +17,22 @@ function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
   )
 }
 
+/** Inline two-step confirm (no window.confirm): the first button asks, the second does it (a costly one focuses Huỷ, so a stray Enter never pays); both are plain buttons, so the keyboard reaches them. */
+function TwoStep({ label, ask, yes, go, safeFocus }: { label: string; ask: string; yes: string; go: () => void; safeFocus?: boolean }): React.JSX.Element {
+  const [on, setOn] = useState(false)
+  if (!on) return <button onClick={() => setOn(true)}>{label}</button>
+  return (
+    <span role="group" aria-label={ask}>
+      <span>{ask}</span>{' '}
+      <button autoFocus={!safeFocus} onClick={() => { setOn(false); go() }}>{yes}</button>{' '}
+      <button autoFocus={safeFocus} onClick={() => setOn(false)}>Huỷ</button>
+    </span>
+  )
+}
+
+/** Asset ids of the items that stopped on REF_UPLOAD_UNCERTAIN, each once. */
+const stuckRefs = (b: Batch): string[] => [...new Set(b.items.filter((it) => current(it).error?.code === 'REF_UPLOAD_UNCERTAIN').flatMap((it) => it.refs))]
+
 export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Element {
   const [open, setOpen] = useState<string | null>(null)
   if (!batches.length) return <p>Chưa có lô nào.</p>
@@ -24,6 +42,10 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
       {batches.map((b) => (
         <div key={b.id}>
           <h3>Lô {b.id.slice(0, 8)} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
+          {b.status === 'paused' && hintOf(b.pauseReason) && <p role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason)}</p>}
+          {b.status === 'paused' && b.pauseReason === 'REF_UPLOAD_UNCERTAIN' && stuckRefs(b).map((id, k) => ( // the way out of a binding stuck in uploading/uncertain: Huỷ has the focus, so a stray Enter changes nothing
+            <div key={id}><TwoStep label={`Cho phép tải lại ảnh tham chiếu ${k + 1}`} ask="Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này." yes="Có, cho phép tải lại" safeFocus go={() => run(() => window.api.resetAssetBinding({ assetId: id, confirm: true }))} /></div>
+          ))}
           <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
           <table>
             <thead><tr><th>#</th><th>prompt</th><th>trạng thái</th></tr></thead>
@@ -35,11 +57,15 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
                     <td>{it.ord + 1}</td><td>{it.prompt}</td>
                     <td>
                       {itemLabel(a)}{a.item === 'failed' && a.error?.code ? ` (${reasons(a)})` : ''}
+                      {(a.item === 'failed' || a.item === 'needs_review') && <Hint a={a} />}
                       {a.item === 'needs_review' && a.stage === 'uncertain' && (
                         <>
                           <Uncertain a={a} />
-                          <button onClick={() => run(() => window.api.archiveBatch(b.id))}>Lưu hồ sơ chưa rõ</button>
+                          <TwoStep label="Lưu hồ sơ chưa rõ" ask="Chắc chắn lưu hồ sơ?" yes="Có, lưu hồ sơ" go={() => run(() => window.api.archiveBatch({ batchId: b.id, confirm: true }))} />
                         </>
+                      )}
+                      {a.item === 'failed' && a.error?.resolution && ( // R30: the user settled it as not sent; a new paid copy needs a second click
+                        <TwoStep label="Chạy lại (tốn credit)" ask="Chạy lại sẽ gửi prompt này lần nữa và tốn thêm credit. Chắc chắn?" yes="Có, chạy lại" safeFocus go={() => run(() => window.api.rerun({ attemptId: a.id, confirmCost: true }))} />
                       )}
                     </td>
                   </tr>

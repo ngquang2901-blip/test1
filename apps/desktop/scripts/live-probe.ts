@@ -1,12 +1,15 @@
 // Read-only live probe: pairs with the real Chrome extension and reports what the Flow tabs look like.
 // Never clicks, fills or sends anything on the page. Prints no URLs/tokens; the account email is masked.
 // Run: npm run live-probe -w apps/desktop   (stop the app first: only one process may own the pairing port)
+import { deflateSync } from 'node:zlib'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { startConnectorServer } from '../src/main/connector/server'
 import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
 import { EXT_ID } from '../src/main/connector/ext-id'
 import flow from '../profiles/flow.json'
+import { createExtDriver } from '../src/main/connector/ext-driver'
+import { DEFAULT_COMBO } from '../src/main/profile'
 import { correlate, parseGenerateRequest, parseImageReceipt, parseRpcResponse, readFReq } from '@toolflow/flow-protocol/parse'
 
 const userData = process.env.TOOLFLOW_USER_DATA ?? join(homedir(), '.local/share/toolflow-live')
@@ -57,6 +60,85 @@ for (const t of tabs) {
     for (const r of net) { const k = `${r.rpc}/${r.via ?? '?'}/${r.status}`; by[k] = (by[k] ?? 0) + 1 }
     console.log('  rpc seen since page load (rpc/transport/status: count):', JSON.stringify(by))
   }
+}
+// FOCUS=1: bring the first Flow tab to the front (op `focus`), like manual mode does before arming.
+if (process.env.FOCUS === '1' && tabs[0]) console.log('focus:', JSON.stringify(await server.send('focus', { tabId: tabs[0].tabId })))
+// INSPECT=1: read-only look at the composer settings panel: open it, list its buttons (text/role/checked), close it again. Nothing is changed or sent.
+if (process.env.INSPECT === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  console.log('state:', JSON.stringify(await server.send('state', a)))
+  console.log('open settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
+  await sleep(1200)
+  console.log('radios:', JSON.stringify(await server.send('radios', a)))
+  console.log('close settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
+  await sleep(600)
+  console.log('radios after close:', JSON.stringify(await server.send('radios', a)))
+}
+// PREP=1: product ext-driver on the real tab, never clicks Send: prepare (settings + prompt), pre-click checks, stale-text replace, settings round trip, then clears the composer.
+if (process.env.PREP === '1' && tabs[0]) {
+  const drv = createExtDriver(server, { allow: () => true })
+  const t = (await drv.listTabs())[0]
+  const show = (label: string, v: unknown): void => console.log(`${label}: ${JSON.stringify(v)}`)
+  const text = async (): Promise<string> => ((await server.send('state', { tabId: Number(t.tabId) })) as { text: string }).text
+  const P1 = 'prep probe one: a red kite', P2 = 'prep probe two: a blue boat'
+  const combo = { ...DEFAULT_COMBO }
+  show('listTabs', { hasProject: !!t.projectId, hasEmail: !!t.email })
+  show('prepare#1', await drv.prepare(t.tabId, { prompt: P1, kind: 'image', settings: { combo }, refIds: [] }))
+  show('composer == P1', (await text()) === P1)
+  show('checkBeforeClick', await drv.checkBeforeClick(t.tabId, t.projectId!, []))
+  show('checkBeforeClick wrong project', await drv.checkBeforeClick(t.tabId, '00000000-0000-4000-8000-000000000000', []))
+  show('prepare#2 (stale text present)', await drv.prepare(t.tabId, { prompt: P2, kind: 'image', settings: { combo }, refIds: [] }))
+  show('composer == P2 only', (await text()) === P2)
+  show('settings round trip x1', await drv.prepare(t.tabId, { prompt: P2, kind: 'image', settings: { combo: { ...combo, count: 1 } }, refIds: [] }))
+  show('settings back to x2', await drv.prepare(t.tabId, { prompt: P2, kind: 'image', settings: { combo }, refIds: [] }))
+  show('state settings', ((await server.send('state', { tabId: Number(t.tabId) })) as { settings: string }).settings)
+  await server.send('click', { tabId: Number(t.tabId), sel: 'button.clear-button' })
+  await sleep(500)
+  show('composer cleared', (await text()) === '')
+}
+// SC=1: run the product probeTab + the raw ops it uses, print the raw answers (read-only).
+if (process.env.SC === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  for (const [op, args] of [['ping', a], ['probe', { ...a, selectors: { editor: 'flow-prompt-box .ProseMirror[contenteditable="true"]', submit: 'flow-prompt-box button[type="submit"]' } }], ['listeners', a]] as const) {
+    try { console.log(op, JSON.stringify(await server.send(op, args as never))) } catch (e) { console.log(op, 'ERR', (e as Error).message) }
+  }
+}
+// REF=1: upload ONE tiny unique PNG (free, no generation) via op `file` (REF_HOW=drop|paste), then describe chips and composer buttons. Never sends.
+if (process.env.REF === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  const crc = (b: Buffer): number => { let c, x = ~0; for (const v of b) { c = (x ^ v) & 255; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; x = (x >>> 8) ^ c } return ~x >>> 0 }
+  const chunk = (t: string, d: Buffer): Buffer => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]) }
+  const W = 96, raw = Buffer.alloc((W * 3 + 1) * W); const tint = Date.now() % 200
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) { const o = y * (W * 3 + 1) + 1 + x * 3; raw[o] = tint + (x % 50); raw[o + 1] = 80 + (y % 90); raw[o + 2] = 200 - (x % 60) }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(W, 4); ihdr[8] = 8; ihdr[9] = 2
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+  const name = `tf-ref-${Date.now()}.png`
+  await server.send('net', a) // drain
+  console.log('file:', JSON.stringify(await server.send('file', { ...a, b64: png.toString('base64'), name, mime: 'image/png', how: process.env.REF_HOW ?? 'drop' })), name)
+  await sleep(4000)
+  const net = (await server.send('net', a)) as { rpc?: string; status?: number; via?: string }[]
+  console.log('net after upload:', JSON.stringify((Array.isArray(net) ? net : []).map((n) => `${n.rpc ?? '?'}/${n.via ?? ''}/${n.status ?? ''}`)))
+  const st = await server.send('state', a)
+  console.log('state:', JSON.stringify(st))
+  if (process.env.REF_ATTACH === '1') for (let k = 1; k <= 3; k++) { const t0 = Date.now(); console.log(`attach#${k}:`, JSON.stringify(await server.send('attach', { ...a, name }).catch((e) => String(e))), `${Date.now() - t0}ms`) }
+}
+// CHIPS=1: read-only: composer state + net buffer (names only) + a masked description of the composer DOM.
+if (process.env.CHIPS === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  console.log('state:', JSON.stringify(await server.send('state', a)))
+  const net = (await server.send('net', a)) as { rpc?: string; status?: number; via?: string }[]
+  console.log('net:', JSON.stringify((Array.isArray(net) ? net : []).map((n) => `${n.rpc ?? '?'}/${n.via ?? ''}/${n.status ?? ''}`)))
+}
+// SEL=1: presence/count of candidate selectors given as JSON in SELS (read-only probe op).
+if (process.env.SEL === '1' && tabs[0]) {
+  const sels = JSON.parse(process.env.SELS ?? '{}') as Record<string, string>
+  console.log('probe:', JSON.stringify(await server.send('probe', { tabId: tabs[0].tabId, selectors: sels })))
+}
+// ATTACH=<name prefix>: run the attach op once (opens library, searches, attaches ONE chip, closes) and print the raw answer + chips.
+if (process.env.ATTACH && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  try { console.log('attach:', JSON.stringify(await server.send('attach', { ...a, name: process.env.ATTACH }))) } catch (e) { console.log('attach ERR', (e as Error).message) }
+  console.log('state:', JSON.stringify(await server.send('state', a)))
 }
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)

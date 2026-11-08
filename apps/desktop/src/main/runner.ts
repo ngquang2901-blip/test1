@@ -6,16 +6,19 @@ import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
 import { CAPS, nextCap } from './caps';
-import { profile } from './profile';
+import { comboQualified, profile, type Combo } from './profile';
 import { CLICK_MS, RECONCILE_MS, runReconcile, unblock } from './reconcile';
 
 const SEND_DEADLINE_MS = 30_000; // a click whose request the observer never reports is uncertain after this (04 Q-09)
+const RESPONSE_DEADLINE_MS = 120_000; // sent recorded but no response by then: uncertain (blocks the project, reconcile later), never resent
+const BEAT_MS = 5_000; // while a response is awaited the tab is pinged at most this often
 const coded = (code: string) => Object.assign(new Error(code), { code });
 
 type Kind = 'image' | 'video';
 export type BatchStatus = 'queued' | 'running' | 'paused' | 'needs_review' | 'completed' | 'partial_failed' | 'failed' | 'stopped';
 export type Runner = {
   tick(): Promise<void>;
+  setTabs(ids: string[]): void; // dynamic tab set (session grant)
   rerun(attemptId: string, confirmedCost: true): string;
   start(batchId: string): void; pause(batchId: string): void; resume(batchId: string): void; stop(batchId: string): void;
   confirm(attemptId: string, to: 'sent' | 'not_sent'): void; archive(batchId: string): void; recover(): void;
@@ -41,20 +44,26 @@ export function batchStatus(db: Db, id: string): BatchStatus {
 }
 
 export function createRunner(o: {
-  db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
+  db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; combos?: readonly Combo[]; // qualified combos (default: the profile's)
+  selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
 }): Runner {
   const { db, driver, clock } = o;
   const max = CAPS[o.speed];
-  const tabs = o.tabs.slice(0, max.tabs);
+  let tabs = o.tabs.slice(0, max.tabs);
   const caps: Record<Kind, number> = { image: max.image, video: max.video };
   const queue: DriverEvent[] = [];
   driver.onEvent((e) => queue.push(e));
   const slot = new Map<string, string>(); // tab → attempt last given a click there
-  const awaiting: { id: string; tab: string }[] = []; // sent, response not seen yet
+  const awaiting: { id: string; tab: string; at: number }[] = []; // sent, response not seen yet
   const epochs = new Map<string, number>(); // AC-30: bumped on every disconnect; older sent/response events are ignored
   const epoch = (tab: string) => { // first epoch = clock, so a restarted app is above any epoch of its previous run (R38)
     let e = epochs.get(tab); if (e === undefined) epochs.set(tab, (e = clock.now())); return e;
   };
+  // Per tab: page id + generate count at the first intent after a page change/fence (genBase) and the sends we accepted since (ours).
+  // ping.gen !== genBase + ours ⇒ the page made a generate we did not account for.
+  const pages = new Map<string, { id: string; genBase: number; ours: number; beat: number }>();
+  const fenced = new Set<string>(); // fenced since the last click there: a stale armed tracker may remain, disarm before the next click
+  const rearm = new Set<string>(); // fenced while the user was to send here: the armed tracker still stamps the old epoch
   const clicking = new Set<string>(); // attempts whose driver.click has not returned
   const paused = new Map<string, string | null>(); // authoritative even when the DB write failed; flushed each tick
   const unc = new Set<string>(); // batches whose current pause was set only because an attempt went uncertain: the only pause release() lifts
@@ -130,6 +139,8 @@ export function createRunner(o: {
   /** Observation of this tab is lost or unproven (disconnect, send deadline, archive): older events are void and whatever awaits a response is uncertain. */
   function fence(tab: string) {
     epochs.set(tab, epoch(tab) + 1);
+    pages.delete(tab); fenced.add(tab);
+    const cur = slot.get(tab); if (cur && state(cur).item === 'awaiting_user') rearm.add(tab);
     const ids = new Set([slot.get(tab), ...awaiting.filter((a) => a.tab === tab).map((a) => a.id)]);
     for (let k = awaiting.length; k--;) if (awaiting[k].tab === tab) awaiting.splice(k, 1);
     for (const id of ids) if (id && state(id).item === 'submitting') apply(id, { type: 'deadline' });
@@ -139,6 +150,7 @@ export function createRunner(o: {
     if (e.type === 'disconnected') { fence(e.tabId); return; }
     if (!(e.epoch >= epoch(e.tabId))) return; // answers a connection that is gone; reconcile settles what it left uncertain
     if (e.type === 'sent') {
+      const pg = pages.get(e.tabId); if (pg) pg.ours++; // the page's gen counted this send
       const id = slot.get(e.tabId);
       if (!id || state(id).item === 'needs_review') return; // already uncertain: nothing legal to record
       let request;
@@ -146,7 +158,7 @@ export function createRunner(o: {
         if (state(id).item === 'submitting') apply(id, { type: 'deadline' }); // unprovable: uncertain + project blocked
         throw err; // run() pauses the batch with PROTOCOL_DRIFT
       }
-      if (apply(id, { type: 'sent', request }).request) awaiting.push({ id, tab: e.tabId });
+      if (apply(id, { type: 'sent', request }).request) awaiting.push({ id, tab: e.tabId, at: clock.now() });
       return;
     }
     // A response belongs to the awaiting attempt with the same rpc and batchId, on any tab; anything else never feeds an attempt.
@@ -175,35 +187,59 @@ export function createRunner(o: {
   }
 
   async function dispatch(tab: string, id: string, i: Info, s0: AttemptState) {
+    const settings = JSON.parse(i.settings) as { mode?: string; combo?: unknown };
+    if (!comboQualified(i.kind, settings.combo, o.combos)) { pause(i.batch, 'COMBO_NOT_QUALIFIED'); return; } // AC-03: before any state change, intent or page call
     if (s0.item === 'queued') apply(id, { type: 'prepare', now: clock.now() });
-    const settings = JSON.parse(i.settings) as { mode?: string };
     const gone = () => state(id).item === 'cancelled'; // stop() landed during an await: a normal exit
-    const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs) });
+    // Pause / stop / not running since admission: leave the attempt as it is (still preparing) so a resume prepares it again. Checked after every await up to the intent.
+    const halted = () => {
+      if (gone() || paused.has(i.batch)) return true;
+      const b = db.prepare('select status, stop_requested s from batch where id=?').get(i.batch) as { status: string; s: number };
+      return b.status !== 'running' || b.s !== 0;
+    };
+    const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs), projectId: i.project });
     if (gone()) return;
-    if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: 'continue' } }); return; }
-    const chk = await driver.checkBeforeClick(tab, i.project);
-    if (gone()) return;
+    if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: p.code === 'REF_UPLOAD_UNCERTAIN' ? 'pause' : 'continue' } }); return; } // a ref upload that may have happened waits for the user, no retry
+    if (halted()) return;
+    const chk = await driver.checkBeforeClick(tab, i.project, JSON.parse(i.refs));
+    if (halted()) return;
     if (!chk.ok) { pause(i.batch, chk.code); return; }
     const ping = await driver.ping(tab);
     if (gone()) return;
+    const pg = pages.get(tab); // double-send guard (auto and manual): nothing is written or clicked when the page sent something we did not account for
+    if (pg && pg.id !== ping.id && awaiting.some((a) => a.tab === tab)) fence(tab); // reloaded under a pending response: uncertain before anything new goes out
+    if (!pg || pg.id !== ping.id) pages.set(tab, { id: ping.id, genBase: ping.gen, ours: 0, beat: clock.now() });
+    else if (ping.gen !== pg.genBase + pg.ours) { pg.genBase = ping.gen - pg.ours; pause(i.batch, 'UNEXPECTED_GENERATE'); return; } // rebased: resume goes on
     let manual = settings.mode === 'manual' || !o.autoAllowed(ping.email);
     if (!manual && o.selfCheckOk) { manual = !(await o.selfCheckOk(tab).catch(() => false)); if (gone()) return; } // I1: drifted/blind tab never auto-clicks
+    if (fenced.delete(tab)) { // a stale armed tracker may remain: disarm (best effort) before the intent, so a stop during it still ends before any click
+      await driver.arm(tab, null).catch(() => {});
+    }
+    if (halted()) return; // last gate before the intent: nothing is journaled or clicked for a batch that is paused / stopping / not running
     const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), profileVersion: profile.version, manual: true } : { type: 'intent', ping, now: clock.now(), profileVersion: profile.version }); // AC-18: version stamped in the journal; R10: committed before click
     slot.set(tab, id);
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) { // manual, or intent refused (observer dead → batch paused by apply)
       if (s.item !== 'awaiting_user') return;
-      try { await driver.arm(tab, epoch(tab)); } catch (err) { // R39/R40: a blind tab must not be waited on, and the arm may have reached the page before it threw: the user may still send, so never cancelled. prep_failed is illegal after intent; skip+armFailed is the legal route to uncertain
-        try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now(), armFailed: true }); } catch (e2) { fail(i.batch, e2); return; }
-        fail(i.batch, err);
-      }
+      await driver.focusTab(tab).catch((e) => console.error('runner: focus failed', (e as { code?: string }).code)); // AC-11: the user sends in this tab; a failed focus never blocks arming
+      await armTab(tab, id, i.batch);
       return;
     }
+    if (!canClick(state(id))) return; // stop() may have landed since the intent
     let result;
     clicking.add(id);
     try { result = await driver.click(tab, epoch(tab)); } catch { db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); fence(tab); return; } finally { clicking.delete(id); } // a drop may still have sent it: window starts here too
     db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); // R27: the reconcile window starts here
     try { apply(id, { type: 'clicked', result }); } catch { apply(id, { type: 'deadline' }); } // e.g. stop() during the click: it may have gone out, so uncertain
+  }
+
+  // R39/R40: a blind tab must not be waited on, and the arm may have reached the page before it threw: the user may still send, so never cancelled.
+  // prep_failed is illegal after intent; skip+armFailed is the legal route to uncertain. again: drop the old tracker first (arming a pending one is ambiguous).
+  async function armTab(tab: string, id: string, batch: string, again = false) {
+    try { if (again) await driver.arm(tab, null); await driver.arm(tab, epoch(tab)); } catch (err) {
+      try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now(), armFailed: true }); } catch (e2) { fail(batch, e2); return; }
+      fail(batch, err);
+    }
   }
 
   async function admit(tab: string) {
@@ -255,6 +291,24 @@ export function createRunner(o: {
         } catch (err) { fail(info(r.id).batch, err); }
       }
     }
+    for (const a of [...awaiting]) if (awaiting.includes(a) && clock.now() - a.at >= RESPONSE_DEADLINE_MS) { // no response in time: uncertain via the same deadline path as a lost tab
+      try { fence(a.tab); } catch (err) { fail(info(a.id).batch, err); }
+    }
+    for (const tab of new Set(awaiting.map((a) => a.tab))) { // heartbeat after click
+      const pg = pages.get(tab);
+      if (!pg || clock.now() - pg.beat < BEAT_MS) continue;
+      pg.beat = clock.now();
+      let lost = false;
+      try { const p = await driver.ping(tab); lost = p.id !== pg.id || !p.xhrSend || !p.xhrOpen || !p.fetch; } catch { lost = true; }
+      drain(); // events that arrived during the ping come first
+      const own = awaiting.find((a) => a.tab === tab);
+      if (lost && pages.get(tab) === pg && own) try { fence(tab); } catch (err) { fail(info(own.id).batch, err); }
+    }
+    for (const tab of [...rearm]) { // after a fence: the awaiting_user attempt of the slot gets the new epoch
+      rearm.delete(tab);
+      const id = slot.get(tab);
+      if (id && tabs.includes(tab) && state(id).item === 'awaiting_user') await armTab(tab, id, info(id).batch, true);
+    }
     for (const r of db.prepare('select id from attempt where reconcile_at is not null and reconcile_at <= ?').all(clock.now()) as { id: string }[]) {
       try { if (await runReconcile(db, driver, r.id, clock.now()) === 'found') release(r.id); } catch (err) { fail(info(r.id).batch, err); }
     }
@@ -262,6 +316,11 @@ export function createRunner(o: {
   }
 
   return {
+    setTabs(ids) { // a dropped tab loses observation: same fence as a disconnect, so its in-flight attempts turn uncertain instead of vanishing
+      const next = ids.slice(0, max.tabs);
+      for (const t of tabs) if (!next.includes(t)) fence(t);
+      tabs = next;
+    },
     tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p; },
     start(b) { paused.delete(b); unc.delete(b); setStatus(b, 'queued', 'running'); },
     pause(b) { setStatus(b, 'running', 'paused'); paused.set(b, null); unc.delete(b); },
@@ -279,6 +338,7 @@ export function createRunner(o: {
     rerun(id, confirmedCost) {
       if (confirmedCost !== true) throw coded('COST_NOT_CONFIRMED');
       const i = info(id);
+      if ((db.prepare('select archived a from batch where id=?').get(i.batch) as { a: number }).a) throw coded('BATCH_ARCHIVED'); // an archived batch keeps its record: no new paid attempt in it
       if (db.prepare('select 1 from target_block where project_id=?').get(i.project)) throw coded('TARGET_BLOCKED'); // AC-22: settle the uncertain one first
       return db.transaction(() => {
         const a = db.prepare('select item_id, ordinal from attempt where id=?').get(id) as { item_id: string; ordinal: number };

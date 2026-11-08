@@ -53,17 +53,26 @@
     emit('toolflow:hit-result', b ? { covered: covered(b) } : null);
   });
 
+  // Read-only: how many click listeners Flow attached to the submit button. Never calls one, never arms.
+  nativeAdd.call(document, 'toolflow:listeners', () => {
+    const b = document.querySelector(SUBMIT); const ls = b && reg.get(b);
+    emit('toolflow:listeners-result', { found: !!b, disabled: b?.disabled ?? null, listeners: ls ? ls.size : 0 });
+  });
+
   // Read-only network observer.
   const RPCS = /rpcids=(ogiZ0b|YhhmEf|eb1hJf|nprQif|MZZa6b|maseQ|jwpduf|as29s|Zzl0ze|nzlxg|bOKtO)/;
   const GEN = /^(ogiZ0b|YhhmEf|MZZa6b)$/; // generate calls: forwarded to the desktop as events
   const BIG = /^(Zzl0ze|bOKtO)$/;
   const net = [];
+  const seen = {}; // rpc names that completed OK since page load (names only: the self-check wants proof the project loaded)
   const obs = { id: crypto.randomUUID(), seq: 0, dropped: 0 };
   const push = (url, body, status, text, via) => {
     const m = RPCS.exec(url); if (!m) return;
     const rec = { t: Date.now(), rpc: m[1], via, status, res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000), seq: ++obs.seq };
-    net.push(rec); if (net.length > 200) { net.shift(); obs.dropped++; }
+    if (status >= 200 && status < 300) seen[rec.rpc] = true;
+    net.push(rec); if (net.length > 200) net.shift(); // overflow is normal (the ring is a debug tail): sent/response events never go through it
   };
+  const out = (ev) => { try { emit('toolflow:event', ev); } catch (_) { obs.dropped++; } }; // dropped = a real observer failure, so a skip can no longer prove 'nothing sent'
   const gen = (url) => { const m = RPCS.exec(url); return m && GEN.test(m[1]) ? m[1] : null; };
   const xo = XMLHttpRequest.prototype.open, xs = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.open = function (m, u) { this.__tfUrl = String(u); return xo.apply(this, arguments); };
@@ -71,10 +80,10 @@
     const url = this.__tfUrl || '';
     if (RPCS.test(url)) {
       const rpc = gen(url); const req = String(b || ''); const epoch = rpc ? tracker.send() : undefined;
-      if (rpc) emit('toolflow:event', { type: 'sent', epoch, request: req });
+      if (rpc) out({ type: 'sent', epoch, request: req });
       nativeAdd.call(this, 'loadend', () => { try {
         push(url, b, this.status, this.responseText, 'xhr');
-        if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: this.responseText, request: req });
+        if (rpc) out({ type: 'response', epoch, rpc, text: this.responseText, request: req });
       } catch (e) { /* observer must never break the page */ } });
     }
     return xs.apply(this, arguments);
@@ -90,11 +99,11 @@
     const rpc = gen(url);
     const reqP = rpc ? readBody(input, init).catch(() => '') : null;
     const epoch = rpc ? tracker.send() : undefined; // counts gen too, so a skip can never read 'nothing sent'
-    if (reqP) reqP.then((request) => emit('toolflow:event', { type: 'sent', epoch, request })).catch(() => {});
+    if (reqP) reqP.then((request) => out({ type: 'sent', epoch, request })).catch(() => {});
     const r = await of.apply(this, arguments);
     if (RPCS.test(url)) r.clone().text().then(async (t) => {
       push(url, '', r.status, t, 'fetch');
-      if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: t, request: await reqP });
+      if (rpc) out({ type: 'response', epoch, rpc, text: t, request: await reqP });
     }).catch(() => {});
     return r;
   };
@@ -105,6 +114,6 @@
     const meta = document.querySelector('meta[name="toolflow-version"]');
     emit('toolflow:ping-result', {
       xhrSend: XMLHttpRequest.prototype.send === ourSend, xhrOpen: XMLHttpRequest.prototype.open === ourOpen,
-      fetch: window.fetch === ourFetch, ...obs, gen: tracker.gen, t: Date.now(), version: meta ? meta.content : '' });
+      fetch: window.fetch === ourFetch, ...obs, seen: Object.keys(seen), gen: tracker.gen, t: Date.now(), version: meta ? meta.content : '' });
   });
 })();

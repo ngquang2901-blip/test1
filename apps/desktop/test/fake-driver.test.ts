@@ -71,7 +71,7 @@ test('ping, prepare, checkBeforeClick, readProject, ledger', async () => {
   await d.prepare('t1', { prompt: 'x', kind: 'image', settings: {}, refIds: [] });
   expect(await d.checkBeforeClick('t1', 'p')).toEqual({ ok: true });
   expect(await d.readProject('p')).toMatch(/^\)\]\}'/);
-  expect(d.ledger).toEqual({ clicks: 0, prepares: 1, readProject: 1, arms: 0, armLog: [] });
+  expect(d.ledger).toEqual({ clicks: 0, fetches: 0, prepares: 1, checks: 1, readProject: 1, arms: 0, uploads: [], refs: [], armLog: [] });
 });
 
 test('throttled after a video prepare: video request + YhhmEf throttle response', async () => {
@@ -166,4 +166,8 @@ test('R29: sent and response carry the epoch passed to click', async () => {
   await d.click('t1', 7);
   await new Promise((r) => setTimeout(r, 5));
   expect(got.map((e) => (e as { epoch: number }).epoch)).toEqual([7, 7]);
+});
+
+test('probeTab: the fake tab always passes the self-check probe', async () => {
+  expect(await createFakeDriver([]).probeTab!('t1')).toEqual({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true });
 });

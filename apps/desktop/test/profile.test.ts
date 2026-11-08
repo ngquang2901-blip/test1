@@ -3,7 +3,7 @@ import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
-import { profile, selfCheck, type Probe } from '../src/main/profile';
+import { profile, selfCheck, selfCheckTab, type Probe } from '../src/main/profile';
 import { autoAllowed, autoGate, enableAuto, disableAuto } from '../src/main/account';
 
 const now = Date.now();
@@ -42,7 +42,7 @@ test('drift guard: extension still hardcodes the profile selectors and rpc ids',
   const mw = readFileSync(join(__dirname, '../../extension/main-world.js'), 'utf8');
   // Known gap (extension untouched in P1): P2 closes it by moving these into page-ops.js.
   const missing = Object.entries(profile.selectors).filter(([, s]) => !src.includes(s)).map(([k]) => k);
-  expect(missing).toEqual(['clear', 'tile', 'assetSearch']);
+  expect(missing).toEqual(['tile']); // attach (Task 5a) carries assetSearch now
   for (const id of Object.values(profile.rpc)) expect(mw).toContain(id);
 });
 
@@ -121,4 +121,28 @@ test('autoGate: invalid profile or opted-out account ⇒ no auto', () => {
   expect(autoGate(db, 'a@x.com', null)).toBe(true);
   expect(autoGate(db, 'a@x.com', 'selectors')).toBe(false);
   expect(autoGate(db, 'b@x.com', null)).toBe(false);
+});
+
+test('validateProfile: combos must be a non-empty array of complete combos', () => {
+  for (const bad of [undefined, [], {}, [null], [{}], [{ kind: 'image', mode: 'Image', model: 'm', aspect: '16:9', quality: 'High' }], [{ kind: 'image', mode: 'Image', model: 'm', aspect: '16:9', quality: 'High', count: 0 }], [{ kind: 'image', mode: 'Image', model: '', aspect: '16:9', quality: 'High', count: 2 }], [{ kind: 'image', mode: 'Image', model: 'm', aspect: '16:9', quality: 'High', count: '2' }]]) {
+    const c = clone(); c.combos = bad;
+    expect(validateProfile(c), JSON.stringify(bad)).toBe('combos');
+  }
+  const d = clone(); delete d.combos;
+  expect(validateProfile(d)).toBe('combos');
+});
+
+// session() and the runner's selfCheckOk both go through selfCheckTab: the driver's probeTab decides, a missing/broken one fails closed
+test('selfCheckTab: scripted driver.probeTab drives the verdict; absent or throwing probeTab never passes', async () => {
+  const ping = good().ping;
+  const probe = { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true };
+  const run = (probeTab?: (t: string) => Promise<typeof probe>) => selfCheckTab({ probeTab }, ping, 't1', '1.0');
+  expect(await run(async () => probe)).toEqual({ ok: true });
+  expect(await run(async () => ({ ...probe, sawProjectLoad: false }))).toMatchObject({ ok: false, reasons: ['no_project_load'] });
+  expect(await run(async () => ({ ...probe, listeners: 0 }))).toMatchObject({ reasons: ['listeners:0'] });
+  expect(await run(async () => { throw new Error('gone'); })).toMatchObject({ ok: false, reasons: ['selector:editor', 'selector:submit', 'listeners:0', 'no_project_load'] });
+  expect((await run()).ok).toBe(false);
+  const tabs: string[] = [];
+  await run(async (t) => (tabs.push(t), probe));
+  expect(tabs).toEqual(['t1']);
 });

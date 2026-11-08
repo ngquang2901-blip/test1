@@ -58,7 +58,7 @@ function App(): React.JSX.Element {
       <nav aria-label="Màn hình">
         {SCREENS.map((s) => <button key={s} aria-current={screen === s ? 'page' : undefined} onClick={() => setScreen(s)}>{s}</button>)}
       </nav>
-      {screen === 'Kết nối' && <SessionScreen s={session} />}
+      {screen === 'Kết nối' && <SessionScreen s={session} reload={reload} />}
       {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} onCreated={() => { setScreen('Hàng đợi'); reload() }} />}
       {screen === 'Hàng đợi' && <Queue batches={batches} />}
       {screen === 'Kết quả' && <Results batches={batches} />}

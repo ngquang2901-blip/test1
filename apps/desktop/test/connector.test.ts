@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, statSync }
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
-import { startConnectorServer } from '../src/main/connector/server'
+import { startConnectorServer, OP_TIMEOUT_MS } from '../src/main/connector/server'
 import { createServer } from 'node:net'
 import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
 import { createExtDriver } from '../src/main/connector/ext-driver'
@@ -142,7 +142,7 @@ test('sent/response events pass through unchanged; disconnected once per address
 test('ext-driver: click puts runner epoch in msg.epoch, arm in args.epoch; ping merges account email', async () => {
   const s = await boot()
   const c = await connect(s.port)
-  const d = createExtDriver(s)
+  const d = createExtDriver(s, { allow: () => true })
   const CLICK = { found: true, disabled: false, listeners: 1, called: 1 }
   const click = d.click('11', 777)
   const m = await c.next()
@@ -164,10 +164,8 @@ test('ext-driver: click puts runner epoch in msg.epoch, arm in args.epoch; ping 
   c.ws.send(JSON.stringify({ id: acc.id, epoch: acc.epoch, ok: true, result: 'a@b.c' }))
   expect(await ping).toMatchObject({ version: '0.1.0', email: 'a@b.c' })
 })
-test('ext-driver: unimplemented ops fail closed', async () => {
+test('ext-driver: readProject is not implemented yet (fails closed)', async () => {
   const d = createExtDriver(await boot())
-  expect(await d.prepare('1', { prompt: 'x', kind: 'image', settings: {}, refIds: [] })).toEqual({ ok: false, code: 'NOT_IMPLEMENTED' })
-  expect(await d.checkBeforeClick('1', 'p')).toEqual({ ok: false, code: 'TARGET_CHANGED' })
   await expect(d.readProject('p')).rejects.toThrow()
 })
 test('ext-driver: disconnect reaches onEvent subscribers', async () => {
@@ -241,4 +239,66 @@ test('first run: one persisted token shared by server and pair.json; stable on r
   expect(t2).toMatch(/^[0-9a-f]{64}$/)
   expect(readOrCreateToken(ud)).toBe(t2)
   if (process.platform !== 'win32') expect(statSync(join(dir, 'pair.json')).mode & 0o777).toBe(0o600)
+})
+
+test('listTabs composes tabs + account (no content script ⇒ email null); only a granted tab ever receives trusted/arm', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  const U = (n: number) => `0b4d3c1e-1111-4222-8333-44445555666${n}`
+  const answer = async () => {
+    const seen: any[] = []
+    c.ws.on('message', (d) => {
+      const m = JSON.parse(d.toString()); seen.push(m)
+      const reply = (r: unknown, ok = true) => c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ...(ok ? { ok, result: r } : { ok, error: r }) }))
+      if (m.op === 'tabs') reply([{ tabId: 1, path: '/fx/tools/flow', active: true }, { tabId: 2, path: `/fx/tools/flow/project/${U(1)}`, active: false }, { tabId: 3, path: `/fx/tools/flow/project/${U(2)}`, active: false }])
+      else if (m.op === 'account') m.args.tabId === 3 ? reply('no content script in tab', false) : reply(`u${m.args.tabId}@x.y`)
+      else reply(true)
+    })
+    return seen
+  }
+  const seen = await answer()
+  const d = createExtDriver(s, { allow: (t) => t === '2' })
+  expect(await d.listTabs()).toEqual([
+    { tabId: '1', projectId: null, email: 'u1@x.y', active: true },
+    { tabId: '2', projectId: U(1), email: 'u2@x.y', active: false },
+    { tabId: '3', projectId: U(2), email: null, active: false },
+  ])
+  seen.length = 0
+  for (const t of ['1', '2', '3']) {
+    await d.click(t, 5).catch(() => {})
+    await d.arm(t, 5).catch(() => {})
+    await d.prepare(t, { prompt: 'p', kind: 'image', settings: {}, refIds: [] }).catch(() => {})
+  }
+  expect(seen.map((m) => [m.op, m.args.tabId])).toEqual([['trusted', 2], ['arm', 2]])
+  await d.focusTab('3') // focus is not a trusted op: no grant needed (the user may need to see any tab)
+  expect(seen.at(-1)).toMatchObject({ op: 'focus', args: { tabId: 3 } })
+})
+
+test('per-op budgets: table values, and each op times out on its own budget', async () => {
+  expect(OP_TIMEOUT_MS).toMatchObject({ ping: 3000, account: 3000, state: 5000, hit: 5000, probe: 5000, tabs: 5000, focus: 5000, net: 5000, arm: 5000, trusted: 5000, settings: 20000, prep: 20000, file: 60000, default: 30000 })
+  const s = await startConnectorServer({ token: TOKEN, extensionId: EXT_ID, budgets: { ping: 30, state: 400, default: 700 } })
+  closers.push(() => s.close())
+  const c = await connect(s.port) // never answers by itself
+  const t0 = Date.now()
+  const state = s.send('state', { tabId: 1 })
+  await expect(s.send('ping', { tabId: 1 })).rejects.toThrow('extension did not answer')
+  expect(Date.now() - t0).toBeLessThan(300)
+  const m = await c.next()
+  c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: 'late but in budget' }))
+  expect(await state).toBe('late but in budget')
+  const t1 = Date.now()
+  await expect(s.send('whatever', {})).rejects.toThrow('extension did not answer')
+  expect(Date.now() - t1).toBeGreaterThanOrEqual(600) // unlisted op: the default budget
+})
+test('ext-driver: without an allow option no page-acting op reaches any tab', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  const d = createExtDriver(s)
+  await expect(d.click('1', 5)).rejects.toThrow('tab not granted')
+  await expect(d.arm('1', 5)).rejects.toThrow('tab not granted')
+  await expect(d.arm('1', null)).rejects.toThrow('tab not granted')
+  await expect(d.prepare('1', { prompt: 'p', kind: 'image', settings: { combo: {} }, refIds: [] })).rejects.toThrow('tab not granted')
+  await expect(d.checkBeforeClick('1', 'p')).rejects.toThrow('tab not granted')
+  await tick()
+  expect(c.msgs).toEqual([])
 })
