@@ -13,6 +13,8 @@ const api = {
   confirmUncertain: call('confirmUncertain'),
   archiveBatch: call('archiveBatch'),
   rerun: call('rerun'),
+  downloadBatch: call('downloadBatch'),
+  retryDownload: call('retryDownload'),
   useTabs: call('useTabs'),
   enableAuto: call('enableAuto'),
   disableAuto: call('disableAuto'),

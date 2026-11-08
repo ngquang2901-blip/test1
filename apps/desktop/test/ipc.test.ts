@@ -17,7 +17,7 @@ function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')
   const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: (e) => autoAllowed(db, e) });
   const events: Array<{ entity: string; id: string; revision: number }> = [];
   let draft: Draft = { text: 't', kind: 'image', mode: 'auto', speed: 'default' };
-  const h = createHandlers({ db, runner, grants: { use: () => {} }, projectId, email: async () => email, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock });
+  const h = createHandlers({ db, runner, grants: { use: () => {} }, projectId, email: async () => email, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock, downloader: { batch: async () => {}, retry: async () => {} } });
   return { db, h, events, runner, clock, draft: () => draft };
 }
 const good = { commandId: 'c1', text: 'a\nb\n\nc', kind: 'image', mode: 'auto' };

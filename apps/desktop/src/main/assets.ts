@@ -17,11 +17,11 @@ export interface AssetStore {
 }
 
 const starts = (b: Buffer, sig: number[], at = 0) => sig.every((x, i) => b[at + i] === x)
-const sniff = (b: Buffer): string | null =>
+export const sniff = (b: Buffer): string | null =>
   starts(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ? 'image/png'
   : starts(b, [0xff, 0xd8, 0xff]) ? 'image/jpeg'
   : starts(b, [0x52, 0x49, 0x46, 0x46]) && starts(b, [0x57, 0x45, 0x42, 0x50], 8) ? 'image/webp' : null
-const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+export const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex')
 
 /** Reads and validates the file (type by magic bytes, 1..20 MB) and records it; the same path with the same bytes is the same asset. */

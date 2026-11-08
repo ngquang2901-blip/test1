@@ -20,16 +20,16 @@ test('validate rejects unknown ops and malformed envelopes', () => {
 });
 
 test('OPS is the exact allowlist, no debugger-style ops', () => {
-  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe','settings','listeners','attach']);
+  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate']);
   for (const bad of ['cdp', 'eval', 'debugger']) assert.ok(!OPS.includes(bad));
 });
 
-test('download only https on Flow content hosts', () => {
+test('isAllowedDownloadUrl (guards fetchMedia\'s src): only https on Flow content hosts', () => {
   for (const u of ['https://flow-content.google/video/x.mp4', 'https://lh3.googleusercontent.com/a?b=1'])
-    assert.equal(validate(ok('download', { url: u })), null, u);
+    assert.equal(isAllowedDownloadUrl(u), true, u);
   for (const u of ['http://flow-content.google/x', 'https://evil.com/x', 'https://googleusercontent.com.evil.com/x',
     'https://notflow-content.google/x', 'https://flow-content.google.evil.com', 'https://x.googleusercontent.com.evil.com', 'https://flow-content.google' + '@evil.com/x', 'file:///etc/passwd', 'nonsense', undefined])
-    assert.ok(validate(ok('download', { url: u })), String(u));
+    assert.equal(isAllowedDownloadUrl(u), false, String(u));
   assert.equal(isAllowedDownloadUrl('https://FLOW-CONTENT.google/x'), true);
   assert.equal(isAllowedDownloadUrl('https://a.b.googleusercontent.com/x'), true);
 });

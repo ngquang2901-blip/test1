@@ -1,5 +1,5 @@
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -46,7 +46,7 @@ test('textarea batch runs to ready', async () => {
   await expect(page.getByRole('heading', { name: /Hoàn tất|100%/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Kết quả' }).click() // S4
   await expect(page.locator('[data-testid=output]').first()).toBeVisible()
-  await expect(page.locator('[data-testid=output]').first()).toContainText('chưa tải')
+  await expect(page.locator('[data-testid=output]').first()).toContainText('Chưa tải')
   await expect(page.locator('body')).not.toContainText('Đã lưu')
 })
 
@@ -213,7 +213,7 @@ function pngs(names: string[]): { list: string; dir: string } {
   writeFileSync(list, JSON.stringify(paths))
   return { list, dir }
 }
-const ledger = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { __toolflowFake: { uploads: string[]; refs: string[][] } }).__toolflowFake)
+const ledger = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { __toolflowFake: { uploads: string[]; refs: string[][]; clicks: number; prepares: number; arms: number; fetches: number } }).__toolflowFake)
 const row = (page: Page, i: number) => page.locator('[data-testid=preview] tbody tr').nth(i)
 
 test('sequential refs: preview shows names, the batch runs, two uploads and one ref per item', async () => {
@@ -283,4 +283,62 @@ test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
   await page.keyboard.press('Enter')
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
   expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1, 1])
+})
+
+// ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
+const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).filter((f) => f.endsWith('.png')).sort()
+const outputs = (page: Page) => page.locator('[data-testid=output]')
+
+test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only after each completes', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await create(page, ['một con mèo', 'một con chó', 'một con cá'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page)).toHaveCount(3)
+  await expect(outputs(page).filter({ hasText: 'Chưa tải' })).toHaveCount(3)
+  await expect(page.locator('body')).not.toContainText('Đã lưu') // AC-07: generated is not saved
+  await expect(page.locator('body')).not.toContainText('100%')
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).filter({ hasText: 'Đã lưu' })).toHaveCount(3)
+  const files = pngFiles(root)
+  expect(files).toHaveLength(3)
+  for (const f of files) expect(readFileSync(join(root, f)).subarray(0, 4).toString('hex')).toBe('89504e47')
+  expect(files.every((f) => /^\d{4}-\d\d-\d\d_[0-9a-f]{8}\/00[123]_.+_[0-9a-f]{8}\.png$/.test(f))).toBe(true)
+  await expect(page.locator('body')).not.toContainText('Lỗi tải')
+})
+
+test('a bad download is Lỗi tải with no completed file; Thử lại completes it under the same name without generating again', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_DOWNLOADS: 'download-html' })
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  const before = await ledger(app)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).first()).toContainText('Lỗi tải')
+  await expect(page.locator('body')).not.toContainText('Đã lưu')
+  expect(pngFiles(root)).toEqual([])
+  const retry = page.getByRole('button', { name: 'Thử lại' })
+  await expect(retry).toBeVisible()
+  await retry.click()
+  await expect(outputs(page).first()).toContainText('Đã lưu')
+  const files = pngFiles(root)
+  expect(files).toHaveLength(1)
+  await expect(outputs(page).first()).toContainText(files[0]) // the name shown is the planned name, relative
+  const after = await ledger(app)
+  expect([after.clicks, after.prepares, after.arms]).toEqual([before.clicks, before.prepares, before.arms]) // AC-16: no new generate
+  expect(after.fetches).toBe(2)
+})
+
+test('ACK lost: the app finds the file the first transfer made instead of downloading again (AC-26)', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_DOWNLOADS: 'download-ack-lost' })
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).first()).toContainText('Đã lưu')
+  expect(pngFiles(root)).toHaveLength(1)
+  expect((await ledger(app)).fetches).toBe(1)
 })

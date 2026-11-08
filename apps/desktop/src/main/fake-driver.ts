@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { parseRpcResponse, parseGenerateRequest, parseImageReceipt, parseVideoReceipt } from '@toolflow/flow-protocol/parse';
 import burst3 from '../../../../packages/flow-protocol/test/fixtures/image-1x1-burst3.json';
 import videoT2v from '../../../../packages/flow-protocol/test/fixtures/video-t2v.json';
@@ -8,12 +11,16 @@ import project from '../../../../packages/flow-protocol/test/fixtures/project-Zz
 import { DEFAULT_COMBO, profile, type Combo } from './profile';
 import type { ConnectorServer } from './connector/server';
 import type { AssetStore } from './assets';
-import { ConnectorError, type ClickResult, type DriverEvent, type FlowDriver, type Ping } from './driver';
+import { ConnectorError, type ClickResult, type DlInfo, type DriverEvent, type FlowDriver, type Ping } from './driver';
 
 // Tests only: the profile qualifies the image combo alone, so video batches need a stand-in.
 export const FAKE_COMBOS: Combo[] = [DEFAULT_COMBO, { kind: 'video', mode: 'Video', model: 'fake', aspect: '16:9', quality: 'High', count: 1 }];
 export const fakeCombo = (kind: 'image' | 'video'): Combo => FAKE_COMBOS.find((c) => c.kind === kind)!;
 export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'no-request' | 'drop'>;
+// Per fetchMedia call, in order; the default after the script runs out is a good PNG.
+// html: the file is an error page · empty: 0 bytes · ack-lost: the transfer happens but the reply is lost · fail-once: this transfer is interrupted · slow: in progress for 2 polls
+export type DownloadScript = 'download-ok' | 'download-html' | 'download-empty' | 'download-ack-lost' | 'download-fail-once' | 'download-slow';
+export const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==', 'base64'); // a real 1x1 PNG, same bytes every time
 type Rec = { phase: string; rpc: string; req?: string; res?: string };
 
 // Real redacted captures; the fake only swaps the prompt text and keeps their structure.
@@ -53,7 +60,7 @@ function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array
 }
 
 // fail: codes returned (in order, one per call) by prepare / checkBeforeClick before they go back to ok.
-export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore } = {}) {
+export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string } = {}) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
@@ -66,7 +73,7 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
   const kinds = new Map<string, 'image' | 'video'>();
   const next = (k: keyof typeof pools) => pools[k][used[k]++ % pools[k].length];
   const listeners = new Set<(e: DriverEvent) => void>();
-  const ledger = { clicks: 0, prepares: 0, checks: 0, readProject: 0, arms: 0, uploads: [] as string[], refs: [] as string[][], armLog: [] as Array<[string, number | null]> };
+  const ledger = { clicks: 0, prepares: 0, checks: 0, readProject: 0, arms: 0, fetches: 0, uploads: [] as string[], refs: [] as string[][], armLog: [] as Array<[string, number | null]> };
   const focusLog: string[] = [];
   const armed = new Map<string, number | undefined>(); // page tracker: pending (key present) + the epoch it would stamp (undefined = ambiguous)
   const gens = new Map<string, number>(); // generate sends the page made (ours or not), reported by ping
@@ -98,8 +105,37 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
     return [{ tabId, type: 'sent', epoch, request: body }, { tabId, type: 'response', epoch, rpc: done.rpc, text, request: body }];
   };
 
+  // fake browser downloads: real files in a ToolFlow-tmp folder, items shaped like the extension's `downloads` op
+  const dlScript = [...(fail.downloads ?? [])];
+  const dlItems: Array<DlInfo & { polls: number }> = [];
+  let dlDir = fail.downloadsDir;
+  const fetchMedia: FlowDriver['fetchMedia'] = async (_tab, p) => {
+    ledger.fetches++;
+    dlDir ??= join(mkdtempSync(join(tmpdir(), 'tf-fake-dl-')), 'ToolFlow-tmp');
+    mkdirSync(dlDir, { recursive: true });
+    const step = dlScript.shift() ?? 'download-ok';
+    let name = p.filename, n = 1;
+    while (dlItems.some((x) => x.filename === join(dlDir!, name))) name = p.filename.replace(/(\.[^.]*)?$/, ` (${n++})$1`); // uniquify, like the browser
+    const filename = join(dlDir, name);
+    const item: DlInfo & { polls: number } = { id: dlItems.length + 1, state: 'complete', filename, fileSize: 0, mime: '', error: null, polls: step === 'download-slow' ? 2 : 0 };
+    const body = step === 'download-html' ? Buffer.from('<!doctype html><title>403</title>') : step === 'download-empty' ? Buffer.alloc(0) : TINY_PNG;
+    if (step === 'download-fail-once') Object.assign(item, { state: 'interrupted', error: 'NETWORK_FAILED' });
+    else { writeFileSync(filename, body); item.fileSize = body.length; item.mime = step === 'download-html' ? 'text/html' : 'image/png'; }
+    dlItems.push(item);
+    if (step === 'download-ack-lost') throw new ConnectorError('fake: ack lost');
+    return { ok: true, downloadId: item.id };
+  };
+  const downloads: FlowDriver['downloads'] = async (q) => dlItems
+    .filter((x) => (q.id !== undefined ? x.id === q.id : q.filenamePrefix !== undefined && basename(x.filename).startsWith(q.filenamePrefix)))
+    .map(({ polls, ...x }) => {
+      const it = dlItems.find((i) => i.id === x.id)!;
+      if (q.id === undefined || polls <= 0) return x;
+      it.polls--; // slow: still in progress for the first polls by id
+      return { ...x, state: 'in_progress' as const, fileSize: -1 };
+    });
+
   const driver: FlowDriver & { ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[] } = {
-    ledger, emit, focusLog,
+    ledger, emit, focusLog, fetchMedia, downloads,
     async ping(tabId): Promise<Ping> {
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },

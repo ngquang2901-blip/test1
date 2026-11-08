@@ -7,6 +7,7 @@ import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
 import { AssetError, registerAsset } from './assets';
 import type { Grants } from './tabs';
+import type { Downloader } from './downloads';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
@@ -14,6 +15,7 @@ export type Emit = ((entity: 'batch', id: string) => void) & { revision(): numbe
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId(): string | null | Promise<string | null>; clock: { now(): number };
   email(): Promise<string | null>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
+  downloader: Pick<Downloader, 'batch' | 'retry'>;
 };
 
 const MAX_TEXT = 1_000_000;
@@ -62,6 +64,8 @@ function view(db: Db, id: string) {
         ...a, profileVersion: profileVersion(a.id), item: s.item, stage: s.stage, error: s.error, creditSpent: s.creditSpent,
         outputs: ((s.outputs ?? []) as { mediaId: string }[]).map((o) => o.mediaId), // ids only: no signed urls (R54)
         journal: db.prepare('select type, at from journal_event where attempt_id=? order by id').all(a.id),
+        // per output: state + the name relative to the download folder (no absolute path, no url)
+        downloads: Object.fromEntries((db.prepare('select media_id m, state, actual_name actualName, error_code errorCode from download where attempt_id=?').all(a.id) as { m: string; state: string; actualName: string | null; errorCode: string | null }[]).map(({ m, ...r }) => [m, r])),
       };
     });
     return { id: it.id, ord: it.ord, sourceLine: it.sourceLine, prompt: it.prompt, refs: JSON.parse(it.refs), attemptId: it.cur, attempts };
@@ -124,6 +128,16 @@ export function createHandlers(d: Deps) {
     async confirmUncertain(a: unknown) {
       const o = obj(a), id = str(o.attemptId), to = oneOf(o.to, 'sent', 'not_sent');
       mut(batchOf(id), () => d.runner.confirm(id, to));
+    },
+    async downloadBatch(a: unknown) { // every output of the batch that is not saved yet; never generates anything
+      const id = str(a);
+      await d.downloader.batch(id);
+      d.emit('batch', id);
+    },
+    async retryDownload(a: unknown) { // the user's Thử lại on one output
+      const o = obj(a), attemptId = str(o.attemptId), mediaId = str(o.mediaId);
+      await d.downloader.retry(attemptId, mediaId);
+      d.emit('batch', batchOf(attemptId));
     },
     async useTabs(a: unknown) { d.grants.use(a); }, // validates against the last listing; session-only
     async enableAuto(a: unknown) {

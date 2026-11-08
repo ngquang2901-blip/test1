@@ -24,7 +24,17 @@
     try { chrome.runtime.sendMessage({ tf: 'event', ev: JSON.parse(e.detail) }).catch(() => {}); } catch (_) { /* extension reloaded */ }
   });
 
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // The one result tile of a media uuid; anything but exactly one is a code, never a guess.
+  const tile = (id) => {
+    if (typeof id !== 'string' || !UUID.test(id)) return { code: 'BAD_ID' };
+    const l = document.querySelectorAll(`img[data-media-id="${CSS.escape(id)}"]`);
+    return l.length === 1 ? { img: l[0] } : { code: l.length ? 'AMBIGUOUS' : 'NOT_FOUND' };
+  };
+
   const OPS = {
+    // Read-only. Reports size, never the (signed) url.
+    locate(a) { const t = tile(a.mediaId); return t.img ? { ok: true, w: t.img.naturalWidth, h: t.img.naturalHeight, complete: t.img.complete } : { ok: false, code: t.code }; },
     state() {
       const ed = $('flow-prompt-box .ProseMirror[contenteditable="true"]'); const s = $(SUBMIT);
       return { text: ed && ed.innerText.trim(), submitDisabled: s && s.disabled,
@@ -125,7 +135,13 @@
     },
   };
 
-  chrome.runtime.onMessage.addListener((m, _s, reply) => {
+  chrome.runtime.onMessage.addListener((m, s, reply) => {
+    if (m?.tf === 'src') { // INTERNAL: only our own service worker may ask; the src goes to chrome.downloads and nowhere else
+      if (s?.id !== chrome.runtime.id) return;
+      const t = tile(m.mediaId);
+      reply(t.img && t.img.src ? { src: t.img.src } : { code: t.code ?? 'NOT_FOUND' });
+      return;
+    }
     if (m?.tf !== 'op') return;
     const f = OPS[m.op];
     if (!f) { reply({ error: 'unknown page op ' + m.op }); return; }

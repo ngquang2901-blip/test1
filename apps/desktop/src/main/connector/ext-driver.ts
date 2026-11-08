@@ -1,4 +1,4 @@
-import { ConnectorError, type ClickResult, type FlowDriver, type FlowTab, type Ping } from '../driver'
+import { ConnectorError, type ClickResult, type DlInfo, type FlowDriver, type FlowTab, type Ping } from '../driver'
 import { projectIdOf } from '../tabs'
 import { profile } from '../profile'
 import { uploadName, type AssetStore } from '../assets'
@@ -172,6 +172,18 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
     },
     async focusTab(tabId) {
       await server.send('focus', tab(tabId))
+    },
+    // The extension reads the tile's src itself (locate/src never leave the page) and starts chrome.downloads; only an id or a code comes back.
+    async fetchMedia(tabId, p) {
+      granted(tabId)
+      const r = (await server.send('fetchMedia', { ...tab(tabId), mediaId: p.mediaId, filename: p.filename })) as { ok?: unknown; downloadId?: unknown; code?: unknown } | null
+      if (r?.ok === true && Number.isInteger(r.downloadId)) return { ok: true, downloadId: r.downloadId as number }
+      return { ok: false, code: typeof r?.code === 'string' ? r.code : 'DOWNLOAD_REFUSED' }
+    },
+    async downloads(q) {
+      const r = await server.send('downloads', q.id !== undefined ? { id: q.id } : { filenamePrefix: q.filenamePrefix })
+      const states = ['in_progress', 'interrupted', 'complete']
+      return (Array.isArray(r) ? r : []).filter((x): x is DlInfo => !!x && Number.isInteger(x.id) && states.includes(x.state) && typeof x.filename === 'string').map((x) => ({ id: x.id, state: x.state, filename: x.filename, fileSize: Number(x.fileSize), mime: String(x.mime ?? ''), error: typeof x.error === 'string' ? x.error : null }))
     },
     onEvent: (cb) => server.onEvent(cb)
   }

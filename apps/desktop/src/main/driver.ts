@@ -6,7 +6,11 @@ export type DriverEvent =
   | { tabId: string; type: 'response'; epoch: number; rpc: string; text: string; request: unknown } // request = raw body of the request this answers (same XHR closure); parse, never persist // raw; runner parses with flow-protocol
   | { tabId: string; type: 'disconnected' };
 export type FlowTab = { tabId: string; projectId: string | null; email: string | null; active: boolean }; // projectId: uuid of /project/<uuid> only; no URL, no query
+export type DlInfo = { id: number; state: 'in_progress' | 'interrupted' | 'complete'; filename: string; fileSize: number; mime: string; error: string | null }; // filename: absolute path the browser reports; never a url
+export type FetchMediaResult = { ok: true; downloadId: number } | { ok: false; code: string };
 export interface FlowDriver {
+  fetchMedia(tabId: string, p: { mediaId: string; filename: string }): Promise<FetchMediaResult>; // the extension reads the tile's src itself and starts chrome.downloads; the url never reaches the desktop
+  downloads(q: { id?: number; filenamePrefix?: string }): Promise<DlInfo[]>;
   listTabs(): Promise<FlowTab[]>;
   ping(tabId: string): Promise<Ping>;
   prepare(tabId: string, p: { prompt: string; kind: 'image' | 'video'; settings: object; refIds: string[]; projectId?: string }): Promise<{ ok: true } | { ok: false; code: string }>;

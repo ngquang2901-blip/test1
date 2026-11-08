@@ -13,10 +13,17 @@ const IPC_ONLY = ['ALREADY_RERUN', 'ATTRIBUTION_AMBIGUOUS', 'CLICK_IN_FLIGHT', '
 // Internal comparisons / signals inside a code, not codes themselves.
 const NOT_CODES = ['NOT_FOUND', 'OBSERVER_DEAD', 'SUBMIT_LISTENER_MISSING']
 
+// codes of the extension's locate/fetchMedia; downloads.ts stores them as DOWNLOAD_<code>
+function extDownloadCodes(): string[] {
+  const tile = src('apps/extension/page-ops.js'), ops = src('apps/extension/ops.js')
+  const fromTile = [...tile.slice(tile.indexOf('const tile'), tile.indexOf('const OPS')).matchAll(/'([A-Z_]+)'/g)].map((m) => m[1])
+  return [...fromTile, ...[...ops.matchAll(/code: '([A-Z_]+)'/g)].map((m) => m[1])].map((c) => (c.startsWith('DOWNLOAD_') ? c : `DOWNLOAD_${c}`))
+}
+
 function emitted(): string[] {
   const refLogic = [...src('apps/extension/ref-logic.js').matchAll(/code: '([A-Z_]+)'/g)].map((m) => `REF_${m[1]}`) // ext-driver prefixes the page's attach codes
   return [...new Set([
-    ...lits(src('apps/desktop/src/main/connector/ext-driver.ts')), ...lits(src('apps/desktop/src/main/runner.ts')), ...lits(src('packages/flow-protocol/src/attempt.mjs')),
+    ...lits(src('apps/desktop/src/main/connector/ext-driver.ts')), ...lits(src('apps/desktop/src/main/downloads.ts')), ...extDownloadCodes(), ...lits(src('apps/desktop/src/main/runner.ts')), ...lits(src('packages/flow-protocol/src/attempt.mjs')),
     ...refLogic, ...Object.values(PUBLIC_ERRORS).map((r) => r.code), ...Object.values(CLIENT_SIGNALS).map((r) => r.code), 'NO_PROJECT_TAB', 'UNUSUAL_ACTIVITY',
   ])].filter((c) => !IPC_ONLY.includes(c) && !NOT_CODES.includes(c)).sort()
 }

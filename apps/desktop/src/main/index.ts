@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, session as electronSession } from 'electron'
 import { join } from 'path'
+import { homedir } from 'os'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -9,7 +10,8 @@ import { createAssetStore } from './assets'
 import { createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
-import { createFakeDriver, type FakeScript } from './fake-driver'
+import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
+import { createDownloader, recoverDownloads } from './downloads'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
@@ -51,7 +53,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let extVersion: string = extManifest.version
   if (FAKE) {
     const scripted = (process.env.TOOLFLOW_FAKE_SCRIPT ?? '').split(',').filter(Boolean) as FakeScript
-    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets }) // default: everything succeeds
+    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets, downloads: (process.env.TOOLFLOW_FAKE_DOWNLOADS ?? '').split(',').filter(Boolean) as DownloadScript[] }) // default: everything succeeds
     rawPing = fake.ping
     if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowFake?: unknown }).__toolflowFake = fake.ledger // test-only: lets e2e count uploads
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
@@ -81,8 +83,12 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   runner.recover()
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emit = revisioned((e) => win()?.webContents.send('state', e))
+  recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
+  // The root is not user-configurable yet; TOOLFLOW_DOWNLOAD_ROOT redirects it in fake mode only (e2e).
+  const downloadRoot = FAKE && process.env.TOOLFLOW_DOWNLOAD_ROOT ? process.env.TOOLFLOW_DOWNLOAD_ROOT : join(homedir(), 'Downloads', 'ToolFlow')
+  const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
   const h = createHandlers({
-    db, runner, clock, emit, email, grants,
+    db, runner, clock, emit, email, grants, downloader,
     projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
     // FAKE only: e2e names the files in a JSON list because Playwright cannot drive a native dialog; real mode always opens the dialog
     async pickPaths() {

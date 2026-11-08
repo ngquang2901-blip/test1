@@ -1,8 +1,8 @@
-import { validate, forwardEvent } from './ops.js';
+import { validate, forwardEvent, fetchMediaOp, downloadsOp } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach']);
+const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate']);
 
 async function connect() {
   if (connecting || (ws && ws.readyState <= 1)) return;
@@ -39,8 +39,8 @@ async function handle(op, a, epoch) {
     case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;
     case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await chrome.tabs.reload(a.tabId); return true;
-    case 'download': return await chrome.downloads.download({ url: a.url, filename: a.filename, conflictAction: 'uniquify' });
-    case 'downloads': return await chrome.downloads.search(a.query || { limit: 10, orderBy: ['-startTime'] });
+    case 'fetchMedia': return fetchMediaOp(chrome, a); // tab -> src (internal message) -> chrome.downloads; the url never leaves the extension
+    case 'downloads': return downloadsOp(chrome, a);
   }
 }
 

@@ -20,6 +20,10 @@ const MIGRATIONS = [
      name text not null, created_at integer not null);
    create table asset_binding(asset_id text not null, project_id text not null, upload_name text not null, media_id text,
      state text not null check(state in ('uploading','bound','uncertain')), intent_at integer not null, primary key(asset_id, project_id));`,
+  // one row per output file: planned_name is fixed at the intent, actual_name is where it really landed (never an overwrite)
+  `create table download(id text primary key, attempt_id text not null, media_id text not null, planned_name text not null,
+     state text not null check(state in ('intent','started','completed','failed','needs_review')), handle text, actual_name text, bytes integer,
+     error_code text, created_at integer not null, updated_at integer not null, unique(attempt_id, media_id));`,
 ];
 
 export function openDb(file: string): Db {
