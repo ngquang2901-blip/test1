@@ -20,7 +20,8 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "test": "ELECTRON_RUN_AS_NODE=1 electron ../../node_modules/vitest/vitest.mjs run",
-    "e2e": "electron-vite build && playwright test"
+    "e2e": "electron-vite build && playwright test",
+    "live-probe": "rolldown scripts/live-probe.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate && node out/probe/live-probe.js"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

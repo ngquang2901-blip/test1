@@ -20,7 +20,7 @@ test('validate rejects unknown ops and malformed envelopes', () => {
 });
 
 test('OPS is the exact allowlist, no debugger-style ops', () => {
-  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm']);
+  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','probe']);
   for (const bad of ['cdp', 'attach', 'debugger']) assert.ok(!OPS.includes(bad));
 });
 
@@ -106,4 +106,11 @@ test('main-world fetch hook counts generate RPCs in gen (and only those)', async
   await win.fetch('https://x/batchexecute?rpcids=ogiZ0b'); assert.equal(await gens(), 1, 'fetch generate');
   await win.fetch('https://x/batchexecute?rpcids=MZZa6b'); assert.equal(await gens(), 2);
   await win.fetch('https://x/batchexecute?rpcids=jwpduf'); assert.equal(await gens(), 2, 'non-generate rpc');
+});
+
+test('probe needs a selectors map of strings; tabs takes no args', () => {
+  assert.equal(validate(ok('probe', { tabId: 1, selectors: { editor: 'a b' } })), null);
+  for (const bad of [{}, { selectors: [] }, { selectors: { x: 1 } }, { selectors: { x: 'a'.repeat(300) } }, { selectors: 'x' }])
+    assert.ok(validate(ok('probe', { tabId: 1, ...bad })), JSON.stringify(bad));
+  assert.equal(validate(ok('tabs')), null);
 });

@@ -59,9 +59,9 @@
   const BIG = /^(Zzl0ze|bOKtO)$/;
   const net = [];
   const obs = { id: crypto.randomUUID(), seq: 0, dropped: 0 };
-  const push = (url, body, status, text) => {
+  const push = (url, body, status, text, via) => {
     const m = RPCS.exec(url); if (!m) return;
-    const rec = { t: Date.now(), rpc: m[1], status, res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000), seq: ++obs.seq };
+    const rec = { t: Date.now(), rpc: m[1], via, status, res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000), seq: ++obs.seq };
     net.push(rec); if (net.length > 200) { net.shift(); obs.dropped++; }
   };
   const gen = (url) => { const m = RPCS.exec(url); return m && GEN.test(m[1]) ? m[1] : null; };
@@ -73,7 +73,7 @@
       const rpc = gen(url); const req = String(b || ''); const epoch = rpc ? tracker.send() : undefined;
       if (rpc) emit('toolflow:event', { type: 'sent', epoch, request: req });
       nativeAdd.call(this, 'loadend', () => { try {
-        push(url, b, this.status, this.responseText);
+        push(url, b, this.status, this.responseText, 'xhr');
         if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: this.responseText, request: req });
       } catch (e) { /* observer must never break the page */ } });
     }
@@ -84,7 +84,7 @@
     const url = String(input?.url || input);
     if (gen(url)) tracker.count();
     const r = await of.apply(this, arguments);
-    if (RPCS.test(url)) r.clone().text().then((t) => push(url, '', r.status, t)).catch(() => {});
+    if (RPCS.test(url)) r.clone().text().then((t) => push(url, '', r.status, t, 'fetch')).catch(() => {});
     return r;
   };
   nativeAdd.call(document, 'toolflow:net', () => emit('toolflow:net-result', net.splice(0, net.length)));

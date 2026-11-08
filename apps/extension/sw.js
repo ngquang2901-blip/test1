@@ -2,7 +2,7 @@ import { validate, forwardEvent } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm']);
+const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe']);
 
 async function connect() {
   if (connecting || (ws && ws.readyState <= 1)) return;
@@ -35,6 +35,7 @@ async function handle(op, a, epoch) {
     return r.result;
   }
   switch (op) {
+    case 'tabs': return (await chrome.tabs.query({ url: 'https://flow.google.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only, no query string
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;
     case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await chrome.tabs.reload(a.tabId); return true;
     case 'download': return await chrome.downloads.download({ url: a.url, filename: a.filename, conflictAction: 'uniquify' });
