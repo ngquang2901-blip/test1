@@ -1,4 +1,4 @@
-export type Ping = { xhrSend: boolean; xhrOpen: boolean; fetch: boolean; id: string; seq: number; dropped: number; t: number; version: string; email: string | null };
+export type Ping = { xhrSend: boolean; xhrOpen: boolean; fetch: boolean; id: string; seq: number; dropped: number; gen: number; t: number; version: string; email: string | null };
 export type ClickResult = { found: boolean; disabled: boolean | null; listeners: number; called: number } | { noMainWorld: true };
 export type DriverEvent =
   | { tabId: string; type: 'sent'; epoch: number; request: unknown } // raw request body as captured; the runner must parse it (readFReq) and never persist it (reCAPTCHA token slot)

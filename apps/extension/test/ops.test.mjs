@@ -78,6 +78,13 @@ test('arm: tracker binds the user\'s send to the armed epoch, clear disarms, arm
   t = makeEpochTracker(); t.submit(7, true); t.clear(); t.submit(8, true); assert.equal(t.send(), 8, 're-arm after clear');
 });
 
+test('tracker counts every generate send (gen), ours or not, armed or not', () => {
+  const t = makeEpochTracker();
+  assert.equal(t.gen, 0);
+  t.send(); t.submit(5, true); t.send(); t.submit(6, true); t.submit(7, true); t.send(); t.clear(); t.send();
+  assert.equal(t.gen, 4);
+});
+
 test('validate arm: integer epoch or explicit null', () => {
   assert.equal(validate(ok('arm', { epoch: 5, tabId: 1 })), null);
   assert.equal(validate(ok('arm', { epoch: null, tabId: 1 })), null);

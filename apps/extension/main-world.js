@@ -25,7 +25,8 @@
   // manual mode: the user clicks Gửi, we only observe; arm(epoch) = same as our own click, null disarms
   nativeAdd.call(document, 'toolflow:arm', (e) => {
     let ep; try { ep = JSON.parse(e.detail).epoch; } catch (_) { return; }
-    if (Number.isInteger(ep)) tracker.submit(ep, true); else if (ep === null) tracker.clear();
+    if (Number.isInteger(ep)) tracker.submit(ep, true); else if (ep === null) tracker.clear(); else return;
+    emit('toolflow:arm-result', { ok: true });
   });
   nativeAdd.call(document, 'toolflow:submit', (e) => {
     let ep; try { ep = JSON.parse(e.detail).epoch; } catch (_) { ep = undefined; }
@@ -92,6 +93,6 @@
     const meta = document.querySelector('meta[name="toolflow-version"]');
     emit('toolflow:ping-result', {
       xhrSend: XMLHttpRequest.prototype.send === ourSend, xhrOpen: XMLHttpRequest.prototype.open === ourOpen,
-      fetch: window.fetch === ourFetch, ...obs, t: Date.now(), version: meta ? meta.content : '' });
+      fetch: window.fetch === ourFetch, ...obs, gen: tracker.gen, t: Date.now(), version: meta ? meta.content : '' });
   });
 })();

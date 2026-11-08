@@ -9,7 +9,7 @@ export type AttemptEvent =
   | { type: 'prepare'; now: number }
   | { type: 'prep_failed'; error: any }
   | { type: 'intent'; ping: any; now: number; manual?: true }
-  | { type: 'skip'; ping: any; now: number }
+  | { type: 'skip'; ping: any; now: number; armFailed?: true }
   | { type: 'clicked'; result: any }
   | { type: 'sent'; request: any }
   | { type: 'rejected'; error: any; now: number }

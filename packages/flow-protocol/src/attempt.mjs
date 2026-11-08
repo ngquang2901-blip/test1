@@ -70,7 +70,9 @@ export function next(s, ev) {
     case 'skip': { // manual: the user passed; only a continuous observer proves nothing was sent
       if (s.item !== 'awaiting_user') bad();
       const hb = checkHeartbeat(ev.ping, { now: ev.now, baseline: s.baseline });
-      return hb.alive ? { ...s, item: 'cancelled', stage: 'outcome_known' } : review(s, 'SUBMIT_UNCERTAIN', { signal: 'OBSERVER_DEAD', reasons: hb.reasons });
+      // gen: the page's own count of generate sends; any movement (or no count to compare) means a real send may have been dropped as stale/unarmed
+      const reasons = [...(ev.armFailed ? ['arm_failed'] : []), ...hb.reasons, ...(Number.isInteger(ev.ping?.gen) && ev.ping.gen === s.baseline?.gen ? [] : ['gen_mismatch'])];
+      return reasons.length ? review(s, 'SUBMIT_UNCERTAIN', { signal: 'OBSERVER_DEAD', reasons }) : { ...s, item: 'cancelled', stage: 'outcome_known' };
     }
 
     case 'rejected': { // RPC-level error on the generate response itself: Flow created nothing

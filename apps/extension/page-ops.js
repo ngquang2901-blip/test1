@@ -47,7 +47,7 @@
     },
     hit: () => ask('toolflow:hit'),
     async trusted(a) { return (await ask('toolflow:submit', 1000, { epoch: a.epoch })) || { noMainWorld: true }; },
-    async arm(a) { document.dispatchEvent(new CustomEvent('toolflow:arm', { detail: JSON.stringify({ epoch: a.epoch }) })); return true; },
+    async arm(a) { const r = await ask('toolflow:arm', 1000, { epoch: a.epoch }); if (!r?.ok) throw new Error('arm: no ack from main world'); return true; },
     net: () => ask('toolflow:net'),
     ping: () => ask('toolflow:ping'),
     account() {

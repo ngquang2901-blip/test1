@@ -22,7 +22,7 @@ const pollDone = parsePoll(payload(fx('poll-succeeded-2.json')[0]));
 const throttled = parseRpcResponse(fx('throttled-ogiZ0b.json')[0].res, 'ogiZ0b').error;
 
 const NOW = 1_800_000_000_000;
-const ping = (o = {}) => ({ xhrSend: true, xhrOpen: true, fetch: true, id: 'obs-1', seq: 10, dropped: 0, t: NOW, ...o });
+const ping = (o = {}) => ({ xhrSend: true, xhrOpen: true, fetch: true, id: 'obs-1', seq: 10, dropped: 0, gen: 3, t: NOW, ...o });
 const CLICK_OK = { found: true, disabled: false, listeners: 1, called: 1 };
 
 const run = (s, ...evs) => evs.reduce(next, s);
@@ -214,6 +214,21 @@ test('manual skip after reload is uncertain; dropped records too', () => {
     const s = next(toManual(), { type: 'skip', ping: p, now: NOW });
     assert.deepEqual([s.item, s.error.code, s.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
   }
+});
+
+test('manual skip: any page generate send since the baseline (gen differs or missing on either side) is uncertain', () => {
+  const noGen = (o) => { const p = ping(o); delete p.gen; return p; };
+  const cases = [[toManual(), ping({ gen: 4 })], [toManual(), noGen()], [run(initial('p'), { type: 'prepare', now: NOW }, { type: 'intent', ping: noGen(), now: NOW, manual: true }), ping()]];
+  for (const [w, p] of cases) {
+    const s = next(w, { type: 'skip', ping: p, now: NOW });
+    assert.deepEqual([s.item, s.error.code, s.creditSpent], ['needs_review', 'SUBMIT_UNCERTAIN', true]);
+    assert.ok(s.error.reasons.includes('gen_mismatch'));
+  }
+});
+
+test('manual skip with armFailed is uncertain even when the observer looks continuous', () => {
+  const s = next(toManual(), { type: 'skip', ping: ping(), now: NOW, armFailed: true });
+  assert.deepEqual([s.item, s.error.code, s.creditSpent, s.error.reasons], ['needs_review', 'SUBMIT_UNCERTAIN', true, ['arm_failed']]);
 });
 
 test('manual never times out; restart is uncertain; skip is illegal once sent', () => {

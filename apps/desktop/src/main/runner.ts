@@ -191,8 +191,8 @@ export function createRunner(o: {
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) { // manual, or intent refused (observer dead → batch paused by apply)
       if (s.item !== 'awaiting_user') return;
-      try { await driver.arm(tab, epoch(tab)); } catch (err) { // R39: a blind tab must not be waited on. prep_failed is illegal after intent, so skip (fresh ping: cancelled if the observer was continuous, else uncertain)
-        try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now() }); } catch (e2) { fail(i.batch, e2); return; }
+      try { await driver.arm(tab, epoch(tab)); } catch (err) { // R39/R40: a blind tab must not be waited on, and the arm may have reached the page before it threw: the user may still send, so never cancelled. prep_failed is illegal after intent; skip+armFailed is the legal route to uncertain
+        try { if (state(id).item === 'awaiting_user') apply(id, { type: 'skip', ping: await driver.ping(tab), now: clock.now(), armFailed: true }); } catch (e2) { fail(i.batch, e2); return; }
         fail(i.batch, err);
       }
       return;

@@ -11,7 +11,7 @@ import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -21,16 +21,22 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const gateClick: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   let listenerless = !!o.noListener;
   const obs = { dead: !!o.deadObserver };
+  const log: string[] = [];
+  const armGate: { open: () => void; p: Promise<void> } = (() => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { open, p }; })();
   fake.onEvent((e0) => { const e = o.corruptSent && e0.type === 'sent' ? { ...e0, request: 'garbage' } : e0; return (gate.hold && e.type === 'response' ? held.push(e) : cbs.forEach((cb) => cb(e))); });
   const driver: typeof fake = {
     ...fake,
-    arm: async (tab, e) => { if (o.armThrows && e !== null) throw new ConnectorError('arm lost'); return fake.arm(tab, e); },
+    arm: async (tab, e) => {
+      if (o.slowArm && e !== null) await armGate.p;
+      if (o.armThrows && e !== null) { log.push('arm-throw'); if (o.armThrows === 'dead') obs.dead = true; throw new ConnectorError('arm lost'); }
+      return fake.arm(tab, e);
+    },
     click: async (tab, epoch) => {
       if (listenerless) { listenerless = false; return { found: true, disabled: false, listeners: 0, called: 0 }; }
       if (o.slowClick) await gateClick.p;
       return fake.click(tab, epoch);
     },
-    ping: async () => ({ ...(await fake.ping('x')), t: clock.now(), ...(obs.dead ? { xhrSend: false } : {}) }), // the observer ping must look fresh to the fake clock
+    ping: async (tab) => (log.push('ping'), { ...(await fake.ping(tab)), t: clock.now(), ...(obs.dead ? { xhrSend: false } : {}) }), // the observer ping must look fresh to the fake clock
     prepare: async (tab, p) => { const r = await fake.prepare(tab, p); o.afterPrepare?.(db, runner); return r; },
     checkBeforeClick: o.check ?? fake.checkBeforeClick,
     onEvent: (cb) => { cbs.add(cb); return () => cbs.delete(cb); },
@@ -46,7 +52,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
     .map((r) => ({ id: r.id, ...(JSON.parse(r.j) as AttemptState) }));
   const deliver = (e: DriverEvent) => cbs.forEach((cb) => cb(e));
-  return { db, obs, clock, driver, runner, batchId, step, release, states, held, deliver, openClick: gateClick.open };
+  return { db, obs, log, openArm: armGate.open, clock, driver, runner, batchId, step, release, states, held, deliver, openClick: gateClick.open };
 }
 const count = (item: string, rs: { item: string }[]) => rs.filter((s) => s.item === item).length;
 const batchRow = (db: Db, id: string) => db.prepare('select status from batch where id=?').get(id) as { status: string };
@@ -337,7 +343,7 @@ test('a send that left just before the disarm and reaches the desktop after the 
   t.runner.stop(t.batchId);
   await t.step();
   const a = t.states()[0];
-  expect(a.item).toBe('cancelled');
+  uncertainNoCancel(a); // the page's gen moved, so skip itself is already uncertain (R40)
   t.driver.emit(sent);
   await t.step();
   const b = t.states()[0];
@@ -358,14 +364,79 @@ test('a sent already received when stop is ticked is processed before skip: neve
   expect(reqOf(a).items[0].prompt).toBe('prompt 0');
 });
 
-test('arm throws after a manual intent: fail closed — skip (observer alive → cancelled, no credit), batch paused, no blind wait', async () => {
+const uncertainNoCancel = (a: AttemptState) => { expect([a.item, a.stage, a.creditSpent]).toEqual(['needs_review', 'uncertain', true]); };
+
+test('arm throws after a manual intent: uncertain (the prompt is filled, the user may click), batch paused, no blind wait', async () => {
   const t = rig([], { n: 1, mode: 'manual', armThrows: true });
   t.runner.start(t.batchId);
   await t.step(2);
   const a = t.states()[0];
-  expect([a.item, a.creditSpent]).toEqual(['cancelled', false]);
+  uncertainNoCancel(a);
+  expect((a.error as { reasons: string[] }).reasons).toContain('arm_failed');
   expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
   expect(batchRow(t.db, t.batchId).status).toBe('paused');
+});
+
+test('arm throws with the observer dead since the intent: uncertain, and a fresh ping was taken after the throw', async () => {
+  const t = rig([], { n: 1, mode: 'manual', armThrows: 'dead' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  const a = t.states()[0];
+  uncertainNoCancel(a);
+  expect((a.error as { reasons: string[] }).reasons).toEqual(expect.arrayContaining(['arm_failed', 'hook_xhr_send']));
+  expect(t.log.slice(t.log.indexOf('arm-throw'))).toContain('ping');
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+});
+
+test('disconnect fences the epoch while awaiting_user: the user\'s send is dropped as stale, so stop → skip is uncertain, not cancelled', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  t.driver.emit({ tabId: 't1', type: 'disconnected' });
+  await t.step();
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.driver.userSends('t1', 'image');
+  await t.step();
+  t.runner.stop(t.batchId);
+  await t.step();
+  uncertainNoCancel(t.states()[0]);
+});
+
+test('stale arm then new arm: the tracker is ambiguous, the user\'s send is dropped, stop → skip is uncertain', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  await t.driver.arm('t1', 1); // second arm while the first is still pending
+  t.driver.userSends('t1', 'image');
+  await t.step();
+  expect(t.states()[0].item).toBe('awaiting_user');
+  t.runner.stop(t.batchId);
+  await t.step();
+  uncertainNoCancel(t.states()[0]);
+});
+
+test('the user sends before arm lands: dropped, stop → skip is uncertain', async () => {
+  const t = rig([], { n: 1, mode: 'manual', slowArm: true });
+  t.runner.start(t.batchId);
+  const tick = t.runner.tick();
+  await flush();
+  t.driver.userSends('t1', 'image'); // prompt is filled, arm still in flight
+  t.openArm();
+  await tick;
+  await t.step();
+  t.runner.stop(t.batchId);
+  await t.step();
+  uncertainNoCancel(t.states()[0]);
+});
+
+test('manual skip with no send from the page is still cancelled (gen equal)', async () => {
+  const t = rig([], { n: 1, mode: 'manual' });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  t.runner.stop(t.batchId);
+  await t.step();
+  const a = t.states()[0];
+  expect([a.item, a.creditSpent]).toEqual(['cancelled', false]);
 });
 
 test('disconnected fences attempts awaiting a response on that tab', async () => {

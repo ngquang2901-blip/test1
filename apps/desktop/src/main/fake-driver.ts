@@ -56,7 +56,9 @@ export function createFakeDriver(input: FakeScript) {
   const next = (k: keyof typeof pools) => pools[k][used[k]++ % pools[k].length];
   const listeners = new Set<(e: DriverEvent) => void>();
   const ledger = { clicks: 0, prepares: 0, readProject: 0, arms: 0, armLog: [] as Array<[string, number | null]> };
-  const armed = new Map<string, number>(); // tab → epoch the page tracker would stamp the next send with
+  const armed = new Map<string, number | undefined>(); // page tracker: pending (key present) + the epoch it would stamp (undefined = ambiguous)
+  const gens = new Map<string, number>(); // generate sends the page made (ours or not), reported by ping
+  const bump = (tab: string) => gens.set(tab, (gens.get(tab) ?? 0) + 1);
   const prompts = new Map<string, string>();
   const emit = (e: DriverEvent) => listeners.forEach((cb) => cb(e));
   const later = (...es: DriverEvent[]) => setTimeout(() => es.forEach(emit), 0);
@@ -86,8 +88,8 @@ export function createFakeDriver(input: FakeScript) {
 
   const driver: FlowDriver & { ledger: typeof ledger; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[] } = {
     ledger, emit,
-    async ping(): Promise<Ping> {
-      return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
+    async ping(tabId): Promise<Ping> {
+      return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
     },
     async prepare(tabId, p) { ledger.prepares++; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
     async checkBeforeClick() { return { ok: true }; },
@@ -101,7 +103,7 @@ export function createFakeDriver(input: FakeScript) {
       if (to === undefined || !prepared) throw new Error('fake: click before prepare');
       const want = step.endsWith('-ok') ? step.slice(0, 5) : undefined;
       if (want && want !== prepared) throw new Error(`fake: script kind ${want} does not match prepared kind ${prepared}`);
-      if (step !== 'no-request') later(...pair(tabId, step, epoch));
+      if (step !== 'no-request') { bump(tabId); later(...pair(tabId, step, epoch)); }
       return { found: true, disabled: false, listeners: 1, called: 1 };
     },
     async readProject() {
@@ -109,11 +111,11 @@ export function createFakeDriver(input: FakeScript) {
       return fx('project-Zzl0ze').find((r) => r.phase === 'done')!.res!;
     },
     async focusTab() {},
-    async arm(tabId, epoch) { ledger.arms++; ledger.armLog.push([tabId, epoch]); if (epoch === null) armed.delete(tabId); else armed.set(tabId, epoch); },
+    async arm(tabId, epoch) { ledger.arms++; ledger.armLog.push([tabId, epoch]); if (epoch === null) armed.delete(tabId); else armed.set(tabId, armed.has(tabId) ? undefined : epoch); }, // arming while pending is ambiguous
     // The user clicks Gửi in Flow: the page stamps the ARMED epoch (undefined when not armed) and the tracker is spent.
     userSends(tabId, kind, deliver = true) {
       if (!prompts.has(tabId)) throw new Error('fake: userSends before prepare');
-      const epoch = armed.get(tabId) as number; armed.delete(tabId);
+      const epoch = armed.get(tabId) as number; armed.delete(tabId); bump(tabId);
       const es = pair(tabId, kind === 'image' ? 'image-ok' : 'video-ok', epoch);
       if (deliver) later(...es);
       return es;
