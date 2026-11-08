@@ -7,7 +7,7 @@ import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
 import { createRunner } from './runner'
 import { autoAllowed, enableAuto } from './account'
-import { selfCheck, type Probe } from './profile'
+import { selfCheck, validateProfile, profile, PROFILE_PATH, type Probe } from './profile'
 import { createFakeDriver, type FakeScript } from './fake-driver'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
@@ -76,7 +76,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     }
   }
 
-  const runner = createRunner({ db, driver, clock, tabs, speed: draft.speed, autoAllowed: (e) => autoAllowed(db, e) })
+  const runner = createRunner({ db, driver, clock, tabs, speed: draft.speed, autoAllowed: (e) => !validateProfile(profile) && autoAllowed(db, e) })
   runner.recover()
   const email = async (): Promise<string | null> => (tabs[0] ? (await driver.ping(tabs[0])).email : null)
   const emit = revisioned((e) => win()?.webContents.send('state', e))
@@ -91,7 +91,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       return {
         fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
         autoEnabled: autoAllowed(db, em),
-        selfCheck: ping ? selfCheck({ ...probe(), ping, extVersion }) : null,
+        selfCheck: ping ? selfCheck({ ...probe(), ping, extVersion }) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
   })
@@ -127,6 +127,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {
+    if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __secondInstance?: number }).__secondInstance = ((globalThis as { __secondInstance?: number }).__secondInstance ?? 0) + 1 // test-only flag (AC-06)
     const w = BrowserWindow.getAllWindows()[0]
     if (!w) return
     if (w.isMinimized()) w.restore()

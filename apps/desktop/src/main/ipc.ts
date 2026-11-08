@@ -42,6 +42,10 @@ export function parseDraft(v: unknown): Draft {
 }
 
 function view(db: Db, id: string) {
+  const profileVersion = (attemptId: string): string | null => {
+    const r = db.prepare("select payload_json p from journal_event where attempt_id=? and type='intent' order by id limit 1").get(attemptId) as { p: string } | undefined;
+    return r ? (JSON.parse(r.p).profileVersion ?? null) : null;
+  };
   const b = db.prepare('select id, kind, settings_json s, archived, created_at createdAt, target_project project from batch where id=?').get(id) as
     { id: string; kind: string; s: string; archived: number; createdAt: number; project: string } | undefined;
   if (!b) throw Object.assign(new Error('NOT_FOUND'), { code: 'NOT_FOUND' });
@@ -51,7 +55,7 @@ function view(db: Db, id: string) {
       { id: string; ordinal: number; j: string; clickAt: number | null; reconcileAt: number | null; sourceAttemptId: string | null }[]).map(({ j, ...a }) => {
       const s = JSON.parse(j) as AttemptState;
       return {
-        ...a, item: s.item, stage: s.stage, error: s.error, creditSpent: s.creditSpent,
+        ...a, profileVersion: profileVersion(a.id), item: s.item, stage: s.stage, error: s.error, creditSpent: s.creditSpent,
         outputs: ((s.outputs ?? []) as { mediaId: string }[]).map((o) => o.mediaId), // ids only: no signed urls (R54)
         journal: db.prepare('select type, at from journal_event where attempt_id=? order by id').all(a.id),
       };

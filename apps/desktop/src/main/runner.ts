@@ -6,6 +6,7 @@ import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
 import { CAPS, nextCap } from './caps';
+import { profile } from './profile';
 import { CLICK_MS, RECONCILE_MS, runReconcile, unblock } from './reconcile';
 
 const SEND_DEADLINE_MS = 30_000; // a click whose request the observer never reports is uncertain after this (04 Q-09)
@@ -186,7 +187,7 @@ export function createRunner(o: {
     const ping = await driver.ping(tab);
     if (gone()) return;
     const manual = settings.mode === 'manual' || !o.autoAllowed(ping.email);
-    const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), manual: true } : { type: 'intent', ping, now: clock.now() }); // R10: committed before click
+    const s = apply(id, manual ? { type: 'intent', ping, now: clock.now(), profileVersion: profile.version, manual: true } : { type: 'intent', ping, now: clock.now(), profileVersion: profile.version }); // AC-18: version stamped in the journal; R10: committed before click
     slot.set(tab, id);
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) { // manual, or intent refused (observer dead → batch paused by apply)

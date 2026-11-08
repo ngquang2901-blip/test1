@@ -6,7 +6,7 @@ export default function Results({ batches }: { batches: Batch[] }): React.JSX.El
     <section aria-label="Kết quả">
       <h2>Kết quả</h2>
       {rows.length === 0 ? <p>Chưa có kết quả.</p> : (
-        <ul>{rows.map((r) => <li key={r.key} data-testid="output">{KIND_LABEL[r.kind]} {r.media} — {r.prompt}</li>)}</ul>
+        <ul>{rows.map((r) => <li key={r.key} data-testid="output">{KIND_LABEL[r.kind]} {r.media} — {r.prompt} (chưa tải)</li>)}</ul>
       )}
     </section>
   )

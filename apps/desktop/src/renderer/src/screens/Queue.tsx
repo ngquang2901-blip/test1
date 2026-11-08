@@ -64,6 +64,7 @@ function Detail({ b }: { b: Batch }): React.JSX.Element {
           {it.attempts.map((a) => (
             <div key={a.id}>
               Lượt {a.ordinal}: {itemLabel(a)}{a.error ? ` — lỗi ${reasons(a)}${a.error.resolution ? ` (${a.error.resolution})` : ''}` : ''}
+              {a.profileVersion && ` · cấu hình ${a.profileVersion}`}
               {a.clickAt && ` · bấm gửi lúc ${time(a.clickAt)}`}
               <ul data-testid="journal">{a.journal.map((j, i) => <li key={i}>{time(j.at)} {j.type}</li>)}</ul>
             </div>

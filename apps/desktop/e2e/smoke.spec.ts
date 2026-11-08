@@ -2,6 +2,8 @@ import { test, expect, _electron, type ElectronApplication, type Page } from '@p
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { spawn } from 'node:child_process'
+import electronPath from 'electron'
 
 const desktop = resolve(__dirname, '..')
 const apps: ElectronApplication[] = []
@@ -38,9 +40,27 @@ test('textarea batch runs to ready', async () => {
   await expect(page.getByText('Self-check: đạt')).toBeVisible() // S1
   await create(page, ['một con mèo', 'một con chó', 'một con cá'])
   await expect(items(page)).toHaveCount(3)
-  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(3)
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3)
+  // AC-07: ready is not saved; no download path exists in P1, so nothing may claim it
+  await expect(page.locator('body')).not.toContainText('Đã lưu')
+  await expect(page.getByRole('heading', { name: /Hoàn tất|100%/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Kết quả' }).click() // S4
   await expect(page.locator('[data-testid=output]').first()).toBeVisible()
+  await expect(page.locator('[data-testid=output]').first()).toContainText('chưa tải')
+  await expect(page.locator('body')).not.toContainText('Đã lưu')
+})
+
+test('second launch exits on its own and only raises the old window', async () => {
+  const dir = tmp()
+  const { app } = await launch(dir)
+  const env = { ...process.env, TOOLFLOW_FAKE_DRIVER: '1', TOOLFLOW_E2E: '1', TOOLFLOW_USER_DATA: dir } as Record<string, string>
+  delete env.ELECTRON_RUN_AS_NODE
+  const b = spawn(electronPath as unknown as string, ['--no-sandbox', '.'], { cwd: desktop, env, stdio: 'ignore' })
+  const code = await new Promise((r) => { b.on('exit', r); setTimeout(() => { b.kill(); r('timeout') }, 20_000) })
+  expect(code).not.toBe('timeout')
+  const a = await app.evaluate(({ BrowserWindow }) => ({ n: BrowserWindow.getAllWindows().length, visible: BrowserWindow.getAllWindows()[0]?.isVisible(), second: (globalThis as unknown as { __secondInstance?: number }).__secondInstance }))
+  expect(a).toEqual({ n: 1, visible: true, second: 1 })
+  expect(app.process().exitCode).toBeNull() // A still running
 })
 
 test('uncertain shows confirm buttons', async () => {
@@ -89,6 +109,7 @@ test('history survives restart', async () => {
   await expect(d).toContainText('prompt giữ nguyên')
   await expect(d).toContainText('Ảnh') // configuration
   await expect(d).toContainText('SUBMIT_UNCERTAIN') // attempt error
+  await expect(d).toContainText(/cấu hình \d{4}\.\d{2}\.\d{2}-\d/) // AC-18: config version kept per attempt
   await expect(d.locator('[data-testid=journal] li').first()).toContainText(/\d{1,2}:\d{2}/) // timestamps
 })
 

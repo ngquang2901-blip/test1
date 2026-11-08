@@ -90,3 +90,27 @@ test('account auto switch', () => {
   expect(autoAllowed(db, 'a@x.com')).toBe(true);
   expect(db.prepare('select ack_at a from account_setting where email=?').get('a@x.com')).toEqual({ a: 456 });
 });
+
+// AC-18: a bad profile blocks, it is never half-used
+import { validateProfile } from '../src/main/profile';
+const clone = () => JSON.parse(JSON.stringify(profile));
+test('validateProfile: good profile passes', () => expect(validateProfile(profile)).toBeNull());
+test('validateProfile: missing selector key / wrong type / empty / bad selfCheck / bad rpc', () => {
+  const m = clone(); delete m.selectors.tile;
+  expect(validateProfile(m)).toContain('tile');
+  const t = clone(); t.selectors.editor = 5;
+  expect(validateProfile(t)).toContain('editor');
+  const e = clone(); e.selectors.submit = '';
+  expect(validateProfile(e)).toContain('submit');
+  const s = clone(); s.selfCheck = ['editor', 'nope'];
+  expect(validateProfile(s)).toContain('nope');
+  const r = clone(); delete r.rpc.poll;
+  expect(validateProfile(r)).toContain('poll');
+  const v = clone(); v.version = 3;
+  expect(validateProfile(v)).toContain('version');
+  for (const x of [null, 'x', [], {}]) expect(validateProfile(x)).not.toBeNull();
+});
+test('invalid profile ⇒ CONFIG_INCOMPLETE PROFILE_INVALID, even with a healthy probe', () => {
+  const bad = clone(); delete bad.selectors.tile;
+  expect(selfCheck(good(), bad)).toEqual({ ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['PROFILE_INVALID:profiles/flow.json'] });
+});
