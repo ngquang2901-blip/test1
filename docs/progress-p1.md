@@ -16,7 +16,7 @@ Check:
 
 **Tóm tắt (VI):**
 - Trên Linux, cả 5 bộ kiểm tra đều chạy qua, không lỗi nào.
-- Trong 19 mục nghiệm thu của P1, 14 mục đạt (test thật, dùng driver giả, bản thật làm ở P2), 4 mục đạt MỘT PHẦN (AC-10, AC-11, AC-18, AC-22: còn thiếu giao diện hoặc e2e), và AC-01 hoãn sang P2 (chỉ kiểm được trên Chrome thật, cần Sư Huynh đồng ý). AC-07 mới kiểm phần giao diện, phần tải lỗi làm ở P2.
+- Trong 19 mục nghiệm thu của P1, 14 mục đạt (test thật, dùng driver giả, bản thật làm ở P2), 4 mục đạt MỘT PHẦN (AC-10, AC-11, AC-18, AC-22: còn thiếu giao diện hoặc e2e), và AC-01 hoãn sang P2 (chỉ kiểm được trên Chrome thật; Sư Huynh đã đồng ý 08/11/2026). AC-07 mới kiểm phần giao diện, phần tải lỗi làm ở P2.
 - Còn 2 việc chờ: nối extension trên Chrome thật (cần Sư Huynh) và chạy lại bộ test trên Windows.
 
 ### (a) Command results
@@ -31,7 +31,7 @@ Check:
 ### (b) AC table (all runner/driver evidence is fake driver, live in P2). Paths relative to repo; desktop = apps/desktop.
 | AC | Text (short) | Status | Evidence |
 |---|---|---|---|
-| AC-01 | Only the permitted, correct tab binds among wrong provider/project tabs; missing login/project gives a CTA | DEFERRED to P2 (live-only by its test method; tab discovery is P2) — gate deviation, needs Sư Huynh OK | Tab discovery/binding does not exist in P1 (`tabs = []` in real mode). Only `connector.test.ts` token/origin rejection and `runner.test.ts` "target changed blocks click" exist. |
+| AC-01 | Only the permitted, correct tab binds among wrong provider/project tabs; missing login/project gives a CTA | DEFERRED to P2 (live-only by its test method; tab discovery is P2) — gate deviation, approved by Sư Huynh 2026-11-08 | Tab discovery/binding does not exist in P1 (`tabs = []` in real mode). Only `connector.test.ts` token/origin rejection and `runner.test.ts` "target changed blocks click" exist. |
 | AC-02 | TXT UTF-8/BOM, CRLF/LF, blank lines, Vietnamese, bad content: textarea/TXT same mapping, keep sourceLine, no implicit enqueue/submit | PASS | desktop/test/batch.test.ts: "CRLF and LF give the same items", "BOM stripped only at start", "invalid utf-8 is an error, not replaced", "parsePrompts keeps NFD and NFC as-is", "enqueue stores sourceLines and validates length", "prompts are not trimmed; string BOM stripped"; ipc.test.ts "dryRun previews without creating…". No UI-level TXT file import test (parser takes bytes and string). |
 | AC-05 | Enqueue crash in transaction / draft edited after run: no partial batch; old settings/refs unchanged | PASS | desktop/test/batch.test.ts "enqueue is atomic and idempotent" (fault injected at 2nd item insert → 0 rows; retry idempotent; settings snapshot stored), "enqueue storage contract". No process-restart step. |
 | AC-06 | Second app launch only focuses old window; only newest connection gets commands, old epoch rejected; takeover recovers without resend | PASS (fake) | e2e "second launch exits on its own and only raises the old window" (B with same TOOLFLOW_USER_DATA exits by itself; A has 1 visible window and its `second-instance` handler ran once). Newest connection / old epoch: connector.test.ts "newest connection wins…", uncertain.test.ts "stale epoch response ignored…". Takeover = restart recovery: uncertain.test.ts "crash after intent commit…", "restart reschedules overdue reconcile…" (no resend). Real window focus under a window manager is not asserted (Xvfb has none). |
@@ -54,6 +54,7 @@ Check:
 ### (c) Gate rows still open
 - Extension connects/reconnects on Windows and Linux → **PENDING** (Task 9 Step 5, needs Sư Huynh).
 - Windows run of the suites → **PENDING** (Task 12 Step 2, needs a Windows machine).
+- Merged to main 2026-11-08 by Sư Huynh's decision with the two rows above still PENDING; they are run after merge and recorded here.
 
 ### Must carry to P2
 - Drain the net-record buffer, or stop counting `dropped` for skip continuity (manual mode becomes uncertain in long sessions).
