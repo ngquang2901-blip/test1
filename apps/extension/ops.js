@@ -19,3 +19,9 @@ export function validate(msg) {
   if (op === 'open' && !(typeof args.url === 'string' && args.url.startsWith('https://flow.google.com/'))) return 'open url not allowed';
   return null;
 }
+
+// Event from a tab -> message for the desktop. The epoch is the one main-world captured at its own submit; no epoch => not ours.
+export function forwardEvent(tabId, ev) {
+  if (!ev || !Number.isInteger(ev.epoch)) return null;
+  return { type: ev.type, tabId, epoch: ev.epoch, ...(ev.type === 'response' ? { rpc: ev.rpc, text: ev.text } : {}), request: ev.request };
+}

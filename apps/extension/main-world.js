@@ -20,12 +20,14 @@
   const emit = (name, obj) => document.dispatchEvent(new CustomEvent(name, { detail: JSON.stringify(obj) }));
   const covered = (b) => { const r = b.getBoundingClientRect(); const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !(e && b.closest('flow-prompt-box').contains(e)); };
 
-  nativeAdd.call(document, 'toolflow:submit', () => {
+  let cur; // epoch of the latest trusted submit; stamped onto the XHR it triggers
+  nativeAdd.call(document, 'toolflow:submit', (e) => {
+    try { cur = JSON.parse(e.detail).epoch; } catch (_) { cur = undefined; }
     const b = document.querySelector(SUBMIT);
     const ls = b && reg.get(b);
     const out = { found: !!b, disabled: b?.disabled ?? null, listeners: ls ? ls.size : 0, called: 0 };
     // fail closed: a cover (cookie banner, overlay) means nothing is sent
-    if (b && ls && !b.disabled && !covered(b)) {
+    if (b && ls && ls.size === 1 && !b.disabled && !covered(b)) {
       const ev = new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window, detail: 1, button: 0 });
       const p = new Proxy(ev, {
         get(t, k) {
@@ -34,7 +36,7 @@
           const v = Reflect.get(t, k); return typeof v === 'function' ? v.bind(t) : v;
         },
       });
-      for (const l of ls) { try { typeof l === 'function' ? l.call(b, p) : l.handleEvent(p); out.called++; } catch (e) { /* counted by called */ } }
+      for (const l of ls) { out.called++; /* before the call: a throwing listener may still have sent */ try { typeof l === 'function' ? l.call(b, p) : l.handleEvent(p); } catch (e) { /* uncertain, not rejected */ } }
     }
     emit('toolflow:submit-result', out);
   });
@@ -60,11 +62,11 @@
   XMLHttpRequest.prototype.send = function (b) {
     const url = this.__tfUrl || '';
     if (RPCS.test(url)) {
-      const rpc = gen(url); const req = String(b || '');
-      if (rpc) emit('toolflow:event', { type: 'sent', request: req });
+      const rpc = gen(url); const req = String(b || ''); const epoch = cur;
+      if (rpc) emit('toolflow:event', { type: 'sent', epoch, request: req });
       nativeAdd.call(this, 'loadend', () => { try {
         push(url, b, this.status, this.responseText);
-        if (rpc) emit('toolflow:event', { type: 'response', rpc, text: this.responseText, request: req });
+        if (rpc) emit('toolflow:event', { type: 'response', epoch, rpc, text: this.responseText, request: req });
       } catch (e) { /* observer must never break the page */ } });
     }
     return xs.apply(this, arguments);

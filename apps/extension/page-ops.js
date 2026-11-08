@@ -9,17 +9,17 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const $ = (s, root = document) => root.querySelector(s);
   const SUBMIT = 'flow-prompt-box button[type="submit"]';
-  const ask = (name, ms = 500) => new Promise((resolve) => {
+  const ask = (name, ms = 500, detail) => new Promise((resolve) => {
     const h = (e) => { clearTimeout(t); document.removeEventListener(name + '-result', h); resolve(JSON.parse(e.detail)); };
     const t = setTimeout(() => { document.removeEventListener(name + '-result', h); resolve(null); }, ms);
     document.addEventListener(name + '-result', h);
-    document.dispatchEvent(new CustomEvent(name));
+    document.dispatchEvent(new CustomEvent(name, detail ? { detail: JSON.stringify(detail) } : undefined));
   });
   const until = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = fn(); if (v) return v; await sleep(150); } return null; };
 
   // main world -> service worker: generate request left / answered
   document.addEventListener('toolflow:event', (e) => {
-    try { chrome.runtime.sendMessage({ tf: 'event', ev: JSON.parse(e.detail) }); } catch (_) { /* extension reloaded */ }
+    try { chrome.runtime.sendMessage({ tf: 'event', ev: JSON.parse(e.detail) }).catch(() => {}); } catch (_) { /* extension reloaded */ }
   });
 
   const OPS = {
@@ -37,7 +37,8 @@
     },
     click(a) {
       const e = document.querySelectorAll(a.sel)[a.idx || 0]; if (!e) return 'NOTFOUND';
-      if (e.closest(SUBMIT)) return 'REFUSED: submit goes through trusted only';
+      const sub = $(SUBMIT);
+      if (e.closest(SUBMIT) || (sub && e.contains(sub)) || (e.tagName === 'LABEL' && e.control && e.control.matches(SUBMIT))) return 'REFUSED: submit goes through trusted only';
       e.click(); return 'clicked';
     },
     async fill(a) {
@@ -45,7 +46,7 @@
       e.focus(); e.value = a.text; e.dispatchEvent(new Event('input', { bubbles: true })); await sleep(a.wait || 1500); return 'filled';
     },
     hit: () => ask('toolflow:hit'),
-    async trusted() { return (await ask('toolflow:submit', 1000)) || { noMainWorld: true }; },
+    async trusted(a) { return (await ask('toolflow:submit', 1000, { epoch: a.epoch })) || { noMainWorld: true }; },
     net: () => ask('toolflow:net'),
     ping: () => ask('toolflow:ping'),
     account() {

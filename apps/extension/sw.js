@@ -1,8 +1,7 @@
-import { validate } from './ops.js';
+import { validate, forwardEvent } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const epochByTab = new Map(); // epoch of the latest 'trusted' op per tab: stamps sent/response events
 const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account']);
 
 async function connect() {
@@ -30,30 +29,32 @@ async function onCommand(s, data) {
 async function handle(op, a, epoch) {
   if (PAGE_OPS.has(op)) {
     if (!Number.isInteger(a.tabId)) throw new Error('tabId required');
-    if (op === 'trusted') epochByTab.set(a.tabId, epoch);
-    const r = await chrome.tabs.sendMessage(a.tabId, { tf: 'op', op, args: a });
+    const r = await chrome.tabs.sendMessage(a.tabId, { tf: 'op', op, args: op === 'trusted' ? { ...a, epoch } : a });
     if (!r) throw new Error('no content script in tab');
     if (r.error) throw new Error(r.error);
     return r.result;
   }
   switch (op) {
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;
-    case 'reloadTab': await chrome.tabs.reload(a.tabId); return true;
+    case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await chrome.tabs.reload(a.tabId); return true;
     case 'download': return await chrome.downloads.download({ url: a.url, filename: a.filename, conflictAction: 'uniquify' });
     case 'downloads': return await chrome.downloads.search(a.query || { limit: 10, orderBy: ['-startTime'] });
   }
 }
 
+// sent/response carry the epoch of their own trusted click (stamped in main-world). Generates that start before any
+// trusted op on the tab (manual / Flow-initiated) have no epoch and are dropped by forwardEvent.
 chrome.runtime.onMessage.addListener((m, sender) => {
   if (m?.tf !== 'event' || !sender.tab || ws?.readyState !== 1) return;
-  const tabId = sender.tab.id;
-  const epoch = epochByTab.get(tabId);
-  if (epoch === undefined) return; // not submitted by us (e.g. user clicked by hand)
-  ws.send(JSON.stringify({ type: m.ev.type, tabId, epoch, ...(m.ev.type === 'response' ? { rpc: m.ev.rpc, text: m.ev.text } : {}), request: m.ev.request }));
+  const out = forwardEvent(sender.tab.id, m.ev);
+  if (out) ws.send(JSON.stringify(out));
 });
-chrome.tabs.onRemoved.addListener((id) => epochByTab.delete(id));
 
+// SW dies when the relay is gone; alarms + tab events wake it so it reconnects
 chrome.alarms.create('wake', { periodInMinutes: 0.5 });
 chrome.alarms.onAlarm.addListener(connect);
+chrome.tabs.onUpdated.addListener(() => connect());
 chrome.runtime.onStartup.addListener(connect);
 connect();
+// keep SW alive while connected (Chrome 116+: WS activity extends lifetime)
+setInterval(() => ws?.readyState === 1 && ws.send(JSON.stringify({ keepalive: Date.now() })), 20000);

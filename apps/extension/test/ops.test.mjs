@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { OPS, validate, isAllowedDownloadUrl } from '../ops.js';
+import { OPS, validate, isAllowedDownloadUrl, forwardEvent } from '../ops.js';
 
 const ok = (o, a = {}) => ({ id: 1, epoch: 2, op: o, args: a });
 
@@ -25,8 +25,9 @@ test('download only https on Flow content hosts', () => {
   for (const u of ['https://flow-content.google/video/x.mp4', 'https://lh3.googleusercontent.com/a?b=1'])
     assert.equal(validate(ok('download', { url: u })), null, u);
   for (const u of ['http://flow-content.google/x', 'https://evil.com/x', 'https://googleusercontent.com.evil.com/x',
-    'https://notflow-content.google/x', 'file:///etc/passwd', 'nonsense', undefined])
+    'https://notflow-content.google/x', 'https://flow-content.google.evil.com', 'https://x.googleusercontent.com.evil.com', 'https://flow-content.google@evil.com/x', 'file:///etc/passwd', 'nonsense', undefined])
     assert.ok(validate(ok('download', { url: u })), String(u));
+  assert.equal(isAllowedDownloadUrl('https://FLOW-CONTENT.google/x'), true);
   assert.equal(isAllowedDownloadUrl('https://a.b.googleusercontent.com/x'), true);
 });
 
@@ -42,4 +43,14 @@ test('manifest: no debugger, exact permissions, key matches EXT_ID', () => {
   const id = createHash('sha256').update(der).digest('hex').slice(0, 32).replace(/./g, (c) => String.fromCharCode(97 + parseInt(c, 16)));
   const ts = readFileSync(new URL('../../desktop/src/main/connector/ext-id.ts', import.meta.url), 'utf8');
   assert.equal(/EXT_ID = '([a-p]{32})'/.exec(ts)?.[1], id);
+});
+
+test('forwardEvent keeps own epoch; no epoch => not forwarded', () => {
+  const m = forwardEvent(7, { type: 'sent', epoch: 3, request: 'r' });
+  assert.deepEqual(m, { type: 'sent', tabId: 7, epoch: 3, request: 'r' });
+  assert.deepEqual(forwardEvent(7, { type: 'response', epoch: 4, rpc: 'ogiZ0b', text: 't', request: 'r' }),
+    { type: 'response', tabId: 7, epoch: 4, rpc: 'ogiZ0b', text: 't', request: 'r' });
+  assert.equal(forwardEvent(7, { type: 'sent', request: 'r' }), null);
+  assert.equal(forwardEvent(7, { type: 'sent', epoch: '3' }), null);
+  assert.equal(forwardEvent(7, null), null);
 });
