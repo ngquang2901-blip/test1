@@ -1,14 +1,14 @@
 # P1 progress
 
-## Task 9 Step 5: PENDING — needs Sư Huynh on a real Chrome
-Not run (no Chrome profile / display for the implementing user). Steps:
+## Task 9 Step 5: PARTIAL — pairing verified on Linux with real Google Chrome; Flow-side checks need Sư Huynh
+Pairing part run 2026-11-08 on Linux (Google Chrome 156, temp profile, no Google login) with `apps/desktop/scripts/pair-check.mjs`: the extension is loaded via CDP `Extensions.loadUnpacked` (branded Chrome ignores `--load-extension`). Output: first pairing connected after 2 s; app restart → new port, same token, reconnected after 29 s; extension id `aicenhlifoinpclibjijbgempddjgmhe` = `EXT_ID`. Reconnect relies on the 30 s wake alarm, so it sits right at the 30 s limit. Manual steps for the Flow-side checks:
 1. Start the app (it runs `readOrCreateToken` → server → `installExtension`, writing `<userData>/extension/pair.json`).
 2. In the Chrome profile logged in to Flow: open `chrome://extensions` → enable Developer mode → Load unpacked → `<userData>/extension`.
 3. Open https://flow.google.com in a tab.
 Check:
-- [ ] App shows "Đã kết nối"; extension id equals `EXT_ID` (ext-id.ts).
-- [ ] Quit and restart the app: extension reconnects within 30 s.
-- [ ] `pair.json` is re-read after the port changes (unpacked extension serves files from disk).
+- [x] App shows "Đã kết nối"; extension id equals `EXT_ID` (ext-id.ts). (Linux, pair-check.mjs)
+- [x] Quit and restart the app: extension reconnects within 30 s. (Linux: 29 s — at the limit)
+- [x] `pair.json` is re-read after the port changes (unpacked extension serves files from disk). (Linux)
 - [ ] A generate goes over XHR (not fetch) and `sent`/`response` events arrive.
 - [ ] Main-world `arm` / `trusted` click path works end to end.
 
@@ -52,7 +52,7 @@ Check:
 | AC-36 | Batch A uncertain + batch B other project; kill & reopen: intents → uncertain, 0 resends, B runs, A's project blocked; unblock after 10-min reconcile or user confirm; credit stays spent | PASS | uncertain.test.ts "uncertain releases runner to a batch on another project", "reconcile after 10 minutes: found resumes batch", "not found waits for user; confirm not_sent unblocks and never re-clicks that attempt", "crash after intent commit…", "restart: a batch paused only by an uncertain attempt auto-resumes once reconcile settles it". |
 
 ### (c) Gate rows still open
-- Extension connects/reconnects on Windows and Linux → **PENDING** (Task 9 Step 5, needs Sư Huynh).
+- Extension connects/reconnects on Windows and Linux → Linux **PASS** (pair-check.mjs, real Chrome); Windows **PENDING** (run the same script with CHROME_PATH).
 - Windows run of the suites → **PENDING** (Task 12 Step 2, needs a Windows machine).
 - Merged to main 2026-11-08 by Sư Huynh's decision with the two rows above still PENDING; they are run after merge and recorded here.
 
