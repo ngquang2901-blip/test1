@@ -67,7 +67,7 @@ export function createFakeDriver(input: FakeScript) {
     },
     async prepare(tabId, p) { ledger.prepares++; prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
     async checkBeforeClick() { return { ok: true }; },
-    async click(tabId): Promise<ClickResult> {
+    async click(tabId, epoch): Promise<ClickResult> {
       ledger.clicks++;
       const step = script.shift();
       if (!step) throw new Error('fake driver: script exhausted');
@@ -95,7 +95,7 @@ export function createFakeDriver(input: FakeScript) {
             if (decodeURIComponent(body.replace(/\+/g, ' ')).includes(needle) || text.includes(needle)) throw new Error(`fake: fixture value survived substitution: ${old}`);
           }
         }
-        later({ tabId, type: 'sent', request: body }, { tabId, type: 'response', rpc: done.rpc, text, request: body });
+        later({ tabId, type: 'sent', epoch, request: body }, { tabId, type: 'response', epoch, rpc: done.rpc, text, request: body });
       }
       return { found: true, disabled: false, listeners: 1, called: 1 };
     },

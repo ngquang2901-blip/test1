@@ -157,3 +157,13 @@ test('script kind must match prepared kind', async () => {
     await expect(d.click('t1', 1)).rejects.toThrow(`fake: script kind ${step.slice(0, 5)} does not match prepared kind ${kind}`);
   }
 });
+
+test('R29: sent and response carry the epoch passed to click', async () => {
+  const d = createFakeDriver(['image-ok']);
+  const got: DriverEvent[] = [];
+  d.onEvent((e) => got.push(e));
+  await d.prepare('t1', { prompt: PROMPT, kind: 'image', settings: {}, refIds: [] });
+  await d.click('t1', 7);
+  await new Promise((r) => setTimeout(r, 5));
+  expect(got.map((e) => (e as { epoch: number }).epoch)).toEqual([7, 7]);
+});

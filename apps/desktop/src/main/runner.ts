@@ -1,10 +1,15 @@
-import { canClick, type AttemptEvent, type AttemptState, type ItemState } from '@toolflow/flow-protocol/attempt';
+import { randomUUID } from 'node:crypto';
+import { canClick, initial, type AttemptEvent, type AttemptState, type ItemState } from '@toolflow/flow-protocol/attempt';
 import { classifyGenerateError } from '@toolflow/flow-protocol/errors';
 import { parseGenerateRequest, parseImageReceipt, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
 import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
 import { CAPS, nextCap } from './caps';
+import { RECONCILE_MS, runReconcile, unblock } from './reconcile';
+
+const SEND_DEADLINE_MS = 30_000; // a click whose request the observer never reports is uncertain after this (04 Q-09)
+const coded = (code: string) => Object.assign(new Error(code), { code });
 
 type Kind = 'image' | 'video';
 export type BatchStatus = 'queued' | 'running' | 'paused' | 'needs_review' | 'completed' | 'partial_failed' | 'failed' | 'stopped';
@@ -45,6 +50,9 @@ export function createRunner(o: {
   driver.onEvent((e) => queue.push(e));
   const slot = new Map<string, string>(); // tab → attempt last given a click there
   const awaiting: { id: string; tab: string }[] = []; // sent, response not seen yet
+  const epochs = new Map<string, number>(); // AC-30: bumped on every disconnect; older sent/response events are ignored
+  const epoch = (tab: string) => epochs.get(tab) ?? 1;
+  const clicking = new Set<string>(); // attempts whose driver.click has not returned
   const paused = new Map<string, string | null>(); // authoritative even when the DB write failed; flushed each tick
 
   const state = (id: string) => JSON.parse((db.prepare('select state_json j from attempt where id=?').get(id) as { j: string }).j) as AttemptState;
@@ -73,6 +81,9 @@ export function createRunner(o: {
     const s = applyEvent(db, id, ev, clock.now());
     const i = info(id);
     if (s.item === 'needs_review') db.prepare('insert or ignore into target_block(project_id, attempt_id, since) values(?,?,?)').run(i.project, id, clock.now());
+    if (s.item === 'needs_review' && s.stage === 'uncertain' && prev.item !== 'needs_review') // R27
+      db.prepare('update attempt set reconcile_at=coalesce(click_at, ?) + ? where id=?').run(clock.now(), RECONCILE_MS, id);
+    if (prev.item === 'needs_review' && s.item !== 'needs_review') release(id); // late evidence settled it
     // only a change pauses (a sticky admission must not re-pause after resume), but a fresh error always counts
     const err = s.error as (AttemptState['error'] & { admission?: string }) | null;
     const fresh = err != null && JSON.stringify(err) !== JSON.stringify(prev.error);
@@ -81,6 +92,15 @@ export function createRunner(o: {
     const changed = fresh || s.admission !== prev.admission || (s.item === 'needs_review' && prev.item !== 'needs_review');
     if (changed && level !== 'continue' && level !== 'throttle') pause(i.batch, s.error?.code ?? s.admission);
     return s;
+  };
+
+  const setStatus = (b: string, from: string, to: string) => db.prepare('update batch set status=?, revision=revision+1 where id=? and status=?').run(to, b, from);
+  /** Unblocks the project and lets the batch go on, unless another attempt of it still needs review. */
+  const release = (id: string) => {
+    unblock(db, id);
+    const b = info(id).batch;
+    if (db.prepare("select 1 from item i join attempt a on a.id=i.attempt_id where i.batch_id=? and json_extract(a.state_json,'$.item')='needs_review'").get(b)) return;
+    paused.delete(b); setStatus(b, 'paused', 'running');
   };
 
   const inFlight = () => {
@@ -100,10 +120,13 @@ export function createRunner(o: {
 
   function onEvent(e: DriverEvent) {
     if (e.type === 'disconnected') { // observation lost: whatever is awaiting a response can no longer be proven either way
+      epochs.set(e.tabId, epoch(e.tabId) + 1);
       const ids = new Set([slot.get(e.tabId), ...awaiting.filter((a) => a.tab === e.tabId).map((a) => a.id)]);
+      for (let k = awaiting.length; k--;) if (awaiting[k].tab === e.tabId) awaiting.splice(k, 1);
       for (const id of ids) if (id && state(id).item === 'submitting') apply(id, { type: 'deadline' });
       return;
     }
+    if (e.epoch < epoch(e.tabId)) return; // answers a connection that is gone; reconcile settles what it left uncertain
     if (e.type === 'sent') {
       const id = slot.get(e.tabId);
       if (!id || state(id).item === 'needs_review') return; // already uncertain: nothing legal to record
@@ -158,7 +181,9 @@ export function createRunner(o: {
     if (s.item === 'preparing') pause(i.batch, s.error?.code ?? 'INTENT_REFUSED'); // refused every time, not just the first
     if (!canClick(s)) return; // manual, or intent refused (observer dead → batch paused by apply)
     let result;
-    try { result = await driver.click(tab, 1); } catch { apply(id, { type: 'deadline' }); return; } // shortcut: epoch fixed at 1 until the connector issues epochs
+    clicking.add(id);
+    try { result = await driver.click(tab, epoch(tab)); } catch { apply(id, { type: 'deadline' }); return; } finally { clicking.delete(id); }
+    db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); // R27: the reconcile window starts here
     try { apply(id, { type: 'clicked', result }); } catch { apply(id, { type: 'deadline' }); } // e.g. stop() during the click: it may have gone out, so uncertain
   }
 
@@ -171,14 +196,13 @@ export function createRunner(o: {
       const i = info(c.id);
       const retry = c.s.retryAt !== null && c.s.retryAt > clock.now();
       const blocked = db.prepare('select 1 from target_block where project_id=?').get(b.p);
-      if (retry || blocked || inFlight()[i.kind] >= caps[i.kind]) return; // this batch owns admission; backoff/block/cap holds it
+      if (blocked) continue; // that project waits for its reconcile; other projects go on (D-04)
+      if (retry || inFlight()[i.kind] >= caps[i.kind]) return; // this batch owns admission; backoff/cap holds it
       try { await dispatch(tab, c.id, i, c.s); } catch (e) { fail(b.id, e); }
       return;
     }
   }
 
-  const todo = (name: string) => () => { throw new Error(`Task 6: ${name}`); };
-  const setStatus = (b: string, from: string, to: string) => db.prepare('update batch set status=?, revision=revision+1 where id=? and status=?').run(to, b, from);
 
   let chain: Promise<unknown> = Promise.resolve();
   async function run() {
@@ -201,7 +225,17 @@ export function createRunner(o: {
         if (state(a.id).item === 'awaiting_user') apply(a.id, { type: 'skip', ping, now: clock.now() });
       } catch (err) { fail(b.id, err); }
     }
-    for (const tab of tabs) if (!busy(tab)) await admit(tab); // 3. admission
+    // 3. a click that left no request is uncertain after its deadline; then every due reconcile (D-11)
+    for (const r of db.prepare('select a.id, a.click_at c, a.state_json j from attempt a where a.click_at is not null').all() as { id: string; c: number; j: string }[]) {
+      const s = JSON.parse(r.j) as AttemptState;
+      if (s.item === 'submitting' && s.clicked && !s.request && clock.now() - r.c >= SEND_DEADLINE_MS && !clicking.has(r.id)) {
+        try { apply(r.id, { type: 'deadline' }); } catch (err) { fail(info(r.id).batch, err); }
+      }
+    }
+    for (const r of db.prepare('select id from attempt where reconcile_at is not null and reconcile_at <= ?').all(clock.now()) as { id: string }[]) {
+      try { if (await runReconcile(db, driver, r.id, clock.now()) === 'found') release(r.id); } catch (err) { fail(info(r.id).batch, err); }
+    }
+    for (const tab of tabs) if (!busy(tab)) await admit(tab); // 4. admission
   }
 
   return {
@@ -219,6 +253,46 @@ export function createRunner(o: {
     inFlight,
     lastError: (b) => paused.get(b) ?? null,
     caps: () => ({ ...caps }),
-    rerun: todo('rerun'), confirm: todo('confirm'), archive: todo('archive'), recover: todo('recover'),
+    rerun(id, confirmedCost) {
+      if (confirmedCost !== true) throw coded('COST_NOT_CONFIRMED');
+      const i = info(id);
+      if (db.prepare('select 1 from target_block where project_id=?').get(i.project)) throw coded('TARGET_BLOCKED'); // AC-22: settle the uncertain one first
+      return db.transaction(() => {
+        const a = db.prepare('select item_id, ordinal from attempt where id=?').get(id) as { item_id: string; ordinal: number };
+        const it = db.prepare('select attempt_id from item where id=?').get(a.item_id) as { attempt_id: string };
+        if (it.attempt_id !== id) throw coded('ALREADY_RERUN'); // one paid copy per confirmation
+        if (state(id).item !== 'failed') throw coded('NOT_RERUNNABLE');
+        const n = randomUUID();
+        db.prepare('insert into attempt(id,item_id,ordinal,state_json,revision,source_attempt_id) values(?,?,?,?,0,?)').run(n, a.item_id, a.ordinal + 1, JSON.stringify(initial(i.prompt)), id);
+        db.prepare('update item set attempt_id=? where id=?').run(n, a.item_id);
+        return n;
+      })();
+    },
+    confirm(id, to) { // D-11: the user's word settles it; the attempt is never clicked again
+      applyEvent(db, id, { type: 'resolve', to, evidence: { source: 'user' } }, clock.now());
+      release(id);
+    },
+    archive(b) { // the project block stays: archiving does not make the uncertain attempt any less spent
+      for (const a of attempts(b)) {
+        const s = JSON.parse(a.j) as AttemptState;
+        if (clicking.has(a.id) || (s.item === 'submitting' && !s.request)) throw coded('CLICK_IN_FLIGHT');
+      }
+      db.prepare('update batch set archived=1, revision=revision+1 where id=?').run(b);
+    },
+    recover() { // D-04: every intent without a receipt is uncertain after a restart; blocks are rebuilt from the attempts themselves
+      const all = db.prepare('select a.id, a.state_json j from attempt a').all() as { id: string; j: string }[];
+      for (const r of all) if (['submitting', 'awaiting_user'].includes((JSON.parse(r.j) as AttemptState).item)) apply(r.id, { type: 'restart' });
+      db.transaction(() => {
+        db.exec('delete from target_block');
+        for (const r of all) {
+          const s = state(r.id);
+          if (s.item !== 'needs_review') continue;
+          const i = info(r.id);
+          db.prepare('insert or ignore into target_block(project_id, attempt_id, since) values(?,?,?)').run(i.project, r.id, clock.now());
+          if (s.stage === 'uncertain') db.prepare('update attempt set reconcile_at=coalesce(click_at, ?) + ? where id=? and reconcile_at is null').run(clock.now(), RECONCILE_MS, r.id);
+          pause(i.batch, s.error?.code ?? 'SUBMIT_UNCERTAIN');
+        }
+      })();
+    },
   };
 }
