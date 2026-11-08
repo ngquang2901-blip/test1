@@ -46,6 +46,7 @@ export async function runReconcile(db: Db, driver: FlowDriver, attemptId: string
     && Math.abs((o.clickAt ?? now) - clickMs) <= WINDOW.windowMs + WINDOW.skewMs);
   if (twin) { journal('ambiguous', { why: 'duplicate_prompt' }); return 'ambiguous'; }
 
+  const stillOpen = () => rows(db, 'a.id=?', attemptId)[0].state.item === 'needs_review';
   let verdict;
   try {
     const raw = parseRpcResponse(await driver.readProject(me.project), 'Zzl0ze') as { payload: unknown };
@@ -56,9 +57,11 @@ export async function runReconcile(db: Db, driver: FlowDriver, attemptId: string
     }
     verdict = reconcile(parseProject(raw.payload, me.project), { batchId, prompt: me.prompt, kind: me.kind, clickMs }, { owned, ...WINDOW });
   } catch (err) { // unreadable listing proves nothing: wait for the user (shortcut: no automatic retry, upgrade when the connector gives transient errors)
-    journal('not_found', { source: 'Zzl0ze', error: (err as { code?: string }).code ?? 'READ_FAILED' });
+    console.error('reconcile: listing unreadable', err);
+    if (stillOpen()) journal('not_found', { source: 'Zzl0ze', why: 'READ_FAILED', error: (err as { code?: string }).code });
     return 'not_found';
   }
+  if (!stillOpen()) return 'not_found'; // confirm() or late evidence settled it during the read
   if (verdict.verdict === 'found') { applyEvent(db, attemptId, { type: 'resolve', to: 'ready', evidence: verdict.evidence }, now); unblock(db, attemptId); }
   else journal(verdict.verdict, verdict.evidence);
   return verdict.verdict;

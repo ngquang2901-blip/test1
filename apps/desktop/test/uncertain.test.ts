@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -340,7 +340,8 @@ test('I3: the block stays until the last uncertain attempt of the project is set
   expect(blocks(t.db)).toEqual([{ project_id: PROJECT }]);
   expect(() => t.runner.rerun(x.id, true)).toThrow(expect.objectContaining({ code: 'TARGET_BLOCKED' }));
   await t.step(3);
-  expect([batchRow(t.db, a), t.driver.ledger.clicks]).toEqual(['paused', 0]);
+  expect([batchStatus(t.db, a), t.driver.ledger.clicks]).toEqual(['needs_review', 0]); // y still holds the pause
+  expect(t.runner.lastError(a)).not.toBeNull();
   t.runner.confirm(y.id, 'sent');
   expect(blocks(t.db)).toEqual([]);
   await t.step(3);
@@ -359,4 +360,87 @@ test('I4: archiving a batch with generating attempts keeps counting them against
   t.runner.start(b);
   await t.step(3);
   expect(t.driver.ledger.clicks).toBe(8); // cap 8 still full
+});
+
+test('archive keeps following a sent attempt: its held response still settles it', async () => {
+  const t = rig(['image-ok'], { hold: true });
+  const a = t.add(PROJECT, ['a1']);
+  t.runner.start(a);
+  await t.step(2); // sent seen, response held
+  expect(t.states(a)[0].item).toBe('submitting');
+  t.runner.archive(a);
+  t.release();
+  await t.step(2);
+  expect(t.states(a)[0].item).toBe('ready');
+  expect(blocks(t.db)).toEqual([]);
+});
+
+test('unread listing is journaled as READ_FAILED and the attempt keeps waiting', async () => {
+  const t = rig([]);
+  const a = t.add(PROJECT, ['p1']);
+  leave(t.db, t.states(a)[0].id, RUN31.clickMs, RUN31.clickMs);
+  t.runner.recover();
+  t.driver.readProject = async () => { throw new Error('boom'); };
+  const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  await t.step(2);
+  expect(err).toHaveBeenCalled(); err.mockRestore();
+  const ev = (t.db.prepare("select payload_json p from journal_event where type='reconcile'").all() as { p: string }[]).map((r) => JSON.parse(r.p));
+  expect(ev).toHaveLength(1);
+  expect(ev[0].evidence.why).toBe('READ_FAILED');
+  expect(t.states(a)[0].item).toBe('needs_review');
+});
+
+test('confirm() landing while readProject is awaited: reconcile returns quietly', async () => {
+  const t = rig(['image-ok']);
+  const a = t.add(PROJECT, [RUN31.prompt, 'p2']); // the listing holds p1: without the re-check this would be 'found' on a failed attempt
+  t.runner.start(a);
+  const x = t.states(a)[0];
+  leave(t.db, x.id, RUN31.clickMs, RUN31.clickMs);
+  t.runner.recover();
+  const read = t.driver.readProject; let go!: () => void;
+  const gate = new Promise<void>((r) => { go = r; });
+  t.driver.readProject = async (p) => { await gate; return read(p); };
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  const tick = t.runner.tick();
+  await flush();
+  t.runner.confirm(x.id, 'not_sent');
+  go(); await tick;
+  expect(t.runner.lastError(a)).toBeNull();
+  expect(batchRow(t.db, a)).toBe('running');
+});
+
+test('restart: a batch paused only by an uncertain attempt auto-resumes once reconcile settles it', async () => {
+  const t = rig(['image-ok']);
+  const a = t.add(PROJECT, [RUN31.prompt, 'second']);
+  t.runner.start(a);
+  leave(t.db, t.states(a)[0].id, RUN31.clickMs, RUN31.clickMs);
+  t.runner.recover();
+  await t.step();
+  t.db.close();
+  t.clock.t = RUN31.clickMs + TEN_MIN;
+  const t2 = rig(['image-ok'], { file: t.file, clock: t.clock });
+  t2.runner.recover();
+  await t2.step(4); // no resume() call
+  expect(t2.states(a).map((s) => s.item)).toEqual(['ready', 'ready']);
+  expect(t2.driver.ledger.clicks).toBe(1);
+});
+
+test('a click that throws without a disconnect still fences the tab', async () => {
+  const t = rig(['no-request'], { hold: true, holdSent: true });
+  const click = t.driver.click; let first = true;
+  t.driver.click = async (tab, e) => { if (first) { first = false; throw new Error('gone'); } return click(tab, e); };
+  const a = t.add(PROJECT, ['a1']);
+  const b = t.add('P2', ['b1']);
+  t.runner.start(a);
+  await t.step(2);
+  expect(t.states(a)[0].item).toBe('needs_review');
+  t.runner.start(b);
+  await t.step(2);
+  expect(t.epochs).toEqual([2]);
+  const before = JSON.stringify(t.states(b));
+  t.deliver({ tabId: 't1', type: 'sent', epoch: 1, request: 'late' }); // old epoch: must not bind to B
+  await t.step();
+  expect(JSON.stringify(t.states(b))).toBe(before);
+  expect(t.states(b)[0].item).toBe('submitting');
 });

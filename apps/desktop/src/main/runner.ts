@@ -64,6 +64,7 @@ export function createRunner(o: {
 
   const flush = () => {
     for (const b of paused.keys()) {
+      if (unc.has(b)) continue; // not persisted: recover() rebuilds it from target_block, so a restart still auto-resumes (R31)
       try { db.prepare("update batch set status='paused', revision=revision+1 where id=? and status='running'").run(b); } catch { /* retried next tick */ }
     }
   };
@@ -78,7 +79,7 @@ export function createRunner(o: {
     pause(b, reason);
   };
 
-  /** Runs one event through applyEvent (stop() and confirm() call it directly): also blocks the project on needs_review and pauses on any pause-level admission. */
+  /** Runs one event through applyEvent (stop() calls it; confirm() and reconcile.ts call applyEvent directly): also blocks the project on needs_review and pauses on any pause-level admission. */
   const apply = (id: string, ev: AttemptEvent): AttemptState => {
     const prev = state(id);
     const s = applyEvent(db, id, ev, clock.now());
@@ -110,7 +111,7 @@ export function createRunner(o: {
 
   const inFlight = () => {
     const n = { image: 0, video: 0 };
-    const rows = db.prepare('select b.kind, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id ').all() as { kind: Kind; j: string }[];
+    const rows = db.prepare('select b.kind, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id').all() as { kind: Kind; j: string }[];
     for (const r of rows) if (['submitting', 'awaiting_user', 'generating'].includes((JSON.parse(r.j) as AttemptState).item)) n[r.kind]++;
     return n;
   };
@@ -189,7 +190,7 @@ export function createRunner(o: {
     if (!canClick(s)) return; // manual, or intent refused (observer dead → batch paused by apply)
     let result;
     clicking.add(id);
-    try { result = await driver.click(tab, epoch(tab)); } catch { db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); apply(id, { type: 'deadline' }); return; } finally { clicking.delete(id); } // a drop may still have sent it: window starts here too
+    try { result = await driver.click(tab, epoch(tab)); } catch { db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); fence(tab); return; } finally { clicking.delete(id); } // a drop may still have sent it: window starts here too
     db.prepare('update attempt set click_at=? where id=?').run(clock.now(), id); // R27: the reconcile window starts here
     try { apply(id, { type: 'clicked', result }); } catch { apply(id, { type: 'deadline' }); } // e.g. stop() during the click: it may have gone out, so uncertain
   }
@@ -282,12 +283,11 @@ export function createRunner(o: {
       applyEvent(db, id, { type: 'resolve', to, evidence: { source: 'user' } }, clock.now());
       release(id);
     },
-    archive(b) { // the project block stays: archiving does not make the uncertain attempt any less spent
+    archive(b) { // no fence: responses bind to `awaiting` by rpc+batchId, so sent attempts of an archived batch keep being followed; the block stays too
       for (const a of attempts(b)) {
         const s = JSON.parse(a.j) as AttemptState;
         if (clicking.has(a.id) || (s.item === 'submitting' && !s.request)) throw coded('CLICK_IN_FLIGHT');
       }
-      for (const [tab, id] of slot) if (info(id).batch === b) fence(tab); // design §6.2: the epoch moves on, nothing older can bind to the next batch
       db.prepare('update batch set archived=1, revision=revision+1 where id=?').run(b);
     },
     recover() { // D-04: every intent without a receipt is uncertain after a restart; blocks are rebuilt from the attempts themselves
