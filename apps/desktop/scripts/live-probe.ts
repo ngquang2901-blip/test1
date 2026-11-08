@@ -58,6 +58,8 @@ for (const t of tabs) {
     console.log('  rpc seen since page load (rpc/transport/status: count):', JSON.stringify(by))
   }
 }
+// FOCUS=1: bring the first Flow tab to the front (op `focus`), like manual mode does before arming.
+if (process.env.FOCUS === '1' && tabs[0]) console.log('focus:', JSON.stringify(await server.send('focus', { tabId: tabs[0].tabId })))
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)
 if (watchMin > 0 && tabs[0]) {
