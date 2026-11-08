@@ -52,9 +52,9 @@ Check:
 | AC-36 | Batch A uncertain + batch B other project; kill & reopen: intents → uncertain, 0 resends, B runs, A's project blocked; unblock after 10-min reconcile or user confirm; credit stays spent | PASS | uncertain.test.ts "uncertain releases runner to a batch on another project", "reconcile after 10 minutes: found resumes batch", "not found waits for user; confirm not_sent unblocks and never re-clicks that attempt", "crash after intent commit…", "restart: a batch paused only by an uncertain attempt auto-resumes once reconcile settles it". |
 
 ### (c) Gate rows still open
-- Extension connects/reconnects on Windows and Linux → Linux **PASS** (pair-check.mjs, real Chrome); Windows **PENDING** (run the same script with CHROME_PATH).
-- Windows run of the suites → **PENDING** (Task 12 Step 2, needs a Windows machine). Prepared: `node apps/desktop/scripts/gate.mjs` runs unit, flow-protocol, extension, typecheck, e2e and the real-Chrome pairing check and prints a PASS/FAIL table (Linux run: all PASS). `npm test` is now cross-platform (`apps/desktop/scripts/unit.mjs`; the old `ELECTRON_RUN_AS_NODE=1 cmd` form only worked in POSIX shells). `.gitattributes` forces LF. Windows steps: install Git, Node 22 LTS, Google Chrome → `git clone toolflow-p1.bundle ToolFlow` → `cd ToolFlow` → `npm ci` → `node apps/desktop/scripts/gate.mjs`; paste the final table here.
-- Merged to main 2026-11-08 by Sư Huynh's decision with the two rows above still PENDING; they are run after merge and recorded here.
+- Extension connects/reconnects on Windows and Linux → **PASS on both** (Linux: Chrome 156; Windows 10.0.26300: Chrome 157, connected after 2 s, reconnected after 29 s with a new port and the same token) via `apps/desktop/scripts/pair-check.mjs`.
+- Windows run of the suites → **PASS** (2026-11-09 00:41 local, `node apps/desktop/scripts/gate.mjs`, Node 22.23.4, Windows 10.0.26300): unit 136/136, flow-protocol 53/53, extension 15/15, typecheck clean, e2e 8/8, real-Chrome pairing PASS. Install on Windows needs `npm ci --ignore-scripts` + `npm run setup` (see Windows finding).
+- Merged to main 2026-11-08 by Sư Huynh's decision with the Windows rows pending; both are now PASS (above). The P1 gate has no open rows except the PARTIAL ACs and the AC-01 deferral listed in the table.
 
 ### Must carry to P2
 - Drain the net-record buffer, or stop counting `dropped` for skip continuity (manual mode becomes uncertain in long sessions).
@@ -83,3 +83,15 @@ Check:
 
 ## Windows finding (2026-11-08)
 `npm ci` on a fresh Windows machine failed at better-sqlite3 (`node-gyp rebuild` → no Python / no MSVC), on Node 26 and on Node 22. Cause: better-sqlite3 13 has a `binding.gyp`, so npm compiles it on install by default — but the package ships N-API prebuilds (`prebuilds/<platform>-<arch>.node`, ABI-stable across Node and Electron) and never needs compiling (Linux fresh clone with `--ignore-scripts`: no `build/` directory, 136/136 unit tests, full gate PASS). Install on every platform therefore is: `npm ci --ignore-scripts` then `npm run setup` (downloads the Electron binary). The desktop `postinstall` no longer runs `electron-builder install-app-deps` (it only compiled the same module again). At packaging time (P4) set `npmRebuild: false` in electron-builder.yml.
+
+## Windows gate result (2026-11-09)
+```
+===== P1 gate on win32 (v22.23.4) =====
+PASS     unit (desktop)             136 tests
+PASS     flow-protocol              # pass 53
+PASS     extension                  # pass 15
+PASS     typecheck
+PASS     e2e (fake driver)          8 passed
+PASS     pairing with real Chrome   connected after 2 s; reconnect after restart 29 s
+```
+Task 12 Step 2 is done. Lessons: pasting several lines at once into PowerShell can run them out of order; run one line at a time. Do not run as Administrator.
