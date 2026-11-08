@@ -80,3 +80,6 @@ Check:
 - **Product parser on live traffic (in memory, nothing persisted):** `parseGenerateRequest(readFReq(sent))` OK (rpc ogiZ0b, 2 items, prompt equals what `prep` typed, aspect code 3, seed ints); `parseRpcResponse` + `parseImageReceipt` OK (2 outputs); `correlate(request, receipt)` → owned=true, batchId matches. So the P1 runner contract matches today's Flow for image generation.
 - Aspect code 3 is new (parser comment lists 1 = 1:1, 2 = 9:16): note the mapping when settings are implemented.
 - Not yet verified live: video RPCs (needs video credit), refs/upload (`maseQ`), polling, downloads, `listeners` count drift over time, the 24h+ behaviour of the service worker.
+
+## Windows finding (2026-11-08)
+`npm ci` on a fresh Windows machine failed at better-sqlite3 (`node-gyp rebuild` → no Python / no MSVC), on Node 26 and on Node 22. Cause: `electron-builder install-app-deps` in the desktop postinstall tried to compile the native module, but better-sqlite3 13 ships N-API prebuilds (`prebuilds/<platform>-<arch>.node`, ABI-stable across Node and Electron) and never needs compiling. Fix: postinstall is now just `install-electron`. Verified on Linux from a fresh clone: no `build/` directory, 136/136 unit tests, full gate PASS. At packaging time (P4) set `npmRebuild: false` in electron-builder.yml for the same reason.
