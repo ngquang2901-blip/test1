@@ -53,7 +53,7 @@ Check:
 
 ### (c) Gate rows still open
 - Extension connects/reconnects on Windows and Linux → Linux **PASS** (pair-check.mjs, real Chrome); Windows **PENDING** (run the same script with CHROME_PATH).
-- Windows run of the suites → **PENDING** (Task 12 Step 2, needs a Windows machine).
+- Windows run of the suites → **PENDING** (Task 12 Step 2, needs a Windows machine). Prepared: `node apps/desktop/scripts/gate.mjs` runs unit, flow-protocol, extension, typecheck, e2e and the real-Chrome pairing check and prints a PASS/FAIL table (Linux run: all PASS). `npm test` is now cross-platform (`apps/desktop/scripts/unit.mjs`; the old `ELECTRON_RUN_AS_NODE=1 cmd` form only worked in POSIX shells). `.gitattributes` forces LF. Windows steps: install Git, Node 22 LTS, Google Chrome → `git clone toolflow-p1.bundle ToolFlow` → `cd ToolFlow` → `npm ci` → `node apps/desktop/scripts/gate.mjs`; paste the final table here.
 - Merged to main 2026-11-08 by Sư Huynh's decision with the two rows above still PENDING; they are run after merge and recorded here.
 
 ### Must carry to P2
