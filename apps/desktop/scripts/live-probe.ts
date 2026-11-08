@@ -1,6 +1,7 @@
 // Read-only live probe: pairs with the real Chrome extension and reports what the Flow tabs look like.
 // Never clicks, fills or sends anything on the page. Prints no URLs/tokens; the account email is masked.
 // Run: npm run live-probe -w apps/desktop   (stop the app first: only one process may own the pairing port)
+import { deflateSync } from 'node:zlib'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { startConnectorServer } from '../src/main/connector/server'
@@ -101,6 +102,36 @@ if (process.env.SC === '1' && tabs[0]) {
   for (const [op, args] of [['ping', a], ['probe', { ...a, selectors: { editor: 'flow-prompt-box .ProseMirror[contenteditable="true"]', submit: 'flow-prompt-box button[type="submit"]' } }], ['listeners', a]] as const) {
     try { console.log(op, JSON.stringify(await server.send(op, args as never))) } catch (e) { console.log(op, 'ERR', (e as Error).message) }
   }
+}
+// REF=1: upload ONE tiny unique PNG (free, no generation) via op `file` (REF_HOW=drop|paste), then describe chips and composer buttons. Never sends.
+if (process.env.REF === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  const crc = (b: Buffer): number => { let c, x = ~0; for (const v of b) { c = (x ^ v) & 255; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; x = (x >>> 8) ^ c } return ~x >>> 0 }
+  const chunk = (t: string, d: Buffer): Buffer => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]) }
+  const W = 96, raw = Buffer.alloc((W * 3 + 1) * W); const tint = Date.now() % 200
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) { const o = y * (W * 3 + 1) + 1 + x * 3; raw[o] = tint + (x % 50); raw[o + 1] = 80 + (y % 90); raw[o + 2] = 200 - (x % 60) }
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(W, 4); ihdr[8] = 8; ihdr[9] = 2
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+  const name = `tf-ref-${Date.now()}.png`
+  await server.send('net', a) // drain
+  console.log('file:', JSON.stringify(await server.send('file', { ...a, b64: png.toString('base64'), name, mime: 'image/png', how: process.env.REF_HOW ?? 'drop' })), name)
+  await sleep(4000)
+  const net = (await server.send('net', a)) as { rpc?: string; status?: number; via?: string }[]
+  console.log('net after upload:', JSON.stringify((Array.isArray(net) ? net : []).map((n) => `${n.rpc ?? '?'}/${n.via ?? ''}/${n.status ?? ''}`)))
+  const st = await server.send('state', a)
+  console.log('state:', JSON.stringify(st))
+}
+// CHIPS=1: read-only: composer state + net buffer (names only) + a masked description of the composer DOM.
+if (process.env.CHIPS === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  console.log('state:', JSON.stringify(await server.send('state', a)))
+  const net = (await server.send('net', a)) as { rpc?: string; status?: number; via?: string }[]
+  console.log('net:', JSON.stringify((Array.isArray(net) ? net : []).map((n) => `${n.rpc ?? '?'}/${n.via ?? ''}/${n.status ?? ''}`)))
+}
+// SEL=1: presence/count of candidate selectors given as JSON in SELS (read-only probe op).
+if (process.env.SEL === '1' && tabs[0]) {
+  const sels = JSON.parse(process.env.SELS ?? '{}') as Record<string, string>
+  console.log('probe:', JSON.stringify(await server.send('probe', { tabId: tabs[0].tabId, selectors: sels })))
 }
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)
