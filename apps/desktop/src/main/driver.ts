@@ -9,7 +9,7 @@ export type FlowTab = { tabId: string; projectId: string | null; email: string |
 export interface FlowDriver {
   listTabs(): Promise<FlowTab[]>;
   ping(tabId: string): Promise<Ping>;
-  prepare(tabId: string, p: { prompt: string; kind: 'image' | 'video'; settings: object; refIds: string[] }): Promise<{ ok: true } | { ok: false; code: string }>;
+  prepare(tabId: string, p: { prompt: string; kind: 'image' | 'video'; settings: object; refIds: string[]; projectId?: string }): Promise<{ ok: true } | { ok: false; code: string }>;
   checkBeforeClick(tabId: string, projectId: string, refIds?: string[]): Promise<{ ok: true } | { ok: false; code: 'COVERED' | 'CREDIT_WARNING' | 'BUTTON_DISABLED' | 'CHIP_MISMATCH' | 'TARGET_CHANGED' }>; // TARGET_CHANGED: URL tab không còn là project của lô (AC-23)
   probeTab?(tabId: string): Promise<TabProbe>; // read-only self-check signals; granted tabs only. Absent ⇒ the self-check fails closed.
   click(tabId: string, epoch: number): Promise<ClickResult>; // throws ConnectorError on drop

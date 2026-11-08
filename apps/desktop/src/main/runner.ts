@@ -191,9 +191,9 @@ export function createRunner(o: {
     if (!comboQualified(i.kind, settings.combo, o.combos)) { pause(i.batch, 'COMBO_NOT_QUALIFIED'); return; } // AC-03: before any state change, intent or page call
     if (s0.item === 'queued') apply(id, { type: 'prepare', now: clock.now() });
     const gone = () => state(id).item === 'cancelled'; // stop() landed during an await: a normal exit
-    const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs) });
+    const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs), projectId: i.project });
     if (gone()) return;
-    if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: 'continue' } }); return; }
+    if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: p.code === 'REF_UPLOAD_UNCERTAIN' ? 'pause' : 'continue' } }); return; } // a ref upload that may have happened waits for the user, no retry
     const chk = await driver.checkBeforeClick(tab, i.project, JSON.parse(i.refs));
     if (gone()) return;
     if (!chk.ok) { pause(i.batch, chk.code); return; }

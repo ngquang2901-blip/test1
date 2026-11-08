@@ -5,7 +5,8 @@ import videoT2v from '../../../../packages/flow-protocol/test/fixtures/video-t2v
 import throttledVideo from '../../../../packages/flow-protocol/test/fixtures/throttled-YhhmEf.json';
 import throttledImage from '../../../../packages/flow-protocol/test/fixtures/throttled-ogiZ0b.json';
 import project from '../../../../packages/flow-protocol/test/fixtures/project-Zzl0ze.json';
-import { DEFAULT_COMBO, type Combo } from './profile';
+import { DEFAULT_COMBO, profile, type Combo } from './profile';
+import type { ConnectorServer } from './connector/server';
 import { ConnectorError, type ClickResult, type DriverEvent, type FlowDriver, type Ping } from './driver';
 
 // Tests only: the profile qualifies the image combo alone, so video batches need a stand-in.
@@ -135,4 +136,54 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
     onEvent(cb) { listeners.add(cb); return () => listeners.delete(cb); },
   };
   return driver;
+}
+
+// ---- fake Flow page behind the connector: media library + composer chips (for ext-driver tests) ----
+export type UploadScript = 'ok' | 'upload-no-ack' | 'upload-late-ack'
+type FakeFlowOptions = {
+  lateAfter?: number // 'upload-late-ack': attach polls that answer NOT_FOUND before the item shows
+  stuckChips?: boolean // the clear button does nothing
+  strayOnPrep?: boolean // typing the prompt drops an unrelated chip in
+  onFile?: (name: string) => void
+}
+/** Models what the live page showed: op `file` how=drop only uploads (library, no chip); `attach` opens the library by name and adds one chip. 'upload-no-ack' counts the upload but attach never finds it. */
+export function createFakeFlow(input: UploadScript[] = [], o: FakeFlowOptions = {}) {
+  const script = [...input]
+  const library: Array<{ name: string; uuid: string; wait: number }> = []
+  let chips: string[] = [], text = ''
+  const f = {
+    uploads: [] as string[], hows: [] as string[], attaches: 0,
+    chips: () => [...chips], setChips: (c: string[]) => { chips = [...c] }, dropChips: () => { chips = [] }, setText: (t: string) => { text = t },
+    uploadsOf: (assetId: string) => f.uploads.filter((n) => n.startsWith(`tf-${assetId.slice(0, 8)}-`)).length,
+    addToLibrary: (name: string, wait = 0) => { const uuid = randomUUID(); library.push({ name, uuid, wait }); return uuid },
+    libraryMedia: (name: string) => library.find((l) => l.name === name)?.uuid,
+    server: {
+      async send(op: string, args: Record<string, unknown>): Promise<unknown> {
+        switch (op) {
+          case 'settings': return { ok: true, current: {}, mismatches: [] }
+          case 'state': return { text, chips: [...chips], submitDisabled: false, creditWarning: false }
+          case 'prep': text = args.prompt as string; if (o.strayOnPrep) chips.push(randomUUID()); return { ok: true, textMatches: true, log: [] }
+          case 'click': if (args.sel === profile.selectors.clear) { if (!o.stuckChips) chips = []; text = ''; return 'clicked' } return 'NOTFOUND'
+          case 'file': {
+            f.uploads.push(args.name as string); f.hows.push(args.how as string); o.onFile?.(args.name as string)
+            const step = script.shift() ?? 'ok'
+            if (step !== 'upload-no-ack') f.addToLibrary(args.name as string, step === 'upload-late-ack' ? o.lateAfter ?? 2 : 0)
+            return { chips: chips.length }
+          }
+          case 'attach': {
+            f.attaches++
+            const hits = library.filter((l) => l.name.startsWith((args.name as string).slice(0, 20)))
+            if (hits.length > 1) return { ok: false, code: 'AMBIGUOUS' }
+            if (!hits.length || hits[0].wait-- > 0) return { ok: false, code: 'NOT_FOUND' }
+            if (chips.includes(hits[0].uuid)) return { ok: false, code: 'NO_CHIP' }
+            chips.push(hits[0].uuid)
+            return { ok: true, chips: [...chips], added: hits[0].uuid }
+          }
+          default: throw new Error(`fake flow: op ${op}`)
+        }
+      },
+      onEvent: () => () => {},
+    },
+  }
+  return f as typeof f & { server: ConnectorServer }
 }

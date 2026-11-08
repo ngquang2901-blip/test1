@@ -81,6 +81,21 @@
         return await TFSettings.converge({ mode: a.mode, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150) });
       } finally { if ($('flow-prompt-box-settings')) trigger.click(); }
     },
+    // Library -> chip by upload name (ref-logic.js). Opens/closes the '+' popover, never touches submit; returns codes only.
+    async attach(a) {
+      const pop = () => $('flow-add-menu-popover-content');
+      const plus = () => { const bs = [...document.querySelectorAll('flow-prompt-box button')].filter((b) => !b.closest('flow-add-menu-popover-content')); const i = TFRef.plusIndex(bs.map((b) => ({ text: b.innerText, label: b.getAttribute('aria-label') }))); return i < 0 ? null : bs[i]; };
+      const env = {
+        chips: () => OPS.state().chips,
+        isOpen: () => !!pop(),
+        open: async () => { const b = plus(); if (!b) return false; b.click(); return !!(await until(pop, 3000)); },
+        close: () => { const b = plus(); if (b) b.click(); },
+        setSearch: (q) => { const e = $('flow-add-menu-popover-content input.search-input'); if (!e) return; e.focus(); e.value = q; e.dispatchEvent(new Event('input', { bubbles: true })); },
+        items: () => [...document.querySelectorAll('flow-add-menu-popover-content .asset-item')].map((el) => ({ text: el.innerText, click: () => el.click() })),
+        addButton: () => { const b = [...(pop()?.querySelectorAll('button') || [])].filter((x) => x.innerText.trim() === 'Add to prompt'); return b.length === 1 ? b[0] : null; },
+      };
+      return TFRef.attach(env, a.name, { until });
+    },
     // Never clicks submit. Types the prompt (and optional library asset) into the composer.
     async prep({ prompt, asset }) {
       const log = [];

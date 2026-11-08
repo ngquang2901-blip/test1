@@ -1,5 +1,5 @@
 // Pure: the only commands the desktop may send. No eval / debugger / raw CDP.
-export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe','settings','listeners'];
+export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','download','downloads','account','arm','tabs','focus','probe','settings','listeners','attach'];
 
 const NEED_URL = new Set(['download', 'open']);
 
@@ -19,6 +19,7 @@ export function validate(msg) {
   if (op === 'focus' && !Number.isInteger(args.tabId)) return 'focus needs integer tabId';
   if (op === 'probe' && !(args.selectors && typeof args.selectors === 'object' && !Array.isArray(args.selectors) && Object.values(args.selectors).every((v) => typeof v === 'string' && v.length < 300))) return 'probe needs a selectors map of strings';
   if (op === 'settings' && !['mode', 'aspect', 'quality', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k])) return 'settings needs mode, aspect, quality, count, model';
+  if (op === 'attach' && !(typeof args.name === 'string' && args.name.length >= 1 && args.name.length <= 200)) return 'attach needs a name of 1..200 chars';
   if (op === 'download' && !isAllowedDownloadUrl(args.url)) return 'download url not allowed';
   if (op === 'open' && !(typeof args.url === 'string' && args.url.startsWith('https://flow.google.com/'))) return 'open url not allowed';
   return null;
