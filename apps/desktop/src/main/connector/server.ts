@@ -10,7 +10,7 @@ const digest = (s: string): Buffer => createHash('sha256').update(s).digest()
 export const OP_TIMEOUT_MS: Record<string, number> = {
   ping: 3000, account: 3000,
   state: 5000, hit: 5000, probe: 5000, tabs: 5000, focus: 5000, net: 5000, arm: 5000, trusted: 5000,
-  settings: 20000, prep: 20000, file: 60000, attach: 40000, default: 30000
+  settings: 20000, prep: 20000, file: 60000, attach: 50000, default: 30000
 }
 
 export type ConnectorServer = Awaited<ReturnType<typeof startConnectorServer>>

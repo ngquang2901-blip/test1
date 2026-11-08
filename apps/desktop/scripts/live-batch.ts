@@ -12,6 +12,7 @@ import { createGrants } from '../src/main/tabs'
 import { batchStatus, createRunner } from '../src/main/runner'
 import { enqueueBatch } from '../src/main/batch'
 import { openDb } from '../src/main/db'
+import { createAssetStore, registerAsset } from '../src/main/assets'
 import { DEFAULT_COMBO, selfCheckTab, validateProfile, profile } from '../src/main/profile'
 import { autoGate, enableAuto } from '../src/main/account'
 
@@ -29,7 +30,9 @@ if (!server.connected()) { console.log('RESULT: extension never connected'); pro
 
 const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-live-')), 'toolflow.db'))
 let grants!: ReturnType<typeof createGrants>
-const driver = createExtDriver(server, { allow: (id) => grants.has(id) })
+const assets = createAssetStore(db)
+const driver = createExtDriver(server, { allow: (id) => grants.has(id), assets })
+const REF = process.env.REF_FILE ? registerAsset(db, process.env.REF_FILE, Date.now()) : null // every prompt gets this one ref ('all' mode)
 const clock = { now: () => Date.now() }
 let email = ''
 const runner = createRunner({ db, driver, clock, tabs: [], speed: 'default', autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
@@ -45,7 +48,7 @@ const sc = await selfCheckTab(driver, await driver.ping(t.tabId), t.tabId, '0.1.
 console.log('self-check:', JSON.stringify(sc))
 if (MODE === 'auto') { enableAuto(db, email, Date.now()); console.log('auto enabled for this run (test db only)') }
 
-const r = enqueueBatch(db, { commandId: `live-${Date.now()}`, kind: 'image', projectId: t.projectId!, settings: { combo: DEFAULT_COMBO }, prompts: PROMPTS, refs: PROMPTS.map(() => []), mode: MODE })
+const r = enqueueBatch(db, { commandId: `live-${Date.now()}`, kind: 'image', projectId: t.projectId!, settings: { combo: DEFAULT_COMBO }, prompts: PROMPTS, refs: PROMPTS.map(() => (REF ? [REF.id] : [])), mode: MODE })
 runner.start(r.batchId)
 const view = (): string => (db.prepare('select i.ord o, a.state_json s from item i left join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(r.batchId) as { o: number; s: string | null }[])
   .map((x) => { const s = x.s ? JSON.parse(x.s) : {}; return `#${x.o + 1}:${s.item ?? '-'}/${s.stage ?? '-'}${s.error?.code ? '!' + s.error.code : ''}` }).join('  ')
@@ -59,5 +62,6 @@ for (; Date.now() - t0 < LIMIT; await sleep(500)) {
   if (['completed', 'partial_failed', 'needs_review', 'failed', 'stopped'].includes(st)) { console.log('batch status:', st); break }
 }
 console.log('FINAL:', view())
+console.log('bindings:', JSON.stringify((db.prepare('select state, count(*) n from asset_binding group by state').all())))
 console.log('journal types:', (db.prepare('select type, count(*) n from journal_event group by type').all() as { type: string; n: number }[]).map((x) => `${x.type}×${x.n}`).join(' '))
 process.exit(0)

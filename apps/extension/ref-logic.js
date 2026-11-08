@@ -38,12 +38,22 @@
         picked = hit.n === 1 ? items[hit.i] : null; return picked;
       }, o.findMs ?? 8000);
       if (!found) return { ok: false, code: hit.n > 1 ? 'AMBIGUOUS' : 'NOT_FOUND' };
-      picked.click();
-      const add = await o.until(() => env.addButton(), 5000);
-      if (!add) return { ok: false, code: 'NO_ADD' };
-      add.click();
-      let diff = { ok: false };
-      await o.until(() => { const now = env.chips(); diff = newChip(before, now); return now.length > before.length || now.some((c) => !before.includes(c)); }, o.chipMs ?? 10000);
+      // A freshly uploaded item shows in the library before its Add button works (measured: ~10-15 s). Re-click only while NO chip exists at all
+      // (even an unreadable one), so a slow chip can never be added twice.
+      const retryMs = o.retryMs ?? 3000; let diff = { ok: false };
+      for (let round = 0; ; round++) {
+        picked.click();
+        const add = await o.until(() => env.addButton(), 5000);
+        if (!add) return { ok: false, code: 'NO_ADD' };
+        add.click();
+        const appeared = await o.until(() => env.chips().length > before.length, retryMs);
+        if (appeared) break;
+        if (round >= (o.maxRounds ?? 6)) return { ok: false, code: 'NO_CHIP' };
+        const items = env.items(); const h = matchByName(items.map((x) => x.text), name);
+        if (h.n !== 1) return { ok: false, code: h.n > 1 ? 'AMBIGUOUS' : 'NOT_FOUND' };
+        picked = items[h.i];
+      }
+      await o.until(() => { diff = newChip(before, env.chips()); return diff.ok; }, o.chipMs ?? 10000); // the chip can exist before its image src (the uuid) is readable
       return diff.ok ? { ok: true, chips: env.chips(), added: diff.added } : { ok: false, code: 'NO_CHIP' };
     } finally { if (env.isOpen()) env.close(); }
   }

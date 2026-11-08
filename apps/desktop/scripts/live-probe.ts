@@ -120,6 +120,7 @@ if (process.env.REF === '1' && tabs[0]) {
   console.log('net after upload:', JSON.stringify((Array.isArray(net) ? net : []).map((n) => `${n.rpc ?? '?'}/${n.via ?? ''}/${n.status ?? ''}`)))
   const st = await server.send('state', a)
   console.log('state:', JSON.stringify(st))
+  if (process.env.REF_ATTACH === '1') for (let k = 1; k <= 3; k++) { const t0 = Date.now(); console.log(`attach#${k}:`, JSON.stringify(await server.send('attach', { ...a, name }).catch((e) => String(e))), `${Date.now() - t0}ms`) }
 }
 // CHIPS=1: read-only: composer state + net buffer (names only) + a masked description of the composer DOM.
 if (process.env.CHIPS === '1' && tabs[0]) {
@@ -132,6 +133,12 @@ if (process.env.CHIPS === '1' && tabs[0]) {
 if (process.env.SEL === '1' && tabs[0]) {
   const sels = JSON.parse(process.env.SELS ?? '{}') as Record<string, string>
   console.log('probe:', JSON.stringify(await server.send('probe', { tabId: tabs[0].tabId, selectors: sels })))
+}
+// ATTACH=<name prefix>: run the attach op once (opens library, searches, attaches ONE chip, closes) and print the raw answer + chips.
+if (process.env.ATTACH && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  try { console.log('attach:', JSON.stringify(await server.send('attach', { ...a, name: process.env.ATTACH }))) } catch (e) { console.log('attach ERR', (e as Error).message) }
+  console.log('state:', JSON.stringify(await server.send('state', a)))
 }
 // WATCH_MIN=n: keep watching n minutes and print every RPC the page makes (rpc/transport/status/size) and gen changes, so one manual generate shows which transport carries it.
 const watchMin = Number(process.env.WATCH_MIN ?? 0)

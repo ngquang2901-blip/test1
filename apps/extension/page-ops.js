@@ -94,7 +94,7 @@
         items: () => [...document.querySelectorAll('flow-add-menu-popover-content .asset-item')].map((el) => ({ text: el.innerText, click: () => el.click() })),
         addButton: () => { const b = [...(pop()?.querySelectorAll('button') || [])].filter((x) => x.innerText.trim() === 'Add to prompt'); return b.length === 1 ? b[0] : null; },
       };
-      return TFRef.attach(env, a.name, { until });
+      return TFRef.attach(env, a.name, { until, chipMs: 15000 }); // a fresh upload shows its chip long before the image src (uuid) is readable (measured >10 s)
     },
     // Never clicks submit. Types the prompt (and optional library asset) into the composer.
     async prep({ prompt, asset }) {

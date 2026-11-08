@@ -48,9 +48,13 @@ test('plusIndex: icon text add or aria-label add*, exactly one, else fail closed
 });
 
 // A tiny Flow: popover, search filter, library, chips. Time advances only through `tick`.
-function world({ library, hideUntil = 0, chipAfter = 0, noAdd = false, extra = false }) {
+function world({ library, hideUntil = 0, chipAfter = 0, noAdd = false, extra = false, placeholder = 0, addReadyAfter = 0 }) {
   const w = { open: false, query: '', picked: null, chips: ['old'], clicks: [], polls: 0, pending: null };
-  const tick = async () => { w.polls++; if (w.pending && --w.pending.left <= 0) { w.chips.push(...w.pending.add); w.pending = null; } };
+  const tick = async () => {
+    w.polls++;
+    if (w.pending && --w.pending.left <= 0) { w.chips.push(...(placeholder ? [undefined] : w.pending.add)); w.settle = placeholder ? { left: placeholder, to: w.pending.add[0] } : null; w.pending = null; }
+    else if (w.settle && --w.settle.left <= 0) { w.chips = w.chips.map((c) => c ?? w.settle.to); w.settle = null; } // Flow shows the chip first, its image src (the uuid) a bit later
+  };
   const env = {
     chips: () => [...w.chips],
     isOpen: () => w.open,
@@ -58,7 +62,7 @@ function world({ library, hideUntil = 0, chipAfter = 0, noAdd = false, extra = f
     close: () => { w.open = false; },
     setSearch: (q) => { w.query = q; },
     items: () => (w.polls < hideUntil ? [] : library.map((l) => item(l.name + ' Image', w.clicks, l.name))),
-    addButton: () => (w.clicks.length && !noAdd ? { click: () => { const l = library.find((x) => x.name === w.clicks.at(-1)); w.pending = { left: chipAfter + 1, add: extra ? [l.uuid, 'surprise'] : [l.uuid] }; } } : null),
+    addButton: () => (w.clicks.length && !noAdd ? { click: () => { w.addClicks = (w.addClicks || 0) + 1; if (w.polls < addReadyAfter) return; const l = library.find((x) => x.name === w.clicks.at(-1)); w.pending = { left: chipAfter + 1, add: extra ? [l.uuid, 'surprise'] : [l.uuid] }; } } : null),
   };
   const until = async (fn, ms) => { for (let k = 0; k <= ms / 150; k++) { const v = fn(); if (v) return v; await tick(); } return null; };
   return { w, env, until };
@@ -71,6 +75,24 @@ test('attach: picks the right item among others, adds one chip, closes the popov
   assert.deepEqual(await run(x), { ok: true, chips: ['old', 'u-mine'], added: 'u-mine' });
   assert.deepEqual(x.w.clicks, [NAME]);
   assert.equal(x.w.open, false);
+});
+
+test('attach: chip shows up before its image src is readable: waits for the uuid, still ok', async () => {
+  const x = world({ library: LIB, placeholder: 6 });
+  assert.deepEqual(await run(x), { ok: true, chips: ['old', 'u-mine'], added: 'u-mine' });
+});
+
+test('attach: Add button is a no-op for a fresh upload: re-clicks until the chip exists, adds exactly one', async () => {
+  const x = world({ library: LIB, addReadyAfter: 40 });
+  assert.deepEqual(await run(x), { ok: true, chips: ['old', 'u-mine'], added: 'u-mine' });
+  assert.ok(x.w.addClicks > 1);
+  assert.equal(x.w.chips.filter((c) => c === 'u-mine').length, 1);
+});
+
+test('attach: a chip that exists but is not readable yet is NEVER re-clicked (no double add)', async () => {
+  const x = world({ library: LIB, placeholder: 40 });
+  assert.equal((await run(x)).added, 'u-mine');
+  assert.equal(x.w.addClicks, 1);
 });
 
 test('attach: item appears late and the chip a few seconds later: still ok', async () => {
