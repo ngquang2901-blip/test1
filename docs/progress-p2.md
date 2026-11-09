@@ -53,15 +53,23 @@ Gate on Linux at `fb9b8ce`: unit 290, flow-protocol 53, extension 61, typecheck 
 | AC-04 ref pool mapping | PARTIAL | mapping + pick-refs + e2e; `start` mode untested, video refs refused |
 | AC-10 crash / recover / archive | PASS (offline) | recover + archive tests |
 | AC-11 manual mode right tab | PASS | tests + live manual 2/2 |
-| AC-12 end-to-end image batch | PARTIAL | live auto 3/3, manual 2/2 (no refs); the generate WITH a reference was rejected by Flow (UNUSUAL_ACTIVITY), live generation paused |
+| AC-12 end-to-end image batch | PASS (image) | live auto 3/3, manual 2/2 (no refs); with ONE reference: manual 1/1 and auto 1/1 (see re-test below) |
 | AC-14 output ownership | PARTIAL | correlate tests + real receipts; no live interleaving |
 | AC-15 downloads | PARTIAL | tests + 2 live WEBP downloads 1376×768; no live JPEG/PNG, no video |
 | AC-16 retry never re-generates | PASS | call-spy test + e2e |
 | AC-18 broken config | PASS | config/profile tests |
 | AC-22 confirmations / rerun | PARTIAL | confirm + cost tests, e2e |
-| AC-25 upload fault tolerance | PARTIAL | fault injection + live ref bind (upload/attach OK) but generate with ref not accepted by Flow |
+| AC-25 upload fault tolerance | PASS (offline faults + live happy path) | fault injection tests; live upload → bind → generate accepted, 1 upload per run |
 | AC-26 lost download ACK | PASS (fixtures) | downloads tests + e2e |
 | AC-28 naming / host paths | PARTIAL | Linux naming tests; Windows host not run |
-| AC-34 live image + ref | PARTIAL | live auto/manual without refs; ref variant fake-page only |
+| AC-34 live image + ref | PASS (image, 1 ref) | live auto 1/1 and manual 1/1 with a reference chip; multi-ref / start-frame untested |
 
 Final review: `.superpowers/sdd/2026-11-09-p2-live-image/final-review.md` (0 Critical, 4 Important fixed in `fb9b8ce`).
+
+## Re-test of the generate WITH a reference (2026-11-09, ~2 h after the rejection)
+Same product runner, same Chrome profile, current extension (after the final-review fixes), no code change in between except the review fixes.
+- **MANUAL**, 1 prompt + 1 ref: upload → bound → chip verified → human click on Gửi → `sent` → `receipt` in 43 s, batch `completed`; 2 new tiles in the project.
+- **AUTO**, 1 prompt + 1 ref: upload → bound → trusted click → `sent` → `receipt` in 39 s, batch `completed`; journal intent/prepare/clicked/sent/receipt.
+- The earlier `UNUSUAL_ACTIVITY` (grpc 7) did not repeat. Not reproduced, cause unknown. Most likely candidates: a stale extension build in the tab at that moment (several reloads that hour), or Flow's risk scoring right after ~15 sends in a few minutes. Treat as an intermittent Flow-side rejection: the product already stops (HUMAN_REQUIRED, no auto-retry) and shows the hint.
+- Cost: 4 images (2 sends × 2) + 2 small reference uploads. Total P2 live spend ≈ 14 images.
+- Live generation is no longer paused; keep batches small and spaced.
