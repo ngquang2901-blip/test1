@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Session } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Preset, type Session } from './types'
 import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
@@ -37,6 +37,7 @@ function App(): React.JSX.Element {
   const applied = useRef(new Map<string, number>())
 
   const [q, setQ] = useState('')
+  const [preset, setPreset] = useState<Preset | null>(null) // a saved setup picked on Hàng đợi, applied once by Tạo lô
   const reload = useCallback(() => window.api.listBatches().then((r: { batches: Batch[]; session: Session }) => { setBatches(r.batches); setSession(r.session) }), [])
   // quick start: the preset lands in the saved draft first, so Tạo lô opens with it (NewBatch reads session.draft once)
   const start = (p: Pick<Draft, 'kind' | 'mode'>): void => run(() => window.api.saveDraft(p).then(reload).then(() => setScreen('Tạo lô')))
@@ -115,8 +116,8 @@ function App(): React.JSX.Element {
         </header>
         <main className="page" key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
           {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
-          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} onCreated={() => { setScreen('Hàng đợi'); void reload() }} />}
-          {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} />}
+          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
+          {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
           {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} />}
         </main>

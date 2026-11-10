@@ -24,6 +24,8 @@ const MIGRATIONS = [
   `create table download(id text primary key, attempt_id text not null, media_id text not null, planned_name text not null,
      state text not null check(state in ('intent','started','completed','failed','needs_review')), handle text, actual_name text, bytes integer,
      error_code text, created_at integer not null, updated_at integer not null, unique(attempt_id, media_id));`,
+  // saved batch setups ("Mẫu lô"): kind, mode, refs and the prompt template; never prompts already sent or anything about Flow
+  `create table preset(id text primary key, name text not null unique, json text not null, updated_at integer not null);`,
 ];
 
 export function openDb(file: string): Db {

@@ -97,3 +97,23 @@ test('pickRefs with nothing picked (dialog cancelled) is an empty result', async
   const { h } = rig([])
   expect(await h.pickRefs()).toEqual({ assets: [], errors: [] })
 })
+
+test('presets: save, list with ref names (never paths), same name updates, missing asset flagged, bad input refused', async () => {
+  const { h, db, png } = rig()
+  const a = png('a.png')
+  const p = { name: 'Phở buổi sáng', kind: 'image', mode: 'manual', refs: { assetIds: [a.id], mode: 'all', perItem: 1 }, template: { template: '{món} ở {nơi}', how: 'zip', lists: { món: 'phở\nbún', nơi: 'Hà Nội\nHuế' } } }
+  const { id } = (await h.savePreset(p)) as { id: string }
+  let list = (await h.listPresets()) as any[]
+  expect(list).toEqual([{ id, name: 'Phở buổi sáng', kind: 'image', mode: 'manual', refs: { assetIds: [a.id], mode: 'all', perItem: 1, assets: [{ id: a.id, name: 'a.png', bytes: a.bytes }] }, template: p.template }])
+  expect(JSON.stringify(list)).not.toContain('/') // no path reaches the renderer
+  expect(((await h.savePreset({ ...p, name: ' Phở buổi sáng ', mode: 'auto' })) as { id: string }).id).toBe(id) // same name: one preset, updated
+  list = (await h.listPresets()) as any[]
+  expect(list.map((x) => x.mode)).toEqual(['auto'])
+  db.prepare('delete from asset where id=?').run(a.id) // the file's record is gone
+  expect(((await h.listPresets()) as any[])[0].refs.assets[0]).toEqual({ id: a.id, name: '', bytes: 0, missing: true })
+  for (const bad of [{ ...p, name: '' }, { ...p, name: 'x'.repeat(61) }, { ...p, kind: 'gif' }, { ...p, refs: { ...p.refs, assetIds: ['nope'] } }, { ...p, refs: { ...p.refs, perItem: 9 } }, { ...p, template: { ...p.template, how: 'x' } }, null])
+    await expect(h.savePreset(bad)).rejects.toThrow(/INVALID_ARGS/)
+  await h.deletePreset(id)
+  expect(await h.listPresets()).toEqual([])
+  expect(count(db, 'preset')).toBe(0)
+})

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Draft } from '../types'
+import type { Draft, Preset } from '../types'
+import TemplateBuilder, { EMPTY_TEMPLATE, type TemplateState } from './TemplateBuilder'
 import flow from '../../../../profiles/flow.json'
 
 const C = flow.combos[0] // the one qualified combo; no user choice yet
@@ -12,18 +13,39 @@ const MAP_ERR: Record<string, string> = { NOT_ENOUGH_REFS: 'Thiếu ảnh', TOO_
 const PICK_ERR: Record<string, string> = { ASSET_UNSUPPORTED: 'không phải ảnh png/jpg/webp', ASSET_EMPTY: 'file trống', ASSET_TOO_LARGE: 'quá 20 MB', ASSET_UNREADABLE: 'không đọc được' }
 const size = (n: number): string => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`)
 let kept: Asset[] = [] // shortcut: the picked pool outlives screen switches but not a restart; persist ids in draft.json when it must
+let keptTpl: TemplateState = EMPTY_TEMPLATE // same lifetime as the pool
 
-export default function NewBatch({ initial, onCreated }: { initial: Draft; onCreated(): void }): React.JSX.Element {
+export default function NewBatch({ initial, onCreated, preset }: { initial: Draft; onCreated(): void; preset?: Preset | null }): React.JSX.Element {
   const [d, setD] = useState<Draft>(initial)
   const [rows, setRows] = useState<Row[]>([])
   const [msg, setMsg] = useState('')
   const [pool, setPool] = useState<Asset[]>(kept)
+  const [tpl, setTpl] = useState<TemplateState>(keptTpl)
   const [refMode, setRefMode] = useState<RefMode>('none')
   const [perItem, setPerItem] = useState(1)
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
   const pickBtn = useRef<HTMLButtonElement>(null)
   const [cmd, setCmd] = useState(() => crypto.randomUUID()) // same id on a double click = one batch
   const set = (p: Partial<Draft>): void => setD((x) => ({ ...x, ...p }))
+  const [presets, setPresets] = useState<Preset[]>([])
+  const [naming, setNaming] = useState<string | null>(null) // the name being typed for "Lưu làm mẫu"
+  const loadPresets = (): void => void window.api.listPresets().then(setPresets, () => setPresets([]))
+  useEffect(loadPresets, [])
+  /** A saved setup: kind, mode, refs and template come back; the prompt list stays what it is. */
+  const applyPreset = (p: Preset): void => {
+    set({ kind: p.kind, mode: p.mode })
+    const ok = p.refs.assets.filter((a) => !a.missing)
+    keep(ok); setRefMode(p.refs.mode); setPerItem(p.refs.perItem)
+    keptTpl = p.template; setTpl(p.template)
+    setMsg(ok.length < p.refs.assets.length ? `${p.refs.assets.length - ok.length} ảnh tham chiếu của mẫu “${p.name}” không còn trong app, đã bỏ qua — chọn lại ảnh nếu cần.` : '')
+  }
+  useEffect(() => { if (preset) applyPreset(preset) }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps -- once per preset handed over from Hàng đợi
+  const savePreset = async (name: string): Promise<void> => {
+    try {
+      await window.api.savePreset({ name, kind: d.kind, mode: d.mode, refs: { assetIds: pool.map((a) => a.id), mode: refMode, perItem }, template: tpl })
+      setNaming(null); setMsg(''); loadPresets()
+    } catch { setMsg('Không lưu được mẫu: tên cần 1–60 ký tự.') }
+  }
 
   const refs = d.kind === 'image' ? { assetIds: pool.map((a) => a.id), mode: refMode, perItem } : { assetIds: [], mode: 'none', perItem: 1 } // video refs are not supported in P2
   const refsKey = JSON.stringify(refs)
@@ -61,6 +83,25 @@ export default function NewBatch({ initial, onCreated }: { initial: Draft; onCre
   return (
     <section aria-label="Tạo lô">
       <h2>Tạo lô</h2>
+      <div className="presets toolbar" aria-label="Mẫu lô">
+        <span className="muted small-text">Mẫu lô</span>
+        {presets.length === 0 && naming === null && <span className="muted small-text">chưa có — chỉnh xong rồi bấm “Lưu làm mẫu”</span>}
+        {presets.map((p) => (
+          <span key={p.id} className="preset">
+            <button className="small" onClick={() => applyPreset(p)}>{p.name}</button>
+            <button className="small x" aria-label={`Xoá mẫu ${p.name}`} onClick={() => void window.api.deletePreset(p.id).then(loadPresets)}>×</button>
+          </span>
+        ))}
+        <span className="spacer" />
+        {naming === null ? <button className="small" onClick={() => setNaming('')}>Lưu làm mẫu…</button> : (
+          <form className="confirm" onSubmit={(e) => { e.preventDefault(); void savePreset(naming) }}>
+            <input aria-label="Tên mẫu" autoFocus maxLength={60} value={naming} onChange={(e) => setNaming(e.target.value)} placeholder="Tên mẫu" />
+            <button className="small primary" type="submit" disabled={!naming.trim()}>Lưu</button>
+            <button className="small" type="button" onClick={() => setNaming(null)}>Huỷ</button>
+          </form>
+        )}
+      </div>
+      <TemplateBuilder value={tpl} onChange={(t) => { keptTpl = t; setTpl(t) }} hasText={d.text.trim() !== ''} onApply={(ps) => set({ text: ps.join('\n') })} />
       <div>
         <label className="field-label" htmlFor="prompts">Danh sách prompt</label>
         <textarea id="prompts" value={d.text} onChange={(e) => set({ text: e.target.value })} placeholder="Mỗi dòng một prompt" />
