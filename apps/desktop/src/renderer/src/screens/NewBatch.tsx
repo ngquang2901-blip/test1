@@ -61,48 +61,67 @@ export default function NewBatch({ initial, onCreated }: { initial: Draft; onCre
   return (
     <section aria-label="Tạo lô">
       <h2>Tạo lô</h2>
-      <label htmlFor="prompts">Danh sách prompt</label>
-      <textarea id="prompts" value={d.text} onChange={(e) => set({ text: e.target.value })} placeholder="Mỗi dòng một prompt" />
-      <p><label>Nạp file TXT <input type="file" accept=".txt,text/plain" onChange={(e) => void file(e.target.files?.[0])} /></label></p>
-      <fieldset>
-        <legend>Loại (mỗi lô một loại)</legend>
-        <label><input type="radio" name="kind" checked={d.kind === 'image'} onChange={() => set({ kind: 'image' })} /> Ảnh</label>{' '}
-        <label><input type="radio" name="kind" checked={d.kind === 'video'} onChange={() => set({ kind: 'video' })} /> Video</label>
-      </fieldset>
-      <fieldset>
-        <legend>Chế độ gửi</legend>
-        <label><input type="radio" name="mode" checked={d.mode === 'auto'} onChange={() => set({ mode: 'auto' })} /> Tự động</label>{' '}
-        <label><input type="radio" name="mode" checked={d.mode === 'manual'} onChange={() => set({ mode: 'manual' })} /> Thủ công (bạn bấm Gửi trong Flow)</label>
-      </fieldset>
-      <fieldset aria-label="Ảnh tham chiếu">
-        <legend>Ảnh tham chiếu</legend>
-        {d.kind === 'video' ? <p>Video chưa hỗ trợ ảnh tham chiếu.</p> : (
-          <>
-            <button ref={pickBtn} onClick={() => void pick()}>Chọn ảnh…</button>
-            <ul aria-label="Ảnh đã chọn" data-testid="pool">
-              {pool.map((a) => <li key={a.id}>{a.name} · {size(a.bytes)} <button aria-label={`Bỏ ảnh ${a.name}`} onClick={() => remove(a.id)}>Bỏ ảnh</button></li>)}
-            </ul>
-            <label><input type="radio" name="refmode" checked={refMode === 'none'} onChange={() => setRefMode('none')} /> Không dùng</label>{' '}
-            <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> Mỗi prompt một nhóm ảnh theo thứ tự</label>{' '}
-            <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> Dùng chung tất cả ảnh cho mọi prompt</label>{' '}
-            <label>Số ảnh mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>
-          </>
-        )}
-      </fieldset>
+      <div>
+        <label className="field-label" htmlFor="prompts">Danh sách prompt</label>
+        <textarea id="prompts" value={d.text} onChange={(e) => set({ text: e.target.value })} placeholder="Mỗi dòng một prompt" />
+        <div className="toolbar small-text muted">
+          <label className="filebtn">Nạp file TXT<input type="file" accept=".txt,text/plain" onChange={(e) => void file(e.target.files?.[0])} /></label>
+          <span className="spacer" />
+          <span><span className="num">{rows.length}</span> prompt</span>
+        </div>
+      </div>
+      <div className="choices">
+        <fieldset>
+          <legend>Loại (mỗi lô một loại)</legend>
+          <label><input type="radio" name="kind" checked={d.kind === 'image'} onChange={() => set({ kind: 'image' })} /> Ảnh</label>
+          <label><input type="radio" name="kind" checked={d.kind === 'video'} onChange={() => set({ kind: 'video' })} /> Video</label>
+        </fieldset>
+        <fieldset>
+          <legend>Chế độ gửi</legend>
+          <label><input type="radio" name="mode" checked={d.mode === 'auto'} onChange={() => set({ mode: 'auto' })} /> Tự động</label>
+          <label><input type="radio" name="mode" checked={d.mode === 'manual'} onChange={() => set({ mode: 'manual' })} /> Thủ công (bạn bấm Gửi trong Flow)</label>
+        </fieldset>
+        <fieldset aria-label="Ảnh tham chiếu" className="wide">
+          <legend>Ảnh tham chiếu</legend>
+          {d.kind === 'video' ? <p className="muted">Video chưa hỗ trợ ảnh tham chiếu.</p> : (
+            <div className="status">
+              <div className="toolbar">
+                <button ref={pickBtn} className="small" onClick={() => void pick()}>Chọn ảnh…</button>
+                <ul aria-label="Ảnh đã chọn" data-testid="pool" className="pool">
+                  {pool.map((a) => <li key={a.id}>{a.name} · {size(a.bytes)} <button className="small" aria-label={`Bỏ ảnh ${a.name}`} onClick={() => remove(a.id)}>Bỏ ảnh</button></li>)}
+                </ul>
+              </div>
+              <div>
+                <label><input type="radio" name="refmode" checked={refMode === 'none'} onChange={() => setRefMode('none')} /> Không dùng</label>
+                <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> Mỗi prompt một nhóm ảnh theo thứ tự</label>
+                <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> Dùng chung tất cả ảnh cho mọi prompt</label>
+                <label>Số ảnh mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>
+              </div>
+            </div>
+          )}
+        </fieldset>
+      </div>
       {errs.length > 0 && (
-        <p role="alert" className="err" data-testid="map-errors">
+        <p role="alert" className="notice" data-testid="map-errors">
           {errs.some((e) => e.code === 'NOT_ENOUGH_REFS') && <>Thiếu ảnh cho prompt nào: {errs.filter((e) => e.code === 'NOT_ENOUGH_REFS').map((e) => `#${e.index + 1}`).join(', ')}. </>}
           {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>Quá nhiều ảnh: tăng “Số ảnh mỗi prompt” hoặc bỏ bớt ảnh. </>}
           Sửa cách gán ảnh hoặc chọn “Không dùng” để tạo lô.
         </p>
       )}
-      <p data-testid="combo">{COMBO_LABEL}</p>
-      <table data-testid="preview" aria-label="Xem trước">
-        <thead><tr><th>#</th><th>prompt</th><th>refs</th><th>lỗi</th></tr></thead>
-        <tbody>{rows.map((r) => <tr key={r.n}><td>{r.n}</td><td>{r.prompt}</td><td>{r.refs.length ? r.refs.join(', ') : '—'}</td><td className="err">{r.error && (MAP_ERR[r.error] ?? r.error)}</td></tr>)}</tbody>
-      </table>
-      {msg && <p role="alert" className="err">{msg}</p>}
-      <button onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0}>Tạo lô và chạy</button>
+      {rows.length > 0 && (
+        <div className="panel">
+          <table data-testid="preview" aria-label="Xem trước">
+            <thead><tr><th className="n">#</th><th>Prompt</th><th>Ảnh tham chiếu</th><th>Lỗi</th></tr></thead>
+            <tbody>{rows.map((r) => <tr key={r.n} data-tone={r.error ? 'attn' : undefined}><td className="n">{r.n}</td><td className="prompt">{r.prompt}</td><td className="small-text">{r.refs.length ? r.refs.join(', ') : '—'}</td><td className="err">{r.error && (MAP_ERR[r.error] ?? r.error)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      )}
+      {msg && <p role="alert" className="notice">{msg}</p>}
+      <div className="actionbar">
+        <span className="muted small-text" data-testid="combo">{COMBO_LABEL}</span>
+        <span className="spacer" />
+        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0}>Tạo lô và chạy</button>
+      </div>
     </section>
   )
 }
