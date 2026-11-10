@@ -344,6 +344,31 @@ test('speed Mặc định: one tab only; the second offers the way to Nhanh inst
   await expect(page.getByText('Tốc độ Mặc định chỉ dùng 1 tab')).toBeVisible()
 })
 
+test('Giao diện: the top-bar button switches dark/light, Cài đặt offers Sáng / Tối / Theo hệ thống, the choice survives a restart', async () => {
+  const ud = tmp()
+  const bg = (page: Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+  let { app, page } = await launch(ud)
+  await page.emulateMedia({ colorScheme: 'light' })
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('system')
+  expect(await bg(page)).toBe('rgb(255, 255, 255)')
+  await page.emulateMedia({ colorScheme: 'dark' }) // system follows the OS
+  expect(await bg(page)).toBe('rgb(20, 20, 20)')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.getByRole('button', { name: 'Chuyển sang giao diện tối' }).click()
+  expect(await bg(page)).toBe('rgb(20, 20, 20)')
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByLabel('Tối', { exact: true })).toBeChecked()
+  await page.getByLabel('Sáng', { exact: true }).check()
+  expect(await bg(page)).toBe('rgb(255, 255, 255)')
+  await page.getByLabel('Tối', { exact: true }).check()
+  await app.close()
+  ;({ app, page } = await launch(ud))
+  await page.emulateMedia({ colorScheme: 'light' })
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
+  expect(await bg(page)).toBe('rgb(20, 20, 20)')
+  await expect(page.getByRole('button', { name: 'Chuyển sang giao diện sáng' })).toBeVisible()
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
