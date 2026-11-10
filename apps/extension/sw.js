@@ -4,12 +4,21 @@ import { validate, forwardEvent, fetchMediaOp, downloadsOp } from './ops.js';
 let ws; let connecting = false;
 const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate']);
 
+// One id per Chrome profile (this extension's storage is per profile): the app keeps one connection per profile, so several accounts can work at once.
+async function instance() {
+  const { tfInstance } = await chrome.storage.local.get('tfInstance');
+  if (/^[0-9a-f]{8}$/.test(tfInstance ?? '')) return tfInstance;
+  const id = crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+  await chrome.storage.local.set({ tfInstance: id });
+  return id;
+}
+
 async function connect() {
   if (connecting || (ws && ws.readyState <= 1)) return;
   connecting = true;
   try {
     const { port, token } = await (await fetch(chrome.runtime.getURL('pair.json'))).json();
-    const s = new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`]); // token never in the URL: Chrome logs failed URLs
+    const s = new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`, `tfi.${await instance()}`]); // token never in the URL: Chrome logs failed URLs
     s.onmessage = (m) => onCommand(s, m.data);
     s.onclose = () => { if (ws === s) ws = undefined; };
     s.onerror = () => {};

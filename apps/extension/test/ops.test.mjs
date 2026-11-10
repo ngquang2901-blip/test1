@@ -49,7 +49,7 @@ test('open only https://flow.google.com', () => {
 
 test('manifest: no debugger, exact permissions, key matches EXT_ID', () => {
   const m = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
-  assert.deepEqual(m.permissions, ['tabs', 'scripting', 'downloads', 'alarms']);
+  assert.deepEqual(m.permissions, ['tabs', 'scripting', 'downloads', 'alarms', 'storage'] /* storage: one id per Chrome profile, nothing else */);
   const der = Buffer.from(m.key, 'base64');
   const id = createHash('sha256').update(der).digest('hex').slice(0, 32).replace(/./g, (c) => String.fromCharCode(97 + parseInt(c, 16)));
   const ts = readFileSync(new URL('../../desktop/src/main/connector/ext-id.ts', import.meta.url), 'utf8');

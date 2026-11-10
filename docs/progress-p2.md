@@ -89,3 +89,11 @@ Also found and fixed: S1 did not refresh when the extension connected (only on w
 - Pairing token moved out of the WebSocket URL into a subprotocol (`toolflow.v1` + `tf.<token>`); a right token in the URL is now refused. Real Chrome reconnected in 15 s with the new extension.
 - S4 thumbnails: main shrinks the saved image to 640 px JPEG (`nativeImage`), about 100 KB each instead of the full ~400 KB file; formats Electron cannot decode fall back to the full file.
 - Two `tf-…` uploads were left in the Flow project library (one from the failed ref run).
+
+## New features (2026-11-10, before P4)
+
+- **Ghép prompt từ mẫu** (`renderer/src/template.ts`, `TemplateBuilder.tsx`): `{biến}` + one value list per variable; every combination (max 2000) or line by line; fills the prompt list. Unit + e2e.
+- **Mẫu lô** (`preset` table, IPC list/save/deletePreset): kind, mode, refs (ids, mode, perItem), template. Saved by name (same name updates); shown in Tạo lô and as cards in Bắt đầu nhanh; a ref whose file record is gone is skipped with a notice. Never stores paths for the renderer.
+- **Several tabs / accounts**: one WebSocket per Chrome profile (extension sends `tfi.<8hex>` from `chrome.storage.local`; tab ids become `<inst>:<tab>`; `tabs`/`downloads` asked of every profile). Grants up to the speed cap (Mặc định 1, Nhanh 4). A new list is split line i → project i mod n into one batch per project (`settings.split`, user line numbers kept); each tab only takes batches of the project it shows (`runner.projectOf`). Auto on/off covers every granted account. Download reconcile by id prefers the file with our prefix when two profiles share an id.
+- Live, no credits: Profile 1 (`nt***`, English Flow) and Profile 2 (`ng***`, Vietnamese Flow) connected at once, both tabs granted, self-check ok. A live split batch is not run yet (no credits).
+- Fixed on the way: Tạo lô lost the typed text when leaving the screen within 400 ms; S1 test now expects "no tab ⇒ no batch".

@@ -18,11 +18,12 @@ export default function Settings({ s, reload }: { s: Session; reload(): void }):
       </fieldset>
       <div className="panel">
         <div className="panel-head">
-          <h3>Tự động gửi theo tài khoản{s.email ? `: ${s.email}` : ''}</h3>
+          <h3>Tự động gửi theo tài khoản{(s.accounts?.length ?? 0) > 1 ? ` (${s.accounts!.length} tài khoản)` : s.email ? `: ${s.email}` : ''}</h3>
           <Chip tone={s.autoEnabled ? 'run' : 'idle'}>{s.autoEnabled ? 'Auto: bật' : 'Auto: tắt'}</Chip>
         </div>
         <div className="panel-body">
           {!s.email && <p className="muted">Chưa đọc được tài khoản, auto luôn tắt.</p>}
+          {(s.accounts?.length ?? 0) > 1 && <ul className="small-text">{s.accounts!.map((a) => <li key={a.email}>{a.email}: {a.auto ? 'auto bật' : 'auto tắt'}</li>)}</ul>}
           {s.autoEnabled ? (
             <div><button onClick={() => act(() => window.api.disableAuto())}>Tắt auto</button></div>
           ) : (

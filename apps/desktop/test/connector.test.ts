@@ -22,11 +22,11 @@ const boot = async () => {
   return s
 }
 type Client = { ws: WebSocket; msgs: any[]; closed: Promise<number>; next(): Promise<any> }
-const connect = async (port: number, o: { token?: string; origin?: string | null; query?: boolean } = {}): Promise<Client> => {
+const connect = async (port: number, o: { token?: string; origin?: string | null; query?: boolean; inst?: string } = {}): Promise<Client> => {
   const headers = o.origin === null ? {} : { Origin: o.origin ?? ORIGIN }
   const ws = o.query // the old pairing style: token in the URL
     ? new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, ['toolflow.v1'], { headers })
-    : new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${o.token ?? TOKEN}`], { headers })
+    : new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${o.token ?? TOKEN}`, ...(o.inst ? [`tfi.${o.inst}`] : [])], { headers })
   const msgs: any[] = []
   const waiters: Array<(m: any) => void> = []
   ws.on('message', (d) => { const m = JSON.parse(d.toString()); const w = waiters.shift(); if (w) w(m); else msgs.push(m) })
@@ -305,4 +305,49 @@ test('ext-driver: without an allow option no page-acting op reaches any tab', as
   await expect(d.checkBeforeClick('1', 'p')).rejects.toThrow('tab not granted')
   await tick()
   expect(c.msgs).toEqual([])
+})
+
+test('several Chrome profiles: both stay connected; tabs merged and namespaced; a tab op reaches only its owner; one leaving drops only its tabs', async () => {
+  const s = await boot()
+  const events: DriverEvent[] = []
+  s.onEvent((e) => events.push(e))
+  const a = await connect(s.port, { inst: 'aaaa0001' })
+  const b = await connect(s.port, { inst: 'bbbb0002' })
+  const answer = async (c: Client, result: (m: any) => unknown) => { const m = await c.next(); c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: result(m) })); return m }
+  const tabs = s.send('tabs', {})
+  await Promise.all([answer(a, () => [{ tabId: 5, path: '/a' }]), answer(b, () => [{ tabId: 5, path: '/b' }])]) // the same Chrome tab id in two profiles
+  expect(await tabs).toEqual([{ tabId: 'aaaa0001:5', path: '/a' }, { tabId: 'bbbb0002:5', path: '/b' }])
+  const st = s.send('state', { tabId: 'bbbb0002:5' })
+  const m = await answer(b, () => 'from b')
+  expect(m.args).toEqual({ tabId: 5 }) // the extension sees its own numeric id
+  expect(await st).toBe('from b')
+  expect(a.msgs).toEqual([]) // profile a never saw it
+  await expect(s.send('focus', { tabId: 'cccc0003:1' })).rejects.toBeInstanceOf(ConnectorError) // unknown profile
+  await expect(s.send('open', {})).rejects.toBeInstanceOf(ConnectorError) // a tab-less op that is not a broadcast is ambiguous
+  b.ws.send(JSON.stringify({ type: 'sent', tabId: 5, epoch: 1, request: 'x' }))
+  await tick()
+  expect(events).toEqual([{ type: 'sent', tabId: 'bbbb0002:5', epoch: 1, request: 'x' }])
+  b.ws.close(); await b.closed; await tick()
+  expect(events.slice(1)).toEqual([{ type: 'disconnected', tabId: 'bbbb0002:5' }])
+  expect(s.connected()).toBe(true) // a is still there
+  const again = s.send('state', { tabId: 'aaaa0001:5' })
+  await answer(a, () => 'a ok')
+  expect(await again).toBe('a ok')
+  const a2 = await connect(s.port, { inst: 'aaaa0001' }) // the same profile reconnecting replaces itself
+  expect(await a.closed).toBe(4000)
+  void a2
+})
+
+test('downloads ask every profile; a profile that does not answer is left out, all failing is an error', async () => {
+  const s = await startConnectorServer({ token: TOKEN, extensionId: EXT_ID, budgets: { downloads: 200 } })
+  closers.push(() => s.close())
+  const a = await connect(s.port, { inst: 'aaaa0001' })
+  const b = await connect(s.port, { inst: 'bbbb0002' })
+  const p = s.send('downloads', { filenamePrefix: 'x' })
+  const m = await a.next()
+  a.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ok: true, result: [{ id: 3, filename: '/t/x_1.png' }] }))
+  expect(await p).toEqual([{ id: 3, filename: '/t/x_1.png' }]) // b stayed silent until its budget
+  void b
+  const q = s.send('downloads', { id: 3 })
+  await expect(q).rejects.toBeInstanceOf(ConnectorError)
 })

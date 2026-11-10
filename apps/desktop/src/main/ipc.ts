@@ -16,7 +16,7 @@ export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projects(): string[] | Promise<string[]>; clock: { now(): number }; // projects: distinct projects of the granted tabs
-  email(): Promise<string | null>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
+  email(): Promise<string | null>; emails?(): Promise<string[]>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit; // emails: every account of the granted tabs (absent ⇒ just email())
   downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void;
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
 };
@@ -79,6 +79,7 @@ function view(db: Db, id: string) {
 
 export function createHandlers(d: Deps) {
   const mut = (batchId: string, f: () => void) => { f(); d.emit('batch', batchId); };
+  const accounts = async (): Promise<string[]> => (d.emails ? d.emails() : [await d.email()].filter((e): e is string => !!e));
   const batchOf = (attemptId: string) => (d.db.prepare('select i.batch_id b from attempt a join item i on i.id=a.item_id where a.id=?').get(attemptId) as { b: string } | undefined)?.b ?? bad();
   return {
     async saveDraft(a: unknown) {
@@ -193,11 +194,11 @@ export function createHandlers(d: Deps) {
     },
     async enableAuto(a: unknown) {
       if (obj(a ?? {}).ack !== true) throw Object.assign(new Error('ACK_REQUIRED'), { code: 'ACK_REQUIRED' });
-      const email = await d.email();
-      if (!email) throw Object.assign(new Error('NO_ACCOUNT'), { code: 'NO_ACCOUNT' });
-      enableAuto(d.db, email, d.clock.now());
+      const all = await accounts();
+      if (!all.length) throw Object.assign(new Error('NO_ACCOUNT'), { code: 'NO_ACCOUNT' });
+      for (const e of all) enableAuto(d.db, e, d.clock.now()); // one acknowledged warning covers the accounts the user granted right now
     },
-    async disableAuto() { const email = await d.email(); if (email) disableAuto(d.db, email); },
+    async disableAuto() { for (const e of await accounts()) disableAuto(d.db, e); },
     async listBatches() {
       const ids = d.db.prepare('select id from batch order by created_at desc, rowid desc').all() as { id: string }[];
       return { batches: ids.map((r) => ({ ...view(d.db, r.id), pauseReason: d.runner.lastError(r.id) })), session: await d.session() };

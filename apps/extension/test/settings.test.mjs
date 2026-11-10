@@ -103,7 +103,7 @@ test('ops: settings is an allowed op with the same validate rules', () => {
   const m = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
   const iso = m.content_scripts.find((c) => c.js.includes('page-ops.js')).js;
   assert.ok(iso.indexOf('settings-logic.js') >= 0 && iso.indexOf('settings-logic.js') < iso.indexOf('page-ops.js'));
-  assert.deepEqual(m.permissions, ['tabs', 'scripting', 'downloads', 'alarms']);
+  assert.deepEqual(m.permissions, ['tabs', 'scripting', 'downloads', 'alarms', 'storage'] /* storage: one id per Chrome profile, nothing else */);
 });
 
 // ---- page-ops.js against a fake DOM ----

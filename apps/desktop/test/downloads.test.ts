@@ -189,6 +189,19 @@ test('started row whose transfer is already complete in the browser: finish it, 
   expect(s.fetches).toBe(0)
 })
 
+test('two Chrome profiles report the same download id: the one carrying our attempt_media prefix is taken, the other file is never touched', async () => {
+  const r = rig()
+  mkdirSync(r.tmp, { recursive: true })
+  const ours = join(r.tmp, `${A}_${M}.bin`), theirs = join(r.tmp, 'attempt-9_other.bin')
+  writeFileSync(ours, TINY_PNG); writeFileSync(theirs, TINY_PNG)
+  const both = [info({ id: 5, filename: theirs, state: 'complete', fileSize: TINY_PNG.length }), info({ id: 5, filename: ours, state: 'complete', fileSize: TINY_PNG.length })]
+  const s = stub({ fetch: async () => ({ ok: true, downloadId: 5 }), list: (q) => (q.id === 5 ? both : []) }) // asked by id after the transfer starts
+  expect((await requestDownload(r.db, s.drv, r.args(), r.env)).state).toBe('completed')
+  expect(existsSync(theirs)).toBe(true) // the other profile's file stays where it is
+  expect(existsSync(ours)).toBe(false) // ours was moved into root
+  expect(s.fetches).toBe(1)
+})
+
 test('started row and the browser knows nothing: needs_review, no blind transfer (explicit retry may start one)', async () => {
   const r = rig()
   insertRow(r.db, 'started', '5')

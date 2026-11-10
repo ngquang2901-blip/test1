@@ -187,3 +187,14 @@ test('several granted projects: the list is split line i -> project i mod n, lin
   expect(((await hh.enqueueBatch(a)) as { batchIds: string[] }).batchIds).toEqual(r.batchIds) // a double click makes nothing new
   expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 2 })
 })
+
+test('enableAuto / disableAuto cover every account of the granted tabs; without ack nothing changes', async () => {
+  const { db, runner, clock } = rig()
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => 'a@b.c', emails: async () => ['a@b.c', 'x@y.z'], session: async () => ({}), pickPaths: async () => [], getDraft: () => ({ text: '', kind: 'image', mode: 'auto', speed: 'default' }), saveDraft: () => {}, emit: revisioned(() => {}), downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
+  await expect(h.enableAuto({})).rejects.toMatchObject({ code: 'ACK_REQUIRED' })
+  expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
+  await h.enableAuto({ ack: true })
+  expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([true, true])
+  await h.disableAuto()
+  expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
+})

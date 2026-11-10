@@ -19,7 +19,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
         <dl className="panel-body kv">
           <dt>Trình điều khiển</dt><dd>{s.fake ? 'giả lập (kiểm thử)' : 'extension ToolFlow Connector'}</dd>
           {!s.fake && <><dt>Cầu nối</dt><dd>Extension: {s.connected ? 'Đã kết nối' : 'Chưa kết nối'}</dd></>}
-          <dt>Tài khoản Google</dt><dd>{s.email ?? 'chưa đọc được'}</dd>
+          <dt>Tài khoản Google</dt><dd>{(s.accounts?.length ?? 0) > 1 ? s.accounts!.map((a) => a.email).join(', ') : s.email ?? 'chưa đọc được'}</dd>
           <dt>Kiểm tra trang</dt>
           <dd>
             <Chip tone={sc === null ? 'idle' : sc.ok ? 'done' : 'attn'}>
@@ -36,10 +36,10 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
         {mine.length > 1 && <p className="panel-body small-text muted">Nhiều tab ở nhiều dự án: lô mới được chia đều, mỗi dự án một phần. Các tab cùng một dự án cùng làm phần của dự án đó.</p>}
         {s.tabs.length === 0 ? <p className="panel-body muted">Mở Flow trong Chrome</p> : (
           <ul aria-label="Tab Flow" className="tabs">
-            {s.tabs.map((t) => (
+            {s.tabs.map((t, i) => (
               <li key={t.tabId} data-testid="flow-tab">
                 <span className="meta">
-                  <span>Tab {t.tabId}{t.projectId ? ` · dự án ${t.projectId.slice(0, 8)}` : ''}</span>
+                  <span>Tab {i + 1}{t.projectId ? ` · dự án ${t.projectId.slice(0, 8)}` : ''}</span>
                   {t.email && <span className="muted small-text">{t.email}</span>}
                 </span>
                 {t.granted ? <><Chip tone="done">Đang dùng</Chip>{mine.length > 1 && <button className="small" onClick={() => use(mine.filter((x) => x !== t.tabId))}>Thôi dùng</button>}</>

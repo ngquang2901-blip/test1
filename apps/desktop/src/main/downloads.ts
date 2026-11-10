@@ -137,7 +137,7 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
     const t0 = env.now()
     for (;;) {
       let it: DlInfo | undefined
-      try { it = (await drv.downloads({ id })).find((x) => x.id === id) } catch { return set({ state: 'needs_review', error_code: 'DOWNLOAD_RECONCILE_FAILED' }) }
+      try { const same = (await drv.downloads({ id })).filter((x) => x.id === id); it = same.length > 1 ? same.find((x) => basename(x.filename).startsWith(prefix)) : same[0] /* several Chrome profiles can each have a download with this id: ours carries our prefix */ } catch { return set({ state: 'needs_review', error_code: 'DOWNLOAD_RECONCILE_FAILED' }) }
       if (!it) return set({ state: 'needs_review', error_code: 'DOWNLOAD_ACK_LOST' })
       if (it.state === 'complete') return finish(it) ?? set({ state: 'failed', error_code: 'DOWNLOAD_FILE_MISSING' })
       if (it.state === 'interrupted') return set({ state: 'failed', error_code: dlCode(it.error) })
