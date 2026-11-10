@@ -194,13 +194,15 @@ test('S1 lists the Flow tab; an ungranted tab runs nothing until "Dùng tab này
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.locator('[data-testid=flow-tab]')).toHaveCount(1)
   await create(page, ['một con mèo'])
-  await page.waitForTimeout(1500)
-  await expect(items(page).filter({ hasText: 'Đang chờ' })).toHaveCount(1) // nothing was sent: no tab granted
+  await expect(page.getByRole('alert')).toContainText('Chưa có tab Flow nào được cấp quyền') // no tab granted: no batch, nothing sent (same as real mode)
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page)).toHaveCount(0)
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await tabTo(page, 'Dùng tab này') // keyboard reachable
   await page.keyboard.press('Enter')
-  await expect(page.getByText('Đang dùng')).toBeVisible()
-  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
 })
 
@@ -316,6 +318,30 @@ test('Mẫu lô: save kind, mode, refs and template; apply it in Tạo lô and f
   await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
   await page.getByRole('button', { name: 'Xoá mẫu Chợ quê' }).click()
   await expect(page.getByRole('button', { name: 'Chợ quê', exact: true })).toHaveCount(0)
+})
+
+test('several tabs (speed Nhanh): grant two projects, a new list is split into two parts that both finish; the cap and Thôi dùng work', async () => {
+  const ud = tmp()
+  writeFileSync(join(ud, 'draft.json'), JSON.stringify({ text: '', kind: 'image', mode: 'auto', speed: 'fast' }))
+  const { page } = await launch(ud, '', { TOOLFLOW_FAKE_TABS: '2' })
+  await expect(page.getByTestId('flow-tab')).toHaveCount(2)
+  await expect(page.getByText('Đang dùng 1/4 tab')).toBeVisible()
+  await page.getByRole('button', { name: 'Dùng tab này' }).click()
+  await expect(page.getByText('Đang dùng 2/4 tab')).toBeVisible()
+  await create(page, ['một', 'hai', 'ba', 'bốn', 'năm'])
+  await expect(page.getByRole('heading', { level: 3 }).filter({ hasText: /phần [12]\/2/ })).toHaveCount(2)
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(5, { timeout: 30_000 })
+  await expect(page.locator('.batch').filter({ hasText: 'phần 1/2' }).locator('td.n')).toHaveText(['1', '3', '5']) // the user's line numbers
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await page.getByRole('button', { name: 'Thôi dùng' }).first().click()
+  await expect(page.getByText('Đang dùng 1/4 tab')).toBeVisible()
+})
+
+test('speed Mặc định: one tab only; the second offers the way to Nhanh instead of a button', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_TABS: '2' })
+  await expect(page.getByTestId('flow-tab')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Dùng tab này' })).toHaveCount(0)
+  await expect(page.getByText('Tốc độ Mặc định chỉ dùng 1 tab')).toBeVisible()
 })
 
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----

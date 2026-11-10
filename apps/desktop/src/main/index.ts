@@ -53,7 +53,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let extVersion: string = extManifest.version
   if (FAKE) {
     const scripted = (process.env.TOOLFLOW_FAKE_SCRIPT ?? '').split(',').filter(Boolean) as FakeScript
-    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets, downloads: (process.env.TOOLFLOW_FAKE_DOWNLOADS ?? '').split(',').filter(Boolean) as DownloadScript[], prepare: (process.env.TOOLFLOW_FAKE_PREPARE ?? '').split(',').filter(Boolean) }) // default: everything succeeds
+    const fake = createFakeDriver([...scripted, ...Array<FakeScript[number]>(50).fill('image-ok')], { assets, tabs: Number(process.env.TOOLFLOW_FAKE_TABS ?? 1), downloads: (process.env.TOOLFLOW_FAKE_DOWNLOADS ?? '').split(',').filter(Boolean) as DownloadScript[], prepare: (process.env.TOOLFLOW_FAKE_PREPARE ?? '').split(',').filter(Boolean) }) // default: everything succeeds
     rawPing = fake.ping
     if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowFake?: unknown }).__toolflowFake = fake.ledger // test-only: lets e2e count uploads
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
@@ -77,6 +77,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   }
 
   const runner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
+    projectOf: (t) => grants.projectOf(t), // each tab only takes batches of the project it shows
     selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
   grants = createGrants(driver, runner)
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
@@ -93,7 +94,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const im = nativeImage.createFromBuffer(file)
       return im.isEmpty() || im.getSize().width <= 640 ? null : im.resize({ width: 640, quality: 'good' }).toJPEG(82)
     },
-    projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
+    projects: async () => (grants.projects().length ? grants.projects() : (await grants.list().catch(() => []), grants.projects())), // projects of the granted tabs (fake: its tabs' projects too)
     // FAKE only: e2e names the files in a JSON list because Playwright cannot drive a native dialog; real mode always opens the dialog
     async pickPaths() {
       if (FAKE && process.env.TOOLFLOW_PICK_REFS) return JSON.parse(readFileSync(process.env.TOOLFLOW_PICK_REFS, 'utf8')) as string[]

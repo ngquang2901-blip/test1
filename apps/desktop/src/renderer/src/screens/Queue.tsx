@@ -114,8 +114,8 @@ export default function Queue({ batches, q = '', onNew, onStart, onPreset }: { b
           <div key={b.id} className="batch">
             <div className="batch-head">
               <div>
-                <h3>Lô {b.id.slice(0, 8)} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
-                <p className="muted">{b.items.length} prompt · {MODE_LABEL[b.settings.mode ?? 'auto']} · <span className="num">{done}/{b.items.length}</span> có kết quả</p>
+                <h3>Lô {b.id.slice(0, 8)}{b.settings.split ? ` · phần ${b.settings.split.part}/${b.settings.split.of}` : ''} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
+                <p className="muted">{b.items.length} prompt · {MODE_LABEL[b.settings.mode ?? 'auto']}{b.project ? ` · dự án ${b.project.slice(0, 8)}` : ''} · <span className="num">{done}/{b.items.length}</span> có kết quả</p>
               </div>
               <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
             </div>

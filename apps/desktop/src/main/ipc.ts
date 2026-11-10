@@ -15,7 +15,7 @@ export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'man
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
-  db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId(): string | null | Promise<string | null>; clock: { now(): number };
+  db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projects(): string[] | Promise<string[]>; clock: { now(): number }; // projects: distinct projects of the granted tabs
   email(): Promise<string | null>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
   downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void;
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
@@ -98,11 +98,17 @@ export function createHandlers(d: Deps) {
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
       const rows = parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i].map((id) => names[ids.indexOf(id)]), error: errors.find((e) => e.index === i)?.code ?? null }));
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
-      const projectId = await d.projectId(); // read at call time: the granted tab can change
-      if (!projectId) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
-      const r = enqueueBatch(d.db, { commandId, kind, projectId, settings: { combo: DEFAULT_COMBO }, prompts: parsed.items.map((i) => i.prompt), refs, mode, sourceLines: parsed.items.map((i) => i.sourceLine) });
-      d.emit('batch', r.batchId);
-      return r;
+      const projects = await d.projects(); // read at call time: the granted tabs can change
+      if (!projects.length) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
+      // several projects (tabs/accounts): one batch per project, line i goes to project i mod n; each batch keeps every per-project guarantee
+      const parts = projects.map((projectId, k) => ({ projectId, idx: parsed.items.map((_, i) => i).filter((i) => i % projects.length === k) })).filter((p) => p.idx.length);
+      const made = parts.map((p, k) => enqueueBatch(d.db, {
+        commandId: parts.length === 1 ? commandId : `${commandId}#${k}`, kind, projectId: p.projectId, mode, ords: p.idx,
+        settings: { combo: DEFAULT_COMBO, ...(parts.length > 1 ? { split: { part: k + 1, of: parts.length } } : {}) },
+        prompts: p.idx.map((i) => parsed.items[i].prompt), refs: p.idx.map((i) => refs[i]), sourceLines: p.idx.map((i) => parsed.items[i].sourceLine),
+      }));
+      made.forEach((r) => d.emit('batch', r.batchId));
+      return { ...made[0], batchIds: made.map((r) => r.batchId) };
     },
     async pickRefs() { // codes only: a path in the result would reach the renderer
       const assets: { id: string; name: string; bytes: number }[] = [], errors: { code: string }[] = [];
@@ -147,9 +153,9 @@ export function createHandlers(d: Deps) {
     async resetAssetBinding(a: unknown) { // the user's way out of a stuck uncertain upload: forget the old attempt so the next prepare uploads again (they checked the Flow library first)
       const o = obj(a), assetId = str(o.assetId);
       if (o.confirm !== true) bad();
-      const project = await d.projectId();
-      if (!project) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
-      d.db.prepare('delete from asset_binding where asset_id=? and project_id=?').run(assetId, project);
+      const projects = await d.projects();
+      if (!projects.length) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
+      for (const p of projects) d.db.prepare('delete from asset_binding where asset_id=? and project_id=?').run(assetId, p); // every granted project: the stuck batch is in one of them
     },
     async rerun(a: unknown) { // spends credit again: only with the user's explicit cost confirmation
       const o = obj(a), id = str(o.attemptId);
@@ -181,7 +187,10 @@ export function createHandlers(d: Deps) {
       return { url: small ? `data:image/jpeg;base64,${small.toString('base64')}` : `data:${mime};base64,${buf.toString('base64')}` }; // the full file only when it cannot be shrunk
     },
     async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
-    async useTabs(a: unknown) { d.grants.use(a); }, // validates against the last listing; session-only
+    async useTabs(a: unknown) { // validates against the last listing; session-only
+      if (Array.isArray(a) && a.length > d.runner.caps().tabs) throw Object.assign(new Error('TOO_MANY_TABS'), { code: 'TOO_MANY_TABS' }); // a tab over the speed cap would never run, and its project's part of a batch would wait forever
+      d.grants.use(a);
+    },
     async enableAuto(a: unknown) {
       if (obj(a ?? {}).ack !== true) throw Object.assign(new Error('ACK_REQUIRED'), { code: 'ACK_REQUIRED' });
       const email = await d.email();

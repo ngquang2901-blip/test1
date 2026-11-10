@@ -20,7 +20,7 @@ function rig(script: DownloadScript[] = [], thumb: (b: Buffer) => Buffer | null 
   const events: string[] = [], revealed: string[] = []
   let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' }
   const downloader = createDownloader({ db, driver: fake, root, tz: 'UTC', now: clock.now, sleep: async () => {}, tab: () => 't1', onChange: (b) => events.push(b) })
-  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projectId: () => 'p', email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p), thumb })
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p), thumb })
   return { dir, root, tmp, db, h, fake, events, revealed }
 }
 async function withBatch(r: ReturnType<typeof rig>) {

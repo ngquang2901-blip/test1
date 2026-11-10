@@ -26,7 +26,9 @@ export function createGrants(driver: Pick<FlowDriver, 'listTabs'>, runner: Pick<
       for (const id of ids as unknown[]) if (typeof id !== 'string' || !last.some((t) => t.tabId === id && tabStatus(t) === 'ok')) bad();
       set([...new Set(ids as string[])]);
     },
-    projectId: (): string | null => last.find((t) => t.tabId === granted[0])?.projectId ?? null, // project of the first granted tab, per the last listing
+    projectOf: (id: string): string | null => last.find((t) => t.tabId === id)?.projectId ?? null, // per the last listing
+    /** Distinct projects of the granted tabs, in grant order: a new batch is split across them. */
+    projects: (): string[] => [...new Set(granted.map((id) => last.find((t) => t.tabId === id)?.projectId).filter((p): p is string => !!p))],
     has: (id: string): boolean => granted.includes(id),
     granted: (): string[] => [...granted],
   };

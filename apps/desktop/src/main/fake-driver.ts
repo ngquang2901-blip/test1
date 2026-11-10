@@ -60,7 +60,7 @@ function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array
 }
 
 // fail: codes returned (in order, one per call) by prepare / checkBeforeClick before they go back to ok.
-export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string } = {}) {
+export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string; tabs?: number } = {}) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
@@ -165,7 +165,9 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
       ledger.readProject++;
       return fx('project-Zzl0ze').find((r) => r.phase === 'done')!.res!;
     },
-    async listTabs() { return [{ tabId: 't1', projectId: '0b4d3c1e-1111-4222-8333-444455556666', email: 'fake@example.invalid', active: true }]; },
+    async listTabs() { // tab tN shows its own project and account (e2e of several tabs)
+      return Array.from({ length: fail.tabs ?? 1 }, (_, i) => ({ tabId: `t${i + 1}`, projectId: i ? `${i}b4d3c1e-1111-4222-8333-44445555666${i + 6}` : '0b4d3c1e-1111-4222-8333-444455556666', email: i ? `fake${i + 1}@example.invalid` : 'fake@example.invalid', active: i === 0 }));
+    },
     async focusTab(tabId) { focusLog.push(tabId); },
     async arm(tabId, epoch) { ledger.arms++; ledger.armLog.push([tabId, epoch]); if (epoch === null) armed.delete(tabId); else armed.set(tabId, armed.has(tabId) ? undefined : epoch); }, // arming while pending is ambiguous
     // The user clicks Gửi in Flow: the page stamps the ARMED epoch (undefined when not armed) and the tracker is spent.

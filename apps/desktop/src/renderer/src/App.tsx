@@ -16,12 +16,13 @@ const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => al
 function Status({ s }: { s: Session | null }): React.JSX.Element {
   if (!s) return <div className="status-line">Đang đọc trạng thái…</div>
   const tab = s.tabs.find((t) => t.granted)
+  const n = s.tabs.filter((t) => t.granted).length
   const sc = s.selfCheck
   const linked = s.fake || s.connected === true
   return (
     <div className="status-line" aria-label="Trạng thái phiên">
       <Chip tone={linked ? 'done' : 'attn'}>{s.fake ? 'Chế độ thử (Flow giả)' : linked ? 'Chrome đang nối' : 'Chrome mất nối'}</Chip>
-      <Chip tone={tab ? 'done' : 'attn'}>{tab ? `Tab dự án ${tab.projectId?.slice(0, 8) ?? '—'}` : 'Chưa cấp tab'}</Chip>
+      <Chip tone={tab ? 'done' : 'attn'}>{n > 1 ? `${n} tab Flow` : tab ? `Tab dự án ${tab.projectId?.slice(0, 8) ?? '—'}` : 'Chưa cấp tab'}</Chip>
       {sc && !sc.ok && <Chip tone="attn">Trang Flow: {sc.code}</Chip>}
       <span>Tự bấm {s.autoEnabled ? 'bật' : 'tắt'}</span>
       <span className="avatar" title={s.email ?? 'chưa đọc được tài khoản'}>{s.email ? s.email.slice(0, 2).toUpperCase() : '—'}</span>
@@ -116,7 +117,7 @@ function App(): React.JSX.Element {
         </header>
         <main className="page" key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
           {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
-          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
+          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onDraft={(dr) => setSession((x) => x && { ...x, draft: dr })} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
           {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
           {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} />}
