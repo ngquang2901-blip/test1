@@ -47,8 +47,10 @@ appImage:
   artifactName: ToolFlow-${version}-x86_64.${ext}
 deb:
   artifactName: ToolFlow-${version}-amd64.${ext}
-# Update source: the ONE line to change once a host is chosen (generic = any https folder holding latest*.yml + the installers).
-# *.invalid is a placeholder: the app then reports "Chưa có nơi đặt bản cập nhật" instead of trying.
+# Update source, baked into resources/app-update.yml (a generic url on *.invalid turns the updater off, see index.ts).
+# shortcut: the release is live while its files upload, so an app checking in those minutes errors once and retries at the next check; use releaseType: draft + publish after upload if that matters.
 publish:
-  provider: generic
-  url: https://updates.toolflow.invalid/toolflow/
+  provider: github
+  owner: ngquang2901-blip
+  repo: test1 # temporary host chosen by the owner (public; it holds only release files)
+  releaseType: release # live at once; installed apps pick it up on their next check
