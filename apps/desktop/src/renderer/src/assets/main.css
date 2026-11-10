@@ -282,3 +282,31 @@ textarea.short { min-height: 64px; }
 .update-bar button.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 500; }
 .update-bar button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
 .update-msg { flex-basis: 100%; }
+
+/* ---------- workflow canvas ---------- */
+.page.flush { padding: 0; overflow: hidden; }
+.page.flush > section.wf { max-width: none; margin: 0; height: 100%; gap: 0; }
+.wf-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 20px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.wf-bar .spacer { flex: 1; }
+.wf-bar input:not([type]), .wf-bar select { font: inherit; padding: 5px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--ink); min-width: 180px; }
+.wf-canvas { position: relative; flex: 1; min-height: 0; }
+.wf .react-flow { --xy-background-color: var(--muted-bg); --xy-background-pattern-color: var(--line-2); --xy-edge-stroke: var(--ink-3); --xy-edge-stroke-selected: var(--blue); --xy-connectionline-stroke: var(--blue); --xy-handle-background-color: var(--ink); --xy-handle-border-color: var(--bg); }
+.wf .react-flow__handle { width: 14px; height: 14px; }
+.wf .react-flow__edge-path { stroke-width: 2; }
+.wf-node { width: 280px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; color: var(--ink); }
+.react-flow__node.selected .wf-node { border-color: var(--blue); }
+.wf-node[data-state='running'] { border-color: var(--ink); }
+.wf-node[data-state='failed'], .wf-node[data-state='skipped'] { border-color: var(--red); }
+.wf-node header { display: flex; align-items: center; gap: 6px; }
+.wf-node header .spacer { flex: 1; }
+.wf-node .x { all: unset; cursor: pointer; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--ink-3); font-size: 16px; line-height: 1; }
+.wf-node .x:hover { background: var(--hover); color: var(--ink); }
+.wf-node .x:focus-visible { outline: 2px solid var(--blue); }
+.wf-node textarea { font: inherit; width: 100%; resize: vertical; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.wf-node .hint { margin: 0; max-width: none; }
+.wf-node .thumb { font-size: 12px; }
+.wf-file { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-err { margin: 0; color: var(--red); font-size: 12px; }
+.wf-empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; pointer-events: none; }
+.wf-empty p { max-width: 46ch; margin: 0; color: var(--ink-2); }
+.wf-empty button { pointer-events: auto; }

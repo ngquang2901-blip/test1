@@ -4,13 +4,14 @@ import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
 import Results from './screens/Results'
+import Workflow from './screens/Workflow'
 import Settings from './screens/Settings'
 import { newer } from './revision'
 import { Chip, Icon, batchTone, itemTone } from './ui'
 import { getTheme, isDark, setTheme, type Theme } from './theme'
 
-const SCREENS = ['Kết nối', 'Tạo lô', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
-const ICON = { 'Kết nối': 'plug', 'Tạo lô': 'plus', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
+const SCREENS = ['Kết nối', 'Tạo lô', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
+const ICON = { 'Kết nối': 'plug', 'Tạo lô': 'plus', Workflow: 'nodes', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
 
 /** Session facts in the top bar. Wording differs from S1 on purpose (tests and pair-check read S1's exact phrases). */
@@ -103,7 +104,7 @@ function App(): React.JSX.Element {
       <aside className="rail">
         <div className="brand"><h1>ToolFlow</h1></div>
         <nav aria-label="Màn hình">
-          {SCREENS.slice(0, 4).map(navItem)}
+          {SCREENS.slice(0, 5).map(navItem)}
         </nav>
         {active.length > 0 && (
           <section aria-label="Đang chạy" className="running">
@@ -148,9 +149,10 @@ function App(): React.JSX.Element {
             {updMsg && <span className="update-msg" role="alert">{updMsg}</span>}
           </div>
         )}
-        <main className="page" key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
+        <main className={screen === 'Workflow' ? 'page flush' : 'page'} key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
           {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
           {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onDraft={(dr) => setSession((x) => x && { ...x, draft: dr })} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
+          {screen === 'Workflow' && session && <Workflow s={session} />}
           {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
           {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}

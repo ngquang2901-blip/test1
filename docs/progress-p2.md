@@ -105,3 +105,11 @@ Also found and fixed: S1 did not refresh when the extension connected (only on w
 ## Auto-update + dark mode (2026-11-11)
 
 Dark/light/system theme (all colours are tokens). Auto-update via electron-updater: unit (fake updater), e2e (bar, refusal while an attempt waits for Gửi, Để sau, up-to-date, no source), and a real AppImage update 0.5.0 → 0.5.1 from a local server (docs/packaging.md). Update host not chosen yet: `publish.url` placeholder.
+
+## Workflow canvas (2026-11-11)
+
+New screen **Workflow** (TobyFlow-style node canvas, `@xyflow/react`): nodes Text, Ảnh tham chiếu, Tạo ảnh Flow, Tự tải về, Ghi chú; wires text/image → generate, generate → generate (result as reference image), generate → download. `src/main/workflow.ts` validates the graph and compiles it onto the existing batch path: every Tạo ảnh node is one normal batch (same enqueue as Tạo lô, visible in Hàng đợi), run upstream first. A dependent node gets the first saved result of every upstream prompt as refs (max 8) and is skipped, sending nothing, when any upstream prompt has no saved result. Saved workflows: table `workflow`. A running workflow blocks the update restart.
+
+Checked: unit 8 (graph validation, plan, run/skip/fail/stop with fakes, save/list/delete), e2e 2 with the fake Flow (two-node chain with a result ref, saved files, save/reopen, canvas kept across screens; node without a prompt), a real mouse drag between handles, screenshots light/dark. NOT checked: a run against real Flow (no account with credit); the only new step on that path is "downloaded result → registered as a ref asset → uploaded as ref", the rest is the batch path already run live.
+
+Left out on purpose (nothing behind them in ToolFlow yet): video nodes (P3), ChatGPT/Gemini prompt nodes (P5), Grok/Muse, merge video, per-node model/ratio, `@slug` text references, port suggestions, undo/redo, templates gallery. Shortcuts noted in code: nodes run one after another; a run lives in memory (after an app restart its batches continue, later nodes do not start).

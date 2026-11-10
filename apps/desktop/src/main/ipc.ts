@@ -213,6 +213,6 @@ export function createHandlers(d: Deps) {
 }
 export type Handlers = ReturnType<typeof createHandlers>;
 
-export function registerIpc(ipc: Pick<IpcMain, 'handle'>, h: Handlers): void {
+export function registerIpc(ipc: Pick<IpcMain, 'handle'>, h: Record<string, (a: never) => unknown>): void {
   for (const [ch, fn] of Object.entries(h)) ipc.handle(ch, (_e, arg) => (fn as (a: unknown) => unknown)(arg));
 }

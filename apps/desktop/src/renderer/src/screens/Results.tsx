@@ -9,7 +9,7 @@ export const dlLabel = (d?: Download): string => (d ? LABEL[d.state] : 'ChÆ°a tá
 const dlTone = (d?: Download): Tone => (!d ? 'idle' : d.state === 'completed' ? 'done' : d.state === 'failed' || d.state === 'needs_review' ? 'attn' : 'run')
 
 /** The saved file itself, read from disk by main; before it is saved there is nothing to show (the Flow URL never reaches the app). */
-function Thumb({ attemptId, media, saved }: { attemptId: string; media: string; saved: boolean }): React.JSX.Element {
+export function Thumb({ attemptId, media, saved }: { attemptId: string; media: string; saved: boolean }): React.JSX.Element {
   const [url, setUrl] = useState<string | null>(null)
   const [gone, setGone] = useState(false)
   useEffect(() => {

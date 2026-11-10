@@ -26,6 +26,8 @@ const MIGRATIONS = [
      error_code text, created_at integer not null, updated_at integer not null, unique(attempt_id, media_id));`,
   // saved batch setups ("Mẫu lô"): kind, mode, refs and the prompt template; never prompts already sent or anything about Flow
   `create table preset(id text primary key, name text not null unique, json text not null, updated_at integer not null);`,
+  // saved node workflows (the canvas graph only: node texts, asset ids, wires)
+  `create table workflow(id text primary key, name text not null unique, json text not null, updated_at integer not null);`,
 ];
 
 export function openDb(file: string): Db {
