@@ -73,3 +73,7 @@ Same product runner, same Chrome profile, current extension (after the final-rev
 - The earlier `UNUSUAL_ACTIVITY` (grpc 7) did not repeat. Not reproduced, cause unknown. Most likely candidates: a stale extension build in the tab at that moment (several reloads that hour), or Flow's risk scoring right after ~15 sends in a few minutes. Treat as an intermittent Flow-side rejection: the product already stops (HUMAN_REQUIRED, no auto-retry) and shows the hint.
 - Cost: 4 images (2 sends × 2) + 2 small reference uploads. Total P2 live spend ≈ 14 images.
 - Live generation is no longer paused; keep batches small and spaced.
+
+## Windows gate (2026-11-10)
+
+`main` at `c9a33f6` (UI redesign + Windows symlink tests): owner reports `gate.mjs` 6/6 PASS on Windows (Node v22.23.4, normal PowerShell); `test/downloads.test.ts` 48/48 seen in pasted output.
