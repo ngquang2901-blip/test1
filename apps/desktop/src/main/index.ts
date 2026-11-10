@@ -12,6 +12,8 @@ import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
 import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
 import { createDownloader, recoverDownloads } from './downloads'
+import { autoUpdater } from 'electron-updater'
+import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
@@ -89,7 +91,27 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   // The root is not user-configurable yet; TOOLFLOW_DOWNLOAD_ROOT redirects it in fake mode only (e2e).
   const downloadRoot = FAKE && process.env.TOOLFLOW_DOWNLOAD_ROOT ? process.env.TOOLFLOW_DOWNLOAD_ROOT : join(homedir(), 'Downloads', 'ToolFlow')
   const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
+  // Update source: TOOLFLOW_UPDATE_URL (http/https) or the URL baked into resources/app-update.yml at build; a placeholder
+  // (*.invalid, see electron-builder.yml) or a dev run means no updater. FAKE + TOOLFLOW_FAKE_UPDATE plays a fake release (e2e).
+  const updater = ((): Updater | null => {
+    if (FAKE) { const f = process.env.TOOLFLOW_FAKE_UPDATE ? createFakeUpdater(process.env.TOOLFLOW_FAKE_UPDATE) : null; (globalThis as { __toolflowUpdater?: unknown }).__toolflowUpdater = f; return f } // e2e reads its installs
+    if (!app.isPackaged) return null
+    const url = process.env.TOOLFLOW_UPDATE_URL
+    if (url && /^https?:\/\//.test(url)) autoUpdater.setFeedURL({ provider: 'generic', url })
+    else { try { if (/\.invalid\b/.test(readFileSync(join(process.resourcesPath, 'app-update.yml'), 'utf8'))) return null } catch { return null } }
+    autoUpdater.logger = null // its log lines carry the feed URL and file paths
+    return autoUpdater as unknown as Updater
+  })()
+  const inFlight = db.prepare("select a.state_json j from attempt a join item i on i.attempt_id=a.id join batch b on b.id=i.batch_id where b.archived=0")
+  const updates = createUpdates({
+    updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s),
+    // only an attempt between prepare and its result is at risk; queued ones simply go on after the restart
+    busy: () => (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)),
+    ...(FAKE ? { first: 500 } : {}),
+  })
+  updates.start()
   const h = createHandlers({
+    updates,
     db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
       const im = nativeImage.createFromBuffer(file)

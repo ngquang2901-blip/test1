@@ -101,3 +101,7 @@ Also found and fixed: S1 did not refresh when the extension connected (only on w
 ## P4: installers (2026-11-11)
 
 `ToolFlow-0.4.0-Setup.exe` (127 MB), `ToolFlow-0.4.0-x86_64.AppImage` (134 MB), `ToolFlow-0.4.0-amd64.deb` (107 MB), built on Linux (docs/packaging.md). New first-run panel in S1 (steps + extension folder path + Chép đường dẫn / Mở thư mục). Packaged checks: fresh userData shows setup and creates db + extension; with the live userData the packaged app paired with real Chrome in 3 s and showed 4 saved thumbnails; deb control/desktop entry ok; AppImage runs; Windows exe under wine creates db and extension. Open: run the NSIS installer on a real Windows machine. User guide: docs/huong-dan-cai-dat.md.
+
+## Auto-update + dark mode (2026-11-11)
+
+Dark/light/system theme (all colours are tokens). Auto-update via electron-updater: unit (fake updater), e2e (bar, refusal while an attempt waits for Gửi, Để sau, up-to-date, no source), and a real AppImage update 0.5.0 → 0.5.1 from a local server (docs/packaging.md). Update host not chosen yet: `publish.url` placeholder.

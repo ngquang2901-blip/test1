@@ -47,4 +47,8 @@ appImage:
   artifactName: ToolFlow-${version}-x86_64.${ext}
 deb:
   artifactName: ToolFlow-${version}-amd64.${ext}
-publish: null
+# Update source: the ONE line to change once a host is chosen (generic = any https folder holding latest*.yml + the installers).
+# *.invalid is a placeholder: the app then reports "Chưa có nơi đặt bản cập nhật" instead of trying.
+publish:
+  provider: generic
+  url: https://updates.toolflow.invalid/toolflow/

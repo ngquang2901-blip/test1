@@ -274,3 +274,11 @@ textarea.short { min-height: 64px; }
 .icon-btn { all: unset; cursor: pointer; display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r); color: var(--ink-2); }
 .icon-btn:hover { background: var(--hover); color: var(--ink); }
 .icon-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+/* ---------- update ready ---------- */
+.update-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 32px; background: var(--blue-wash); border-bottom: 1px solid var(--blue-line); color: var(--blue-ink); font-size: 13px; }
+.update-bar .spacer { flex: 1; }
+.update-bar button { all: unset; cursor: pointer; font-size: 13px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--blue-line); background: var(--bg); color: var(--ink); }
+.update-bar button.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 500; }
+.update-bar button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.update-msg { flex-basis: 100%; }
