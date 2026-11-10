@@ -7,6 +7,7 @@ import Results from './screens/Results'
 import Settings from './screens/Settings'
 import { newer } from './revision'
 import { Chip, Icon, batchTone, itemTone } from './ui'
+import { getTheme, isDark, setTheme, type Theme } from './theme'
 
 const SCREENS = ['Kết nối', 'Tạo lô', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
 const ICON = { 'Kết nối': 'plug', 'Tạo lô': 'plus', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
@@ -38,6 +39,15 @@ function App(): React.JSX.Element {
   const applied = useRef(new Map<string, number>())
 
   const [q, setQ] = useState('')
+  const [theme, setThemeState] = useState<Theme>(getTheme)
+  const pickTheme = (t: Theme): void => { setTheme(t); setThemeState(t) }
+  const [, osTick] = useState(0)
+  useEffect(() => { // 'Theo hệ thống': the CSS follows the OS by itself; this keeps the sun/moon button in step
+    const m = matchMedia('(prefers-color-scheme: dark)'), f = (): void => osTick((n) => n + 1)
+    m.addEventListener('change', f)
+    return () => m.removeEventListener('change', f)
+  }, [])
+  const dark = isDark(theme)
   const [preset, setPreset] = useState<Preset | null>(null) // a saved setup picked on Hàng đợi, applied once by Tạo lô
   const reload = useCallback(() => window.api.listBatches().then((r: { batches: Batch[]; session: Session }) => { setBatches(r.batches); setSession(r.session) }), [])
   // quick start: the preset lands in the saved draft first, so Tạo lô opens with it (NewBatch reads session.draft once)
@@ -113,6 +123,9 @@ function App(): React.JSX.Element {
           {(screen === 'Hàng đợi' || screen === 'Kết quả') && (
             <label className="search"><Icon name="search" /><input type="search" aria-label="Tìm prompt hoặc lô" placeholder="Tìm prompt, mã lô…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           )}
+          <button className="icon-btn" aria-label={dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'} title={dark ? 'Giao diện sáng' : 'Giao diện tối'} onClick={() => pickTheme(dark ? 'light' : 'dark')}>
+            <Icon name={dark ? 'sun' : 'moon'} />
+          </button>
           <Status s={session} />
         </header>
         <main className="page" key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
@@ -120,7 +133,7 @@ function App(): React.JSX.Element {
           {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onDraft={(dr) => setSession((x) => x && { ...x, draft: dr })} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
           {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
-          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} />}
+          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} />}
         </main>
       </div>
     </div>

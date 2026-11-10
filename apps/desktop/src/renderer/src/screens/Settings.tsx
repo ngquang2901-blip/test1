@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { Draft, Session } from '../types'
+import type { Theme } from '../theme'
 import { Chip } from '../ui'
 
-export default function Settings({ s, reload }: { s: Session; reload(): void }): React.JSX.Element {
+export default function Settings({ s, reload, theme = 'system', onTheme }: { s: Session; reload(): void; theme?: Theme; onTheme?(t: Theme): void }): React.JSX.Element {
   const [ack, setAck] = useState(false)
   const [msg, setMsg] = useState('')
   const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(e.message))
@@ -10,6 +11,12 @@ export default function Settings({ s, reload }: { s: Session; reload(): void }):
   return (
     <section aria-label="Cài đặt">
       <h2>Cài đặt</h2>
+      <fieldset>
+        <legend>Giao diện</legend>
+        <label><input type="radio" name="theme" checked={theme === 'light'} onChange={() => onTheme?.('light')} /> Sáng</label>
+        <label><input type="radio" name="theme" checked={theme === 'dark'} onChange={() => onTheme?.('dark')} /> Tối</label>
+        <label><input type="radio" name="theme" checked={theme === 'system'} onChange={() => onTheme?.('system')} /> Theo hệ thống</label>
+      </fieldset>
       <fieldset>
         <legend>Tốc độ</legend>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'default'} onChange={() => speed('default')} /> Mặc định</label>
