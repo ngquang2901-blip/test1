@@ -305,6 +305,10 @@ textarea.short { min-height: 64px; }
 .wf-row .wf-file { flex: 1; }
 .wf-port { position: relative; margin-right: -12px; padding: 2px 22px 2px 0; text-align: right; color: var(--ink-2); }
 .wf .react-flow { --xy-background-color: var(--muted-bg); --xy-background-pattern-color: var(--line-2); --xy-edge-stroke: var(--ink-3); --xy-edge-stroke-selected: var(--blue); --xy-connectionline-stroke: var(--blue); --xy-handle-background-color: var(--ink); --xy-handle-border-color: var(--bg); }
+.wf .react-flow { --xy-minimap-background-color: var(--bg); --xy-minimap-mask-background-color: var(--scroll); --xy-minimap-node-background-color: var(--ink-3); }
+.wf .react-flow__minimap, .wf .react-flow__controls { border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; box-shadow: var(--shadow); }
+.wf .react-flow__controls-button { width: 28px; height: 28px; padding: 0; justify-content: center; border: 0; border-radius: 0; border-bottom: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.wf .react-flow__controls-button svg { fill: currentColor; }
 .wf .react-flow__handle { width: 14px; height: 14px; }
 .wf .react-flow__edge-path { stroke-width: 2; }
 .wf-node { width: 280px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; color: var(--ink); }

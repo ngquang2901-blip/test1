@@ -1,7 +1,7 @@
 // Node canvas (TobyFlow-style): Text / Ảnh → Tạo ảnh Flow → Tự tải về, with a Điều kiện branch and reusable {biến}. The graph is
 // only a way to describe batches; main compiles it (src/main/workflow.ts) and runs every "Tạo ảnh Flow" node as a normal batch.
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { Background, Handle, Position, ReactFlow, addEdge, useEdgesState, useNodesState, type Connection, type Edge, type Node, type NodeProps, type ReactFlowInstance } from '@xyflow/react'
+import { Background, Controls, Handle, MiniMap, Position, ReactFlow, addEdge, useEdgesState, useNodesState, type Connection, type Edge, type Node, type NodeProps, type ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { hintOf } from '../hints'
 import { MAX_PROMPTS, fillLines, varsOf, type ExpandError } from '../template'
@@ -42,6 +42,9 @@ const why = (code: string): string => WHY[code] ?? hintOf(code) ?? `Lỗi ${code
 const varErr = (e: ExpandError): string =>
   e.code === 'EMPTY_VAR' ? `Biến {${e.name}} chưa có giá trị. Bấm vào nền trống rồi khai báo ở bảng Biến bên phải`
   : e.code === 'TOO_MANY' ? `${e.count} prompt là quá nhiều (tối đa ${MAX_PROMPTS}). Bớt giá trị của biến` : 'Biến chưa dùng được'
+const FIT = { maxZoom: 1, padding: 0.2 } // room around the nodes: the zoom buttons and the minimap sit in the corners
+const DRAG = 'application/x-toolflow-node' // a node type dragged from the toolbar onto the canvas
+const ARIA = { 'controls.ariaLabel': 'Phóng to, thu nhỏ', 'controls.zoomIn.ariaLabel': 'Phóng to', 'controls.zoomOut.ariaLabel': 'Thu nhỏ', 'minimap.ariaLabel': 'Bản đồ thu nhỏ' }
 const clean = (m: string): string => m.replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
 // where a new node lands: inputs stack on the left; a taken spot pushes the node down (a Tạo ảnh also right, so a chain reads left to right)
 const place = (type: Kind, ns: WNode[]): { x: number; y: number } => {
@@ -91,7 +94,7 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
 const NODE_TYPES = { text: Box, image: Box, generate: Box, download: Box, note: Box, branch: Box }
 
 // the canvas survives a visit to another screen: mid-run the user goes to Hàng đợi (or to Flow to click Gửi) and comes back
-let keep: { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null } = { nodes: [], edges: [], vars: [], name: '', runId: null }
+let keep: { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null; hist?: { past: string[]; future: string[]; cur: string } } = { nodes: [], edges: [], vars: [], name: '', runId: null }
 
 export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const [nodes, setNodes, onNodesChange] = useNodesState<WNode>(keep.nodes)
@@ -106,7 +109,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const [msg, setMsg] = useState('')
   const [preview, setPreview] = useState<Plan | null>(null)
   const rf = useRef<ReactFlowInstance<WNode, Edge> | null>(null)
-  useEffect(() => { keep = { nodes, edges, vars, name, runId } })
+  useEffect(() => { keep = { nodes, edges, vars, name, runId, hist: hist.current } })
   const list = (): Promise<void> => window.api.listWorkflows().then(setSaved)
   useEffect(() => { void list() }, [])
   useEffect(() => {
@@ -124,7 +127,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
 
   // ---- undo / redo: one snapshot of what the user built (not selection or sizes) each time it settles ----
   const snap = JSON.stringify({ nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data })), edges: edges.map(({ id, source, target, sourceHandle }) => ({ id, source, target, sourceHandle })), vars })
-  const hist = useRef({ past: [] as string[], future: [] as string[], cur: snap })
+  const hist = useRef(keep.hist ?? { past: [] as string[], future: [] as string[], cur: snap }) // the steps come back with the canvas
   const [, bump] = useState(0)
   const commit = (): void => {
     const h = hist.current
@@ -184,14 +187,15 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     setVars(Object.entries(w?.vars ?? {}).map(([n, value]) => ({ name: n, value })))
     setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}) } })))
     setEdges((w?.edges ?? []).map((e) => ({ id: `${e.from}>${e.to}`, source: e.from, target: e.to, ...(e.port ? { sourceHandle: e.port } : {}) })))
-    setTimeout(() => void rf.current?.fitView({ maxZoom: 1 }), 50)
+    setTimeout(() => void rf.current?.fitView(FIT), 50)
   }
-  const add = (type: Kind, data: Data = {}): string => {
+  const add = (type: Kind, data: Data = {}, at?: { x: number; y: number }): string => { // at: where the user dropped it
     const id = crypto.randomUUID()
-    setNodes((ns) => [...ns, { id, type, position: place(type, ns), data }])
-    setTimeout(() => void rf.current?.fitView({ maxZoom: 1 }), 50) // a new node must be on screen
+    setNodes((ns) => [...ns, { id, type, position: at ?? place(type, ns), data }])
+    if (!at) setTimeout(() => void rf.current?.fitView(FIT), 50) // a new node must be on screen
     return id
   }
+  const blank = (k: Kind): Data => (k === 'text' || k === 'note' ? { text: '' } : {})
   const starter = (): void => { // the chain most people start from, already wired
     const t = add('text', { text: '' }), g = add('generate'), d = add('download')
     setEdges([{ id: `${t}>${g}`, source: t, target: g }, { id: `${g}>${d}`, source: g, target: d }])
@@ -309,8 +313,8 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
           : <button className="primary small" disabled={!nodes.length} onClick={start}>Chạy workflow</button>}
       </div>
       <div className="wf-bar">
-        {KINDS.map((k) => <button key={k} className="small" onClick={() => add(k, k === 'text' || k === 'note' ? { text: '' } : {})}>+ {TITLE[k]}</button>)}
-        <button className="small" disabled={!nodes.length} onClick={() => void rf.current?.fitView({ maxZoom: 1 })}>Căn giữa</button>
+        {KINDS.map((k) => <button key={k} className="small" draggable title="Bấm để thêm, hoặc kéo thả vào khung" onDragStart={(e) => e.dataTransfer.setData(DRAG, k)} onClick={() => add(k, blank(k))}>+ {TITLE[k]}</button>)}
+        <button className="small" disabled={!nodes.length} onClick={() => void rf.current?.fitView(FIT)}>Căn giữa</button>
         <button className="small" disabled={!h.past.length && snap === h.cur} onClick={() => travel(true)}>Hoàn tác</button>
         <button className="small" disabled={!h.future.length || snap !== h.cur} onClick={() => travel(false)}>Làm lại</button>
         <span className="spacer" />
@@ -319,13 +323,16 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         </span>
       </div>
       <div className="wf-main">
-        <div className="wf-canvas">
+        <div className="wf-canvas" onDragOver={(e) => { if (e.dataTransfer.types.includes(DRAG)) e.preventDefault() }}
+          onDrop={(e) => { const k = e.dataTransfer.getData(DRAG) as Kind; if (KINDS.includes(k) && rf.current) { e.preventDefault(); add(k, blank(k), rf.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })) } }}>
           <Ctx.Provider value={tools}>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onInit={(i) => { rf.current = i }}
               onConnect={(c: Connection) => setEdges((es) => addEdge(c, es))}
               isValidConnection={(c) => c.source !== c.target && !!WIRES[typeOf(c.source)]?.includes(typeOf(c.target) as Kind) && !(typeOf(c.target) === 'branch' && edges.some((e) => e.target === c.target))}
-              fitView fitViewOptions={{ maxZoom: 1 }} minZoom={0.3} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }}>
+              fitView fitViewOptions={FIT} minZoom={0.3} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }} ariaLabelConfig={ARIA}>
               <Background />
+              <Controls showInteractive={false} showFitView={false} />
+              <MiniMap pannable zoomable style={{ width: 150, height: 100 }} />
             </ReactFlow>
           </Ctx.Provider>
           {!nodes.length && (

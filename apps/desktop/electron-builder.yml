@@ -48,7 +48,7 @@ appImage:
 deb:
   artifactName: ToolFlow-${version}-amd64.${ext}
 # Update source, baked into resources/app-update.yml (a generic url on *.invalid turns the updater off, see index.ts).
-# shortcut: the release is live while its files upload, so an app checking in those minutes errors once and retries at the next check; use releaseType: draft + publish after upload if that matters.
+# Releases go out as a draft first and are made public only after every file is up and checked (docs/packaging.md), so an installed app never sees a half-uploaded version.
 publish:
   provider: github
   owner: ngquang2901-blip
