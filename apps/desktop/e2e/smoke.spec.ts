@@ -285,6 +285,39 @@ test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
   expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1, 1])
 })
 
+test('Mẫu lô: save kind, mode, refs and template; apply it in Tạo lô and from Hàng đợi; delete it', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)').check()
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
+  await page.getByText('Ghép prompt từ mẫu').click()
+  await page.getByLabel(/Mẫu prompt/).fill('{món} ở chợ')
+  await page.getByRole('button', { name: 'Lưu làm mẫu…' }).click()
+  await page.getByLabel('Tên mẫu').fill('Chợ quê')
+  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Chợ quê', exact: true })).toBeVisible()
+  // change everything, then the preset brings it back
+  await page.getByLabel('Tự động', { exact: true }).check()
+  await page.getByLabel('Không dùng').check()
+  await page.getByRole('button', { name: 'Bỏ ảnh a.png' }).click()
+  await page.getByLabel(/Mẫu prompt/).fill('')
+  await page.getByRole('button', { name: 'Chợ quê', exact: true }).click()
+  await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
+  await expect(page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự')).toBeChecked()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await expect(page.getByLabel(/Mẫu prompt/)).toHaveValue('{món} ở chợ')
+  // from Hàng đợi: the saved card opens Tạo lô with it
+  await page.getByLabel('Tự động', { exact: true }).check()
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await page.getByRole('button', { name: /Chợ quê/ }).click()
+  await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
+  await page.getByRole('button', { name: 'Xoá mẫu Chợ quê' }).click()
+  await expect(page.getByRole('button', { name: 'Chợ quê', exact: true })).toHaveCount(0)
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()

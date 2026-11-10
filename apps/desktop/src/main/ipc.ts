@@ -9,6 +9,7 @@ import { AssetError, EXT, registerAsset, sniff } from './assets';
 import type { Grants } from './tabs';
 import type { Downloader } from './downloads';
 import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
@@ -21,6 +22,7 @@ export type Deps = {
 };
 
 const MAX_TEXT = 1_000_000;
+type Preset = { kind: 'image' | 'video'; mode: 'auto' | 'manual'; refs: { assetIds: string[]; mode: string; perItem: number }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } };
 const bad = (): never => { throw Object.assign(new Error('INVALID_ARGS'), { code: 'INVALID_ARGS' }); };
 const str = (v: unknown): string => (typeof v === 'string' && v.length > 0 && v.length < 200 ? v : bad());
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : bad());
@@ -110,6 +112,29 @@ export function createHandlers(d: Deps) {
       }
       return { assets, errors };
     },
+    async listPresets() { // each ref says whether its file is still registered; the renderer gets names and sizes, never paths
+      const asset = d.db.prepare('select id, name, bytes from asset where id=?');
+      return (d.db.prepare('select id, name, json from preset order by updated_at desc').all() as { id: string; name: string; json: string }[]).map((r) => {
+        const p = JSON.parse(r.json) as Preset;
+        return { id: r.id, name: r.name, ...p, refs: { ...p.refs, assets: p.refs.assetIds.map((id) => (asset.get(id) as { id: string; name: string; bytes: number } | undefined) ?? { id, name: '', bytes: 0, missing: true }) } };
+      });
+    },
+    async savePreset(a: unknown) { // same name = update (the user re-saves an edited setup)
+      const o = obj(a), name = text(o.name).trim();
+      if (!name || name.length > 60) bad();
+      const r = obj(o.refs), t = obj(o.template ?? { template: '', lists: {}, how: 'all' }), lists = obj(t.lists);
+      const ids = Array.isArray(r.assetIds) && r.assetIds.length <= 50 ? r.assetIds.map(str) : bad();
+      for (const id of ids) if (!d.db.prepare('select 1 from asset where id=?').get(id)) bad();
+      const p: Preset = {
+        kind: oneOf(o.kind, 'image', 'video'), mode: oneOf(o.mode, 'auto', 'manual'),
+        refs: { assetIds: ids, mode: oneOf(r.mode, ...MODES), perItem: Number.isInteger(r.perItem) && (r.perItem as number) >= 1 && (r.perItem as number) <= 8 ? (r.perItem as number) : bad() },
+        template: { template: text(t.template), how: oneOf(t.how, 'all', 'zip'), lists: Object.fromEntries(Object.entries(lists).slice(0, 20).map(([k, v]) => [k.slice(0, 40), text(v)])) },
+      };
+      const id = (d.db.prepare('select id from preset where name=?').get(name) as { id: string } | undefined)?.id ?? randomUUID();
+      d.db.prepare('insert into preset(id,name,json,updated_at) values(?,?,?,?) on conflict(name) do update set json=excluded.json, updated_at=excluded.updated_at').run(id, name, JSON.stringify(p), d.clock.now());
+      return { id };
+    },
+    async deletePreset(a: unknown) { d.db.prepare('delete from preset where id=?').run(str(a)); },
     async startBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.start(id)); },
     async pauseBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.pause(id)); },
     async resumeBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.resume(id)); },
