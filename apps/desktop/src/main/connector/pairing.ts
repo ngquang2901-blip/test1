@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { cpSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const extDir = (userDataDir: string): string => join(userDataDir, 'extension')
@@ -25,11 +25,24 @@ export function readOrCreateToken(userDataDir: string): string {
   return token
 }
 
-export function installExtension(bundledDir: string, userDataDir: string, port: number): { dir: string; token: string } {
+// The installed copy carries the app's version: after an app update Chrome keeps running the old extension (and the old
+// content script in open tabs) until the user reloads it; the page reports that loaded version, so the self-check sees
+// the mismatch (RELOAD_TAB) and S1 asks for a reload instead of running on stale code.
+export function installExtension(bundledDir: string, userDataDir: string, port: number, version?: string): { dir: string; token: string; version: string } {
   const dir = extDir(userDataDir)
   const token = readOrCreateToken(userDataDir)
   mkdirSync(dir, { recursive: true })
   cpSync(bundledDir, dir, { recursive: true, force: true })
+  let v = ''
+  const mf = join(dir, 'manifest.json')
+  if (existsSync(mf)) {
+    const m = JSON.parse(readFileSync(mf, 'utf8')) as { version?: string }
+    if (version && /^\d{1,5}(\.\d{1,5}){0,3}$/.test(version) && m.version !== version) { // Chrome: 1-4 dot-separated integers
+      m.version = version
+      writeFileSync(mf, JSON.stringify(m, null, 2) + '\n')
+    }
+    v = String(m.version ?? '')
+  }
   writePair(dir, { port, token })
-  return { dir, token }
+  return { dir, token, version: v }
 }

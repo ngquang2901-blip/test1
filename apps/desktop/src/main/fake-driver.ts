@@ -60,7 +60,7 @@ function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array
 }
 
 // fail: codes returned (in order, one per call) by prepare / checkBeforeClick before they go back to ok.
-export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string; tabs?: number } = {}) {
+export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string; tabs?: number; version?: string } = {}) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
@@ -137,7 +137,7 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
   const driver: FlowDriver & { ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[] } = {
     ledger, emit, focusLog, fetchMedia, downloads,
     async ping(tabId): Promise<Ping> {
-      return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: '0.0.0-fake', email: 'fake@example.invalid' };
+      return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: fail.version ?? '0.0.0-fake', email: 'fake@example.invalid' };
     },
     async probeTab() { return { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true }; },
     async prepare(tabId, p) { ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code };
