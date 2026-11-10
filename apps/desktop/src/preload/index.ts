@@ -22,6 +22,7 @@ const api = {
   previewOutput: call('previewOutput'),
   revealOutput: call('revealOutput'),
   useTabs: call('useTabs'),
+  openExtensionFolder: call('openExtensionFolder'),
   enableAuto: call('enableAuto'),
   disableAuto: call('disableAuto'),
   listBatches: call('listBatches'),

@@ -1,7 +1,31 @@
+import { useState } from 'react'
 import type { Session } from '../types'
 import { Chip } from '../ui'
 
 const WHY: Record<string, string> = { no_project: 'Mở một dự án', no_login: 'Chưa đăng nhập Google' }
+
+/** First run: Chrome only takes an unpacked extension by hand (no store listing); the app waits and S1 refreshes itself. */
+function Setup({ dir }: { dir: string | null }): React.JSX.Element {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="panel setup" data-testid="setup">
+      <div className="panel-head"><h3>Cài extension vào Chrome (làm một lần)</h3><span className="muted small-text">App tự nối khi xong, không cần khởi động lại</span></div>
+      <ol className="panel-body steps">
+        <li>Mở Chrome bằng hồ sơ có tài khoản Google dùng Flow. Gõ <code>chrome://extensions</code> vào thanh địa chỉ rồi Enter.</li>
+        <li>Bật <b>Developer mode</b> (Chế độ dành cho nhà phát triển) ở góc trên bên phải.</li>
+        <li>Bấm <b>Load unpacked</b> (Tải tiện ích đã giải nén) rồi chọn thư mục này:
+          <div className="toolbar path">
+            <code>{dir ?? '—'}</code>
+            <button className="small" disabled={!dir} onClick={() => { if (dir) void navigator.clipboard.writeText(dir).then(() => setCopied(true)) }}>{copied ? 'Đã chép' : 'Chép đường dẫn'}</button>
+            <button className="small" onClick={() => void window.api.openExtensionFolder()}>Mở thư mục</button>
+          </div>
+        </li>
+        <li>Mở <code>flow.google.com</code>, vào một dự án. Trong vòng 30 giây, mục dưới đây chuyển sang <b>Đã kết nối</b> và tab Flow hiện ra để bấm <b>Dùng tab này</b>.</li>
+        <li className="muted">Dùng nhiều tài khoản: làm lại bước 1–3 trong từng hồ sơ Chrome.</li>
+      </ol>
+    </div>
+  )
+}
 
 export default function SessionScreen({ s, reload }: { s: Session | null; reload?: () => void }): React.JSX.Element {
   if (!s) return <p className="muted">Đang tải…</p>
@@ -14,6 +38,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
     <section aria-label="Kết nối">
       <h2>Kết nối</h2>
       {s.connectorError && <p role="alert" className="notice">Không khởi động được cầu nối extension (mã lỗi {s.connectorError}). Đóng app rồi mở lại; nếu vẫn lỗi, gửi mã này cho người hỗ trợ.</p>}
+      {!s.fake && s.connected !== true && !s.connectorError && <Setup dir={s.extDir ?? null} />}
       <div className="panel">
         <div className="panel-head"><h3>Cầu nối Chrome</h3><Chip tone={linked ? 'done' : 'attn'}>{linked ? 'Đang nối' : 'Mất nối'}</Chip></div>
         <dl className="panel-body kv">

@@ -12,7 +12,7 @@ export type PresetAsset = { id: string; name: string; bytes: number; missing?: b
 export type Preset = { id: string; name: string; kind: Draft['kind']; mode: Draft['mode']; refs: { assetIds: string[]; mode: 'none' | 'sequential' | 'all'; perItem: number; assets: PresetAsset[] }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } }
 export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean }
 export type Session = {
-  fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean
+  extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean
   selfCheck: { ok: true } | { ok: false; code: string; reasons: string[] } | null
 }
 

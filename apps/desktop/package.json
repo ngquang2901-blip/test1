@@ -1,10 +1,14 @@
 {
   "name": "@toolflow/desktop",
-  "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "productName": "ToolFlow",
+  "version": "0.4.0",
+  "description": "ToolFlow: tự động tạo ảnh hàng loạt trên Google Flow",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": {
+    "name": "ToolFlow",
+    "email": "toolflow@localhost"
+  },
+  "homepage": "https://localhost/toolflow",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -18,25 +22,25 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:linux": "npm run build && electron-builder --linux",
     "test": "node scripts/unit.mjs",
     "e2e": "electron-vite build && playwright test",
     "live-probe": "rolldown scripts/live-probe.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate && node out/probe/live-probe.js",
     "live-batch": "rolldown scripts/live-batch.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-batch.js",
-    "live-dl": "rolldown scripts/live-dl.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-dl.js"
+    "live-dl": "rolldown scripts/live-dl.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-dl.js",
+    "dist": "npm run build && electron-builder --linux --win"
   },
   "dependencies": {
-    "@electron-toolkit/preload": "^3.0.2",
-    "@electron-toolkit/utils": "^4.0.0",
-    "@toolflow/flow-protocol": "^0.0.1",
-    "better-sqlite3": "^13.0.3",
-    "ws": "^8.22.1"
+    "better-sqlite3": "^13.0.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.1",
     "@electron-toolkit/eslint-config-ts": "^4.0.0",
+    "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/tsconfig": "^2.0.0",
+    "@electron-toolkit/utils": "^4.0.0",
     "@playwright/test": "^1.65.0",
+    "@toolflow/flow-protocol": "^0.0.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
@@ -55,6 +59,7 @@
     "react-dom": "^19.3.0",
     "typescript": "^5.9.3",
     "vite": "^8.3.4",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "ws": "^8.22.1"
   }
 }
