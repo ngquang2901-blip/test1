@@ -1,9 +1,18 @@
 import { useState } from 'react'
-import type { Draft, Session } from '../types'
+import type { Draft, Session, UpdateState } from '../types'
 import type { Theme } from '../theme'
 import { Chip } from '../ui'
 
-export default function Settings({ s, reload, theme = 'system', onTheme }: { s: Session; reload(): void; theme?: Theme; onTheme?(t: Theme): void }): React.JSX.Element {
+const updText = (u?: UpdateState | null): string => !u ? '' :
+  u.state === 'off' ? (u.current ? 'Chưa có nơi đặt bản cập nhật, app chưa tự kiểm tra được' : 'Chỉ có ở bản cài đặt')
+  : u.state === 'idle' ? 'Chưa kiểm tra'
+  : u.state === 'checking' ? 'Đang kiểm tra…'
+  : u.state === 'none' ? 'Bạn đang dùng bản mới nhất'
+  : u.state === 'available' || u.state === 'downloading' ? `Đang tải bản ${u.version ?? ''}${u.percent !== undefined ? ` · ${u.percent}%` : '…'}`
+  : u.state === 'ready' ? `Bản ${u.version} đã tải xong`
+  : `Không kiểm tra được bản mới (mạng hoặc máy chủ cập nhật) · ${u.code ?? ''}`
+
+export default function Settings({ s, reload, theme = 'system', onTheme, upd, onUpd, onInstall }: { s: Session; reload(): void; theme?: Theme; onTheme?(t: Theme): void; upd?: UpdateState | null; onUpd?(u: UpdateState): void; onInstall?(): void }): React.JSX.Element {
   const [ack, setAck] = useState(false)
   const [msg, setMsg] = useState('')
   const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(e.message))
@@ -16,6 +25,18 @@ export default function Settings({ s, reload, theme = 'system', onTheme }: { s: 
         <label><input type="radio" name="theme" checked={theme === 'light'} onChange={() => onTheme?.('light')} /> Sáng</label>
         <label><input type="radio" name="theme" checked={theme === 'dark'} onChange={() => onTheme?.('dark')} /> Tối</label>
         <label><input type="radio" name="theme" checked={theme === 'system'} onChange={() => onTheme?.('system')} /> Theo hệ thống</label>
+      </fieldset>
+      <fieldset aria-label="Cập nhật">
+        <legend>Cập nhật</legend>
+        <div className="toolbar">
+          <span>Phiên bản đang dùng: <b className="num">{upd?.current || '—'}</b></span>
+          <span className="muted" data-testid="update-state">{updText(upd)}</span>
+          <span className="spacer" />
+          {upd?.state === 'ready'
+            ? <button className="small primary" onClick={() => onInstall?.()}>Khởi động lại để cập nhật</button>
+            : <button className="small" disabled={!upd || ['off', 'checking', 'available', 'downloading'].includes(upd.state)} onClick={() => void window.api.checkUpdate().then((u: UpdateState) => onUpd?.(u))}>Kiểm tra bản mới</button>}
+        </div>
+        <p className="hint">App tự kiểm tra khi mở và vài giờ một lần, tự tải bản mới trong nền. Bản đã tải sẽ tự cài khi bạn tắt app.</p>
       </fieldset>
       <fieldset>
         <legend>Tốc độ</legend>

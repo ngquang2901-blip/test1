@@ -23,10 +23,18 @@ const api = {
   revealOutput: call('revealOutput'),
   useTabs: call('useTabs'),
   openExtensionFolder: call('openExtensionFolder'),
+  getUpdate: call('getUpdate'),
+  checkUpdate: call('checkUpdate'),
+  installUpdate: call('installUpdate'),
   enableAuto: call('enableAuto'),
   disableAuto: call('disableAuto'),
   listBatches: call('listBatches'),
   getBatch: call('getBatch'),
+  onUpdate(cb: (s: { state: string; current: string; version?: string; percent?: number; code?: string }) => void): () => void {
+    const l = (_: unknown, s: Parameters<typeof cb>[0]): void => cb(s)
+    ipcRenderer.on('update', l)
+    return () => ipcRenderer.removeListener('update', l)
+  },
   onState(cb: (e: { entity: string; id: string; revision: number }) => void): () => void {
     const l = (_: unknown, e: { entity: string; id: string; revision: number }): void => cb(e)
     ipcRenderer.on('state', l)

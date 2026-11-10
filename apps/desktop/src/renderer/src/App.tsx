@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Preset, type Session } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Preset, type Session, type UpdateState } from './types'
 import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
@@ -39,6 +39,16 @@ function App(): React.JSX.Element {
   const applied = useRef(new Map<string, number>())
 
   const [q, setQ] = useState('')
+  const [upd, setUpd] = useState<UpdateState | null>(null)
+  const [later, setLater] = useState<string | null>(null) // the version the user said "Để sau" to (this session only)
+  const [updMsg, setUpdMsg] = useState('')
+  useEffect(() => { void window.api.getUpdate().then(setUpd); return window.api.onUpdate((s) => setUpd(s as UpdateState)) }, [])
+  const install = (): void => {
+    setUpdMsg('')
+    void window.api.installUpdate().catch((e: Error) => setUpdMsg(e.message.includes('BATCH_RUNNING')
+      ? 'Đang có lượt đang gửi nên app chưa khởi động lại. Bản mới sẽ tự cài khi bạn tắt app, hoặc bấm lại khi lô xong.'
+      : 'Chưa cài được bản mới, thử lại sau.'))
+  }
   const [theme, setThemeState] = useState<Theme>(getTheme)
   const pickTheme = (t: Theme): void => { setTheme(t); setThemeState(t) }
   const [, osTick] = useState(0)
@@ -123,17 +133,27 @@ function App(): React.JSX.Element {
           {(screen === 'Hàng đợi' || screen === 'Kết quả') && (
             <label className="search"><Icon name="search" /><input type="search" aria-label="Tìm prompt hoặc lô" placeholder="Tìm prompt, mã lô…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           )}
+          {(upd?.state === 'downloading' || upd?.state === 'available') && <span className="muted small-text" role="status">Đang tải bản {upd.version}{upd.percent !== undefined ? ` · ${upd.percent}%` : '…'}</span>}
           <button className="icon-btn" aria-label={dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'} title={dark ? 'Giao diện sáng' : 'Giao diện tối'} onClick={() => pickTheme(dark ? 'light' : 'dark')}>
             <Icon name={dark ? 'sun' : 'moon'} />
           </button>
           <Status s={session} />
         </header>
+        {upd?.state === 'ready' && later !== upd.version && (
+          <div className="update-bar" role="status">
+            <span>Bản mới <b>{upd.version}</b> đã tải xong. Khởi động lại để cập nhật — lô và kết quả của bạn được giữ nguyên.</span>
+            <span className="spacer" />
+            <button className="primary small" onClick={install}>Khởi động lại để cập nhật</button>
+            <button className="small" onClick={() => setLater(upd.version ?? null)}>Để sau</button>
+            {updMsg && <span className="update-msg" role="alert">{updMsg}</span>}
+          </div>
+        )}
         <main className="page" key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
           {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
           {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onDraft={(dr) => setSession((x) => x && { ...x, draft: dr })} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
           {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
-          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} />}
+          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}
         </main>
       </div>
     </div>

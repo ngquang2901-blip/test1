@@ -369,6 +369,41 @@ test('Giao diện: the top-bar button switches dark/light, Cài đặt offers S�
   await expect(page.getByRole('button', { name: 'Chuyển sang giao diện sáng' })).toBeVisible()
 })
 
+test('auto-update: a new version downloads by itself; the bar offers a restart; refused while an attempt waits for Gửi; Để sau hides it', async () => {
+  const installs = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { __toolflowUpdater: { installs: unknown[] } }).__toolflowUpdater.installs.length)
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_UPDATE: '9.9.9' })
+  const bar = page.locator('.update-bar')
+  await expect(bar).toContainText('Bản mới 9.9.9 đã tải xong', { timeout: 10_000 })
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByTestId('update-state')).toHaveText('Bản 9.9.9 đã tải xong')
+  // an attempt waiting for the user's Gửi in Flow is in flight: no restart
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)').check()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(1, { timeout: 10_000 })
+  await bar.getByRole('button', { name: 'Khởi động lại để cập nhật' }).click()
+  await expect(bar.getByRole('alert')).toContainText('Đang có lượt đang gửi')
+  expect(await installs(app)).toBe(0)
+  await page.getByRole('button', { name: 'Dừng', exact: true }).click() // the user stops the batch: nothing in flight any more
+  await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(0, { timeout: 10_000 })
+  await bar.getByRole('button', { name: 'Khởi động lại để cập nhật' }).click()
+  await expect.poll(() => installs(app)).toBe(1)
+  await bar.getByRole('button', { name: 'Để sau' }).click()
+  await expect(bar).toHaveCount(0)
+})
+
+test('auto-update: no new version reads as up to date; without an update source the app says so', async () => {
+  let { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_UPDATE: 'none' })
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByTestId('update-state')).toHaveText('Bạn đang dùng bản mới nhất', { timeout: 10_000 })
+  await app.close()
+  ;({ app, page } = await launch(tmp()))
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByTestId('update-state')).toContainText('Chưa có nơi đặt bản cập nhật')
+  await expect(page.getByRole('button', { name: 'Kiểm tra bản mới' })).toBeDisabled()
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
