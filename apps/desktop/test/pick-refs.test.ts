@@ -17,7 +17,7 @@ function rig(picked: string[] = []) {
   const clock = { now: () => 1_000_000 }
   const runner = createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
   let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' }
-  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projectId: () => 'p', email: async () => null, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), pickPaths: async () => picked, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => null, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), pickPaths: async () => picked, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
   const png = (name: string, buf = PNG) => { writeFileSync(join(dir, name), buf); return registerAsset(db, join(dir, name), 1) }
   return { dir, db, h, png }
 }

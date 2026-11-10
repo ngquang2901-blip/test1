@@ -329,7 +329,7 @@ test('I4b: after resetAssetBinding the next prepare uploads exactly once more (r
   expect(await prepare()).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' })
   expect(await prepare()).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' }) // stuck: the hint loops
   expect(flow.uploadsOf(id)).toBe(1)
-  const h = createHandlers({ db, projectId: () => P } as never)
+  const h = createHandlers({ db, projects: () => [P] } as never)
   await h.resetAssetBinding({ assetId: id, confirm: true })
   expect(store.binding(id, P)).toBeNull()
   expect(await prepare()).toEqual({ ok: true })

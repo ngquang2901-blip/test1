@@ -93,12 +93,12 @@ test('fast mode uses 4 tabs and caps 20/30', async () => {
   f.runner.start(f.batchId);
   await f.step();
   expect(f.driver.ledger.clicks).toBe(4);
-  expect(f.runner.caps()).toEqual({ image: 30, video: 20 });
+  expect(f.runner.caps()).toEqual({ image: 30, video: 20, tabs: 4 });
   const d = rig(Array(6).fill('image-ok'), { n: 6, tabs: ['t1', 't2'], hold: true });
   d.runner.start(d.batchId);
   await d.step();
   expect(d.driver.ledger.clicks).toBe(1);
-  expect(d.runner.caps()).toEqual({ image: 12, video: 8 });
+  expect(d.runner.caps()).toEqual({ image: 12, video: 8, tabs: 1 });
 });
 
 test('throttle halves cap and resends same attempt after backoff', async () => {
@@ -899,4 +899,23 @@ test('m2: a page id change seen at the next intent fences the tab first: the old
   expect(t.driver.ledger.clicks).toBe(1); // final review I1: the fence made the old one uncertain, which pauses the batch and blocks the project: the next attempt no longer clicks in the same dispatch
   expect(t.states()[1].item).toBe('preparing');
   expect(t.runner.lastError(t.batchId)).toBeTruthy(); // the uncertain pause lives in memory
+});
+
+test('several tabs: each tab only prepares batches of the project it shows; a project with no tab waits', async () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
+  const clock = { now: () => Date.now() };
+  const fake = createFakeDriver(['image-ok', 'image-ok', 'image-ok', 'image-ok']);
+  const seen: string[] = [];
+  const driver: typeof fake = { ...fake, prepare: async (tab, p) => { seen.push(`${tab}:${p.projectId}`); return fake.prepare(tab, p); } };
+  const mk = (projectId: string, n: number) => enqueueBatch(db, { commandId: projectId, kind: 'image', projectId, settings: { combo: fakeCombo('image') }, mode: 'auto', prompts: Array.from({ length: n }, (_, i) => `${projectId} ${i}`), refs: Array.from({ length: n }, () => []) }).batchId;
+  const ids = [mk('A', 2), mk('B', 2), mk('C', 1)];
+  const project: Record<string, string> = { t1: 'A', t2: 'B' };
+  const runner = createRunner({ db, driver, clock, tabs: ['t1', 't2'], speed: 'fast', combos: FAKE_COMBOS, autoAllowed: () => true, projectOf: (t) => project[t] ?? null });
+  ids.forEach((b) => runner.start(b));
+  for (let i = 0; i < 30; i++) { await runner.tick(); await flush(); }
+  expect(seen.length).toBeGreaterThanOrEqual(4);
+  expect(seen.every((s) => s === 't1:A' || s === 't2:B')).toBe(true); // never a batch in a tab of another project
+  expect(new Set(seen)).toEqual(new Set(['t1:A', 't2:B'])); // both tabs worked
+  expect(seen.some((s) => s.endsWith(':C'))).toBe(false); // C has no tab: it waits instead of failing
+  expect(batchStatus(db, ids[2])).not.toBe('failed');
 });

@@ -12,13 +12,13 @@ import { createHandlers, revisioned, parseDraft, type Draft } from '../src/main/
 import { clockFactor, errorCode } from '../src/main/boot-util';
 import { newer } from '../src/renderer/src/revision';
 
-function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')[] = ['image-ok', 'image-ok', 'image-ok'], projectId: () => string | null = () => 'p') {
+function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')[] = ['image-ok', 'image-ok', 'image-ok'], projectId: () => string | null = () => 'p', projects?: () => string[]) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: 1_000_000, now() { return this.t; } };
   const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: (e) => autoAllowed(db, e) });
   const events: Array<{ entity: string; id: string; revision: number }> = [];
   let draft: Draft = { text: 't', kind: 'image', mode: 'auto', speed: 'default' };
-  const h = createHandlers({ db, runner, grants: { use: () => {} }, projectId, email: async () => email, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null });
+  const h = createHandlers({ db, runner, grants: { use: () => {} }, projects: projects ?? (() => { const x = projectId(); return x ? [x] : []; }), email: async () => email, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null });
   return { db, h, events, runner, clock, draft: () => draft };
 }
 const good = { commandId: 'c1', text: 'a\nb\n\nc', kind: 'image', mode: 'auto' };
@@ -174,3 +174,27 @@ test('m4: rerun refuses an archived batch (nothing is added)', async () => {
   await h.rerun({ attemptId: a, confirmCost: true }); // control: the same call works on a live batch
   expect(db.prepare('select count(*) n from attempt where item_id=(select item_id from attempt where id=?)').get(a)).toEqual({ n: 2 });
 });
+
+test('several granted projects: the list is split line i -> project i mod n, line numbers and refs kept, idempotent per command', async () => {
+  const { h: hh, db } = rig('a@b.c', undefined, undefined, () => ['P1', 'P2'])
+  const a = { commandId: 'cmd-split', text: 'l1\nl2\nl3\nl4\nl5', kind: 'image', mode: 'auto' }
+  const r = (await hh.enqueueBatch(a)) as { batchId: string; batchIds: string[] }
+  expect(r.batchIds).toHaveLength(2)
+  const rows = (id: string) => (db.prepare('select b.target_project p, b.settings_json s, i.ord o, i.prompt t from item i join batch b on b.id=i.batch_id where b.id=? order by i.ord').all(id) as { p: string; s: string; o: number; t: string }[])
+  expect(rows(r.batchIds[0]).map((x) => [x.p, x.o, x.t])).toEqual([['P1', 0, 'l1'], ['P1', 2, 'l3'], ['P1', 4, 'l5']])
+  expect(rows(r.batchIds[1]).map((x) => [x.p, x.o, x.t])).toEqual([['P2', 1, 'l2'], ['P2', 3, 'l4']])
+  expect(JSON.parse(rows(r.batchIds[1])[0].s).split).toEqual({ part: 2, of: 2 })
+  expect(((await hh.enqueueBatch(a)) as { batchIds: string[] }).batchIds).toEqual(r.batchIds) // a double click makes nothing new
+  expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 2 })
+})
+
+test('enableAuto / disableAuto cover every account of the granted tabs; without ack nothing changes', async () => {
+  const { db, runner, clock } = rig()
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => 'a@b.c', emails: async () => ['a@b.c', 'x@y.z'], session: async () => ({}), pickPaths: async () => [], getDraft: () => ({ text: '', kind: 'image', mode: 'auto', speed: 'default' }), saveDraft: () => {}, emit: revisioned(() => {}), downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
+  await expect(h.enableAuto({})).rejects.toMatchObject({ code: 'ACK_REQUIRED' })
+  expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
+  await h.enableAuto({ ack: true })
+  expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([true, true])
+  await h.disableAuto()
+  expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
+})

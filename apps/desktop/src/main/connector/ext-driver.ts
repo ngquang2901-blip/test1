@@ -54,13 +54,13 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
   const now = o.now ?? Date.now
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const mediaOf = (assetId: string, projectId: string): string | null => { const b = o.assets?.binding(assetId, projectId); return b?.state === 'bound' ? b.mediaId : null }
-  const tab = (tabId: string): { tabId: number } => ({ tabId: Number(tabId) })
+  const tab = (tabId: string): { tabId: string } => ({ tabId }) // the server routes it to the Chrome profile that owns it
   const granted = (tabId: string): void => {
     if (!o.allow?.(tabId)) throw new ConnectorError('tab not granted')
   }
   return {
     async listTabs() {
-      const raw = (await server.send('tabs', {})) as Array<{ tabId: number; path: string; active: boolean }>
+      const raw = (await server.send('tabs', {})) as Array<{ tabId: string; path: string; active: boolean }>
       return Promise.all(raw.map(async (t): Promise<FlowTab> => ({
         tabId: String(t.tabId), projectId: projectIdOf(t.path), active: !!t.active,
         email: ((await server.send('account', { tabId: t.tabId }).catch(() => null)) as string | null) ?? null, // no content script ⇒ not logged in as far as we can tell
@@ -89,7 +89,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       const refs = p.refIds, project = p.projectId
       if (refs.length && !(project && o.assets)) return { ok: false, code: 'REF_ASSET_MISSING' }
       // I2: the page is touched only when the tab is on the batch's project (settings, upload and typing would otherwise land in another project)
-      const here = ((await server.send('tabs', {})) as Array<{ tabId: number; path: string }>).find((x) => x.tabId === Number(tabId))
+      const here = ((await server.send('tabs', {})) as Array<{ tabId: string; path: string }>).find((x) => String(x.tabId) === tabId)
       if (!project || !here || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
       const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, aspect: combo.aspect, quality: combo.quality, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
       if ('fail' in s) return { ok: false, code: s.fail }
@@ -161,8 +161,8 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       const t = tab(tabId)
       try {
         const refMedia = refIds.map((id) => mediaOf(id, projectId))
-        const tabs = (await server.send('tabs', {})) as Array<{ tabId: number; path: string }>
-        const here = tabs.find((x) => x.tabId === t.tabId)
+        const tabs = (await server.send('tabs', {})) as Array<{ tabId: string; path: string }>
+        const here = tabs.find((x) => String(x.tabId) === t.tabId)
         const selectors = selfSelectors()
         const [ping, probe, state, hit] = await Promise.all([server.send('ping', t), server.send('probe', { ...t, selectors }), server.send('state', t), server.send('hit', t)]) as never[]
         return decideCheck({ tabProject: here ? projectIdOf(here.path) : null, projectId, ping, probe, state, hit, refMedia })

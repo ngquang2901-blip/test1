@@ -140,7 +140,7 @@ test('wiring: sw forwards attach to the page; ref-logic loads before page-ops; p
   const m = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
   const js = m.content_scripts.find((c) => c.js.includes('page-ops.js')).js;
   assert.ok(js.indexOf('ref-logic.js') >= 0 && js.indexOf('ref-logic.js') < js.indexOf('page-ops.js'));
-  assert.deepEqual(m.permissions, ['tabs', 'scripting', 'downloads', 'alarms']);
+  assert.deepEqual(m.permissions, ['tabs', 'scripting', 'downloads', 'alarms', 'storage'] /* storage: one id per Chrome profile, nothing else */);
   const po = readFileSync(new URL('../page-ops.js', import.meta.url), 'utf8');
   const body = po.slice(po.indexOf('async attach('), po.indexOf('async attach(') + 1800);
   assert.ok(body.includes('TFRef.attach'));

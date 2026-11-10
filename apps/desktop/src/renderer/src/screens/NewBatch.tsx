@@ -15,7 +15,7 @@ const size = (n: number): string => (n < 1024 * 1024 ? `${Math.max(1, Math.round
 let kept: Asset[] = [] // shortcut: the picked pool outlives screen switches but not a restart; persist ids in draft.json when it must
 let keptTpl: TemplateState = EMPTY_TEMPLATE // same lifetime as the pool
 
-export default function NewBatch({ initial, onCreated, preset }: { initial: Draft; onCreated(): void; preset?: Preset | null }): React.JSX.Element {
+export default function NewBatch({ initial, onCreated, preset, onDraft }: { initial: Draft; onCreated(): void; preset?: Preset | null; onDraft?(d: Draft): void }): React.JSX.Element {
   const [d, setD] = useState<Draft>(initial)
   const [rows, setRows] = useState<Row[]>([])
   const [msg, setMsg] = useState('')
@@ -52,10 +52,14 @@ export default function NewBatch({ initial, onCreated, preset }: { initial: Draf
   useEffect(() => {
     let live = true
     window.api.enqueueBatch({ ...d, commandId: cmd, refs: JSON.parse(refsKey), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)) } }, () => { if (live) { setRows([]); setErrs([]) } })
+    onDraft?.(d) // the app's copy follows at once: coming back to Tạo lô shows this text, not the last one read from main
     const t = setTimeout(() => void window.api.saveDraft(d), 400)
     return () => { live = false; clearTimeout(t) }
-  }, [d, cmd, refsKey])
+  }, [d, cmd, refsKey]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
 
+  const latest = useRef(d)
+  latest.current = d
+  useEffect(() => () => void window.api.saveDraft(latest.current), []) // leaving the screen inside the 400 ms debounce must not lose the text
   const keep = (p: Asset[]): void => { kept = p; setPool(p) }
   const pick = async (): Promise<void> => {
     const r: { assets: Asset[]; errors: { code: string }[] } = await window.api.pickRefs()
@@ -73,8 +77,7 @@ export default function NewBatch({ initial, onCreated, preset }: { initial: Draf
     try {
       const r = await window.api.enqueueBatch({ ...d, commandId: cmd, refs })
       if (!('batchId' in r)) return setMsg('Không tạo được lô: ảnh tham chiếu chưa khớp số prompt.')
-      const { batchId } = r
-      await window.api.startBatch(batchId)
+      for (const id of (r.batchIds as string[] | undefined) ?? [r.batchId]) await window.api.startBatch(id) // one batch per granted project
       setCmd(crypto.randomUUID())
       onCreated()
     } catch (e) { setMsg((e as Error).message.includes('NO_PROJECT_TAB') ? 'Chưa có tab Flow nào được cấp quyền — mở một dự án Flow rồi bấm “Dùng tab này”' : `Không tạo được lô: ${(e as Error).message}`) }

@@ -47,11 +47,14 @@ test('list() revokes a grant whose tab is gone or no longer ok', async () => {
   expect(r.set).toEqual([['1'], []]);
 });
 
-test('projectId() is the first granted tab\'s project from the last listing; null when nothing is granted', async () => {
-  const r = rig([tab({ tabId: '1', projectId: U }), tab({ tabId: '2', projectId: '0b4d3c1e-9999-4222-8333-444455556666' })]);
-  expect(r.g.projectId()).toBeNull();
+test('projects() are the granted tabs\' distinct projects in grant order; projectOf() reads the last listing', async () => {
+  const V = '0b4d3c1e-9999-4222-8333-444455556666';
+  const r = rig([tab({ tabId: '1', projectId: U }), tab({ tabId: '2', projectId: V }), tab({ tabId: '3', projectId: V })]);
+  expect(r.g.projects()).toEqual([]);
   await r.g.list();
-  expect(r.g.projectId()).toBeNull(); // listed but not granted
-  r.g.use(['2', '1']);
-  expect(r.g.projectId()).toBe('0b4d3c1e-9999-4222-8333-444455556666');
+  expect(r.g.projects()).toEqual([]); // listed but not granted
+  expect(r.g.projectOf('2')).toBe(V);
+  r.g.use(['2', '1', '3']);
+  expect(r.g.projects()).toEqual([V, U]); // two tabs on V count once
+  expect(r.g.projectOf('9')).toBeNull();
 });

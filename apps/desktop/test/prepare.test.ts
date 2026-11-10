@@ -21,7 +21,7 @@ const stub = (h: Handler) => {
   return { server, seen }
 }
 // a clean composer for prepare's state reads (before refs and after the prompt)
-const here = (path = `/fx/tools/flow/project/${P}`) => [{ tabId: 7, path, active: true }]
+const here = (path = `/fx/tools/flow/project/${P}`) => [{ tabId: '7', path, active: true }]
 const clean = (h: Handler): Handler => (op, a) => (op === 'state' ? { text: '', chips: [] } : op === 'tabs' ? here() : h(op, a))
 const OPEN = { allow: () => true }
 const prep = { prompt: SECRET, kind: 'image' as const, settings: { combo: DEFAULT_COMBO }, refIds: [], projectId: P }
@@ -33,10 +33,10 @@ test('prepare: settings (count as x2) then prep; ok only when both pass', async 
   expect(await createExtDriver(server, OPEN).prepare('7', prep)).toEqual({ ok: true })
   expect(seen).toEqual([
     ['tabs', {}],
-    ['settings', { tabId: 7, mode: 'Image', aspect: '16:9', quality: 'High', count: 'x2', model: 'Nano Banana 2.1' }],
-    ['state', { tabId: 7 }],
-    ['prep', { tabId: 7, prompt: SECRET }],
-    ['state', { tabId: 7 }],
+    ['settings', { tabId: '7', mode: 'Image', aspect: '16:9', quality: 'High', count: 'x2', model: 'Nano Banana 2.1' }],
+    ['state', { tabId: '7' }],
+    ['prep', { tabId: '7', prompt: SECRET }],
+    ['state', { tabId: '7' }],
   ])
 })
 
@@ -122,7 +122,7 @@ test('decideCheck: table', () => {
 
 test('checkBeforeClick: ops flow into the decision; any thrown op error ⇒ TARGET_CHANGED', async () => {
   const world = (over: Partial<Record<string, unknown>> = {}): Handler => (op) => (op in over ? over[op] : ({
-    tabs: [{ tabId: 7, path: `/fx/tools/flow/project/${P}`, active: true }],
+    tabs: [{ tabId: '7', path: `/fx/tools/flow/project/${P}`, active: true }],
     ping: { xhrSend: true, xhrOpen: true, fetch: true }, probe: { present: { editor: true, submit: true } },
     state: { submitDisabled: false, creditWarning: false, chips: [] }, hit: { covered: false },
   } as Record<string, unknown>)[op])
@@ -139,7 +139,7 @@ test('checkBeforeClick: ops flow into the decision; any thrown op error ⇒ TARG
   for (const op of ['tabs', 'ping', 'probe', 'state', 'hit']) expect(await d(world({ [op]: new Error('x') })).checkBeforeClick('7', P), op).toEqual({ ok: false, code: 'TARGET_CHANGED' })
   const probe = stub(world())
   await createExtDriver(probe.server, OPEN).checkBeforeClick('7', P)
-  expect(probe.seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: 7, selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
+  expect(probe.seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: '7', selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
 })
 
 test('comboQualified: exact match per kind only', () => {
@@ -203,7 +203,7 @@ test('probeTab: selfCheck selectors + listeners + project-load proof, read-only 
   const { server, seen } = probeStub()
   expect(await createExtDriver(server, OPEN).probeTab!('7')).toEqual({ present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true })
   expect(seen.map((s) => s[0]).sort()).toEqual(['listeners', 'ping', 'probe'])
-  expect(seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: 7, selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
+  expect(seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: '7', selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
 })
 
 test('probeTab: no project RPC seen ⇒ sawProjectLoad false; no main world ⇒ listeners 0 and not seen', async () => {

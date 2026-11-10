@@ -14,15 +14,16 @@ export default function Settings({ s, reload }: { s: Session; reload(): void }):
         <legend>Tốc độ</legend>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'default'} onChange={() => speed('default')} /> Mặc định</label>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'fast'} onChange={() => speed('fast')} /> Nhanh</label>
-        <p className="hint">Áp dụng từ lần mở app sau. Đang dùng: ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
+        <p className="hint">Nhanh: tối đa 4 tab Flow cùng lúc (Mặc định: 1). Áp dụng từ lần mở app sau. Đang dùng: <span className="num">{s.speedInUse.tabs}</span> tab, ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
       </fieldset>
       <div className="panel">
         <div className="panel-head">
-          <h3>Tự động gửi theo tài khoản{s.email ? `: ${s.email}` : ''}</h3>
+          <h3>Tự động gửi theo tài khoản{(s.accounts?.length ?? 0) > 1 ? ` (${s.accounts!.length} tài khoản)` : s.email ? `: ${s.email}` : ''}</h3>
           <Chip tone={s.autoEnabled ? 'run' : 'idle'}>{s.autoEnabled ? 'Auto: bật' : 'Auto: tắt'}</Chip>
         </div>
         <div className="panel-body">
           {!s.email && <p className="muted">Chưa đọc được tài khoản, auto luôn tắt.</p>}
+          {(s.accounts?.length ?? 0) > 1 && <ul className="small-text">{s.accounts!.map((a) => <li key={a.email}>{a.email}: {a.auto ? 'auto bật' : 'auto tắt'}</li>)}</ul>}
           {s.autoEnabled ? (
             <div><button onClick={() => act(() => window.api.disableAuto())}>Tắt auto</button></div>
           ) : (

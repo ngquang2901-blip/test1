@@ -24,7 +24,7 @@ export type Runner = {
   confirm(attemptId: string, to: 'sent' | 'not_sent'): void; archive(batchId: string): void; recover(): void;
   inFlight(): { image: number; video: number };
   lastError(batchId: string): string | null;
-  caps(): { image: number; video: number };
+  caps(): { image: number; video: number; tabs: number };
 };
 type Info = { batch: string; project: string; kind: Kind; settings: string; prompt: string; refs: string };
 
@@ -46,6 +46,7 @@ export function batchStatus(db: Db, id: string): BatchStatus {
 export function createRunner(o: {
   db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; combos?: readonly Combo[]; // qualified combos (default: the profile's)
   selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
+  projectOf?(tab: string): string | null; // the project open in that tab: it only takes batches of that project; absent ⇒ any (single-tab unit tests)
 }): Runner {
   const { db, driver, clock } = o;
   const max = CAPS[o.speed];
@@ -246,6 +247,7 @@ export function createRunner(o: {
     const batches = db.prepare("select id, target_project p from batch where status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all() as { id: string; p: string }[];
     for (const b of batches) {
       if (paused.has(b.id)) continue;
+      if (o.projectOf && o.projectOf(tab) !== b.p) continue; // another project's batch: never prepare it in this tab (prepare would refuse with TARGET_CHANGED)
       const c = attempts(b.id).map((a) => ({ id: a.id, s: JSON.parse(a.j) as AttemptState })).find((a) => a.s.item === 'queued' || a.s.item === 'preparing');
       if (!c) continue; // nothing left to dispatch: the next batch may start (D-04)
       const i = info(c.id);
@@ -334,7 +336,7 @@ export function createRunner(o: {
     },
     inFlight,
     lastError: (b) => paused.get(b) ?? null,
-    caps: () => ({ ...caps }),
+    caps: () => ({ ...caps, tabs: max.tabs }),
     rerun(id, confirmedCost) {
       if (confirmedCost !== true) throw coded('COST_NOT_CONFIRMED');
       const i = info(id);
