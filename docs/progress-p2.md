@@ -82,3 +82,10 @@ Same product runner, same Chrome profile, current extension (after the final-rev
 
 Real Electron app (no fake driver), Playwright on the app window, the user's Chrome tab on a Flow project. Run 1: `SETTINGS_MISMATCH` on both items, nothing sent: this account shows Flow in Vietnamese (`Hình ảnh`, `Thấp/Trung bình/Cao`) and the settings logic only knew English labels. Fixed with a label alias map (`apps/extension/settings-logic.js`, test from the live panel). Run 2: self-check ok, auto, 2 prompts → 2 × `Có kết quả` in 30 s, Tải tất cả → 4 JPEG 1376×768 (294–346 KB) in `~/Downloads/ToolFlow`, Kết quả shows the 4 thumbnails read from disk. 4 image credits.
 Also found and fixed: S1 did not refresh when the extension connected (only on window focus); it now re-reads the session every 3 s until paired with a granted tab. Hooks on the Flow home page read `false`; on a project page they are `true` (earlier hypothesis about TobyFlow/Translate not needed).
+
+## Reference images live, pairing token, thumbnails (2026-11-10, Profile 2 `ng***`)
+
+- Ref run 1: `REF_NO_ADD`, nothing sent: the library confirm button reads `Thêm vào câu lệnh` on a Vietnamese account. Fixed (`TFRef.isAddLabel`, test). Ref run 2, ONE manual send (one human-style click): `ready/outcome_known` in 60 s, binding `bound`, Flow made 2 images of the reference motorbike in night rain. Then one AUTO send with the same ref: `ready` in 47 s, journal intent/prepare/clicked/sent/receipt. No `UNUSUAL_ACTIVITY` this time. 4 image credits.
+- Pairing token moved out of the WebSocket URL into a subprotocol (`toolflow.v1` + `tf.<token>`); a right token in the URL is now refused. Real Chrome reconnected in 15 s with the new extension.
+- S4 thumbnails: main shrinks the saved image to 640 px JPEG (`nativeImage`), about 100 KB each instead of the full ~400 KB file; formats Electron cannot decode fall back to the full file.
+- Two `tf-…` uploads were left in the Flow project library (one from the failed ref run).

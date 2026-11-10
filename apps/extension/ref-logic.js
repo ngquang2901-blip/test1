@@ -58,5 +58,8 @@
     } finally { if (env.isOpen()) env.close(); }
   }
 
-  globalThis.TFRef = { prefix, matchByName, newChip, plusIndex, attach };
+  // The library's confirm button, per Flow UI language (Vietnamese seen live 2026-11-10 on a vi account).
+  const ADD_LABELS = ['Add to prompt', 'Thêm vào câu lệnh'];
+  const isAddLabel = (t) => ADD_LABELS.includes(String(t || '').replace(/\s+/g, ' ').trim());
+  globalThis.TFRef = { prefix, matchByName, newChip, plusIndex, attach, isAddLabel };
 })();

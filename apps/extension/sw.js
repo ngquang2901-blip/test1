@@ -9,7 +9,7 @@ async function connect() {
   connecting = true;
   try {
     const { port, token } = await (await fetch(chrome.runtime.getURL('pair.json'))).json();
-    const s = new WebSocket(`ws://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`);
+    const s = new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`]); // token never in the URL: Chrome logs failed URLs
     s.onmessage = (m) => onCommand(s, m.data);
     s.onclose = () => { if (ws === s) ws = undefined; };
     s.onerror = () => {};

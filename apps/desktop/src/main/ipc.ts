@@ -17,6 +17,7 @@ export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId(): string | null | Promise<string | null>; clock: { now(): number };
   email(): Promise<string | null>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
   downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void;
+  thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
 };
 
 const MAX_TEXT = 1_000_000;
@@ -151,7 +152,8 @@ export function createHandlers(d: Deps) {
       const o = obj(a), buf = readFileSync(d.downloader.file(str(o.attemptId), str(o.mediaId)));
       const mime = sniff(buf.subarray(0, 12));
       if (!mime || !(mime in EXT)) throw Object.assign(new Error('DOWNLOAD_NOT_IMAGE'), { code: 'DOWNLOAD_NOT_IMAGE' });
-      return { url: `data:${mime};base64,${buf.toString('base64')}` }; // shortcut: full file, not a thumbnail; fine for tens of outputs, resize in main when lists reach hundreds
+      const small = d.thumb(buf);
+      return { url: small ? `data:image/jpeg;base64,${small.toString('base64')}` : `data:${mime};base64,${buf.toString('base64')}` }; // the full file only when it cannot be shrunk
     },
     async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
     async useTabs(a: unknown) { d.grants.use(a); }, // validates against the last listing; session-only

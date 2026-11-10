@@ -15,9 +15,11 @@ export const OP_TIMEOUT_MS: Record<string, number> = {
 
 export type ConnectorServer = Awaited<ReturnType<typeof startConnectorServer>>
 
+export const PROTO = 'toolflow.v1'
 export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number> }) {
   const budgets = { ...OP_TIMEOUT_MS, ...o.budgets } // injectable so tests need no real 20 s waits
-  const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0 })
+  // the token rides in a subprotocol (`tf.<token>`), not the URL: Chrome prints failed WebSocket URLs in the extension's Errors page
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0, handleProtocols: (ps) => (ps.has(PROTO) ? PROTO : false) })
   await new Promise<void>((res, rej) => {
     wss.once('listening', res)
     wss.once('error', rej)
@@ -45,8 +47,8 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
   }
 
   wss.on('connection', (ws, req) => {
-    // digests make timingSafeEqual length-safe; the query string is never logged or put in an error
-    const token = new URL(req.url ?? '/', 'http://x').searchParams.get('token') ?? ''
+    // digests make timingSafeEqual length-safe; the protocol header is never logged or put in an error
+    const token = String(req.headers['sec-websocket-protocol'] ?? '').split(',').map((p) => p.trim()).find((p) => p.startsWith('tf.'))?.slice(3) ?? ''
     const ok = timingSafeEqual(digest(token), want) && req.headers.origin === `chrome-extension://${o.extensionId}`
     if (!ok) return void ws.close(4401, 'unauthorized')
     const conn: Conn = { ws, tabs: new Set() }

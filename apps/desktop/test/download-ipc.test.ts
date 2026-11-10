@@ -10,7 +10,7 @@ import { createHandlers, revisioned, type Draft } from '../src/main/ipc'
 import { createAssetStore } from '../src/main/assets'
 
 const M = ['3f2b9c1e-1111-4222-8333-444455556660', '3f2b9c1e-1111-4222-8333-444455556661']
-function rig(script: DownloadScript[] = []) {
+function rig(script: DownloadScript[] = [], thumb: (b: Buffer) => Buffer | null = () => null) {
   const dir = mkdtempSync(join(tmpdir(), 'tf-dlipc-'))
   const db = openDb(join(dir, 't.db'))
   const root = join(dir, 'root'), tmp = join(dir, 'tmp', 'ToolFlow-tmp')
@@ -20,7 +20,7 @@ function rig(script: DownloadScript[] = []) {
   const events: string[] = [], revealed: string[] = []
   let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' }
   const downloader = createDownloader({ db, driver: fake, root, tz: 'UTC', now: clock.now, sleep: async () => {}, tab: () => 't1', onChange: (b) => events.push(b) })
-  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projectId: () => 'p', email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p) })
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projectId: () => 'p', email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p), thumb })
   return { dir, root, tmp, db, h, fake, events, revealed }
 }
 async function withBatch(r: ReturnType<typeof rig>) {
@@ -71,7 +71,11 @@ test('previewOutput / revealOutput: only a completed file that is really inside 
   for (const a of [undefined, {}, { attemptId: atts[0].id }]) await expect(r.h.previewOutput(a)).rejects.toThrow(/INVALID_ARGS/)
   await r.h.downloadBatch(batchId)
   const { url } = (await r.h.previewOutput(one)) as { url: string }
-  expect(url).toMatch(/^data:image\/png;base64,iVBOR/)
+  expect(url).toMatch(/^data:image\/png;base64,iVBOR/) // the stub cannot shrink it: the file itself
+  const small = rig([], (b) => (b.subarray(0, 4).toString('hex') === '89504e47' ? Buffer.from([0xff, 0xd8, 0xff, 0xe0]) : null))
+  const s2 = await withBatch(small)
+  await small.h.downloadBatch(s2.batchId)
+  expect(((await small.h.previewOutput({ attemptId: s2.atts[0].id, mediaId: M[0] })) as { url: string }).url).toBe('data:image/jpeg;base64,/9j/4A==') // a thumbnail when main can make one
   await r.h.revealOutput(one)
   expect(r.revealed).toHaveLength(1)
   expect(r.revealed[0].startsWith(realpathSync(r.root) + sep)).toBe(true)
