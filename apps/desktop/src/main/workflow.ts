@@ -2,69 +2,98 @@
 // path: every "generate" node becomes one batch through the same enqueue the Tạo lô screen uses, so each send keeps every
 // guarantee of a batch (intent first, never sent twice, refs checked). Nothing here talks to Flow directly.
 import { randomUUID } from 'node:crypto'
+import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import type { Db } from './db'
+import { safeComponent } from './downloads'
 
-export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note'; x: number; y: number; text?: string; assetIds?: string[] }
-export type Graph = { nodes: WfNode[]; edges: { from: string; to: string }[] }
-/** One generate node, ready to run: prompts = one per non-empty line; from = upstream generate nodes whose results become refs. */
-export type Step = { node: string; prompts: string; images: string[]; from: string[]; save: boolean; feeds: boolean }
-export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'stopped'; code?: string; batchIds: string[]; assets?: string[] }
+export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; assetIds?: string[] }
+type Port = 'ok' | 'fail' // the two outputs of a Điều kiện node: the generate node wired into it has every result saved / has not
+export type Graph = { nodes: WfNode[]; edges: { from: string; to: string; port?: Port }[]; vars?: Record<string, string> } // vars: the canvas's reusable {biến}; main only stores them (the renderer fills them in before a run)
+type Dep = { node: string; port: 'direct' | Port }
+/** One generate node, ready to run: prompts = one per non-empty line; deps = the generate nodes it waits for (their results are its refs, except through "fail"). */
+export type Step = { node: string; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean }
+export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: string[] }
 export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun> }
 
-const TYPES = ['text', 'image', 'generate', 'download', 'note']
-const WIRES: Record<string, string[]> = { text: ['generate'], image: ['generate'], generate: ['generate', 'download'] } // source type → allowed target types
+const TYPES = ['text', 'image', 'generate', 'download', 'note', 'branch']
+const WIRES: Record<string, string[]> = { text: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch'], branch: ['generate'] } // source type → allowed target types
 const ID = /^[\w-]{1,64}$/
 const MAX_REFS = 8 // the batch path takes at most 8 reference images per prompt
 const ACTIVE = ['queued', 'running', 'paused', 'needs_review']
-const bad = (): never => { throw Object.assign(new Error('INVALID_ARGS'), { code: 'INVALID_ARGS' }) }
+const coded = (code: string): Error => Object.assign(new Error(code), { code })
+const bad = (): never => { throw coded('INVALID_ARGS') }
 const lines = (s: string): number => s.split(/\r\n|\n/).filter((l) => l.trim() !== '').length
 
-/** The renderer's graph is untrusted: types, sizes, ids, and only the wires that mean something. */
+/** The renderer's graph (or an imported file) is untrusted: types, sizes, ids, and only the wires that mean something. */
 export function parseGraph(v: unknown): Graph {
-  const o = v as { nodes?: unknown; edges?: unknown } | null
+  const o = v as { nodes?: unknown; edges?: unknown; vars?: unknown } | null
   if (!o || !Array.isArray(o.nodes) || !Array.isArray(o.edges) || o.nodes.length > 100 || o.edges.length > 400) bad()
   const nodes = (o!.nodes as Record<string, unknown>[]).map((n): WfNode => {
     if (!n || typeof n.id !== 'string' || !ID.test(n.id) || !TYPES.includes(n.type as string) || !Number.isFinite(n.x) || !Number.isFinite(n.y)) bad()
-    if (n.text !== undefined && (typeof n.text !== 'string' || n.text.length > 100_000)) bad()
+    if (n.text !== undefined && (typeof n.text !== 'string' || n.text.length > 1_000_000)) bad() // the same cap as a batch's prompt list
     if (n.assetIds !== undefined && !(Array.isArray(n.assetIds) && n.assetIds.length <= MAX_REFS && n.assetIds.every((a) => typeof a === 'string' && ID.test(a)))) bad()
     return { id: n.id as string, type: n.type as WfNode['type'], x: n.x as number, y: n.y as number, ...(n.text !== undefined ? { text: n.text as string } : {}), ...(n.assetIds ? { assetIds: n.assetIds as string[] } : {}) }
   })
   const byId = new Map(nodes.map((n) => [n.id, n]))
   if (byId.size !== nodes.length) bad()
   const seen = new Set<string>()
-  const edges = (o!.edges as { from?: unknown; to?: unknown }[]).map((e) => {
+  const edges = (o!.edges as { from?: unknown; to?: unknown; port?: unknown }[]).map((e) => {
     const a = byId.get(e?.from as string), b = byId.get(e?.to as string)
     if (!a || !b || !WIRES[a.type]?.includes(b.type) || seen.has(`${a.id}>${b.id}`)) return bad()
+    if (a.type === 'branch' ? e.port !== 'ok' && e.port !== 'fail' : e.port !== undefined) return bad() // a port exists only on a Điều kiện node
     seen.add(`${a.id}>${b.id}`)
-    return { from: a.id, to: b.id }
+    return { from: a.id, to: b.id, ...(e.port ? { port: e.port as Port } : {}) }
   })
-  return { nodes, edges }
+  if (o!.vars === undefined) return { nodes, edges }
+  const vars = o!.vars && typeof o!.vars === 'object' && !Array.isArray(o!.vars) ? Object.entries(o!.vars) : bad()
+  if (vars.length > 30 || vars.some(([k, val]) => !/^[^{}\n]{1,40}$/.test(k) || typeof val !== 'string' || val.length > 10_000)) bad()
+  return { nodes, edges, vars: Object.fromEntries(vars) as Record<string, string> }
 }
 
-/** Generate nodes in running order (upstream first, then left to right), or the reasons the graph cannot run. */
+/** Generate nodes in running order (upstream first, then left to right), and the reasons the graph cannot run. */
 export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: string }[] } {
   const byId = new Map(g.nodes.map((n) => [n.id, n]))
   const into = (id: string, type: string): WfNode[] => g.edges.filter((e) => e.to === id).map((e) => byId.get(e.from)!).filter((n) => n.type === type)
   const gens = g.nodes.filter((n) => n.type === 'generate').sort((a, b) => a.x - b.x || a.y - b.y)
   if (!gens.length) return { steps: [], errors: [{ code: 'WF_NO_GENERATE' }] }
+  const errors: { node?: string; code: string }[] = []
+  // what a generate node waits for: generate nodes wired straight in, or through a Điều kiện node (which looks at the one generate node wired into it)
+  const depsOf = new Map(gens.map((n) => [n.id, g.edges.filter((e) => e.to === n.id).flatMap((e): Dep[] => {
+    const src = byId.get(e.from)!
+    if (src.type === 'generate') return [{ node: src.id, port: 'direct' }]
+    if (src.type !== 'branch') return []
+    const ins = into(src.id, 'generate')
+    if (ins.length !== 1) { if (!errors.some((x) => x.node === src.id)) errors.push({ node: src.id, code: 'WF_BRANCH_INPUT' }); return [] }
+    return [{ node: ins[0].id, port: e.port! }]
+  })]))
   const order: WfNode[] = [], left = new Set(gens.map((n) => n.id))
   for (let moved = true; moved;) { // Kahn: take every node whose upstream is done; what never gets taken sits on a loop
     moved = false
-    for (const n of gens) if (left.has(n.id) && into(n.id, 'generate').every((u) => !left.has(u.id))) { left.delete(n.id); order.push(n); moved = true }
+    for (const n of gens) if (left.has(n.id) && depsOf.get(n.id)!.every((u) => !left.has(u.node))) { left.delete(n.id); order.push(n); moved = true }
   }
   if (left.size) return { steps: [], errors: [...left].map((node) => ({ node, code: 'WF_CYCLE' })) }
-  const errors: { node?: string; code: string }[] = [], count = new Map<string, number>()
+  const count = new Map<string, number>()
   const steps = order.map((n): Step => {
     const prompts = into(n.id, 'text').map((t) => t.text ?? '').join('\n')
     const images = [...new Set(into(n.id, 'image').flatMap((i) => i.assetIds ?? []))]
-    const from = into(n.id, 'generate').map((u) => u.id)
+    const deps = depsOf.get(n.id)!
     count.set(n.id, lines(prompts))
     if (!lines(prompts)) errors.push({ node: n.id, code: 'WF_NO_PROMPT' })
-    else if (images.length + from.reduce((s, u) => s + (count.get(u) ?? 0), 0) > MAX_REFS) errors.push({ node: n.id, code: 'TOO_MANY_REFS' }) // one result image per upstream prompt
+    else if (images.length + deps.reduce((s, u) => s + (u.port === 'fail' ? 0 : count.get(u.node) ?? 0), 0) > MAX_REFS) errors.push({ node: n.id, code: 'TOO_MANY_REFS' }) // one result image per upstream prompt
     const outs = g.edges.filter((e) => e.from === n.id).map((e) => byId.get(e.to)!.type)
-    return { node: n.id, prompts, images, from, save: outs.includes('download'), feeds: outs.includes('generate') }
+    return { node: n.id, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch') }
   })
   return { steps, errors }
+}
+
+// How an upstream node ended: full = every prompt has a saved result; short = it ran but some result is missing (failed, filtered);
+// off = its branch was not taken; broken = it never ran or was cut off. And what each kind of wire does with that.
+const outcome = (u: NodeRun): 'full' | 'short' | 'off' | 'broken' =>
+  u.assets ? 'full' : u.state === 'bypassed' ? 'off' : u.batchIds.length && (u.state === 'done' || u.state === 'failed') ? 'short' : 'broken'
+const TAKE: Record<Dep['port'], Record<ReturnType<typeof outcome>, 'run' | 'bypassed' | 'skipped'>> = {
+  direct: { full: 'run', off: 'bypassed', short: 'skipped', broken: 'skipped' }, // never send without the reference the user wired
+  ok: { full: 'run', off: 'bypassed', short: 'bypassed', broken: 'skipped' },
+  fail: { full: 'bypassed', off: 'bypassed', short: 'run', broken: 'skipped' },
 }
 
 type Enqueued = { batchId?: string; batchIds?: string[]; errors?: { code: string }[] }
@@ -74,6 +103,7 @@ export type WfDeps = {
   status(batchId: string): string; download(batchId: string): Promise<unknown>
   outputs(batchId: string): (string | null)[] // per prompt: the path of its first saved result, null when none is saved
   register(path: string): string // a saved result as a reference asset
+  savePath(suggested: string): Promise<string | null>; openPath(): Promise<string | null> // the OS file dialogs (null = cancelled)
 }
 
 export function createWorkflows(d: WfDeps) {
@@ -86,11 +116,12 @@ export function createWorkflows(d: WfDeps) {
     for (const s of steps) {
       const n = run.nodes[s.node]
       if (run.stop) { n.state = 'stopped'; continue }
-      const up = s.from.map((f) => run.nodes[f].assets)
-      if (up.some((a) => !a)) { n.state = 'skipped'; n.code = 'WF_UPSTREAM_INCOMPLETE'; continue } // never send without the reference the user wired
+      const takes = s.deps.map((dp) => TAKE[dp.port][outcome(run.nodes[dp.node])])
+      if (takes.includes('skipped')) { n.state = 'skipped'; n.code = 'WF_UPSTREAM_INCOMPLETE'; continue }
+      if (takes.includes('bypassed')) { n.state = 'bypassed'; continue } // the other side of a Điều kiện: not an error
       try {
         n.state = 'running'
-        const refs = [...s.images, ...up.flatMap((a) => a!)]
+        const refs = [...s.images, ...s.deps.flatMap((dp) => (dp.port === 'fail' ? [] : run.nodes[dp.node].assets!))]
         const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: 'image', mode, text: s.prompts, refs: { assetIds: refs, mode: refs.length ? 'all' : 'none', perItem: MAX_REFS } })
         if (r.errors?.length) { n.state = 'failed'; n.code = r.errors[0].code; continue }
         n.batchIds = r.batchIds ?? [r.batchId!]
@@ -108,57 +139,76 @@ export function createWorkflows(d: WfDeps) {
       } catch (e) { n.state = 'failed'; n.code = code(e) }
     }
     const states = Object.values(run.nodes).map((x) => x.state)
-    run.status = run.stop ? 'stopped' : states.every((x) => x === 'done') ? 'done' : 'failed'
+    run.status = run.stop ? 'stopped' : states.every((x) => x === 'done' || x === 'bypassed') ? 'done' : 'failed'
   }
 
   const assetOf = d.db.prepare('select id, name, bytes from asset where id=?')
+  // for the canvas: image nodes carry names and sizes, never paths; a file not registered on this machine is marked missing
+  const forCanvas = (g: Graph) => ({ edges: g.edges, vars: g.vars ?? {}, nodes: g.nodes.map((n) => ({ ...n, ...(n.assetIds ? { assets: n.assetIds.map((id) => assetOf.get(id) ?? { id, name: '', bytes: 0, missing: true }) } : {}) })) })
   return {
     active: (): boolean => [...runs.values()].some((r) => r.status === 'running'), // not an IPC handler: main asks before restarting for an update
     handlers: {
-    async listWorkflows() { // image nodes carry names and sizes, never paths; a file no longer registered is marked missing
-      return (d.db.prepare('select id, name, json from workflow order by updated_at desc').all() as { id: string; name: string; json: string }[]).map((r) => {
-        const g = JSON.parse(r.json) as Graph
-        return { id: r.id, name: r.name, edges: g.edges, nodes: g.nodes.map((n) => ({ ...n, ...(n.assetIds ? { assets: n.assetIds.map((id) => assetOf.get(id) ?? { id, name: '', bytes: 0, missing: true }) } : {}) })) }
-      })
-    },
-    async saveWorkflow(a: unknown) { // same name = update
-      const o = a as { name?: unknown; graph?: unknown } | null, name = typeof o?.name === 'string' ? o.name.trim() : ''
-      if (!name || name.length > 60) bad()
-      const g = parseGraph(o!.graph)
-      const id = (d.db.prepare('select id from workflow where name=?').get(name) as { id: string } | undefined)?.id ?? randomUUID()
-      d.db.prepare('insert into workflow(id,name,json,updated_at) values(?,?,?,?) on conflict(name) do update set json=excluded.json, updated_at=excluded.updated_at').run(id, name, JSON.stringify(g), d.now())
-      return { id }
-    },
-    async deleteWorkflow(a: unknown) { d.db.prepare('delete from workflow where id=?').run(typeof a === 'string' ? a : bad()) },
-    /** Starts the run and returns at once; the canvas polls workflowRun. A graph that cannot run returns its errors and sends nothing. */
-    async runWorkflow(a: unknown) {
-      const o = a as { graph?: unknown; mode?: unknown } | null
-      const mode = o?.mode === 'auto' || o?.mode === 'manual' ? o.mode : bad()
-      const g = parseGraph(o!.graph), { steps, errors } = plan(g)
-      for (const s of steps) if (s.images.some((id) => !assetOf.get(id))) errors.push({ node: s.node, code: 'REF_ASSET_MISSING' })
-      if (errors.length) return { errors }
-      const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries(steps.map((s) => [s.node, { state: 'waiting', batchIds: [] }])) }
-      for (const [id, r] of runs) if (r.status !== 'running' && runs.size >= 20) runs.delete(id) // finished runs are only kept for the canvas that started them
-      runs.set(run.id, run)
-      void exec(run, steps, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) })
-      return { runId: run.id }
-    },
-    async stopWorkflow(a: unknown) { // no new node starts; the node that is running has its batches stopped like the Dừng button
-      const run = runs.get(a as string)
-      if (!run || run.status !== 'running') return
-      run.stop = true
-      for (const n of Object.values(run.nodes)) if (n.state === 'running') for (const b of n.batchIds) await d.stop(b)
-    },
-    async workflowRun(a: unknown) { // per node: state, progress, and one saved result to show (ids only)
-      const run = runs.get(a as string)
-      if (!run) return null
-      const items = d.db.prepare('select a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?')
-      const saved = d.db.prepare("select attempt_id attemptId, media_id mediaId from download where attempt_id=? and state='completed' limit 1")
-      return { status: run.status, nodes: Object.fromEntries(Object.entries(run.nodes).map(([id, n]) => {
-        const its = n.batchIds.flatMap((b) => items.all(b) as { aid: string; j: string }[])
-        return [id, { state: n.state, code: n.code ?? null, total: its.length, done: its.filter((x) => JSON.parse(x.j).item === 'ready').length, thumb: its.map((x) => saved.get(x.aid)).find(Boolean) ?? null }]
-      })) }
-    },
+      async listWorkflows() {
+        return (d.db.prepare('select id, name, json from workflow order by updated_at desc').all() as { id: string; name: string; json: string }[]).map((r) => ({ id: r.id, name: r.name, ...forCanvas(JSON.parse(r.json) as Graph) }))
+      },
+      async saveWorkflow(a: unknown) { // same name = update
+        const o = a as { name?: unknown; graph?: unknown } | null, name = typeof o?.name === 'string' ? o.name.trim() : ''
+        if (!name || name.length > 60) bad()
+        const g = parseGraph(o!.graph)
+        const id = (d.db.prepare('select id from workflow where name=?').get(name) as { id: string } | undefined)?.id ?? randomUUID()
+        d.db.prepare('insert into workflow(id,name,json,updated_at) values(?,?,?,?) on conflict(name) do update set json=excluded.json, updated_at=excluded.updated_at').run(id, name, JSON.stringify(g), d.now())
+        return { id }
+      },
+      async deleteWorkflow(a: unknown) { d.db.prepare('delete from workflow where id=?').run(typeof a === 'string' ? a : bad()) },
+      /** The canvas as a .json file the user can keep or copy to another machine (image nodes keep ids only: files are picked again there). */
+      async exportWorkflow(a: unknown) {
+        const o = a as { name?: unknown; graph?: unknown } | null, g = parseGraph(o?.graph)
+        const name = typeof o?.name === 'string' ? o.name.trim().slice(0, 60) : ''
+        const path = await d.savePath(`${safeComponent(name || 'workflow')}.toolflow.json`)
+        if (!path) return { saved: false }
+        writeFileSync(path, JSON.stringify({ toolflow: 1, name, ...g }, null, 2))
+        return { saved: true }
+      },
+      /** A file from disk is as untrusted as the renderer: same validator. Returns the graph for the canvas; nothing is saved or run. */
+      async importWorkflow() {
+        const path = await d.openPath()
+        if (!path) return null
+        try {
+          if (statSync(path).size > 2_000_000) throw coded('WF_FILE_INVALID')
+          const v = JSON.parse(readFileSync(path, 'utf8')) as { name?: unknown }
+          return { name: typeof v?.name === 'string' ? v.name.slice(0, 60) : '', ...forCanvas(parseGraph(v)) }
+        } catch { throw coded('WF_FILE_INVALID') } // unreadable, not JSON, or not a workflow: one code, no path in the message
+      },
+      /** Starts the run and returns at once; the canvas polls workflowRun. A graph that cannot run returns its errors and sends nothing. dryRun: only the plan (what each node would send). */
+      async runWorkflow(a: unknown) {
+        const o = a as { graph?: unknown; mode?: unknown; dryRun?: unknown } | null
+        const mode = o?.mode === 'auto' || o?.mode === 'manual' ? o.mode : bad()
+        const g = parseGraph(o!.graph), { steps, errors } = plan(g)
+        for (const s of steps) if (s.images.some((id) => !assetOf.get(id))) errors.push({ node: s.node, code: 'REF_ASSET_MISSING' })
+        if (o!.dryRun === true) return { steps, errors }
+        if (errors.length) return { errors }
+        const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries(steps.map((s) => [s.node, { state: 'waiting', batchIds: [] }])) }
+        for (const [id, r] of runs) if (r.status !== 'running' && runs.size >= 20) runs.delete(id) // finished runs are only kept for the canvas that started them
+        runs.set(run.id, run)
+        void exec(run, steps, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) })
+        return { runId: run.id }
+      },
+      async stopWorkflow(a: unknown) { // no new node starts; the node that is running has its batches stopped like the Dừng button
+        const run = runs.get(a as string)
+        if (!run || run.status !== 'running') return
+        run.stop = true
+        for (const n of Object.values(run.nodes)) if (n.state === 'running') for (const b of n.batchIds) await d.stop(b)
+      },
+      async workflowRun(a: unknown) { // per node: state, progress, and one saved result to show (ids only)
+        const run = runs.get(a as string)
+        if (!run) return null
+        const items = d.db.prepare('select a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?')
+        const saved = d.db.prepare("select attempt_id attemptId, media_id mediaId from download where attempt_id=? and state='completed' limit 1")
+        return { status: run.status, nodes: Object.fromEntries(Object.entries(run.nodes).map(([id, n]) => {
+          const its = n.batchIds.flatMap((b) => items.all(b) as { aid: string; j: string }[])
+          return [id, { state: n.state, code: n.code ?? null, total: its.length, done: its.filter((x) => JSON.parse(x.j).item === 'ready').length, thumb: its.map((x) => saved.get(x.aid)).find(Boolean) ?? null }]
+        })) }
+      },
     },
   }
 }

@@ -289,7 +289,21 @@ textarea.short { min-height: 64px; }
 .wf-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 20px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .wf-bar .spacer { flex: 1; }
 .wf-bar input:not([type]), .wf-bar select { font: inherit; padding: 5px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--ink); min-width: 180px; }
-.wf-canvas { position: relative; flex: 1; min-height: 0; }
+.wf-main { display: flex; flex: 1; min-height: 0; }
+.wf-canvas { position: relative; flex: 1; min-width: 0; }
+.wf-side { width: 300px; flex: none; overflow-y: auto; padding: 16px; border-left: 1px solid var(--line); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 13px; }
+.wf-side h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; }
+.wf-side h4 { margin: 0 0 6px; font-size: 13px; }
+.wf-side .hint { margin: 0; max-width: none; }
+.wf-side textarea, .wf-side input { font: inherit; width: 100%; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.wf-side textarea { resize: vertical; }
+.wf-preview { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.wf-prompts { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.wf-var { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.wf-var textarea { grid-column: 1 / -1; }
+.wf-row { width: 100%; display: flex; align-items: center; gap: 6px; }
+.wf-row .wf-file { flex: 1; }
+.wf-port { position: relative; margin-right: -12px; padding: 2px 22px 2px 0; text-align: right; color: var(--ink-2); }
 .wf .react-flow { --xy-background-color: var(--muted-bg); --xy-background-pattern-color: var(--line-2); --xy-edge-stroke: var(--ink-3); --xy-edge-stroke-selected: var(--blue); --xy-connectionline-stroke: var(--blue); --xy-handle-background-color: var(--ink); --xy-handle-border-color: var(--bg); }
 .wf .react-flow__handle { width: 14px; height: 14px; }
 .wf .react-flow__edge-path { stroke-width: 2; }
@@ -299,9 +313,9 @@ textarea.short { min-height: 64px; }
 .wf-node[data-state='failed'], .wf-node[data-state='skipped'] { border-color: var(--red); }
 .wf-node header { display: flex; align-items: center; gap: 6px; }
 .wf-node header .spacer { flex: 1; }
-.wf-node .x { all: unset; cursor: pointer; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--ink-3); font-size: 16px; line-height: 1; }
-.wf-node .x:hover { background: var(--hover); color: var(--ink); }
-.wf-node .x:focus-visible { outline: 2px solid var(--blue); }
+.wf-node .x, .wf-side .x { all: unset; cursor: pointer; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 4px; color: var(--ink-3); font-size: 16px; line-height: 1; }
+.wf-node .x:hover, .wf-side .x:hover { background: var(--hover); color: var(--ink); }
+.wf-node .x:focus-visible, .wf-side .x:focus-visible { outline: 2px solid var(--blue); }
 .wf-node textarea { font: inherit; width: 100%; resize: vertical; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
 .wf-node .hint { margin: 0; max-width: none; }
 .wf-node .thumb { font-size: 12px; }

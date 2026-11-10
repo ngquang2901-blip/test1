@@ -466,6 +466,91 @@ test('Workflow: a node without a prompt is named on the canvas and nothing is se
   await expect(page.locator('.react-flow__node')).toHaveCount(0)
 })
 
+test('Workflow: variables fill the prompts and the side panel shows what will be sent; undo / redo; export and import a file', async () => {
+  const file = join(tmp(), 'wf.toolflow.json')
+  const { page } = await launch(tmp(), '', { TOOLFLOW_WF_FILE: file })
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  const boxes = page.locator('.react-flow__node'), status = page.getByTestId('wf-status')
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('{con vật} đi dạo\n{con vật} ngủ trưa\nmột cái cây')
+  // nothing selected: the side panel is the variable table, and it offers the variable the text uses
+  await page.getByRole('button', { name: '{con vật}' }).click()
+  await page.getByLabel('Giá trị của con vật').fill('mèo\nchó')
+  await node('generate').locator('header b').click() // select the node: its panel shows the real plan
+  await expect(page.getByTestId('wf-preview')).toContainText('Sẽ gửi 5 prompt')
+  await expect(page.getByTestId('wf-preview').locator('li')).toHaveText(['mèo đi dạo', 'chó đi dạo', 'mèo ngủ trưa', 'chó ngủ trưa', 'một cái cây'])
+  await expect(page.getByTestId('wf-preview')).toContainText('Kết quả sẽ được tải về máy')
+
+  // undo / redo: an added node, then a deleted node with its text and wires
+  await page.getByRole('button', { name: '+ Ghi chú' }).click()
+  await expect(boxes).toHaveCount(4)
+  await page.getByRole('button', { name: 'Hoàn tác' }).click()
+  await expect(boxes).toHaveCount(3)
+  await page.getByRole('button', { name: 'Làm lại' }).click()
+  await expect(boxes).toHaveCount(4)
+  await node('text').getByRole('button', { name: 'Xoá node Text' }).click()
+  await expect(page.locator('.react-flow__edge')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Căn giữa' }).click() // focus on a button, not a text box
+  await page.keyboard.press('Control+z')
+  await expect(node('text').getByLabel('Prompt của node Text')).toHaveValue(/con vật/)
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Làm lại' })).toBeEnabled()
+
+  // a file out, the canvas cleared, the same file back in
+  await page.getByLabel('Tên workflow').fill('Con vật')
+  await page.getByRole('button', { name: 'Xuất file' }).click()
+  await expect(status).toHaveText('Đã xuất file')
+  const out = JSON.parse(readFileSync(file, 'utf8'))
+  expect([out.toolflow, out.name, out.nodes.length, out.edges.length, out.vars]).toEqual([1, 'Con vật', 4, 2, { 'con vật': 'mèo\nchó' }])
+  await page.getByRole('button', { name: 'Mới', exact: true }).click()
+  await expect(boxes).toHaveCount(0)
+  await page.getByRole('button', { name: 'Nhập file' }).click()
+  await expect(boxes).toHaveCount(4)
+  await expect(page.getByLabel('Tên workflow')).toHaveValue('Con vật')
+  await expect(page.getByLabel('Giá trị của con vật')).toHaveValue('mèo\nchó')
+
+  // the run sends the filled prompts; a variable without a value blocks it and is named on the Text node
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(status).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  const prompts = await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string }[] }[] }) => r.batches.flatMap((b) => b.items.map((i) => i.prompt))))
+  expect(prompts).toEqual(['mèo đi dạo', 'chó đi dạo', 'mèo ngủ trưa', 'chó ngủ trưa', 'một cái cây'])
+  await node('text').getByLabel('Prompt của node Text').fill('{chưa có} bay')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(node('text').getByRole('alert')).toContainText('Biến {chưa có} chưa có giá trị')
+  expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches.length))).toBe(1)
+  writeFileSync(file, '{"nodes":"x"}')
+  await page.getByRole('button', { name: 'Nhập file' }).click()
+  await expect(status).toHaveText('File này không phải workflow của ToolFlow hoặc đã hỏng')
+  await expect(boxes).toHaveCount(4) // a bad file changes nothing
+})
+
+test('Workflow: Điều kiện — the first node lost its image, so the "Thiếu ảnh" side runs and the "Đủ ảnh" side does not', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: tmp(), TOOLFLOW_FAKE_DOWNLOADS: 'download-html' }) // the first saved file is not an image
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => { await from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`).click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('nhân vật')
+  for (const b of ['+ Điều kiện', '+ Tạo ảnh Flow', '+ Tạo ảnh Flow', '+ Text', '+ Text']) await page.getByRole('button', { name: b, exact: true }).click()
+  await node('text').nth(1).getByLabel('Prompt của node Text').fill('cảnh có nhân vật')
+  await node('text').nth(2).getByLabel('Prompt của node Text').fill('cảnh dự phòng')
+  await wire(node('generate').nth(0), node('branch'))
+  await wire(node('branch'), node('generate').nth(1), 'ok')
+  await wire(node('branch'), node('generate').nth(2), 'fail')
+  await wire(node('text').nth(1), node('generate').nth(1))
+  await wire(node('text').nth(2), node('generate').nth(2))
+  await expect(page.locator('.react-flow__edge')).toHaveCount(7)
+  await wire(node('generate').nth(1), node('branch')) // a Điều kiện looks at one node only
+  await expect(page.locator('.react-flow__edge')).toHaveCount(7)
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  await expect(node('generate').nth(1)).toContainText('Không chạy')
+  await expect(node('generate').nth(2)).toContainText('Xong 1/1')
+  const sent = await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string; refs: string[] }[] }[] }) => r.batches.flatMap((b) => b.items.map((i) => [i.prompt, i.refs.length]))))
+  expect(sent).toEqual([['cảnh dự phòng', 0], ['nhân vật', 0]])
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
