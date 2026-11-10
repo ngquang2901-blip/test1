@@ -326,6 +326,25 @@ test('Bắt đầu nhanh opens Tạo lô with the preset; search narrows the que
   await expect(page.locator('body')).toContainText('Không có prompt hay lô nào khớp')
 })
 
+test('Ghép prompt từ mẫu: variables fill the prompt list, every combination or line by line, errors shown', async () => {
+  const { page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByText('Ghép prompt từ mẫu').click()
+  await page.getByLabel(/Mẫu prompt/).fill('{món ăn} ở {nơi}, ảnh đời thường')
+  await page.getByLabel('Giá trị cho món ăn').fill('phở\nbún chả')
+  await expect(page.getByRole('status').filter({ hasText: 'Biến {nơi} chưa có giá trị nào.' })).toBeVisible()
+  await page.getByLabel('Giá trị cho nơi').fill('Hà Nội\nHuế\nSài Gòn')
+  await page.getByRole('button', { name: 'Tạo 6 prompt' }).click()
+  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(6)
+  await expect(page.locator('[data-testid=preview] tbody tr').nth(1)).toContainText('phở ở Huế, ảnh đời thường')
+  await page.getByLabel('Ghép theo dòng').check()
+  await expect(page.getByRole('status').filter({ hasText: 'Ghép theo dòng cần mọi danh sách dài bằng nhau' })).toBeVisible()
+  await page.getByLabel('Giá trị cho nơi').fill('Hà Nội\nHuế')
+  await page.getByRole('button', { name: 'Thay danh sách bằng 2 prompt' }).click()
+  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(2)
+  await expect(page.getByLabel('Danh sách prompt')).toHaveValue('phở ở Hà Nội, ảnh đời thường\nbún chả ở Huế, ảnh đời thường')
+})
+
 test('a bad download is Lỗi tải with no completed file; Thử lại completes it under the same name without generating again', async () => {
   const root = join(tmp(), 'dl')
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_DOWNLOADS: 'download-html' })

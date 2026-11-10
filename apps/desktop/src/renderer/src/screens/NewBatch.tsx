@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Draft } from '../types'
+import TemplateBuilder, { EMPTY_TEMPLATE, type TemplateState } from './TemplateBuilder'
 import flow from '../../../../profiles/flow.json'
 
 const C = flow.combos[0] // the one qualified combo; no user choice yet
@@ -12,12 +13,14 @@ const MAP_ERR: Record<string, string> = { NOT_ENOUGH_REFS: 'Thiếu ảnh', TOO_
 const PICK_ERR: Record<string, string> = { ASSET_UNSUPPORTED: 'không phải ảnh png/jpg/webp', ASSET_EMPTY: 'file trống', ASSET_TOO_LARGE: 'quá 20 MB', ASSET_UNREADABLE: 'không đọc được' }
 const size = (n: number): string => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`)
 let kept: Asset[] = [] // shortcut: the picked pool outlives screen switches but not a restart; persist ids in draft.json when it must
+let keptTpl: TemplateState = EMPTY_TEMPLATE // same lifetime as the pool
 
 export default function NewBatch({ initial, onCreated }: { initial: Draft; onCreated(): void }): React.JSX.Element {
   const [d, setD] = useState<Draft>(initial)
   const [rows, setRows] = useState<Row[]>([])
   const [msg, setMsg] = useState('')
   const [pool, setPool] = useState<Asset[]>(kept)
+  const [tpl, setTpl] = useState<TemplateState>(keptTpl)
   const [refMode, setRefMode] = useState<RefMode>('none')
   const [perItem, setPerItem] = useState(1)
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
@@ -61,6 +64,7 @@ export default function NewBatch({ initial, onCreated }: { initial: Draft; onCre
   return (
     <section aria-label="Tạo lô">
       <h2>Tạo lô</h2>
+      <TemplateBuilder value={tpl} onChange={(t) => { keptTpl = t; setTpl(t) }} hasText={d.text.trim() !== ''} onApply={(ps) => set({ text: ps.join('\n') })} />
       <div>
         <label className="field-label" htmlFor="prompts">Danh sách prompt</label>
         <textarea id="prompts" value={d.text} onChange={(e) => set({ text: e.target.value })} placeholder="Mỗi dòng một prompt" />
