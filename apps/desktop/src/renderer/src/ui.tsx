@@ -1,4 +1,4 @@
-// Shared visual pieces of the press-proof design: state tones, the colour-bar strip, the registration mark.
+// Shared visual pieces: state tones, the status dot, a few line icons (inline, no icon library).
 import type { Attempt } from './types'
 
 export type Tone = 'run' | 'wait' | 'attn' | 'done' | 'idle'
@@ -16,33 +16,20 @@ export const batchTone = (status: string): Tone =>
 
 export const Chip = ({ tone, children }: { tone: Tone; children: React.ReactNode }): React.JSX.Element => <span className="chip" data-tone={tone}>{children}</span>
 
-const STEPS: [string, string][] = [['intent', 'Ghi ý định'], ['sent', 'Đã gửi'], ['receipt', 'Có kết quả'], ['saved', 'Đã lưu']]
+const PATHS = {
+  plug: 'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4',
+  plus: 'M12 5v14M5 12h14',
+  list: 'M4 6h16M4 12h16M4 18h10',
+  image: 'M4 4h16v16H4zM4 16l5-5 4 4 3-3 4 4',
+  sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
+  layers: 'M3 6h18v12H3zM3 10h18',
+  download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+} as const
 
-/** The journal printed in as four patches; the first missing one takes the item's state colour. */
-export function Strip({ a }: { a: Attempt }): React.JSX.Element {
-  const types = new Set(a.journal.map((j) => j.type))
-  if (Object.values(a.downloads ?? {}).some((d) => d.state === 'completed')) types.add('saved')
-  const tone = itemTone(a)
-  const reached = STEPS.map(([t]) => types.has(t))
-  const next = reached.indexOf(false)
-  const said = STEPS.filter((_, i) => reached[i]).map(([, l]) => l)
+export function Icon({ name, size = 16 }: { name: keyof typeof PATHS; size?: number }): React.JSX.Element {
   return (
-    <span className="bar" role="img" aria-label={`Tiến trình: ${said.length ? said.join(', ') : 'chưa bắt đầu'}`}>
-      {STEPS.map(([t, label], i) => (
-        <i key={t} title={label} data-on={reached[i] ? '' : undefined} data-next={i === next && tone !== 'idle' && tone !== 'done' ? tone : undefined} />
-      ))}
-    </span>
-  )
-}
-
-/** Registration mark: inked and aligned when the extension is connected. */
-export function RegMark({ on, size = 18, light = false }: { on: boolean; size?: number; light?: boolean }): React.JSX.Element {
-  const c = light ? '#ece7da' : on ? '#1b1a17' : '#b0124f'
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
-      <circle cx="10" cy="10" r="5.5" fill="none" stroke={c} strokeWidth="1.5" />
-      {on && <circle cx="10" cy="10" r="2.5" fill={c} />}
-      <path d={on ? 'M10 0v20M0 10h20' : 'M10 0v7M10 13v7M0 10h7M13 10h7'} stroke={c} strokeWidth="1.2" />
+    <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={PATHS[name]} />
     </svg>
   )
 }

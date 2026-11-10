@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { hintOf } from '../hints'
 import { KIND_LABEL, current, type Batch, type Download } from '../types'
-import { Chip, type Tone } from '../ui'
+import { Chip, Icon, type Tone } from '../ui'
 
 // AC-07: "Đã lưu" exists only for a completed row; every other state (and no row at all) says what it really is.
 const LABEL: Record<Download['state'], string> = { intent: 'Đang tải', started: 'Đang tải', completed: 'Đã lưu', needs_review: 'Cần kiểm tra', failed: 'Lỗi tải' }
@@ -19,12 +19,11 @@ export default function Results({ batches }: { batches: Batch[] }): React.JSX.El
   const saved = rows.filter((r) => r.dl?.state === 'completed').length
   return (
     <section aria-label="Kết quả">
-      <h2>Kết quả</h2>
-      <div className="toolbar">
-        <span className="muted"><span className="num">{saved}/{rows.length}</span> tệp đã nằm trong thư mục Downloads/ToolFlow</span>
-        <span className="spacer" />
-        <button className="primary" disabled={pending.length === 0} onClick={() => run(() => Promise.all(pending.map((id) => window.api.downloadBatch(id))))}>Tải tất cả kết quả</button>
+      <div className="head">
+        <h2>Kết quả</h2>
+        <button className="primary" disabled={pending.length === 0} onClick={() => run(() => Promise.all(pending.map((id) => window.api.downloadBatch(id))))}><Icon name="download" />Tải tất cả kết quả</button>
       </div>
+      <p className="muted"><span className="num">{saved}/{rows.length}</span> tệp đã nằm trong thư mục Downloads/ToolFlow</p>
       {error && <p className="notice" role="alert">Không tải được: {error}</p>}
       {rows.length === 0 ? <p className="empty">Chưa có kết quả. Ảnh và video Flow tạo xong cho các lô sẽ hiện ở đây để tải về máy.</p> : (
         <ul className="panel outputs">{rows.map((r) => (

@@ -1,5 +1,5 @@
 import type { Session, SessionTab } from '../types'
-import { Chip, RegMark } from '../ui'
+import { Chip } from '../ui'
 
 const WHY: Record<string, string> = { no_project: 'Mở một dự án', no_login: 'Chưa đăng nhập Google' }
 
@@ -13,7 +13,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
       <h2>Kết nối</h2>
       {s.connectorError && <p role="alert" className="notice">Không khởi động được cầu nối extension (mã lỗi {s.connectorError}). Đóng app rồi mở lại; nếu vẫn lỗi, gửi mã này cho người hỗ trợ.</p>}
       <div className="panel">
-        <div className="panel-head"><RegMark on={linked} size={20} /><h3>Cầu nối Chrome</h3></div>
+        <div className="panel-head"><h3>Cầu nối Chrome</h3><Chip tone={linked ? 'done' : 'attn'}>{linked ? 'Đang nối' : 'Mất nối'}</Chip></div>
         <dl className="panel-body kv">
           <dt>Trình điều khiển</dt><dd>{s.fake ? 'giả lập (kiểm thử)' : 'extension ToolFlow Connector'}</dd>
           {!s.fake && <><dt>Cầu nối</dt><dd>Extension: {s.connected ? 'Đã kết nối' : 'Chưa kết nối'}</dd></>}
