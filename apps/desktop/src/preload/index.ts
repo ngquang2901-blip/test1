@@ -26,6 +26,8 @@ const api = {
   listWorkflows: call('listWorkflows'),
   saveWorkflow: call('saveWorkflow'),
   deleteWorkflow: call('deleteWorkflow'),
+  exportWorkflow: call('exportWorkflow'),
+  importWorkflow: call('importWorkflow'),
   runWorkflow: call('runWorkflow'),
   stopWorkflow: call('stopWorkflow'),
   workflowRun: call('workflowRun'),

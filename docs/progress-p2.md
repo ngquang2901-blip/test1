@@ -113,3 +113,16 @@ New screen **Workflow** (TobyFlow-style node canvas, `@xyflow/react`): nodes Tex
 Checked: unit 8 (graph validation, plan, run/skip/fail/stop with fakes, save/list/delete), e2e 2 with the fake Flow (two-node chain with a result ref, saved files, save/reopen, canvas kept across screens; node without a prompt), a real mouse drag between handles, screenshots light/dark. NOT checked: a run against real Flow (no account with credit); the only new step on that path is "downloaded result → registered as a ref asset → uploaded as ref", the rest is the batch path already run live.
 
 Left out on purpose (nothing behind them in ToolFlow yet): video nodes (P3), ChatGPT/Gemini prompt nodes (P5), Grok/Muse, merge video, per-node model/ratio, `@slug` text references, port suggestions, undo/redo, templates gallery. Shortcuts noted in code: nodes run one after another; a run lives in memory (after an app restart its batches continue, later nodes do not start).
+
+## Workflow canvas, round 2 (2026-11-11)
+
+Added to the Workflow screen, from the owner's checklist:
+- **File export / import**: `Xuất file` writes `<name>.toolflow.json` (`{toolflow:1, name, nodes, edges, vars}`), `Nhập file` loads one onto the canvas through the same validator as the renderer's graph (`WF_FILE_INVALID` otherwise; nothing is saved or run). Image nodes keep asset ids only, so on another machine they show "Không còn file này" until picked again.
+- **Undo / redo**: `Hoàn tác` / `Làm lại` and Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y (text boxes keep their own undo). One snapshot (nodes, wires, variables) each time the canvas settles, 100 steps, per visit to the screen.
+- **Reusable variables**: a variable table in the side panel; `{tên}` in any Text node. Filled in by the renderer before a run with the existing `template.ts` rules (`fillLines`: several values = one prompt per value, every combination); main stores `vars` with the graph. A variable without a value blocks the run and is named on the node.
+- **Side panel** (`Cấu hình`): nothing selected = variables; a selected node = its settings. For a Tạo ảnh node it shows main's own dry-run plan (`runWorkflow({dryRun:true})`): the exact prompts, refs, whether results are saved, branch condition.
+- **Điều kiện node**: one Tạo ảnh node in, two outputs. "Đủ ảnh" = every prompt of that node has a saved result (they become refs); "Thiếu ảnh" = it ran but a result is missing (failed, filtered): for a fallback prompt, no refs. The side not taken is `bypassed` ("Không chạy"), which is not a failure.
+
+Checked: unit 12 in `test/workflow.test.ts` + `fillLines` in `test/template.test.ts`, e2e 4 Workflow specs with the fake Flow (chain with result ref; missing prompt; variables + side-panel plan + undo/redo + export/import + bad file; Điều kiện with a lost image), two mutations caught, screenshots light/dark. Still NOT run against real Flow (no credit).
+
+Not done: **chat / message node** (needs the ChatGPT automation, P5: nothing to run behind it yet); per-node model / ratio / count (every combo must be qualified on real Flow first); zoom buttons and minimap; dragging a node type from a palette.

@@ -147,7 +147,16 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     },
   })
   // Node workflows run through the very handlers the screens call; a result becomes a ref by registering its saved file.
+  // FAKE only: e2e names the file because Playwright cannot drive a native dialog (same idea as TOOLFLOW_PICK_REFS)
+  const wfDialog = async (save: string | null): Promise<string | null> => {
+    if (FAKE) return process.env.TOOLFLOW_WF_FILE ?? null
+    const w = win(), filters = [{ name: 'Workflow ToolFlow', extensions: ['json'] }]
+    if (save !== null) { const o = { defaultPath: save, filters }; return (await (w ? dialog.showSaveDialog(w, o) : dialog.showSaveDialog(o))).filePath || null }
+    const o = { properties: ['openFile' as const], filters }
+    return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
+  }
   const wf = createWorkflows({
+    savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
     status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
     outputs: (b) => (db.prepare('select a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(b) as { aid: string; j: string }[]).map((r) => {

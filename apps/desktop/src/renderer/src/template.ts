@@ -31,3 +31,16 @@ export function expand(template: string, lists: Record<string, string[]>, how: '
   const fill = (r: Record<string, string>): string => template.replace(VAR, (whole, raw: string) => r[raw.trim()] ?? whole).replace(/\s*\n\s*/g, ' ').trim()
   return { prompts: rows.map(fill) }
 }
+
+/** A workflow Text node: every line is a prompt; a line with {biến} becomes one prompt per combination of those variables' values (one value per line). */
+export function fillLines(text: string, vars: Record<string, string>): { prompts: string[] } | { error: ExpandError } {
+  const out: string[] = []
+  for (const line of valuesOf(text)) {
+    const names = varsOf(line)
+    const r = names.length ? expand(line, Object.fromEntries(names.map((n) => [n, valuesOf(vars[n] ?? '')])), 'all') : { prompts: [line] }
+    if ('error' in r) return r
+    out.push(...r.prompts)
+    if (out.length > MAX_PROMPTS) return { error: { code: 'TOO_MANY', count: out.length } }
+  }
+  return { prompts: out }
+}
