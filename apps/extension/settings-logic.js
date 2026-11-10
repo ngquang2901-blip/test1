@@ -8,12 +8,15 @@
     count: ['x1', 'x2', 'x3', 'x4'],
   };
   const ORDER = ['mode', 'aspect', 'quality', 'count'];
+  // Flow follows the account language: the same radios read in Vietnamese (seen live 2026-11-10). Map them to the English labels the combo uses.
+  const ALIAS = { 'Hình ảnh': 'Image', 'Thấp': 'Low', 'Trung bình': 'Medium', 'Cao': 'High' };
 
   // 'crop_16_9 16:9' -> '16:9', 'image Image' -> 'Image', 'x2' -> 'x2'. The leading token is a Material icon name (lowercase snake_case) when something follows it.
   const label = (t) => {
     const parts = String(t || '').replace(/\s+/g, ' ').trim().split(' ');
     if (parts.length > 1 && /^[a-z][a-z0-9_]*$/.test(parts[0])) parts.shift();
-    return parts.join(' ');
+    const l = parts.join(' ');
+    return ALIAS[l] ?? l;
   };
   // '🍌 Nano Banana 2.1 arrow_drop_down' -> 'Nano Banana 2.1': drop the emoji prefix and the trailing icon token.
   const modelLabel = (t) => String(t || '').replace(/\s+/g, ' ').replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s*arrow_drop\S*$/, '').trim();
