@@ -23,7 +23,10 @@ for (const [name, cmd, pick, cwd] of steps) {
   console.log(`\n=== ${name}: ${cmd}`)
   const r = spawnSync(cmd, { cwd: join(root, cwd ?? '.'), shell: true, encoding: 'utf8', env: { ...process.env, CHROME_PATH: chrome ?? '' } })
   const out = `${r.stdout}\n${r.stderr}`
-  console.log(out.split('\n').slice(-12).join('\n'))
+  const lines = out.split('\n'), tail = Math.max(0, lines.length - 12)
+  const sum = lines.findIndex((l) => /^\s*\d+ (failed|flaky)\b/.test(l)) // Playwright lists every failed test under this line: never cut it off
+  if (sum >= 0 && sum < tail) console.log(lines.slice(sum, tail).join('\n'))
+  console.log(lines.slice(tail).join('\n'))
   const note = pick ? out.match(pick)?.[0] ?? '' : ''
   const ok = r.status === 0 && !(name.startsWith('pairing') && !/connected after \d+ s/.test(out.split('reconnect after restart:')[1] ?? ''))
   rows.push([name, ok ? 'PASS' : 'FAIL', note])

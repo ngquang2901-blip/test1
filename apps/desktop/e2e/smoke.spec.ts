@@ -286,7 +286,8 @@ test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
 })
 
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
-const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).filter((f) => f.endsWith('.png')).sort()
+// '/'-separated like the names the app shows: readdir gives '\\' on Windows
+const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
 const outputs = (page: Page) => page.locator('[data-testid=output]')
 
 test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only after each completes', async () => {
