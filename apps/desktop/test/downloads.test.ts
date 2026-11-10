@@ -60,7 +60,7 @@ test('ensureDir: a symlink inside root that points outside is refused; a normal 
   const d = mkdtempSync(join(tmpdir(), 'tf-ens-'))
   const root = join(d, 'root'), outside = join(d, 'outside')
   mkdirSync(root); mkdirSync(outside)
-  symlinkSync(outside, join(root, 'evil'))
+  symlinkSync(outside, join(root, 'evil'), 'junction') // junction on Windows: same escape, and creating one needs no admin (Linux ignores the type)
   expect(() => ensureDir(root, 'evil/001_x.png')).toThrow(/PATH_ESCAPE/)
   expect(readdirSync(outside)).toEqual([])
   const ok = ensureDir(root, 'day/001_x.png')
@@ -323,8 +323,12 @@ test('m3: a reported path that is a symlink or a directory is refused (DOWNLOAD_
     const target = join(r.dir, 'real.png')
     writeFileSync(target, TINY_PNG)
     const f = join(r.tmp, `${A}_${M}.bin`)
-    if (kind === 'symlink') symlinkSync(target, f)
-    else mkdirSync(f)
+    if (kind === 'symlink') {
+      try { symlinkSync(target, f) } catch (e) {
+        if (process.platform === 'win32' && (e as NodeJS.ErrnoException).code === 'EPERM') continue // Windows: a file symlink needs admin or Developer Mode; the dir case still runs
+        throw e
+      }
+    } else mkdirSync(f)
     const row = await requestDownload(r.db, stub({ list: () => [info({ id: 1, filename: f, state: 'complete', fileSize: 1 })] }).drv, r.args(), r.env)
     expect([row.state, row.error_code], kind).toEqual(['failed', 'DOWNLOAD_BAD_FILE'])
     expect(readFileSync(target).length).toBe(TINY_PNG.length)
