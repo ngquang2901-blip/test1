@@ -23,6 +23,7 @@ const PATHS = {
   image: 'M4 4h16v16H4zM4 16l5-5 4 4 3-3 4 4',
   sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
   layers: 'M3 6h18v12H3zM3 10h18',
+  nodes: 'M3 4h7v6H3zM14 14h7v6h-7zM10 7h3a2 2 0 0 1 2 2v5',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',

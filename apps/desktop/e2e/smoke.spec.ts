@@ -411,6 +411,61 @@ test('auto-update: no new version reads as up to date; without an update source 
   await expect(page.getByRole('button', { name: 'Kiểm tra bản mới' })).toBeDisabled()
 })
 
+// ---- workflow canvas ----
+test('Workflow: Text → Tạo ảnh → Tạo ảnh (result as ref) → Tự tải về runs as two batches; saved, reopened, kept across screens', async () => {
+  const root = tmp()
+  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2)
+  await node('text').getByLabel('Prompt của node Text').fill('nhân vật A')
+  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await page.getByRole('button', { name: '+ Text' }).click()
+  await node('text').nth(1).getByLabel('Prompt của node Text').fill('cảnh 1')
+  await wire(node('generate').nth(0), node('generate').nth(1)) // the first node's result is the second node's reference image
+  await wire(node('text').nth(1), node('generate').nth(1))
+  await wire(node('generate').nth(1), node('download'))
+  await expect(page.locator('.react-flow__edge')).toHaveCount(5)
+  await wire(node('text').nth(0), node('download')) // a wire that means nothing is refused
+  await expect(page.locator('.react-flow__edge')).toHaveCount(5)
+
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  await expect(node('generate').nth(0)).toContainText('Xong 1/1')
+  await expect(node('generate').nth(1)).toContainText('Xong 1/1')
+  await expect(node('generate').nth(0).locator('img')).toBeVisible() // the saved result, shown in the node
+  const batches = await page.evaluate(() => window.api.listBatches().then((r: { batches: { status: string; items: { prompt: string; refs: string[] }[] }[] }) => r.batches.map((b) => [b.status, b.items.map((i) => [i.prompt, i.refs.length])])))
+  expect(batches).toEqual([['completed', [['cảnh 1', 1]]], ['completed', [['nhân vật A', 0]]]]) // newest first
+  expect(readdirSync(root, { recursive: true }).filter((f) => /\.(png|jpe?g|webp)$/.test(String(f))).length).toBeGreaterThanOrEqual(2)
+
+  await page.getByLabel('Tên workflow').fill('Nhân vật rồi cảnh')
+  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Đã lưu')
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await expect(page.locator('.react-flow__node')).toHaveCount(5) // the canvas survived the visit
+  await expect(node('generate').nth(1)).toContainText('Xong 1/1')
+  await page.getByRole('button', { name: 'Mới', exact: true }).click()
+  await expect(page.locator('.react-flow__node')).toHaveCount(0)
+  await page.getByLabel('Workflow đã lưu').selectOption({ label: 'Nhân vật rồi cảnh' })
+  await expect(page.locator('.react-flow__node')).toHaveCount(5)
+  await expect(page.locator('.react-flow__edge')).toHaveCount(5)
+  await expect(node('text').nth(1).getByLabel('Prompt của node Text')).toHaveValue('cảnh 1')
+})
+
+test('Workflow: a node without a prompt is named on the canvas and nothing is sent', async () => {
+  const { page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-generate').getByRole('alert')).toContainText('Node này chưa có prompt')
+  expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches.length))).toBe(0)
+  await page.getByTestId('wf-generate').getByRole('button', { name: 'Xoá node Tạo ảnh Flow' }).click()
+  await expect(page.locator('.react-flow__node')).toHaveCount(0)
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()

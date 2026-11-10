@@ -6,14 +6,15 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
 import { openDb } from './db'
-import { createAssetStore } from './assets'
-import { createRunner } from './runner'
+import { createAssetStore, registerAsset } from './assets'
+import { batchStatus, createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
 import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
 import { createDownloader, recoverDownloads } from './downloads'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
+import { createWorkflows } from './workflow'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
@@ -103,11 +104,12 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     autoUpdater.logger = null // its log lines carry the feed URL and file paths
     return autoUpdater as unknown as Updater
   })()
+  let wfActive = (): boolean => false // set once the workflows exist (below)
   const inFlight = db.prepare("select a.state_json j from attempt a join item i on i.attempt_id=a.id join batch b on b.id=i.batch_id where b.archived=0")
   const updates = createUpdates({
     updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s),
     // only an attempt between prepare and its result is at risk; queued ones simply go on after the restart
-    busy: () => (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)),
+    busy: () => wfActive() || (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)), // a workflow between two nodes would lose its later nodes
     ...(FAKE ? { first: 500 } : {}),
   })
   updates.start()
@@ -144,7 +146,17 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       }
     },
   })
-  registerIpc(ipcMain, h)
+  // Node workflows run through the very handlers the screens call; a result becomes a ref by registering its saved file.
+  const wf = createWorkflows({
+    db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
+    status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
+    outputs: (b) => (db.prepare('select a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(b) as { aid: string; j: string }[]).map((r) => {
+      for (const o of (JSON.parse(r.j).outputs ?? []) as { mediaId: string }[]) try { return downloader.file(r.aid, o.mediaId) } catch { /* not saved: try the next one */ }
+      return null
+    }),
+  })
+  wfActive = wf.active
+  registerIpc(ipcMain, { ...h, ...wf.handlers })
 
   // The runner changes rows on its own: tell the renderer when a batch's rows moved.
   const seen = new Map<string, string>()
