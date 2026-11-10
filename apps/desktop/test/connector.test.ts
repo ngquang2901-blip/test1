@@ -22,8 +22,11 @@ const boot = async () => {
   return s
 }
 type Client = { ws: WebSocket; msgs: any[]; closed: Promise<number>; next(): Promise<any> }
-const connect = async (port: number, o: { token?: string; origin?: string | null } = {}): Promise<Client> => {
-  const ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, { headers: o.origin === null ? {} : { Origin: o.origin ?? ORIGIN } })
+const connect = async (port: number, o: { token?: string; origin?: string | null; query?: boolean } = {}): Promise<Client> => {
+  const headers = o.origin === null ? {} : { Origin: o.origin ?? ORIGIN }
+  const ws = o.query // the old pairing style: token in the URL
+    ? new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, ['toolflow.v1'], { headers })
+    : new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${o.token ?? TOKEN}`], { headers })
   const msgs: any[] = []
   const waiters: Array<(m: any) => void> = []
   ws.on('message', (d) => { const m = JSON.parse(d.toString()); const w = waiters.shift(); if (w) w(m); else msgs.push(m) })
@@ -39,6 +42,7 @@ test('rejects wrong token', async () => {
   const s = await boot()
   expect(await (await connect(s.port, { token: 'cd'.repeat(32) })).closed).toBe(4401)
   expect(await (await connect(s.port, { token: 'x' })).closed).toBe(4401)
+  expect(await (await connect(s.port, { query: true })).closed).toBe(4401) // a right token in the URL is not accepted: only the subprotocol carries it
 })
 test('rejects wrong origin', async () => {
   const s = await boot()

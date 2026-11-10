@@ -146,3 +146,9 @@ test('wiring: sw forwards attach to the page; ref-logic loads before page-ops; p
   assert.ok(body.includes('TFRef.attach'));
   assert.ok(!body.includes('SUBMIT'));
 });
+
+test('the library confirm button is found in English and in Vietnamese (as seen live), nothing else', () => {
+  const R = globalThis.TFRef;
+  for (const t of ['Add to prompt', 'Thêm vào câu lệnh', '  Thêm vào\n câu lệnh ']) assert.equal(R.isAddLabel(t), true, t);
+  for (const t of ['Thêm', 'Add', 'Tải nội dung lên', '', null]) assert.equal(R.isAddLabel(t), false, String(t));
+});

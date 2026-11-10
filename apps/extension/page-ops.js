@@ -102,7 +102,7 @@
         close: () => { const b = plus(); if (b) b.click(); },
         setSearch: (q) => { const e = $('flow-add-menu-popover-content input.search-input'); if (!e) return; e.focus(); e.value = q; e.dispatchEvent(new Event('input', { bubbles: true })); },
         items: () => [...document.querySelectorAll('flow-add-menu-popover-content .asset-item')].map((el) => ({ text: el.innerText, click: () => el.click() })),
-        addButton: () => { const b = [...(pop()?.querySelectorAll('button') || [])].filter((x) => x.innerText.trim() === 'Add to prompt'); return b.length === 1 ? b[0] : null; },
+        addButton: () => { const b = [...(pop()?.querySelectorAll('button') || [])].filter((x) => TFRef.isAddLabel(x.innerText)); return b.length === 1 ? b[0] : null; },
       };
       return TFRef.attach(env, a.name, { until, chipMs: 15000 }); // a fresh upload shows its chip long before the image src (uuid) is readable (measured >10 s)
     },

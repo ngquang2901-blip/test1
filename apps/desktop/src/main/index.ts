@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, session as electronSession, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, session as electronSession, shell } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
@@ -89,6 +89,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
   const h = createHandlers({
     db, runner, clock, emit, email, grants, downloader, reveal: (p) => shell.showItemInFolder(p),
+    thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
+      const im = nativeImage.createFromBuffer(file)
+      return im.isEmpty() || im.getSize().width <= 640 ? null : im.resize({ width: 640, quality: 'good' }).toJPEG(82)
+    },
     projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
     // FAKE only: e2e names the files in a JSON list because Playwright cannot drive a native dialog; real mode always opens the dialog
     async pickPaths() {
