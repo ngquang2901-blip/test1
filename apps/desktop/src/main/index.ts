@@ -65,8 +65,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     try {
       const token = readOrCreateToken(userData)
       const server = await startConnectorServer({ token, extensionId: EXT_ID })
-      // shortcut: dev path only, packaged resources path in P4
-      installExtension(process.env.TOOLFLOW_EXT_DIR ?? join(app.getAppPath(), '../extension'), userData, server.port)
+      // packaged: electron-builder copies apps/extension to resources/extension (extraResources)
+      installExtension(process.env.TOOLFLOW_EXT_DIR ?? (app.isPackaged ? join(process.resourcesPath, 'extension') : join(app.getAppPath(), '../extension')), userData, server.port)
       driver = createExtDriver(server, { allow: (id) => grants.has(id), assets })
       rawPing = driver.ping
       connected = server.connected
@@ -90,7 +90,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const downloadRoot = FAKE && process.env.TOOLFLOW_DOWNLOAD_ROOT ? process.env.TOOLFLOW_DOWNLOAD_ROOT : join(homedir(), 'Downloads', 'ToolFlow')
   const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
   const h = createHandlers({
-    db, runner, clock, emit, email, emails, grants, downloader, reveal: (p) => shell.showItemInFolder(p),
+    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
       const im = nativeImage.createFromBuffer(file)
       return im.isEmpty() || im.getSize().width <= 640 ? null : im.resize({ width: 640, quality: 'good' }).toJPEG(82)
@@ -113,6 +113,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const tabs = list.map((t) => ({ ...t, status: tabStatus(t), granted: grants.has(t.tabId) }))
       const accts = [...new Set(tabs.filter((t) => t.granted).map((t) => t.email).filter((e): e is string => !!e))]
       return {
+        extDir: FAKE ? null : join(userData, 'extension'), // shown in S1 so the user can paste it into Chrome's folder dialog (not secret: pair.json inside is)
         fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
         accounts: accts.map((e) => ({ email: e, auto: autoAllowed(db, e) })), // auto is per account; the runner checks each tab's own
         autoEnabled: accts.length ? accts.every((e) => autoAllowed(db, e)) : autoAllowed(db, em),

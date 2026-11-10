@@ -230,3 +230,11 @@ textarea.short { min-height: 64px; }
 .presets input { font: inherit; font-size: 13px; padding: 3px 8px; border: 1px solid var(--line-2); border-radius: 6px; width: 180px; }
 .art[data-art='saved'] { background: #f3eee4; } .art[data-art='saved'] i { width: 30px; height: 38px; } .art[data-art='saved'] i:nth-child(2) { width: 30px; height: 38px; transform: translateY(-6px); }
 .quick ul { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+
+/* ---------- first-run setup ---------- */
+.setup { border-color: #bfdbfe; }
+.steps { list-style: decimal; padding-left: 38px; gap: 10px; }
+.steps li { padding-left: 4px; }
+.steps code, .path code { font-family: var(--mono); font-size: 12px; background: var(--side); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
+.path { margin-top: 8px; }
+.path code { overflow-wrap: anywhere; }

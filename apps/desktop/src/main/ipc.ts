@@ -17,7 +17,7 @@ export type Emit = ((entity: 'batch', id: string) => void) & { revision(): numbe
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projects(): string[] | Promise<string[]>; clock: { now(): number }; // projects: distinct projects of the granted tabs
   email(): Promise<string | null>; emails?(): Promise<string[]>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit; // emails: every account of the granted tabs (absent ⇒ just email())
-  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void;
+  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void;
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
 };
 
@@ -188,6 +188,7 @@ export function createHandlers(d: Deps) {
       return { url: small ? `data:image/jpeg;base64,${small.toString('base64')}` : `data:${mime};base64,${buf.toString('base64')}` }; // the full file only when it cannot be shrunk
     },
     async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
+    async openExtensionFolder() { d.openExtensionFolder?.(); }, // the folder the user picks in Chrome's Load unpacked
     async useTabs(a: unknown) { // validates against the last listing; session-only
       if (Array.isArray(a) && a.length > d.runner.caps().tabs) throw Object.assign(new Error('TOO_MANY_TABS'), { code: 'TOO_MANY_TABS' }); // a tab over the speed cap would never run, and its project's part of a batch would wait forever
       d.grants.use(a);
