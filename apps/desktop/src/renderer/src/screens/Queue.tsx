@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { hintOf } from '../hints'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, time, type Attempt, type Batch } from '../types'
-import { Chip, Strip, batchTone, itemTone } from '../ui'
+import { Chip, Icon, itemTone } from '../ui'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
 const Hint = ({ a }: { a: Attempt }): React.JSX.Element | null => { const h = hintOf(a.error?.code); return h ? <div className="hint" data-testid="hint">{h}</div> : null } // what to do, next to the raw code
@@ -53,37 +53,41 @@ function NextStep({ batches }: { batches: Batch[] }): React.JSX.Element | null {
   return null
 }
 
-export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Element {
+export default function Queue({ batches, onNew }: { batches: Batch[]; onNew: () => void }): React.JSX.Element {
   const [open, setOpen] = useState<string | null>(null)
+  const head = <div className="head"><h2>Hàng đợi</h2><button className="primary" onClick={onNew}><Icon name="plus" />Lô mới</button></div>
   if (!batches.length) return (
     <section aria-label="Hàng đợi">
-      <h2>Hàng đợi</h2>
+      {head}
       <p className="empty">Chưa có lô nào. Vào <b>Tạo lô</b>, dán danh sách prompt rồi bấm <b>Tạo lô và chạy</b>; các lượt sẽ hiện ở đây.</p>
     </section>
   )
   return (
     <section aria-label="Hàng đợi">
-      <h2>Hàng đợi</h2>
+      {head}
       <NextStep batches={batches} />
       {batches.map((b) => {
         const done = b.items.filter((it) => current(it).item === 'ready').length
         return (
-          <div key={b.id} className="panel">
-            <div className="panel-head">
-              <h3>Lô {b.id.slice(0, 8)} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
-              <Chip tone={batchTone(b.status)}><span className="num">{done}/{b.items.length}</span>&nbsp;có kết quả</Chip>
-              <button className="small" onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
+          <div key={b.id} className="batch">
+            <div className="batch-head">
+              <div>
+                <h3>Lô {b.id.slice(0, 8)} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
+                <p className="muted">{b.items.length} prompt · {MODE_LABEL[b.settings.mode ?? 'auto']} · <span className="num">{done}/{b.items.length}</span> có kết quả</p>
+              </div>
+              <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
             </div>
             {b.status === 'paused' && (hintOf(b.pauseReason) || b.pauseReason === 'REF_UPLOAD_UNCERTAIN') && (
-              <div className="panel-body">
+              <div className="status">
                 {hintOf(b.pauseReason) && <p className="notice warn" role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason)}</p>}
                 {b.pauseReason === 'REF_UPLOAD_UNCERTAIN' && stuckRefs(b).map((id, k) => ( // the way out of a binding stuck in uploading/uncertain: Huỷ has the focus, so a stray Enter changes nothing
                   <div key={id}><TwoStep label={`Cho phép tải lại ảnh tham chiếu ${k + 1}`} ask="Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này." yes="Có, cho phép tải lại" safeFocus go={() => run(() => window.api.resetAssetBinding({ assetId: id, confirm: true }))} /></div>
                 ))}
               </div>
             )}
+            <div className="table-box">
             <table>
-              <thead><tr><th className="n">#</th><th>Prompt</th><th>Trạng thái</th></tr></thead>
+              <thead><tr><th className="n">Số</th><th>Prompt</th><th className="st">Trạng thái</th></tr></thead>
               <tbody>
                 {b.items.map((it) => {
                   const a = current(it)
@@ -92,10 +96,9 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
                     <tr key={it.id} data-testid="item" data-tone={tone}>
                       <td className="n">{it.ord + 1}</td>
                       <td className="prompt">{it.prompt}</td>
-                      <td>
+                      <td className="st">
                         <div className="status">
                           <div className="line">
-                            <Strip a={a} />
                             <Chip tone={tone}>{savedAll(a) ? 'Có kết quả · đã lưu về máy' : itemLabel(a)}{a.item === 'failed' && a.error?.code ? ` (${reasons(a)})` : ''}</Chip>
                           </div>
                           {(a.item === 'failed' || a.item === 'needs_review') && <Hint a={a} />}
@@ -116,6 +119,7 @@ export default function Queue({ batches }: { batches: Batch[] }): React.JSX.Elem
               </tbody>
             </table>
             {open === b.id && <Detail b={b} />}
+            </div>
           </div>
         )
       })}

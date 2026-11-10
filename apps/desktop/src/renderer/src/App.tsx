@@ -6,24 +6,25 @@ import Queue from './screens/Queue'
 import Results from './screens/Results'
 import Settings from './screens/Settings'
 import { newer } from './revision'
-import { Chip, RegMark, batchTone, itemTone } from './ui'
+import { Chip, Icon, batchTone, itemTone } from './ui'
 
 const SCREENS = ['Kết nối', 'Tạo lô', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
+const ICON = { 'Kết nối': 'plug', 'Tạo lô': 'plus', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
 
-/** The proof's slug line: the job's facts in one strip. Wording differs from S1 on purpose (tests and pair-check read S1's exact phrases). */
-function Slug({ s }: { s: Session | null }): React.JSX.Element {
-  if (!s) return <div className="slug">Đang đọc trạng thái…</div>
+/** Session facts in the top bar. Wording differs from S1 on purpose (tests and pair-check read S1's exact phrases). */
+function Status({ s }: { s: Session | null }): React.JSX.Element {
+  if (!s) return <div className="status-line">Đang đọc trạng thái…</div>
   const tab = s.tabs.find((t) => t.granted)
   const sc = s.selfCheck
   const linked = s.fake || s.connected === true
   return (
-    <div className="slug" aria-label="Trạng thái phiên">
-      <span className="reg"><RegMark on={linked} /> {s.fake ? 'Chế độ thử (Flow giả)' : linked ? 'Chrome đang nối' : 'Chrome mất nối'}</span>
-      <span>Tab: {tab ? <b>dự án {tab.projectId?.slice(0, 8) ?? '—'}</b> : <span className="bad">chưa cấp</span>}</span>
-      <span>Tài khoản: <b>{s.email ?? '—'}</b></span>
-      <span>Trang Flow: {sc === null ? '—' : sc.ok ? <b>ổn</b> : <span className="bad">{sc.code}</span>}</span>
-      <span>Tự bấm: <b>{s.autoEnabled ? 'bật' : 'tắt'}</b></span>
+    <div className="status-line" aria-label="Trạng thái phiên">
+      <Chip tone={linked ? 'done' : 'attn'}>{s.fake ? 'Chế độ thử (Flow giả)' : linked ? 'Chrome đang nối' : 'Chrome mất nối'}</Chip>
+      <Chip tone={tab ? 'done' : 'attn'}>{tab ? `Tab dự án ${tab.projectId?.slice(0, 8) ?? '—'}` : 'Chưa cấp tab'}</Chip>
+      {sc && !sc.ok && <Chip tone="attn">Trang Flow: {sc.code}</Chip>}
+      <span>Tự bấm {s.autoEnabled ? 'bật' : 'tắt'}</span>
+      <span className="avatar" title={s.email ?? 'chưa đọc được tài khoản'}>{s.email ? s.email.slice(0, 2).toUpperCase() : '—'}</span>
     </div>
   )
 }
@@ -59,16 +60,17 @@ function App(): React.JSX.Element {
   const active = batches.filter((b) => !b.archived && ACTIVE.includes(b.status))
   // items that wait for the human (click Gửi, confirm, fix): the count stays on the nav until they are resolved
   const needYou = batches.filter((b) => !b.archived).reduce((n, b) => n + b.items.filter((it) => ['wait', 'attn'].includes(itemTone(current(it)))).length, 0)
+  const navItem = (s: (typeof SCREENS)[number]): React.JSX.Element => (
+    <button key={s} aria-label={s} aria-current={screen === s ? 'page' : undefined} onClick={() => setScreen(s)}>
+      <Icon name={ICON[s]} /><span>{s}</span>{s === 'Hàng đợi' && needYou > 0 && <span className="count" aria-hidden="true">{needYou}</span>}
+    </button>
+  )
   return (
     <div className="shell">
       <aside className="rail">
-        <div className="brand"><RegMark on light size={22} /><h1>ToolFlow</h1></div>
+        <div className="brand"><h1>ToolFlow</h1></div>
         <nav aria-label="Màn hình">
-          {SCREENS.map((s) => (
-            <button key={s} aria-label={s} aria-current={screen === s ? 'page' : undefined} onClick={() => setScreen(s)}>
-              {s}{s === 'Hàng đợi' && needYou > 0 && <span className="count" aria-hidden="true">{needYou}</span>}
-            </button>
-          ))}
+          {SCREENS.slice(0, 4).map(navItem)}
         </nav>
         {active.length > 0 && (
           <section aria-label="Đang chạy" className="running">
@@ -77,7 +79,7 @@ function App(): React.JSX.Element {
               const done = b.items.filter((it) => current(it).item === 'ready').length
               return (
                 <div key={b.id} className="run">
-                  <div className="run-head"><span>Lô <b>{b.id.slice(0, 8)}</b></span><span className="num">{done}/{b.items.length}</span></div>
+                  <div className="run-head"><Icon name="layers" /><span>Lô {b.id.slice(0, 8)}</span><span className="num">{done}/{b.items.length}</span></div>
                   <Chip tone={batchTone(b.status)}>{BATCH_LABEL[b.status]}</Chip>
                   <div className="actions">
                     {b.status === 'paused'
@@ -90,13 +92,14 @@ function App(): React.JSX.Element {
             })}
           </section>
         )}
+        <nav aria-label="Cài đặt" className="foot">{navItem('Cài đặt')}</nav>
       </aside>
       <div className="work">
-        <Slug s={session} />
+        <header className="topbar"><span className="topbar-title">{screen}</span><Status s={session} /></header>
         <main className="page">
           {screen === 'Kết nối' && <SessionScreen s={session} reload={reload} />}
           {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} onCreated={() => { setScreen('Hàng đợi'); reload() }} />}
-          {screen === 'Hàng đợi' && <Queue batches={batches} />}
+          {screen === 'Hàng đợi' && <Queue batches={batches} onNew={() => setScreen('Tạo lô')} />}
           {screen === 'Kết quả' && <Results batches={batches} />}
           {screen === 'Cài đặt' && session && <Settings s={session} reload={reload} />}
         </main>
