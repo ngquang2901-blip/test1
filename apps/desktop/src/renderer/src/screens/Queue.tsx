@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { hintOf } from '../hints'
-import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, time, type Attempt, type Batch } from '../types'
+import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, time, type Attempt, type Batch, type Draft } from '../types'
 import { Chip, Icon, itemTone } from '../ui'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
@@ -53,12 +53,41 @@ function NextStep({ batches }: { batches: Batch[] }): React.JSX.Element | null {
   return null
 }
 
-export default function Queue({ batches, onNew }: { batches: Batch[]; onNew: () => void }): React.JSX.Element {
+type Preset = { kind: Draft['kind']; mode: Draft['mode']; title: string; sub: string; art: 'wide' | 'hand' | 'video' }
+const PRESETS: Preset[] = [
+  { kind: 'image', mode: 'auto', title: 'Ảnh từ danh sách prompt', sub: 'App tự bấm Gửi từng dòng', art: 'wide' },
+  { kind: 'image', mode: 'manual', title: 'Ảnh, tôi tự bấm Gửi', sub: 'App điền sẵn, bạn bấm trong Flow', art: 'hand' },
+  { kind: 'video', mode: 'auto', title: 'Video từ prompt', sub: 'Cần tài khoản có credit video', art: 'video' },
+]
+
+/** Shortcuts into Tạo lô with the kind and mode already chosen (the owner's "Bắt đầu nhanh"). */
+function QuickStart({ onStart }: { onStart: (p: Pick<Draft, 'kind' | 'mode'>) => void }): React.JSX.Element {
+  return (
+    <div className="quick">
+      <p className="quick-title">Bắt đầu nhanh</p>
+      <ul>{PRESETS.map((p) => (
+        <li key={p.title}>
+          <button className="card" onClick={() => onStart({ kind: p.kind, mode: p.mode })}>
+            <span className="art" data-art={p.art} aria-hidden="true"><i /><i /><i /></span>
+            <span className="card-title">{p.title}</span>
+            <span className="muted small-text">{p.sub}</span>
+          </button>
+        </li>
+      ))}</ul>
+    </div>
+  )
+}
+
+export default function Queue({ batches, q = '', onNew, onStart }: { batches: Batch[]; q?: string; onNew: () => void; onStart: (p: Pick<Draft, 'kind' | 'mode'>) => void }): React.JSX.Element {
   const [open, setOpen] = useState<string | null>(null)
   const head = <div className="head"><h2>Hàng đợi</h2><button className="primary" onClick={onNew}><Icon name="plus" />Lô mới</button></div>
+  const needle = q.trim().toLowerCase()
+  const hit = (b: Batch, prompt: string): boolean => !needle || b.id.startsWith(needle) || prompt.toLowerCase().includes(needle)
+  const shown = batches.filter((b) => b.items.some((it) => hit(b, it.prompt)))
   if (!batches.length) return (
     <section aria-label="Hàng đợi">
       {head}
+      <QuickStart onStart={onStart} />
       <p className="empty">Chưa có lô nào. Vào <b>Tạo lô</b>, dán danh sách prompt rồi bấm <b>Tạo lô và chạy</b>; các lượt sẽ hiện ở đây.</p>
     </section>
   )
@@ -66,7 +95,9 @@ export default function Queue({ batches, onNew }: { batches: Batch[]; onNew: () 
     <section aria-label="Hàng đợi">
       {head}
       <NextStep batches={batches} />
-      {batches.map((b) => {
+      {!needle && <QuickStart onStart={onStart} />}
+      {shown.length === 0 && <p className="empty">Không có prompt hay lô nào khớp “{q}”.</p>}
+      {shown.map((b) => {
         const done = b.items.filter((it) => current(it).item === 'ready').length
         return (
           <div key={b.id} className="batch">
@@ -89,7 +120,7 @@ export default function Queue({ batches, onNew }: { batches: Batch[]; onNew: () 
             <table>
               <thead><tr><th className="n">Số</th><th>Prompt</th><th className="st">Trạng thái</th></tr></thead>
               <tbody>
-                {b.items.map((it) => {
+                {b.items.filter((it) => hit(b, it.prompt)).map((it) => {
                   const a = current(it)
                   const tone = itemTone(a)
                   return (

@@ -5,9 +5,10 @@ import { DEFAULT_COMBO } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
-import { AssetError, registerAsset } from './assets';
+import { AssetError, EXT, registerAsset, sniff } from './assets';
 import type { Grants } from './tabs';
 import type { Downloader } from './downloads';
+import { readFileSync } from 'node:fs';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
@@ -15,7 +16,7 @@ export type Emit = ((entity: 'batch', id: string) => void) & { revision(): numbe
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projectId(): string | null | Promise<string | null>; clock: { now(): number };
   email(): Promise<string | null>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit;
-  downloader: Pick<Downloader, 'batch' | 'retry'>;
+  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void;
 };
 
 const MAX_TEXT = 1_000_000;
@@ -146,6 +147,13 @@ export function createHandlers(d: Deps) {
       await d.downloader.retry(attemptId, mediaId);
       d.emit('batch', batchOf(attemptId));
     },
+    async previewOutput(a: unknown) { // a saved file as a data URL for the S4 thumbnail; nothing is shown before it is on disk
+      const o = obj(a), buf = readFileSync(d.downloader.file(str(o.attemptId), str(o.mediaId)));
+      const mime = sniff(buf.subarray(0, 12));
+      if (!mime || !(mime in EXT)) throw Object.assign(new Error('DOWNLOAD_NOT_IMAGE'), { code: 'DOWNLOAD_NOT_IMAGE' });
+      return { url: `data:${mime};base64,${buf.toString('base64')}` }; // shortcut: full file, not a thumbnail; fine for tens of outputs, resize in main when lists reach hundreds
+    },
+    async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
     async useTabs(a: unknown) { d.grants.use(a); }, // validates against the last listing; session-only
     async enableAuto(a: unknown) {
       if (obj(a ?? {}).ack !== true) throw Object.assign(new Error('ACK_REQUIRED'), { code: 'ACK_REQUIRED' });

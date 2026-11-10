@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, session as electronSession } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session as electronSession, shell } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
@@ -88,7 +88,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const downloadRoot = FAKE && process.env.TOOLFLOW_DOWNLOAD_ROOT ? process.env.TOOLFLOW_DOWNLOAD_ROOT : join(homedir(), 'Downloads', 'ToolFlow')
   const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
   const h = createHandlers({
-    db, runner, clock, emit, email, grants, downloader,
+    db, runner, clock, emit, email, grants, downloader, reveal: (p) => shell.showItemInFolder(p),
     projectId: async () => (FAKE ? 'fake-project' : grants.projectId() ?? (await grants.list().catch(() => []), grants.projectId())), // real: project of the first granted tab
     // FAKE only: e2e names the files in a JSON list because Playwright cannot drive a native dialog; real mode always opens the dialog
     async pickPaths() {

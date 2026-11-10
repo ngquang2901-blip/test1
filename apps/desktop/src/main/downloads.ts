@@ -231,6 +231,16 @@ export function createDownloader(o: DownloaderOptions) {
       if (!x) throw coded('NOT_FOUND')
       await run(x, true)
     },
+    /** Absolute path of a saved output, proven on disk to be a regular file inside root (the row could be stale or the folder swapped for a link). */
+    file(attemptId: string, mediaId: string): string {
+      const r = o.db.prepare("select actual_name n from download where attempt_id=? and media_id=? and state='completed'").get(attemptId, mediaId) as { n: string | null } | undefined
+      if (!r?.n) throw coded('NOT_FOUND')
+      let real: string, st
+      try { real = realpathSync(join(o.root, r.n)); st = lstatSync(real) } catch { throw coded('NOT_FOUND') } // moved or deleted by the user
+      const root = realpathSync(o.root)
+      if (!real.startsWith(root + sep) || !st.isFile()) throw coded('PATH_ESCAPE')
+      return real
+    },
   }
 }
 export type Downloader = ReturnType<typeof createDownloader>
