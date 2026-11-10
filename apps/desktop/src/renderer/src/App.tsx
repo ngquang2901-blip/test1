@@ -59,6 +59,15 @@ function App(): React.JSX.Element {
     return () => { off(); window.removeEventListener('focus', onFocus) }
   }, [reload])
 
+  // main pushes batch changes but not the session: until Chrome is paired and a tab granted, re-read it so S1 follows what the user does in Chrome
+  // shortcut: a lost connection after that shows on the next batch event or window focus; push a session event from main if that proves too late
+  const ready = !!session && (session.fake || (session.connected === true && session.tabs.some((t) => t.granted)))
+  useEffect(() => {
+    if (ready) return
+    const t = setInterval(() => void reload(), 3000)
+    return () => clearInterval(t)
+  }, [ready, reload])
+
   const active = batches.filter((b) => !b.archived && ACTIVE.includes(b.status))
   // items that wait for the human (click Gửi, confirm, fix): the count stays on the nav until they are resolved
   const needYou = batches.filter((b) => !b.archived).reduce((n, b) => n + b.items.filter((it) => ['wait', 'attn'].includes(itemTone(current(it)))).length, 0)

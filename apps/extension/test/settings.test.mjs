@@ -34,6 +34,17 @@ test('label normalization drops only the leading icon token', () => {
   assert.equal(T.modelLabel('🍌 Nano Banana 2.1 arrow_drop_…'), 'Nano Banana 2.1');
 });
 
+test('a Vietnamese Flow panel (as seen live) reads as the same combo, and converge clicks the Vietnamese radio', async () => {
+  const VI = { 'image Image': 'image Hình ảnh', Low: 'Thấp', Medium: 'Trung bình', High: 'Cao' };
+  const w = world({ quality: 'Low' })
+  for (const b of w.btns) b.text = VI[b.text] ?? b.text;
+  assert.deepEqual(T.read(w.btns).current, { mode: 'Image', aspect: '16:9', quality: 'Low', count: 'x2', model: 'Nano Banana 2.1' });
+  const r = await T.converge(WANT, () => w.btns, (b) => b.click());
+  assert.equal(r.ok, true);
+  assert.deepEqual(w.clicks, ['High']);
+  assert.equal(T.label('videocam Video'), 'Video');
+});
+
 test('group detection by label, model dropdown separate, checked read per group', () => {
   const w = world({ aspect: '9:16', count: 'x4' });
   assert.deepEqual(T.read(w.btns).current, { mode: 'Image', aspect: '9:16', quality: 'High', count: 'x4', model: 'Nano Banana 2.1' });
