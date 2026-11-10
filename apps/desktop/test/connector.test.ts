@@ -224,6 +224,18 @@ test('install keeps token across updates, overwrites files, rewrites port, 0600'
   expect(JSON.parse(readFileSync(join(b.dir, 'pair.json'), 'utf8'))).toEqual({ port: 2222, token: a.token })
   if (process.platform !== 'win32') expect(statSync(join(b.dir, 'pair.json')).mode & 0o777).toBe(0o600)
 })
+test('the installed extension carries the app version (so a stale copy in Chrome fails the self-check); bad versions are not written', () => {
+  const root = mkdtempSync(join(tmpdir(), 'tf-ver-'))
+  const bundled = join(root, 'b')
+  mkdirSync(bundled)
+  writeFileSync(join(bundled, 'manifest.json'), JSON.stringify({ manifest_version: 3, name: 'ToolFlow Connector', version: '0.1.0' }))
+  const mf = (d: string) => JSON.parse(readFileSync(join(d, 'manifest.json'), 'utf8'))
+  const a = installExtension(bundled, join(root, 'ud'), 1111, '0.5.1')
+  expect([a.version, mf(a.dir).version, mf(a.dir).name]).toEqual(['0.5.1', '0.5.1', 'ToolFlow Connector'])
+  expect(mf(bundled).version).toBe('0.1.0') // the bundled source is never touched
+  expect(installExtension(bundled, join(root, 'ud'), 1111, '0.6.0-beta.1').version).toBe('0.1.0') // not a Chrome version: keep the file's
+  expect(installExtension(bundled, join(root, 'ud'), 1111).version).toBe('0.1.0')
+})
 test('first run: one persisted token shared by server and pair.json; stable on repeat', async () => {
   const root = mkdtempSync(join(tmpdir(), 'tf-pair-'))
   closers.push(() => rmSync(root, { recursive: true, force: true }))

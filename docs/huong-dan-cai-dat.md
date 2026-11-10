@@ -23,4 +23,8 @@ Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên tro
 - Dữ liệu app (lô, mẫu, extension): Windows `%APPDATA%\ToolFlow`, Linux `~/.config/ToolFlow`. Gỡ app không xoá thư mục này.
 
 ## Cập nhật bản mới
-Cài đè bản mới lên bản cũ; dữ liệu được giữ nguyên. Sau khi cập nhật, vào `chrome://extensions` và bấm nút tải lại (mũi tên vòng) ở thẻ **ToolFlow Connector**.
+- App tự kiểm tra bản mới khi mở và vài giờ một lần, tự tải về trong nền (thanh trên cùng hiện "Đang tải bản …"). Tải xong, một dải xanh hiện **Khởi động lại để cập nhật**: bấm là app tự cài rồi mở lại; bấm **Để sau** thì bản mới tự cài khi bạn tắt app. Đang có lượt chờ kết quả thì app không khởi động lại.
+- Xem phiên bản, kiểm tra tay: **Cài đặt → Cập nhật → Kiểm tra bản mới**.
+- Sau mỗi lần cập nhật, màn Kết nối có thể báo **Extension cần tải lại**: vào `chrome://extensions`, bấm nút tải lại (mũi tên vòng) ở thẻ **ToolFlow Connector**, rồi tải lại tab Flow (làm ở từng hồ sơ Chrome). Trong lúc báo, app không tự bấm Gửi.
+- Cũng có thể cài đè bản mới lên bản cũ bằng file cài; dữ liệu được giữ nguyên.
+- Bản cài bằng `.deb` hỏi mật khẩu quản trị khi cập nhật (Linux cần quyền này để cài gói).

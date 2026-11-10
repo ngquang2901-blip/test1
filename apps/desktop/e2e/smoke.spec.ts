@@ -393,6 +393,13 @@ test('auto-update: a new version downloads by itself; the bar offers a restart; 
   await expect(bar).toHaveCount(0)
 })
 
+test('after an update, a Chrome still running the older extension: S1 asks for a reload, the top bar says so, self-check fails', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_EXT_VERSION: '0.4.1' })
+  await expect(page.getByTestId('reload-ext')).toContainText('bấm nút tải lại (mũi tên vòng) ở thẻ ToolFlow Connector', { timeout: 10_000 })
+  await expect(page.getByLabel('Trạng thái phiên')).toContainText('Extension cần tải lại')
+  await expect(page.getByText('Self-check: lỗi CONFIG_INCOMPLETE — RELOAD_TAB')).toBeVisible()
+})
+
 test('auto-update: no new version reads as up to date; without an update source the app says so', async () => {
   let { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_UPDATE: 'none' })
   await page.getByRole('button', { name: 'Cài đặt' }).click()

@@ -39,6 +39,11 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
       <h2>Kết nối</h2>
       {s.connectorError && <p role="alert" className="notice">Không khởi động được cầu nối extension (mã lỗi {s.connectorError}). Đóng app rồi mở lại; nếu vẫn lỗi, gửi mã này cho người hỗ trợ.</p>}
       {!s.fake && s.connected !== true && !s.connectorError && <Setup dir={s.extDir ?? null} />}
+      {sc && !sc.ok && sc.reasons.includes('RELOAD_TAB') && (
+        <p role="alert" className="notice warn" data-testid="reload-ext">
+          Extension trong Chrome chưa phải bản đi kèm app này (thường gặp ngay sau khi app cập nhật). Vào <code>chrome://extensions</code>, bấm nút tải lại (mũi tên vòng) ở thẻ <b>ToolFlow Connector</b>, rồi tải lại tab Flow. Dùng nhiều hồ sơ Chrome thì làm ở từng hồ sơ. Trong lúc này app không tự bấm Gửi.
+        </p>
+      )}
       <div className="panel">
         <div className="panel-head"><h3>Cầu nối Chrome</h3><Chip tone={linked ? 'done' : 'attn'}>{linked ? 'Đang nối' : 'Mất nối'}</Chip></div>
         <dl className="panel-body kv">

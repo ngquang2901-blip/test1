@@ -24,7 +24,7 @@ function Status({ s }: { s: Session | null }): React.JSX.Element {
     <div className="status-line" aria-label="Trạng thái phiên">
       <Chip tone={linked ? 'done' : 'attn'}>{s.fake ? 'Chế độ thử (Flow giả)' : linked ? 'Chrome đang nối' : 'Chrome mất nối'}</Chip>
       <Chip tone={tab ? 'done' : 'attn'}>{n > 1 ? `${n} tab Flow` : tab ? `Tab dự án ${tab.projectId?.slice(0, 8) ?? '—'}` : 'Chưa cấp tab'}</Chip>
-      {sc && !sc.ok && <Chip tone="attn">Trang Flow: {sc.code}</Chip>}
+      {sc && !sc.ok && <Chip tone="attn">{sc.reasons.includes('RELOAD_TAB') ? 'Extension cần tải lại' : `Trang Flow: ${sc.code}`}</Chip>}
       <span>Tự bấm {s.autoEnabled ? 'bật' : 'tắt'}</span>
       <span className="avatar" title={s.email ?? 'chưa đọc được tài khoản'}>{s.email ? s.email.slice(0, 2).toUpperCase() : '—'}</span>
     </div>
