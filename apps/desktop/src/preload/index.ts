@@ -16,6 +16,8 @@ const api = {
   rerun: call('rerun'),
   downloadBatch: call('downloadBatch'),
   retryDownload: call('retryDownload'),
+  previewOutput: call('previewOutput'),
+  revealOutput: call('revealOutput'),
   useTabs: call('useTabs'),
   enableAuto: call('enableAuto'),
   disableAuto: call('disableAuto'),

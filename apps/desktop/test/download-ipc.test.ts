@@ -1,7 +1,7 @@
 import { test, expect } from 'vitest'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { openDb } from '../src/main/db'
 import { createFakeDriver, FAKE_COMBOS, type DownloadScript } from '../src/main/fake-driver'
 import { createRunner } from '../src/main/runner'
@@ -17,11 +17,11 @@ function rig(script: DownloadScript[] = []) {
   const fake = createFakeDriver([], { downloads: script, downloadsDir: tmp, assets: createAssetStore(db) })
   const clock = { now: () => 1_000_000 }
   const runner = createRunner({ db, driver: fake, clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
-  const events: string[] = []
+  const events: string[] = [], revealed: string[] = []
   let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' }
   const downloader = createDownloader({ db, driver: fake, root, tz: 'UTC', now: clock.now, sleep: async () => {}, tab: () => 't1', onChange: (b) => events.push(b) })
-  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projectId: () => 'p', email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader })
-  return { dir, root, tmp, db, h, fake, events }
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projectId: () => 'p', email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p) })
+  return { dir, root, tmp, db, h, fake, events, revealed }
 }
 async function withBatch(r: ReturnType<typeof rig>) {
   const { batchId } = (await r.h.enqueueBatch({ commandId: 'c1', text: 'một\nhai', kind: 'image', mode: 'manual' })) as { batchId: string }
@@ -61,4 +61,29 @@ test('views carry per-output download state and the relative actualName only, ne
   expect(json).not.toContain(r.tmp)
   expect(json).not.toMatch(/https?:/)
   expect(r.events.length).toBeGreaterThan(0)
+})
+
+test('previewOutput / revealOutput: only a completed file that is really inside root; a link out, a deleted file or an unsaved output is refused', async () => {
+  const r = rig()
+  const { batchId, atts } = await withBatch(r)
+  const one = { attemptId: atts[0].id, mediaId: M[0] }
+  await expect(r.h.previewOutput(one)).rejects.toThrow(/NOT_FOUND/) // not downloaded yet
+  for (const a of [undefined, {}, { attemptId: atts[0].id }]) await expect(r.h.previewOutput(a)).rejects.toThrow(/INVALID_ARGS/)
+  await r.h.downloadBatch(batchId)
+  const { url } = (await r.h.previewOutput(one)) as { url: string }
+  expect(url).toMatch(/^data:image\/png;base64,iVBOR/)
+  await r.h.revealOutput(one)
+  expect(r.revealed).toHaveLength(1)
+  expect(r.revealed[0].startsWith(realpathSync(r.root) + sep)).toBe(true)
+  const rel = (r.db.prepare('select actual_name n from download where attempt_id=?').get(atts[0].id) as { n: string }).n
+  const outside = join(r.dir, 'outside.png')
+  writeFileSync(outside, readFileSync(join(r.root, rel)))
+  rmSync(join(r.root, rel))
+  await expect(r.h.previewOutput(one)).rejects.toThrow(/NOT_FOUND/) // the user deleted it
+  try { symlinkSync(outside, join(r.root, rel)) } catch (e) { // swapped for a link that points out of root
+    if (process.platform === 'win32' && (e as NodeJS.ErrnoException).code === 'EPERM') return // Windows: a file symlink needs admin or Developer Mode
+    throw e
+  }
+  await expect(r.h.previewOutput(one)).rejects.toThrow(/PATH_ESCAPE/)
+  expect(r.revealed).toHaveLength(1)
 })

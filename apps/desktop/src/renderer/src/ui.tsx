@@ -24,6 +24,7 @@ const PATHS = {
   sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
   layers: 'M3 6h18v12H3zM3 10h18',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
 } as const
 
 export function Icon({ name, size = 16 }: { name: keyof typeof PATHS; size?: number }): React.JSX.Element {

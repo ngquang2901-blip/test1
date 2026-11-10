@@ -307,6 +307,23 @@ test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only 
   for (const f of files) expect(readFileSync(join(root, f)).subarray(0, 4).toString('hex')).toBe('89504e47')
   expect(files.every((f) => /^\d{4}-\d\d-\d\d_[0-9a-f]{8}\/00[123]_.+_[0-9a-f]{8}\.png$/.test(f))).toBe(true)
   await expect(page.locator('body')).not.toContainText('Lỗi tải')
+  await expect(outputs(page).locator('img[src^="data:image/png;base64,"]')).toHaveCount(3) // the thumbnail is the saved file, read back from disk
+})
+
+test('Bắt đầu nhanh opens Tạo lô with the preset; search narrows the queue and the results', async () => {
+  const { page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await page.getByRole('button', { name: /Ảnh, tôi tự bấm Gửi/ }).click()
+  await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
+  await page.getByLabel('Tự động').check()
+  await create(page, ['một con mèo', 'một con chó'])
+  await expect(items(page)).toHaveCount(2)
+  await page.getByLabel('Tìm prompt hoặc lô').fill('CHÓ')
+  await expect(items(page)).toHaveCount(1)
+  await expect(items(page)).toContainText('một con chó')
+  await page.getByLabel('Tìm prompt hoặc lô').fill('không có')
+  await expect(items(page)).toHaveCount(0)
+  await expect(page.locator('body')).toContainText('Không có prompt hay lô nào khớp')
 })
 
 test('a bad download is Lỗi tải with no completed file; Thử lại completes it under the same name without generating again', async () => {

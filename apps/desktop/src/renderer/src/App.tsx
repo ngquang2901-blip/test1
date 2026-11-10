@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Session } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Session } from './types'
 import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
@@ -36,25 +36,27 @@ function App(): React.JSX.Element {
   const rev = useRef(0)
   const applied = useRef(new Map<string, number>())
 
-  const reload = useCallback(() => {
-    void window.api.listBatches().then((r: { batches: Batch[]; session: Session }) => { setBatches(r.batches); setSession(r.session) })
-  }, [])
+  const [q, setQ] = useState('')
+  const reload = useCallback(() => window.api.listBatches().then((r: { batches: Batch[]; session: Session }) => { setBatches(r.batches); setSession(r.session) }), [])
+  // quick start: the preset lands in the saved draft first, so Tạo lô opens with it (NewBatch reads session.draft once)
+  const start = (p: Pick<Draft, 'kind' | 'mode'>): void => run(() => window.api.saveDraft(p).then(reload).then(() => setScreen('Tạo lô')))
 
   useEffect(() => {
-    reload()
+    void reload()
     const off = window.api.onState((e) => {
       if (!newer(rev.current, e.revision)) return // older than what we already have
       const missed = e.revision > rev.current + 1
       rev.current = e.revision
-      if (missed) return reload() // lost connection or a gap: re-read everything
+      if (missed) return void reload() // lost connection or a gap: re-read everything
       void window.api.getBatch(e.id).then((b: Batch & { revision: number }) => {
         if (!newer(applied.current.get(b.id) ?? 0, b.revision)) return // a newer reply already landed
         applied.current.set(b.id, b.revision)
         setBatches((all) => (all.some((x) => x.id === b.id) ? all.map((x) => (x.id === b.id ? b : x)) : [b, ...all]))
-      }).catch(() => reload())
+      }).catch(() => void reload())
     })
-    window.addEventListener('focus', reload)
-    return () => { off(); window.removeEventListener('focus', reload) }
+    const onFocus = (): void => void reload()
+    window.addEventListener('focus', onFocus)
+    return () => { off(); window.removeEventListener('focus', onFocus) }
   }, [reload])
 
   const active = batches.filter((b) => !b.archived && ACTIVE.includes(b.status))
@@ -95,13 +97,19 @@ function App(): React.JSX.Element {
         <nav aria-label="Cài đặt" className="foot">{navItem('Cài đặt')}</nav>
       </aside>
       <div className="work">
-        <header className="topbar"><span className="topbar-title">{screen}</span><Status s={session} /></header>
-        <main className="page">
-          {screen === 'Kết nối' && <SessionScreen s={session} reload={reload} />}
-          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} onCreated={() => { setScreen('Hàng đợi'); reload() }} />}
-          {screen === 'Hàng đợi' && <Queue batches={batches} onNew={() => setScreen('Tạo lô')} />}
-          {screen === 'Kết quả' && <Results batches={batches} />}
-          {screen === 'Cài đặt' && session && <Settings s={session} reload={reload} />}
+        <header className="topbar">
+          <span className="topbar-title">{screen}</span>
+          {(screen === 'Hàng đợi' || screen === 'Kết quả') && (
+            <label className="search"><Icon name="search" /><input type="search" aria-label="Tìm prompt hoặc lô" placeholder="Tìm prompt, mã lô…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+          )}
+          <Status s={session} />
+        </header>
+        <main className="page" key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
+          {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
+          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} onCreated={() => { setScreen('Hàng đợi'); void reload() }} />}
+          {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} />}
+          {screen === 'Kết quả' && <Results batches={batches} q={q} />}
+          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} />}
         </main>
       </div>
     </div>
