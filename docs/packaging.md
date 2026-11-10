@@ -26,12 +26,14 @@ Checked on 2026-11-11 (see docs/progress-p2.md, P4 section): the packaged Linux 
 
 **Host**: `publish` in `apps/desktop/electron-builder.yml`. Since 0.5.1: GitHub Releases of the public repo `ngquang2901-blip/test1` (temporary, chosen by the owner; it holds only release files, no source). Releases page: https://github.com/ngquang2901-blip/test1/releases/latest. Builds up to 0.5.0 carry the placeholder `https://updates.toolflow.invalid/toolflow/` and never update by themselves: install 0.5.1+ by hand once. Moving to another host = change that block (any https folder works with `provider: generic` + `url`), publish there, and ship one release from the old host that points to the new one. The files are checked against the sha512 in `latest*.yml`; the Windows installer is unsigned.
 
-**Publishing a version**: bump `version` in `apps/desktop/package.json`, then build and upload in one step (electron-builder creates the release `v<version>` and uploads the installers, the blockmap and `latest*.yml`):
-
-```sh
-GH_TOKEN="$(cat ~/.config/toolflow/github-token)" xvfb-run -a npx electron-builder --linux --win --publish always
-```
+**Publishing a version** (the files that were tested are the files that ship; the release is a draft until they are all up):
+1. Bump `version` in `apps/desktop/package.json`, run the gate, build with `--publish never` (command at the top).
+2. Smoke-test the packaged app: Playwright `_electron.launch({ executablePath: 'dist/linux-unpacked/toolflow' })` with `TOOLFLOW_FAKE_DRIVER=1`.
+3. Create a draft release `v<version>` (GitHub API `POST /repos/<owner>/<repo>/releases` with `draft: true`; `electron-builder publish` does not create one by itself and silently skips every file).
+4. Upload: `GH_TOKEN="$(cat ~/.config/toolflow/github-token)" npx electron-builder publish -v <version> -f dist/ToolFlow-<v>-Setup.exe dist/ToolFlow-<v>-Setup.exe.blockmap dist/ToolFlow-<v>-x86_64.AppImage dist/ToolFlow-<v>-amd64.deb dist/latest-linux.yml dist/latest.yml`
+5. List the release assets (6, `state: uploaded`, sizes equal to `dist/`), then `PATCH` the release with `draft: false`.
+6. Check the real thing: download the previous version's AppImage from the releases page, run it, and watch it update itself.
 
 The token (user `ngquang2901-blip`, scope `repo`, from a GitHub device login) lives in `~/.config/toolflow/github-token` (0600); never print it or pass it as an argument (the server is shared and argv shows in `ps`). Revoke it in GitHub → Settings → Applications. `TOOLFLOW_UPDATE_URL=http(s)://…` overrides the source at run time (testing).
 
-Checked on 2026-11-11 with a local `python3 -m http.server` holding a 0.5.1 build: the 0.5.0 AppImage found it, downloaded it in 15 s, the click replaced the AppImage at its own path (sha256 equal to the served file) and the same file then started as 0.5.1 and reported "Bạn đang dùng bản mới nhất". Same loop against the real host: a 0.5.0 AppImage built with the GitHub config found v0.5.1 on `ngquang2901-blip/test1`, downloaded it in 25 s, replaced itself (sha256 = the published asset) and relaunched as 0.5.1. Not yet run: the Windows (NSIS) and .deb update paths on real machines (.deb updates ask for the admin password via pkexec).
+Checked on 2026-11-11 with a local `python3 -m http.server` holding a 0.5.1 build: the 0.5.0 AppImage found it, downloaded it in 15 s, the click replaced the AppImage at its own path (sha256 equal to the served file) and the same file then started as 0.5.1 and reported "Bạn đang dùng bản mới nhất". Same loop against the real host: a 0.5.0 AppImage built with the GitHub config found v0.5.1 on `ngquang2901-blip/test1`, downloaded it in 25 s, replaced itself (sha256 = the published asset) and relaunched as 0.5.1. 0.5.2 was published this way: the 0.5.1 AppImage downloaded from the releases page updated itself to 0.5.2 in 25 s (sha256 = the published asset). Not yet run: the Windows (NSIS) and .deb update paths on real machines (.deb updates ask for the admin password via pkexec).

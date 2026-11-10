@@ -551,6 +551,37 @@ test('Workflow: Điều kiện — the first node lost its image, so the "Thiế
   expect(sent).toEqual([['cảnh dự phòng', 0], ['nhân vật', 0]])
 })
 
+test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar lands where it is dropped; undo history survives another screen', async () => {
+  const { page } = await launch(tmp())
+  const boxes = page.locator('.react-flow__node')
+  const scale = () => page.locator('.react-flow__viewport').evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).a)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await expect(boxes).toHaveCount(3)
+  await expect(page.locator('.react-flow__minimap')).toBeVisible()
+  await page.getByRole('button', { name: 'Căn giữa' }).click()
+  await expect.poll(scale).toBeLessThanOrEqual(1)
+  const z0 = await scale()
+  await page.getByRole('button', { name: 'Thu nhỏ', exact: true }).click()
+  await expect.poll(scale).toBeLessThan(z0)
+  const z1 = await scale()
+  await page.getByRole('button', { name: 'Phóng to', exact: true }).click()
+  await expect.poll(scale).toBeGreaterThan(z1)
+  // drag "+ Ghi chú" onto the canvas: one more node, at the drop point (not in the default left column)
+  const pane = page.locator('.react-flow__pane'), box = (await pane.boundingBox())!
+  await page.getByRole('button', { name: '+ Ghi chú' }).dragTo(pane, { targetPosition: { x: box.width - 330, y: box.height - 260 } })
+  await expect(boxes).toHaveCount(4)
+  const note = (await page.getByTestId('wf-note').boundingBox())!
+  expect(Math.abs(note.x - (box.x + box.width - 330))).toBeLessThan(30)
+  expect(Math.abs(note.y - (box.y + box.height - 260))).toBeLessThan(30)
+  await expect(page.getByRole('button', { name: 'Hoàn tác' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await expect(boxes).toHaveCount(4)
+  await page.getByRole('button', { name: 'Hoàn tác' }).click() // the step made before leaving is still there
+  await expect(boxes).toHaveCount(3)
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
