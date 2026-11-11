@@ -12,13 +12,14 @@ const dlTone = (d?: Download): Tone => (!d ? 'idle' : d.state === 'completed' ? 
 export function Thumb({ attemptId, media, saved }: { attemptId: string; media: string; saved: boolean }): React.JSX.Element {
   const [url, setUrl] = useState<string | null>(null)
   const [gone, setGone] = useState(false)
+  const [video, setVideo] = useState(false)
   useEffect(() => {
     if (!saved) return
     let live = true
-    window.api.previewOutput({ attemptId, mediaId: media }).then((r: { url: string }) => { if (live) setUrl(r.url) }, () => { if (live) setGone(true) })
+    window.api.previewOutput({ attemptId, mediaId: media }).then((r: { url: string | null; video?: boolean }) => { if (live) { setUrl(r.url); setVideo(!!r.video) } }, () => { if (live) setGone(true) })
     return () => { live = false }
   }, [attemptId, media, saved])
-  return <div className="thumb">{url ? <img src={url} alt="" /> : <span>{gone ? 'Không thấy tệp trên máy' : saved ? '…' : 'Chưa tải về'}</span>}</div>
+  return <div className="thumb">{url ? <img src={url} alt="" /> : <span>{gone ? 'Không thấy tệp trên máy' : video ? 'Video đã lưu' : saved ? '…' : 'Chưa tải về'}</span>}</div>
 }
 
 export default function Results({ batches, q = '' }: { batches: Batch[]; q?: string }): React.JSX.Element {

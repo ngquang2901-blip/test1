@@ -730,6 +730,24 @@ test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only 
   await expect(outputs(page).locator('img[src^="data:image/png;base64,"]')).toHaveCount(3) // the thumbnail is the saved file, read back from disk
 })
 
+test('video batch: chosen in Tạo lô, runs to ready on Flow\'s polls, Tải tất cả saves MP4 files and Kết quả shows them as saved videos', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await expect(page.getByTestId('combo')).toContainText('Video · Veo 3.1 - Lite')
+  await create(page, ['một con mèo', 'một con chó'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).filter({ hasText: 'Đã lưu' })).toHaveCount(2)
+  const files = (readdirSync(root, { recursive: true }) as string[]).filter((f) => f.endsWith('.mp4'))
+  expect(files).toHaveLength(2)
+  for (const f of files) expect(readFileSync(join(root, f)).subarray(4, 8).toString()).toBe('ftyp')
+  await expect(outputs(page).filter({ hasText: 'Video đã lưu' })).toHaveCount(2) // no picture of a video in the app: the card says what the file is
+  await expect(page.locator('body')).not.toContainText('Không thấy tệp trên máy')
+})
+
 test('Bắt đầu nhanh opens Tạo lô with the preset; search narrows the queue and the results', async () => {
   const { page } = await launch(tmp())
   await page.getByRole('button', { name: 'Hàng đợi' }).click()

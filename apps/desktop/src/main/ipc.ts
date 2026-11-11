@@ -186,6 +186,7 @@ export function createHandlers(d: Deps) {
     },
     async previewOutput(a: unknown) { // a saved file as a data URL for the S4 thumbnail; nothing is shown before it is on disk
       const o = obj(a), buf = readFileSync(d.downloader.file(str(o.attemptId), str(o.mediaId)));
+      if (buf.subarray(4, 8).toString('latin1') === 'ftyp') return { url: null, video: true }; // shortcut: a saved video has no picture in the app (the card names it, "Mở thư mục" plays it); add a file protocol + <video> when a preview is asked for
       const mime = sniff(buf.subarray(0, 12));
       if (!mime || !(mime in EXT)) throw Object.assign(new Error('DOWNLOAD_NOT_IMAGE'), { code: 'DOWNLOAD_NOT_IMAGE' });
       const small = d.thumb(buf);
