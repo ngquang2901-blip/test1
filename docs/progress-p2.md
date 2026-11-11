@@ -218,3 +218,7 @@ Release `v0.6.1` of `ngquang2901-blip/test1`: the packaged Linux app (fake Flow)
 - Reference images per prompt: 8 → 10. Live (account `ng***`, Nano Banana 2.1, x1): ten images uploaded, attached as ten chips and sent in one `ogiZ0b` request (`refs=10`), result 1376x768, saved. Uploading and attaching ten took about two minutes. More than ten was not tried.
 - The built-in test Flow no longer writes into the user's `Downloads/ToolFlow` (earlier e2e and smoke runs without a download root had left 118 one-pixel PNGs there; removed by exact content, the 11 real files kept): its default root is `<userData>/downloads`.
 
+Release `v0.6.2` (ready-made workflows, 10 reference images): the packaged Linux app (fake Flow) ran a video batch, an image batch, a ready-made workflow and answered on its MCP port, and wrote nothing into `Downloads/ToolFlow`; six assets, sizes equal to `dist/`, un-drafted. The published 0.6.1 AppImage updated itself to 0.6.2 in 21 s (sha256 equal to the published file) and reported "Bạn đang dùng bản mới nhất".
+
+Open after 0.6.2, by the owner's choice on 2026-11-11: end frame and video x2–x4 wait until account `ng***` has credits again (8 left, one Veo Lite video costs 10); ChatGPT, then Gemini, then Grok are to be built, each needs the owner signed in in Chrome profile `ng***` (ChatGPT and Grok were signed out, Gemini showed a consent dialog); Telegram: not now.
+
