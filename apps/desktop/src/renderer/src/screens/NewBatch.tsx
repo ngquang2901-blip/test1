@@ -151,7 +151,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
                 <label><input type="radio" name="refmode" checked={refMode === 'none'} onChange={() => setRefMode('none')} /> Không dùng</label>
                 <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> {video ? 'Mỗi prompt một ảnh theo thứ tự' : 'Mỗi prompt một nhóm ảnh theo thứ tự'}</label>
                 <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> {video ? 'Dùng chung một ảnh cho mọi prompt' : 'Dùng chung tất cả ảnh cho mọi prompt'}</label>
-                {!video && <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>}
+                {!video && <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={10} value={perItem} onChange={(e) => setPerItem(Math.min(10, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>}
               </div>
           </div>
         </fieldset>

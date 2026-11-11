@@ -35,6 +35,17 @@ async function tabTo(page: Page, name: string): Promise<void> {
 }
 const items = (page: Page) => page.locator('[data-testid=item]')
 
+test('the built-in test Flow never saves into the user\'s Downloads: without a download root its files stay in the test\'s own data folder', async () => {
+  const ud = tmp()
+  const { page } = await launch(ud)
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(page.locator('[data-testid=output]').filter({ hasText: 'Đã lưu' })).toHaveCount(1)
+  expect((readdirSync(join(ud, 'downloads'), { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.png'))).toHaveLength(1)
+})
+
 test('textarea batch runs to ready', async () => {
   const { page } = await launch(tmp())
   await expect(page.getByText('Self-check: đạt')).toBeVisible() // S1
@@ -952,5 +963,20 @@ test('MCP: a busy port says so in plain words and the switch stays off', async (
     await expect(page.getByLabel('Cho trợ lý AI trên máy này điều khiển ToolFlow')).not.toBeChecked()
     await expect(page.getByTestId('mcp-url')).toHaveCount(0)
   } finally { taken.close() }
+})
+
+test('Workflow: a ready-made workflow opens wired and named, and runs as it is (image, then a video from it)', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(6) // the placeholder + 5 templates
+  await page.getByLabel('Mẫu có sẵn').selectOption('Tạo ảnh rồi làm video từ ảnh đó')
+  await expect(page.getByLabel('Tên workflow')).toHaveValue('Tạo ảnh rồi làm video từ ảnh đó')
+  await expect(page.locator('.react-flow__node')).toHaveCount(6)
+  await expect(page.locator('.react-flow__edge')).toHaveCount(4)
+  await expect(page.getByTestId('wf-generate').nth(1).getByTestId('wf-combo')).toContainText('Video · Veo 3.1 - Lite')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  expect((readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))).toHaveLength(1)
 })
 

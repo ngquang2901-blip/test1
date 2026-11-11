@@ -212,3 +212,9 @@ Checked: unit tests (protocol shapes, HTTP gate, tools, the on/off file); e2e on
 
 Release `v0.6.1` of `ngquang2901-blip/test1`: the packaged Linux app (fake Flow) ran a video batch, an image batch and answered `tools/list` on its MCP port; six assets, sizes equal to `dist/`, un-drafted. Update check against the real host: the published 0.6.0 AppImage found 0.6.1, had it downloaded after 21 s, replaced itself (sha256 equal to the published file), started as 0.6.1 and reported "Bạn đang dùng bản mới nhất". (Playwright ends that run with "worker teardown timeout" because the first app instance quits itself for the update; every check in the test passed.)
 
+## After 0.6.1 (2026-11-11)
+
+- Ready-made workflows: five templates in the Workflow bar (`src/renderer/src/wf-templates.ts`), each run through main's `parseGraph` + `plan` in a unit test; e2e opens "Tạo ảnh rồi làm video từ ảnh đó" and runs it on the fake Flow.
+- Reference images per prompt: 8 → 10. Live (account `ng***`, Nano Banana 2.1, x1): ten images uploaded, attached as ten chips and sent in one `ogiZ0b` request (`refs=10`), result 1376x768, saved. Uploading and attaching ten took about two minutes. More than ten was not tried.
+- The built-in test Flow no longer writes into the user's `Downloads/ToolFlow` (earlier e2e and smoke runs without a download root had left 118 one-pixel PNGs there; removed by exact content, the 11 real files kept): its default root is `<userData>/downloads`.
+

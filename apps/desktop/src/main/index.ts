@@ -91,8 +91,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
   const emit = revisioned((e) => win()?.webContents.send('state', e))
   recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
-  // The root is not user-configurable yet; TOOLFLOW_DOWNLOAD_ROOT redirects it in fake mode only (e2e).
-  const downloadRoot = FAKE && process.env.TOOLFLOW_DOWNLOAD_ROOT ? process.env.TOOLFLOW_DOWNLOAD_ROOT : join(homedir(), 'Downloads', 'ToolFlow')
+  // The root is not user-configurable yet. The built-in test Flow never writes into the user's Downloads: its files go to
+  // TOOLFLOW_DOWNLOAD_ROOT (e2e) or into the test's own user-data folder.
+  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(homedir(), 'Downloads', 'ToolFlow')
   const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
   // Update source: TOOLFLOW_UPDATE_URL (http/https) or the URL baked into resources/app-update.yml at build; a placeholder
   // (*.invalid, see electron-builder.yml) or a dev run means no updater. FAKE + TOOLFLOW_FAKE_UPDATE plays a fake release (e2e).

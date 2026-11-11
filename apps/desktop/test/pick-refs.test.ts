@@ -30,7 +30,7 @@ test('enqueueBatch refs: every malformed refs argument is INVALID_ARGS and creat
   const ok = { assetIds: [a.id], mode: 'all', perItem: 1 }
   for (const refs of [
     { ...ok, mode: 'rotate' }, { ...ok, assetIds: ['no-such-asset'] }, { ...ok, assetIds: [a.id, a.id] }, { ...ok, assetIds: 'x' }, { ...ok, assetIds: [7] },
-    { ...ok, perItem: 0 }, { ...ok, perItem: 9 }, { ...ok, perItem: 1.5 }, { ...ok, perItem: '2' }, 'all', null,
+    { ...ok, perItem: 0 }, { ...ok, perItem: 11 }, { ...ok, perItem: 1.5 }, { ...ok, perItem: '2' }, 'all', null,
   ]) {
     await expect(h.enqueueBatch({ ...base, text: 'x', refs })).rejects.toThrow(/INVALID_ARGS/)
     await expect(h.enqueueBatch({ ...base, text: 'x', refs, dryRun: true })).rejects.toThrow(/INVALID_ARGS/)
@@ -115,7 +115,7 @@ test('presets: save, list with ref names (never paths), same name updates, missi
   expect(list.map((x) => x.mode)).toEqual(['auto'])
   db.prepare('delete from asset where id=?').run(a.id) // the file's record is gone
   expect(((await h.listPresets()) as any[])[0].refs.assets[0]).toEqual({ id: a.id, name: '', bytes: 0, missing: true })
-  for (const bad of [{ ...p, name: '' }, { ...p, name: 'x'.repeat(61) }, { ...p, kind: 'gif' }, { ...p, refs: { ...p.refs, assetIds: ['nope'] } }, { ...p, refs: { ...p.refs, perItem: 9 } }, { ...p, template: { ...p.template, how: 'x' } }, null])
+  for (const bad of [{ ...p, name: '' }, { ...p, name: 'x'.repeat(61) }, { ...p, kind: 'gif' }, { ...p, refs: { ...p.refs, assetIds: ['nope'] } }, { ...p, refs: { ...p.refs, perItem: 11 } }, { ...p, template: { ...p.template, how: 'x' } }, null])
     await expect(h.savePreset(bad)).rejects.toThrow(/INVALID_ARGS/)
   await h.deletePreset(id)
   expect(await h.listPresets()).toEqual([])
@@ -132,4 +132,11 @@ test('presets: the chosen model / aspect / count is kept as the profile\'s own o
     await expect(h.savePreset({ ...p, name: 'x', combo: bad }), JSON.stringify(bad)).rejects.toThrow(/INVALID_ARGS/)
   await h.savePreset(p) // saved again without settings: the preset carries none (the app default applies)
   expect(((await h.listPresets()) as any[])[0]).not.toHaveProperty('combo')
+})
+
+test('up to 10 reference images per prompt (10 were sent live on 2026-11-11)', async () => {
+  const { h, db, png } = rig()
+  const ids = Array.from({ length: 10 }, (_, i) => png(`r${i}.png`, Buffer.concat([PNG, Buffer.from([i])])).id)
+  await h.enqueueBatch({ ...base, text: 'x', refs: { assetIds: ids, mode: 'all', perItem: 10 } })
+  expect(JSON.parse((db.prepare('select refs_json r from item').get() as { r: string }).r)).toHaveLength(10)
 })

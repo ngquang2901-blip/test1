@@ -9,6 +9,7 @@ import type { PresetAsset, Session } from '../types'
 import { Chip, Icon, type Tone } from '../ui'
 import { Thumb } from './Results'
 import { ComboFields, Opt, comboLabel, defaultCombo, type Combo } from '../combo'
+import { TEMPLATES } from '../wf-templates'
 
 type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks (absent = 'all')
@@ -34,7 +35,7 @@ const WHY: Record<string, string> = {
   WF_VIDEO_FRAMES: 'Node video cần 1 ảnh dùng chung, hoặc số ảnh đúng bằng số prompt (mỗi prompt một ảnh làm khung hình đầu). Sửa số prompt hoặc số ảnh nối vào',
   WF_VIDEO_OUTPUT: 'Kết quả video chỉ nối được sang node Tự tải về. Bỏ dây nối sang node Tạo ảnh hoặc Điều kiện',
   WF_FILE_INVALID: 'File này không phải workflow của ToolFlow hoặc đã hỏng',
-  TOO_MANY_REFS: 'Quá 8 ảnh tham chiếu cho một prompt. Bớt ảnh hoặc bớt prompt ở node phía trước',
+  TOO_MANY_REFS: 'Quá 10 ảnh tham chiếu cho một prompt. Bớt ảnh hoặc bớt prompt ở node phía trước',
   REF_ASSET_MISSING: 'Có ảnh tham chiếu không còn trên máy. Chọn lại ảnh ở node Ảnh tham chiếu',
   WF_UPSTREAM_INCOMPLETE: 'Node phía trước chưa có đủ ảnh đã lưu nên node này không gửi gì. Xem Hàng đợi, sửa xong thì chạy lại',
   WF_BATCH_FAILED: 'Lô của node này bị lỗi. Xem lý do ở Hàng đợi',
@@ -225,8 +226,8 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     del: (id) => void rf.current?.deleteElements({ nodes: [{ id }] }),
     pick: (id) => call(async () => {
       const p = await window.api.pickRefs() as { assets: PresetAsset[]; errors: unknown[] }
-      if (p.assets.length) tools.patch(id, { assets: p.assets.slice(0, 8) })
-      setMsg(p.errors.length ? `${p.errors.length} file không dùng được (chỉ nhận PNG, JPG, WEBP dưới 20 MB)` : p.assets.length > 8 ? 'Chỉ lấy 8 ảnh đầu' : '')
+      if (p.assets.length) tools.patch(id, { assets: p.assets.slice(0, 10) })
+      setMsg(p.errors.length ? `${p.errors.length} file không dùng được (chỉ nhận PNG, JPG, WEBP dưới 20 MB)` : p.assets.length > 10 ? 'Chỉ lấy 10 ảnh đầu' : '')
     }),
   }
   const start = (): void => call(async () => {
@@ -299,7 +300,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
                 <button className="x" aria-label={`Bỏ ảnh ${a.name}`} onClick={() => tools.patch(sel.id, { assets: sel.data.assets!.filter((x) => x.id !== a.id) })}>×</button></div>
             ))}
             <button className="small" onClick={() => tools.pick(sel.id)}>{sel.data.assets?.length ? 'Chọn lại ảnh' : 'Chọn ảnh'}</button>
-            <p className="hint">Tối đa 8 ảnh. Mọi prompt của node Tạo ảnh nối vào đều dùng các ảnh này.</p>
+            <p className="hint">Tối đa 10 ảnh. Mọi prompt của node Tạo ảnh nối vào đều dùng các ảnh này.</p>
           </>
         )}
         {t === 'generate' && (() => {
@@ -346,6 +347,10 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         <select aria-label="Workflow đã lưu" value={id ?? ''} onChange={(e) => open(saved.find((w) => w.id === e.target.value))}>
           <option value="">{saved.length ? 'Mở workflow đã lưu…' : 'Chưa lưu workflow nào'}</option>
           {saved.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+        <select aria-label="Mẫu có sẵn" value="" onChange={(e) => { const t = TEMPLATES.find((x) => x.name === e.target.value); if (t) { open(t); setMsg('Đã mở mẫu. Sửa prompt trong các ô Text rồi bấm Chạy workflow') } }}>
+          <option value="">Mẫu có sẵn…</option>
+          {TEMPLATES.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
         </select>
         <input aria-label="Tên workflow" maxLength={60} placeholder="Tên workflow" value={name} onChange={(e) => setName(e.target.value)} />
         <button className="small" disabled={!name.trim() || !nodes.length} onClick={() => call(() => window.api.saveWorkflow({ name, graph: raw() }).then(list).then(() => setMsg('Đã lưu')))}>Lưu</button>
