@@ -904,3 +904,53 @@ test('Workflow: a node switched to Video starts from the image the node before i
   expect([files.filter((f) => f.endsWith('.mp4')).length, files.filter((f) => f.endsWith('.png')).length]).toEqual([1, 1])
   expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1]) // only the video was sent with an image: its start frame
 })
+
+test('MCP: off until turned on in Cài đặt; then an agent with the key creates a batch, follows it and saves the files; off closes the door', async () => {
+  const ud = tmp(), root = join(tmp(), 'dl')
+  const { page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_MCP_PORT: '0' })
+  expect(existsSync(join(ud, 'mcp.json'))).toBe(false)
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  const box = page.getByLabel('Cho trợ lý AI trên máy này điều khiển ToolFlow')
+  await expect(box).not.toBeChecked()
+  await box.check()
+  const url = await page.getByTestId('mcp-url').innerText()
+  const { token } = JSON.parse(readFileSync(join(ud, 'mcp.json'), 'utf8')) as { token: string }
+  await expect(page.locator('body')).not.toContainText(token) // the key stays in the file
+  let n = 0
+  const ask = async (method: string, params?: object, key = token) => {
+    const r = await fetch(url, { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++n, method, ...(params ? { params } : {}) }) })
+    return { status: r.status, body: r.status === 200 ? ((await r.json()) as { result: { content?: { text: string }[]; tools?: { name: string }[]; isError?: boolean } }).result : null }
+  }
+  const tool = async (name: string, args: object = {}) => JSON.parse((await ask('tools/call', { name, arguments: args })).body!.content![0].text)
+  expect((await ask('tools/list', undefined, 'wrong')).status).toBe(401)
+  expect((await ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } })).status).toBe(200)
+  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download'])
+  expect(await tool('toolflow_status')).toMatchObject({ connected: true, tabsInUse: 1, selfCheckOk: true })
+  const { batchIds } = await tool('toolflow_create_batch', { prompts: ['một con mèo', 'một con chó'] }) as { batchIds: string[] }
+  expect(batchIds).toHaveLength(1)
+  await expect.poll(async () => (await tool('toolflow_list_batches', { batchId: batchIds[0] })).batches[0].status, { timeout: 30_000 }).toBe('completed')
+  const done = await tool('toolflow_download', { batchId: batchIds[0] }) as { batches: { items: { prompt: string; state: string; files: string[] }[] }[] }
+  expect(done.batches[0].items.map((i) => [i.prompt, i.state, i.files.length])).toEqual([['một con mèo', 'ready', 1], ['một con chó', 'ready', 1]])
+  for (const f of done.batches[0].items.flatMap((i) => i.files)) expect([f.startsWith(root), readFileSync(f).subarray(0, 4).toString('hex')]).toEqual([true, '89504e47'])
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page).filter({ hasText: 'một con mèo' })).toHaveCount(1) // the user sees the agent's batch like any other
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await box.uncheck()
+  await expect(page.getByTestId('mcp-url')).toHaveCount(0)
+  await expect(ask('ping')).rejects.toThrow()
+})
+
+test('MCP: a busy port says so in plain words and the switch stays off', async () => {
+  const { createServer } = await import('node:net')
+  const taken = createServer().listen(0, '127.0.0.1')
+  await new Promise((r) => taken.once('listening', r))
+  try {
+    const { page } = await launch(tmp(), '', { TOOLFLOW_MCP_PORT: String((taken.address() as { port: number }).port) })
+    await page.getByRole('button', { name: 'Cài đặt' }).click()
+    await page.getByLabel('Cho trợ lý AI trên máy này điều khiển ToolFlow').click()
+    await expect(page.getByRole('alert')).toContainText('đang bị chương trình khác dùng')
+    await expect(page.getByLabel('Cho trợ lý AI trên máy này điều khiển ToolFlow')).not.toBeChecked()
+    await expect(page.getByTestId('mcp-url')).toHaveCount(0)
+  } finally { taken.close() }
+})
+

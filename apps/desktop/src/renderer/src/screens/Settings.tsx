@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Draft, Session, UpdateState } from '../types'
 import type { Theme } from '../theme'
 import { Chip } from '../ui'
@@ -17,6 +17,10 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
   const [msg, setMsg] = useState('')
   const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(e.message))
   const speed = (v: Draft['speed']): void => act(() => window.api.saveDraft({ speed: v }))
+  const [mcp, setMcp] = useState<{ enabled: boolean; url: string | null; file: string } | null>(null)
+  useEffect(() => { void window.api.getMcp().then(setMcp) }, [])
+  const MCP_ERR: Record<string, string> = { MCP_PORT_BUSY: 'Cổng 47615 trên máy đang bị chương trình khác dùng (có thể một ToolFlow khác đang mở). Tắt chương trình đó rồi bật lại', MCP_START_FAILED: 'Không mở được cổng cho trợ lý AI. Thử bật lại' }
+  const toggleMcp = (on: boolean): void => { setMcp((m) => m && { ...m, enabled: on, url: null }) /* shown at once; main's answer below is what counts */; void window.api.setMcp(on).then((m: typeof mcp) => { setMcp(m); setMsg('') }, (e: Error) => { void window.api.getMcp().then(setMcp); setMsg(Object.entries(MCP_ERR).find(([k]) => e.message.includes(k))?.[1] ?? e.message) }) }
   return (
     <section aria-label="Cài đặt">
       <h2>Cài đặt</h2>
@@ -43,6 +47,18 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
         <label><input type="radio" name="speed" checked={s.draft.speed === 'default'} onChange={() => speed('default')} /> Mặc định</label>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'fast'} onChange={() => speed('fast')} /> Nhanh</label>
         <p className="hint">Nhanh: tối đa 4 tab Flow cùng lúc (Mặc định: 1). Áp dụng từ lần mở app sau. Đang dùng: <span className="num">{s.speedInUse.tabs}</span> tab, ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
+      </fieldset>
+      <fieldset aria-label="Trợ lý AI">
+        <legend>Trợ lý AI (MCP)</legend>
+        <label><input type="checkbox" checked={!!mcp?.enabled} disabled={!mcp} onChange={(e) => toggleMcp(e.target.checked)} /> Cho trợ lý AI trên máy này điều khiển ToolFlow</label>
+        {mcp?.enabled && mcp.url && (
+          <div className="toolbar">
+            <span>Địa chỉ: <code data-testid="mcp-url">{mcp.url}</code></span>
+            <span className="spacer" />
+            <button className="small" onClick={() => void window.api.openMcpFile()}>Mở thư mục chứa mã khoá</button>
+          </div>
+        )}
+        <p className="hint">MCP là cổng để một trợ lý AI (Claude, Hermes…) tạo lô, xem tiến độ và tải kết quả thay bạn. Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được “Tự động gửi”, không đổi cài đặt, chỉ nghe trên máy này và cần mã khoá trong file <code>mcp.json</code> (ai đọc được file đó cũng điều khiển được app).</p>
       </fieldset>
       <div className="panel">
         <div className="panel-head">
