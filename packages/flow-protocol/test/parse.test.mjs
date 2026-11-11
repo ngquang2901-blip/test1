@@ -66,7 +66,7 @@ test('video ingredients: the ref id in the request is the one Flow used', () => 
   const q = parseGenerateRequest(fReq(sent(recs)[0]));
   const r = parseVideoReceipt(payload(done(recs)[0]));
   assert.equal(q.items[0].model, 'veo_3_1_r2v_lite');
-  assert.deepEqual(q.items[0].refIds, ['63c75619-658a-48a3-9fc3-9d7c7d83220c']);
+  assert.deepEqual(q.items[0].refIds, ['fa4e0000-0000-4000-8000-00000000000d']);
   assert.deepEqual(r.operations[0].refIds, q.items[0].refIds);
   assert.equal(correlate(q, r).owned, true);
 });
@@ -109,7 +109,7 @@ test('throttled generate: RPC error with HTTP 200 and no payload', () => {
 test('raw wire body with a ref: URL decoding keeps Vietnamese exact and the ref is the uploaded media', () => {
   const recs = fx('image-1x1-ref-raw.json');
   const q = parseGenerateRequest(readFReq(sent(recs)[0].raw));
-  assert.equal(q.items[0].prompt, 'Món bún bò này đặt trên bàn gỗ ngoài sân, ánh sáng buổi sáng, ảnh chụp đời thường');
+  assert.equal(q.items[0].prompt, 'Văn bản mẫu 0009');
   const up = fx('upload-maseQ.json');
   const upload = parseUploadReceipt(payload(done(up)[0]));
   assert.deepEqual(q.items[0].refIds, [upload.mediaId], 'generate uses the media id returned by the upload');
@@ -121,7 +121,7 @@ test('upload: the file name is the only echo, so it is the ownership key', () =>
   const recs = fx('upload-maseQ.json');
   const q = parseUploadRequest(fReq(sent(recs)[0]));
   const r = parseUploadReceipt(payload(done(recs)[0]));
-  assert.deepEqual(q, { mime: 'image/jpeg', fileName: 'ref-bunbo.jpg' });
+  assert.deepEqual(q, { mime: 'image/jpeg', fileName: 'sample-file-0003.jpg' });
   assert.equal(r.fileName, q.fileName);
   assert.deepEqual([r.mime, r.width, r.height], ['image/jpeg', 768, 1376]);
   assert.throws(() => parseUploadRequest(fReq(sent(fx('image-1x1-burst3.json'))[0])), ProtocolDrift);

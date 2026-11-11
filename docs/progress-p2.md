@@ -176,3 +176,9 @@ Gate 6/6 (unit 333, flow-protocol 53, extension 66, typecheck, e2e 36, pairing).
 
 Not checked on real Flow: the "bị Flow lọc" condition (no prompt was sent to provoke the filter; the fake's `blocked` reply is the throttle capture with a content reason, not a real capture) and the "có ít nhất một ảnh" condition; sends on account `nt***`; any of this on Windows.
 
+## Capture fixtures pseudonymized before 0.5.3 (2026-11-11)
+
+Found while preparing 0.5.3: the packaged app bundles five capture fixtures (statically imported by `fake-driver.ts`), and those captures still held the Flow project id of the account they were made on, the ids of its media / workflows / batches, and the prompts and titles of that project (280 listing entries, 209 distinct prompts of 5–6 Nov). No credentials: tokens, signatures and content URLs had been redacted at capture time. Releases 0.5.1 and 0.5.2 (public) contain them; the earlier pre-publication scan looked for e-mails, keys and paths only. Owner's decision: scrub first, then release 0.5.3; the two older releases stay until he says otherwise.
+
+Done: `packages/flow-protocol/scripts/scrub-fixtures.mjs` replaced, in all 11 fixtures, 789 ids, 687 texts and 10 upload file names with pseudonyms (same original ⇒ same pseudonym everywhere, so every relation between records holds). Checked by comparing old and new leaf by leaf: 25 327 leaves, 3 530 strings changed, each one exactly its mapped value, nothing else different. Test literals that quoted fixture values were updated; a new test (`fixtures-clean.test.mjs`) fails when a fixture holds anything the script would still replace (two put-back mutations caught). A scan of `packages/` and `apps/` for every original value finds none. Not touched: research notes and evidence under `spikes/` and `docs/tobyflow/` (they still name the project id; they are not part of any build) and the repo's git history (local only).
+

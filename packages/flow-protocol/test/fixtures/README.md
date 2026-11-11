@@ -1,6 +1,6 @@
 # Fixture `flow-protocol`
 
-Bản ghi network **thật** do observer MAIN-world của spike 01 chụp trên Chrome Profile 2, project `b89ba0b5…`, ngày 06/11/2026. Sổ các lượt: [FINDINGS.md](../../../../spikes/01-flow-cdp/FINDINGS.md).
+Bản ghi network **thật** do observer MAIN-world của spike 01 chụp trên Chrome Profile 2, ngày 06/11/2026, **đã thay hết mã định danh và nội dung của tài khoản** (xem mục "Ẩn danh" bên dưới). Sổ các lượt: [FINDINGS.md](../../../../spikes/01-flow-cdp/FINDINGS.md).
 
 | File | Lượt | Nội dung |
 |---|---|---|
@@ -15,6 +15,12 @@ Bản ghi network **thật** do observer MAIN-world của spike 01 chụp trên 
 | `throttled-ogiZ0b.json` | 25 | ảnh bị `PUBLIC_ERROR_USER_REQUESTS_THROTTLED` |
 | `throttled-YhhmEf.json` | 28 | video bị `PUBLIC_ERROR_USER_REQUESTS_THROTTLED` |
 | `project-Zzl0ze.json` | 35 | `Zzl0ze` danh sách project lúc nạp trang (280 workflow, 280 media: prompt gốc, seed, batch UUID, thời điểm tạo); nguồn cho job đối soát D-11 |
+
+**Ẩn danh (bắt buộc, vì app desktop đóng gói kèm một phần fixture cho chế độ chạy thử):**
+- `node scripts/scrub-fixtures.mjs` (chạy từ `packages/flow-protocol`) thay tại chỗ: mọi UUID (project, media, workflow, batch) thành `fa4e0000-0000-4000-8000-…`; mọi prompt, tiêu đề, bản dịch prompt thành `Văn bản mẫu NNNN` / `Sample text NNNN`; tên file upload thành `sample-file-NNNN.<đuôi>`. Cùng một giá trị gốc luôn ra cùng một giá trị thay thế ở mọi file, nên quan hệ giữa các bản ghi giữ nguyên (receipt khớp danh sách project, ref là media đã upload, hai prompt trùng nhau vẫn trùng nhau). Cấu trúc, số, seed, thời điểm tạo, mã model không đổi.
+- Chạy lại không đổi gì thêm; capture mới được đánh số tiếp. `--check` chỉ kiểm tra (thoát 1 nếu còn thứ phải thay): chạy trước mỗi lần phát hành. `--map <file>` ghi bảng cũ → mới để sửa literal trong test; file đó chứa giá trị gốc nên **không commit**.
+- Chuỗi lạ (không phải từ vựng của Flow đã khai trong script) bị coi là nội dung và bị thay; URL chưa redact làm script dừng.
+- Dòng độ dài chunk trong envelope không được tính lại (parser bỏ qua các dòng này).
 
 **Đã chỉnh trước khi lưu:**
 - Token `at=` (XSRF) thay bằng `<redacted>`. `Signature` trong URL ảnh ký sẵn thay bằng `<redacted>`.
