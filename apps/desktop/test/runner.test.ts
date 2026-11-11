@@ -88,6 +88,66 @@ test('video waits for receipt per tab', async () => {
   expect(t.states()[0].item).toBe('generating');
 });
 
+test('video: Flow\'s own polls carry each generating attempt to ready with its own media id; a poll about other operations changes nothing', async () => {
+  const t = rig(['video-ok', 'video-ok'], { n: 2, kind: 'video' });
+  t.runner.start(t.batchId);
+  await t.step(6);
+  expect(t.states().map((s) => s.item)).toEqual(['generating', 'generating']);
+  for (const e of t.driver.videoPolls('running')) t.deliver(e);
+  await t.step();
+  expect(t.states().map((s) => [s.item, s.operations![0].status])).toEqual([['generating', 'running'], ['generating', 'running']]);
+  t.deliver({ tabId: 't1', type: 'poll', text: t.driver.foreignPoll() }); // two finished videos, none of them ours
+  await t.step();
+  expect(count('generating', t.states())).toBe(2);
+  for (const e of t.driver.videoPolls()) t.deliver(e);
+  await t.step();
+  const media = t.states().map((s) => (s.outputs as { mediaId: string }[])[0].mediaId);
+  expect(t.states().map((s) => s.item)).toEqual(['ready', 'ready']);
+  expect(new Set(media).size).toBe(2);
+  expect(media).toEqual(t.states().map((s) => s.operations![0].operationId)); // the finished video is the media with its operation's id
+  expect(batchStatus(t.db, t.batchId)).toBe('completed');
+  expect(t.driver.ledger.clicks).toBe(2);
+});
+
+test('video: an operation Flow reports as failed fails its attempt only; nothing is sent again', async () => {
+  const t = rig(['video-ok', 'video-ok'], { n: 2, kind: 'video' });
+  t.runner.start(t.batchId);
+  await t.step(6);
+  const [first] = t.driver.videoPolls('failed', 0);
+  t.deliver(first);
+  await t.step();
+  expect(t.states().map((s) => [s.item, s.error?.code ?? null])).toEqual([['failed', 'PROVIDER_ERROR_UNKNOWN'], ['generating', null]]);
+  for (const e of t.driver.videoPolls()) t.deliver(e); // the other one finishes
+  await t.step(3);
+  expect(t.states().map((s) => s.item)).toEqual(['failed', 'ready']);
+  expect([batchStatus(t.db, t.batchId), t.driver.ledger.clicks]).toEqual(['partial_failed', 2]);
+});
+
+test('video: no final poll within the watch limit is "needs review", never a second send; a poll that still comes settles it', async () => {
+  const t = rig(['video-ok'], { n: 1, kind: 'video' });
+  t.runner.start(t.batchId);
+  await t.step(4);
+  expect(t.states()[0].item).toBe('generating');
+  t.clock.t += 19 * 60_000;
+  await t.step();
+  expect(t.states()[0].item).toBe('generating');
+  t.clock.t += 2 * 60_000;
+  await t.step();
+  expect([t.states()[0].item, t.states()[0].error?.code]).toEqual(['needs_review', 'PROVIDER_ERROR_UNKNOWN']);
+  for (const e of t.driver.videoPolls()) t.deliver(e);
+  await t.step();
+  expect([t.states()[0].item, t.driver.ledger.clicks]).toEqual(['ready', 1]);
+});
+
+test('video: an unreadable poll pauses the batches that wait on one (PROTOCOL_DRIFT); attempts stay as they are', async () => {
+  const t = rig(['video-ok'], { n: 1, kind: 'video' });
+  t.runner.start(t.batchId);
+  await t.step(4);
+  t.deliver({ tabId: 't1', type: 'poll', text: t.driver.foreignPoll().replace('"wrb.fr","jwpduf","[', '"wrb.fr","jwpduf","[[') });
+  await t.step();
+  expect([t.states()[0].item, batchRow(t.db, t.batchId).status, t.runner.lastError(t.batchId)]).toEqual(['generating', 'paused', 'PROTOCOL_DRIFT']);
+});
+
 test('fast mode uses 4 tabs and caps 20/30', async () => {
   const f = rig(Array(6).fill('image-ok'), { n: 6, speed: 'fast', tabs: ['t1', 't2', 't3', 't4', 't5'], hold: true });
   f.runner.start(f.batchId);

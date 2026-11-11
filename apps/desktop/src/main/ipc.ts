@@ -1,7 +1,7 @@
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
-import { DEFAULT_COMBO, findCombo } from './profile';
+import { defaultCombo, findCombo } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
@@ -89,7 +89,7 @@ export function createHandlers(d: Deps) {
     async enqueueBatch(a: unknown) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
-      const combo = o.combo === undefined ? DEFAULT_COMBO : findCombo(kind, o.combo); // a workflow node may pick its own model / aspect / count
+      const combo = o.combo === undefined ? defaultCombo(kind) : findCombo(kind, o.combo); // Tạo lô and a workflow node may pick their own model / aspect / count
       if (!combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
       const parsed = parsePrompts(src);
       const ra = o.refs === undefined ? { assetIds: [], mode: 'none', perItem: 1 } : obj(o.refs);

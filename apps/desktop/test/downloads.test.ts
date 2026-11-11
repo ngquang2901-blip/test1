@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpath
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { openDb, type Db } from '../src/main/db'
-import { createFakeDriver, TINY_PNG, type DownloadScript } from '../src/main/fake-driver'
+import { createFakeDriver, TINY_MP4, TINY_PNG, type DownloadScript } from '../src/main/fake-driver'
 import { enqueueBatch } from '../src/main/batch'
 import { ConnectorError } from '../src/main/driver'
 import { createDownloader, ensureDir, planName, recoverDownloads, requestDownload, safeComponent, type DlDriver, type DlInfo, type PlanInput } from '../src/main/downloads'
@@ -210,6 +210,22 @@ test('started row and the browser knows nothing: needs_review, no blind transfer
   expect(s.fetches).toBe(0)
   await requestDownload(r.db, s.drv, r.args({ explicit: true }), r.env)
   expect(s.fetches).toBe(1) // a fresh transfer, but only on the explicit retry
+})
+
+test('a video output is saved only when the file is an MP4: the still picture Flow shows for it is refused, the MP4 lands as .mp4; an MP4 for an image output is refused too', async () => {
+  const r = rig(['download-ok', 'download-mp4'])
+  const still = await requestDownload(r.db, r.spy, r.args({ kind: 'video' }), r.env)
+  expect([still.state, still.error_code]).toEqual(['failed', 'DOWNLOAD_NOT_VIDEO']) // a good PNG, but this output is a video
+  expect([onlyFiles(r.root), onlyFiles(r.tmp)]).toEqual([[], []])
+  expect(rows(r.db)[0].planned_name).toMatch(/\.mp4$/)
+  const mp4 = await requestDownload(r.db, r.spy, r.args({ kind: 'video' }), r.env)
+  expect([mp4.state, mp4.bytes]).toEqual(['completed', TINY_MP4.length])
+  expect(onlyFiles(r.root)).toEqual([mp4.actual_name])
+  expect(mp4.actual_name).toMatch(/\/001_một con mèo_3f2b9c1e\.mp4$/)
+  expect(readFileSync(join(r.root, mp4.actual_name!)).subarray(4, 8).toString()).toBe('ftyp')
+  const image = rig(['download-mp4'])
+  const row = await requestDownload(image.db, image.spy, image.args(), image.env)
+  expect([row.state, row.error_code, onlyFiles(image.root)]).toEqual(['failed', 'DOWNLOAD_NOT_IMAGE', []])
 })
 
 for (const script of ['download-html', 'download-empty'] as const) test(`${script} is never completed: DOWNLOAD_NOT_IMAGE, temp file deleted, nothing in root; retry keeps the planned name`, async () => {

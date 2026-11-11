@@ -38,6 +38,7 @@ export const HINTS: Record<string, string> = {
   RESULT_OWNERSHIP_AMBIGUOUS: 'Không chắc kết quả này của lượt nào. Mở Flow đối chiếu rồi xác nhận',
   // download
   DOWNLOAD_NOT_IMAGE: 'Flow trả về thứ không phải ảnh (trang lỗi hoặc file rỗng). Đã xoá file tạm, bấm Thử lại; kiểm tra tab Flow còn đăng nhập',
+  DOWNLOAD_NOT_VIDEO: 'Flow trả về thứ không phải video (ảnh xem trước, trang lỗi hoặc file rỗng). Đã xoá file tạm, bấm Thử lại; nếu vẫn vậy thì tải lại tab Flow rồi Thử lại',
   DOWNLOAD_ACK_LOST: 'Chưa rõ lần tải trước đã chạy chưa. Kiểm tra thư mục Downloads/ToolFlow rồi bấm Thử lại (app sẽ tìm file cũ trước khi tải mới)',
   DOWNLOAD_TIMEOUT: 'Trình duyệt tải quá lâu. Xem mục Tải xuống của Chrome rồi bấm Thử lại',
   DOWNLOAD_RECONCILE_FAILED: 'Không hỏi được trình duyệt về lần tải này. Kiểm tra kết nối ở màn Kết nối rồi bấm Thử lại',

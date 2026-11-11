@@ -81,7 +81,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
         return
       }
       if (!m || typeof m !== 'object' || 'keepalive' in m) return
-      if (m.type === 'sent' || m.type === 'response') {
+      if (m.type === 'sent' || m.type === 'response' || m.type === 'poll') {
         const tabId = ns(inst, m.tabId)
         conn.tabs.add(tabId)
         return emit({ ...m, tabId } as DriverEvent)

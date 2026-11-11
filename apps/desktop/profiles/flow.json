@@ -1,10 +1,12 @@
-{ "version": "2026.11.11-1",
+{ "version": "2026.11.11-2",
   "selectors": { "editor": "flow-prompt-box .ProseMirror[contenteditable=\"true\"]", "submit": "flow-prompt-box button[type=\"submit\"]", "clear": "button.clear-button", "chip": "flow-image-ingredient-chip img", "tile": "flow-grid-tile-container", "creditWarning": "button.prompt-warning-button", "assetSearch": "flow-add-menu-popover-content input.search-input", "assetItem": "flow-add-menu-popover-content .asset-item" },
   "selfCheck": ["editor", "submit"],
-  "combos": [{ "kind": "image", "mode": "Image", "model": "Nano Banana 2.1", "aspect": "16:9", "quality": "High", "count": 2 }],
+  "combos": [{ "kind": "image", "mode": "Image", "model": "Nano Banana 2.1", "aspect": "16:9", "quality": "High", "count": 2 },
+             { "kind": "video", "mode": "Video", "model": "Veo 3.1 - Lite", "aspect": "16:9", "count": 1 }],
   "choices": [
     { "kind": "image", "mode": "Image", "model": "Nano Banana 2.1", "aspects": ["16:9", "4:3", "1:1", "3:4", "9:16"], "qualities": ["Low", "Medium", "High"], "counts": [1, 2, 3, 4] },
     { "kind": "image", "mode": "Image", "model": "Nano Banana Pro", "aspects": ["16:9", "4:3", "1:1", "3:4", "9:16"], "counts": [1, 2, 3, 4] },
-    { "kind": "image", "mode": "Image", "model": "Nano Banana 2 Lite", "aspects": ["16:9", "4:3", "1:1", "3:4", "9:16"], "counts": [1, 2, 3, 4] }
+    { "kind": "image", "mode": "Image", "model": "Nano Banana 2 Lite", "aspects": ["16:9", "4:3", "1:1", "3:4", "9:16"], "counts": [1, 2, 3, 4] },
+    { "kind": "video", "mode": "Video", "model": "Veo 3.1 - Lite", "aspects": ["16:9", "9:16"], "counts": [1] }
   ],
   "rpc": { "image": "ogiZ0b", "t2v": "YhhmEf", "poll": "jwpduf", "upload": "maseQ", "project": "Zzl0ze" } }

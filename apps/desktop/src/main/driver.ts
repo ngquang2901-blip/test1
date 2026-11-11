@@ -4,6 +4,7 @@ export type ClickResult = { found: boolean; disabled: boolean | null; listeners:
 export type DriverEvent =
   | { tabId: string; type: 'sent'; epoch: number; request: unknown } // raw request body as captured; the runner must parse it (readFReq) and never persist it (reCAPTCHA token slot)
   | { tabId: string; type: 'response'; epoch: number; rpc: string; text: string; request: unknown } // request = raw body of the request this answers (same XHR closure); parse, never persist // raw; runner parses with flow-protocol
+  | { tabId: string; type: 'poll'; text: string } // Flow's own answer to its video poll (jwpduf), raw; names operations of any attempt and of the user's own videos
   | { tabId: string; type: 'disconnected' };
 export type FlowTab = { tabId: string; projectId: string | null; email: string | null; active: boolean }; // projectId: uuid of /project/<uuid> only; no URL, no query
 export type DlInfo = { id: number; state: 'in_progress' | 'interrupted' | 'complete'; filename: string; fileSize: number; mime: string; error: string | null }; // filename: absolute path the browser reports; never a url

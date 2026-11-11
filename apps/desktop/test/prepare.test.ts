@@ -47,6 +47,16 @@ test('prepare: a model without a thinking level sends quality null (the page mus
   expect(seen[1]).toEqual(['settings', { tabId: '7', mode: 'Image', aspect: '9:16', quality: null, count: 'x3', model: 'Nano Banana Pro' }])
 })
 
+test('prepare: a video from a prompt goes in as mode Video with the input type Ingredients (Flow has no separate text mode) and no thinking level', async () => {
+  const { server, seen } = stub(clean((op) => (op === 'settings' ? SETTINGS_OK : PREP_OK)))
+  const combo = { kind: 'video', mode: 'Video', model: 'Veo 3.1 - Lite', aspect: '9:16', count: 1 }
+  expect(await createExtDriver(server, OPEN).prepare('7', { ...prep, kind: 'video', settings: { combo } })).toEqual({ ok: true })
+  expect(seen[1]).toEqual(['settings', { tabId: '7', mode: 'Video', input: 'Ingredients', aspect: '9:16', quality: null, count: 'x1', model: 'Veo 3.1 - Lite' }])
+  const image = stub(clean((op) => (op === 'settings' ? SETTINGS_OK : PREP_OK)))
+  await createExtDriver(image.server, OPEN).prepare('7', prep)
+  expect(image.seen[1][1]).not.toHaveProperty('input') // an image names no input type: the image panel has none
+})
+
 test.each([
   ['settings mismatch', (op: string) => (op === 'settings' ? { ok: false, mismatches: ['model'] } : PREP_OK), 'SETTINGS_MISMATCH', ['settings']],
   ['settings op throws', (op: string) => (op === 'settings' ? new Error('no panel') : PREP_OK), 'SETTINGS_MISMATCH', ['settings']],
