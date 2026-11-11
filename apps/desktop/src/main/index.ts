@@ -12,6 +12,7 @@ import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
 import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
 import { createDownloader, recoverDownloads } from './downloads'
+import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createWorkflows } from './workflow'
@@ -166,7 +167,18 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     codes: (b) => (db.prepare("select json_extract(a.state_json,'$.error.code') c from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord").all(b) as { c: string | null }[]).map((r) => r.c),
   })
   wfActive = wf.active
-  registerIpc(ipcMain, { ...h, ...wf.handlers })
+  // MCP: an AI agent on this machine drives the same handlers the screens call. Off until the user turns it on in Cài đặt.
+  const mcp = createMcpSwitch({
+    file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(), // a fixed port, so the agent's config survives restarts
+    tools: toolsOf({ enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), download: (b) => h.downloadBatch(b), list: () => h.listBatches(), file: (a, m) => downloader.file(a, m) }),
+  })
+  mcp.start().catch((e) => console.error('mcp', (e as { code?: string })?.code ?? 'INTERNAL_ERROR'))
+  const mcpHandlers = {
+    async getMcp() { return mcp.state() },
+    async setMcp(a: unknown) { try { return await mcp.set(a === true) } catch (e) { throw new Error((e as { code?: string })?.code === 'EADDRINUSE' ? 'MCP_PORT_BUSY' : 'MCP_START_FAILED') } },
+    async openMcpFile() { shell.showItemInFolder(mcp.state().file) },
+  }
+  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers })
 
   // The runner changes rows on its own: tell the renderer when a batch's rows moved.
   const seen = new Map<string, string>()

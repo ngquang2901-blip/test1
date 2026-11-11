@@ -203,3 +203,10 @@ Details and the live record: [plans/2026-11-11-p3-video.md](superpowers/plans/20
 Release `v0.6.0` of `ngquang2901-blip/test1`: six assets, sizes equal to `dist/`, then un-drafted. Not in it: end frame, other Veo / Omni models (not qualified by a live send).
 
 Update check against the real host: the published 0.5.3 AppImage found 0.6.0, had it downloaded after 21 s, and on "Khởi động lại để cập nhật" replaced itself (the file is renamed to `ToolFlow-0.6.0-x86_64.AppImage`, sha256 equal to the published file); that file starts as 0.6.0 and reports "Bạn đang dùng bản mới nhất".
+
+## MCP endpoint (2026-11-11, 0.6.1)
+
+`src/main/mcp.ts`: JSON-RPC over HTTP POST `/mcp` on 127.0.0.1:47615, off until the user ticks it in Cài đặt; bearer token in `<userData>/mcp.json` (0600, never sent to the renderer); a request with an `Origin` header is refused (a web page can reach 127.0.0.1). Four tools on top of the handlers the screens call: `toolflow_status`, `toolflow_create_batch` (prompts + kind, the app's default settings, mode auto: without the user's auto-send the batch waits for the user's click), `toolflow_list_batches`, `toolflow_download`. No tool enables auto-send, picks settings, names refs or reads files.
+
+Checked: unit tests (protocol shapes, HTTP gate, tools, the on/off file); e2e on the fake Flow (switch on, an agent creates a batch, follows it, saves the files, switch off; a busy port); the official client `@modelcontextprotocol/inspector --cli` against a running dev app (initialize, tools/list, create → download, 2 files); and live on the real Flow tab (account `ng***`): one prompt through `toolflow_create_batch`, ready after 24 s, `toolflow_download` returned two saved JPEG files, then the switch was turned off again.
+

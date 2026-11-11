@@ -3,13 +3,13 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.6.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.6.1-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
 ## Linux
-- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.6.0-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.6.0-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.6.0-x86_64.AppImage --appimage-extract-and-run`.
-- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.6.0-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
+- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.6.1-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.6.1-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.6.1-x86_64.AppImage --appimage-extract-and-run`.
+- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.6.1-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:
@@ -25,6 +25,15 @@ Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên tro
 - Muốn video bắt đầu từ một ảnh: ở mục **Khung hình đầu** bấm **Chọn ảnh…**, rồi chọn dùng chung một ảnh hoặc mỗi prompt một ảnh theo thứ tự.
 - Màn **Kết quả**: bấm **Tải tất cả kết quả** để lưu MP4, bấm **Xem video** để xem ngay trong app.
 - Màn **Workflow**: bấm vào node Tạo ảnh Flow, đổi **Loại kết quả** sang Video; ảnh nối vào node đó là khung hình đầu.
+
+## Cho trợ lý AI điều khiển ToolFlow (MCP, từ bản 0.6.1)
+MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, Hermes…) tạo lô, xem tiến độ và tải kết quả thay bạn. Mặc định tắt.
+1. **Cài đặt → Trợ lý AI (MCP)**: tích **Cho trợ lý AI trên máy này điều khiển ToolFlow**. App hiện địa chỉ `http://127.0.0.1:47615/mcp`.
+2. Bấm **Mở thư mục chứa mã khoá**, mở file `mcp.json`, chép dòng `token`.
+3. Khai báo trong trợ lý. Ví dụ Claude Code: `claude mcp add --transport http toolflow http://127.0.0.1:47615/mcp --header "Authorization: Bearer <token>"`.
+- Trợ lý có 4 lệnh: xem trạng thái, tạo lô (ảnh hoặc video, dùng cài đặt mặc định của app), xem các lô, tải kết quả về máy.
+- Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được **Tự động gửi**: nếu bạn chưa bật, lô của nó chờ bạn bấm Gửi trong Flow.
+- Ai đọc được file `mcp.json` cũng điều khiển được app: đừng gửi file đó cho người khác. Muốn khoá lại thì bỏ tích.
 
 ## Dữ liệu nằm ở đâu
 - Ảnh và video tải về: thư mục `Downloads/ToolFlow`.
