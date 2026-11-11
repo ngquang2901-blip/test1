@@ -29,7 +29,7 @@ if (tab) {
   }
   let last = ''
   for (const t0 = Date.now(); Date.now() - t0 < Number(process.env.WATCH ?? 0) * 1000; await sleep(2000)) {
-    const st = JSON.stringify(await server.send('gptState', a).catch((e) => ({ error: (e as Error).message })))
+    const st = JSON.stringify(await server.send(process.env.WATCH_OP ?? 'gptState', { ...a, ...JSON.parse(process.env.WATCH_ARGS ?? '{}') }).catch((e) => ({ error: (e as Error).message })))
     if (st !== last) { console.log(`[${Math.round((Date.now() - t0) / 1000)}s] ${st}`); last = st }
   }
 }

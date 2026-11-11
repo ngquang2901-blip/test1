@@ -29,7 +29,7 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
   const run = (f: () => Promise<unknown>): void => { setError(null); void f().catch((e: Error) => setError(e.message.replace(/^Error invoking remote method '[^']*': (Error: )?/, ''))) } // inline, never a blocking dialog
   const rows = batches.flatMap((b) => b.items.flatMap((it) => {
     const a = current(it)
-    return a.outputs.map((m) => ({ key: `${it.id}:${m}`, batchId: b.id, attemptId: a.id, kind: b.kind, n: it.ord + 1, prompt: it.prompt, media: m, dl: a.downloads?.[m] }))
+    return a.outputs.map((m) => ({ key: `${it.id}:${m}`, batchId: b.id, attemptId: a.id, kind: b.kind, provider: b.provider, n: it.ord + 1, prompt: it.prompt, media: m, dl: a.downloads?.[m] }))
   }))
   const pending = [...new Set(rows.filter((r) => r.dl?.state !== 'completed').map((r) => r.batchId))]
   const saved = rows.filter((r) => r.dl?.state === 'completed').length
@@ -43,7 +43,7 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
       </div>
       <p className="muted"><span className="num">{saved}/{rows.length}</span> tệp đã nằm trong thư mục Downloads/ToolFlow</p>
       {error && <p className="notice" role="alert">Không tải được: {error}</p>}
-      {rows.length === 0 ? <p className="empty">Chưa có kết quả. Ảnh và video Flow tạo xong cho các lô sẽ hiện ở đây để tải về máy.</p>
+      {rows.length === 0 ? <p className="empty">Chưa có kết quả. Ảnh và video tạo xong cho các lô sẽ hiện ở đây để tải về máy.</p>
         : shown.length === 0 ? <p className="empty">Không có kết quả nào khớp “{q}”.</p> : (
           <ul className="gallery">{shown.map((r) => {
             const bad = r.dl?.state === 'failed' || r.dl?.state === 'needs_review'
@@ -52,9 +52,9 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
                 <Thumb attemptId={r.attemptId} media={r.media} saved={r.dl?.state === 'completed'} />
                 <div className="what">
                   <span className="prompt-line" title={r.prompt}>{r.prompt}</span>
-                  <span className="file">{KIND_LABEL[r.kind]} · lô {r.batchId.slice(0, 8)} · dòng {r.n}</span>
+                  <span className="file">{r.provider === 'chatgpt' ? 'ChatGPT · ' : ''}{KIND_LABEL[r.kind]} · lô {r.batchId.slice(0, 8)} · dòng {r.n}</span>
                   {r.dl?.state === 'completed' && r.dl.actualName && <span className="file name" title={r.dl.actualName}>{r.dl.actualName}</span>}
-                  {bad && hintOf(r.dl?.errorCode) && <div className="hint" data-testid="hint">{hintOf(r.dl?.errorCode)}</div>}
+                  {bad && hintOf(r.dl?.errorCode, r.provider) && <div className="hint" data-testid="hint">{hintOf(r.dl?.errorCode, r.provider)}</div>}
                 </div>
                 <div className="end">
                   <Chip tone={dlTone(r.dl)}>{dlLabel(r.dl)}{bad && r.dl?.errorCode ? ` (${r.dl.errorCode})` : ''}</Chip>

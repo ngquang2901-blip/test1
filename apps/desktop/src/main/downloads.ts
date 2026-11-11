@@ -190,7 +190,7 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
 }
 
 // ---------- batch / retry (what the IPC calls) ----------
-export type DownloaderOptions = { db: Db; driver: DlDriver; root: string; tz: string; now(): number; sleep?(ms: number): Promise<void>; budgetMs?: number; tab(): string | null; onChange?(batchId: string): void }
+export type DownloaderOptions = { db: Db; driver: DlDriver; root: string; tz: string; now(): number; sleep?(ms: number): Promise<void>; budgetMs?: number; tab(batchId: string): string | null | Promise<string | null>; onChange?(batchId: string): void } // tab: the browser tab that shows the batch's outputs (it may throw its own coded error)
 const WORKERS = 2
 
 export function createDownloader(o: DownloaderOptions) {
@@ -210,10 +210,8 @@ export function createDownloader(o: DownloaderOptions) {
     const key = `${x.attemptId}:${x.mediaId}`
     const have = inflight.get(key)
     if (have) return have
-    const tab = o.tab()
-    if (!tab) return Promise.reject(coded('NO_PROJECT_TAB'))
-    const p = requestDownload(o.db, o.driver, { attemptId: x.attemptId, mediaId: x.mediaId, tab, explicit, batchLabel: x.batchId.slice(0, 8), at: x.at, index: x.index, prompt: x.prompt, tz: o.tz, kind: x.kind },
-      { root: o.root, now: o.now, sleep, budgetMs: o.budgetMs, onChange: () => o.onChange?.(x.batchId) }).finally(() => inflight.delete(key))
+    const p = (async () => { const tab = await o.tab(x.batchId); if (!tab) throw coded('NO_PROJECT_TAB'); return tab })().then((tab) => requestDownload(o.db, o.driver, { attemptId: x.attemptId, mediaId: x.mediaId, tab, explicit, batchLabel: x.batchId.slice(0, 8), at: x.at, index: x.index, prompt: x.prompt, tz: o.tz, kind: x.kind },
+      { root: o.root, now: o.now, sleep, budgetMs: o.budgetMs, onChange: () => o.onChange?.(x.batchId) })).finally(() => inflight.delete(key))
     inflight.set(key, p)
     return p
   }
@@ -222,7 +220,7 @@ export function createDownloader(o: DownloaderOptions) {
     /** Every output of the batch that is not completed; failed ones are retried, needs_review ones are only reconciled. At most 2 at a time. */
     async batch(batchId: string): Promise<void> {
       const todo = outputsOf(batchId).filter((x) => stateOf(x) !== 'completed')
-      if (todo.length && !o.tab()) throw coded('NO_PROJECT_TAB')
+      if (todo.length && !(await o.tab(batchId))) throw coded('NO_PROJECT_TAB')
       let next = 0
       const worker = async (): Promise<void> => {
         for (let x = todo[next++]; x; x = todo[next++]) await run(x, false).catch((e) => console.error('download', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))

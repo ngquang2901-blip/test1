@@ -1,8 +1,8 @@
-import { validate, forwardEvent, fetchMediaOp, downloadsOp } from './ops.js';
+import { validate, forwardEvent, fetchMediaOp, gptFetchOp, downloadsOp } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptPlus','gptFind','gptPick','gptState','gptPrep','gptSend','gptImgs','gptTurns']);
+const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns']);
 
 // One id per Chrome profile (this extension's storage is per profile): the app keeps one connection per profile, so several accounts can work at once.
 async function instance() {
@@ -46,13 +46,13 @@ async function handle(op, a, epoch) {
   switch (op) {
     case 'tabs': return (await chrome.tabs.query({ url: 'https://flow.google.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only, no query string
     case 'gptTabs': return (await chrome.tabs.query({ url: 'https://chatgpt.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only
-    case 'gptNew': { // a new, empty conversation: the tab goes to the start page (works in every UI language; the page op API cannot outlive a navigation)
-      if (!Number.isInteger(a.tabId)) throw new Error('tabId required');
+    case 'gptNew': case 'gptOpen': { // a new, empty conversation, or one of ours again: the tab goes there (the page op API cannot outlive a navigation)
       if (!/^https:\/\/chatgpt\.com\//.test((await chrome.tabs.get(a.tabId)).url || '')) throw new Error('not a ChatGPT tab');
-      await chrome.tabs.update(a.tabId, { url: 'https://chatgpt.com/' });
+      await chrome.tabs.update(a.tabId, { url: op === 'gptOpen' ? `https://chatgpt.com/c/${a.conv}` : 'https://chatgpt.com/' }); // conv is a validated uuid
       for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 250)); if ((await chrome.tabs.get(a.tabId)).status === 'complete') return true; }
       return false;
     }
+    case 'gptFetch': return gptFetchOp(chrome, a); // tab -> image bytes (internal message) -> chrome.downloads
     case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;
     case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await chrome.tabs.reload(a.tabId); return true;

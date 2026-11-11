@@ -4,7 +4,7 @@ import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, time, 
 import { Chip, Icon, itemTone } from '../ui'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
-const Hint = ({ a }: { a: Attempt }): React.JSX.Element | null => { const h = hintOf(a.error?.code); return h ? <div className="hint" data-testid="hint">{h}</div> : null } // what to do, next to the raw code
+const Hint = ({ a, provider }: { a: Attempt; provider?: string }): React.JSX.Element | null => { const h = hintOf(a.error?.code, provider); return h ? <div className="hint" data-testid="hint">{h}</div> : null } // what to do, next to the raw code
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
 
 function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
@@ -114,14 +114,14 @@ export default function Queue({ batches, q = '', onNew, onStart, onPreset }: { b
           <div key={b.id} className="batch">
             <div className="batch-head">
               <div>
-                <h3>Lô {b.id.slice(0, 8)}{b.settings.split ? ` · phần ${b.settings.split.part}/${b.settings.split.of}` : ''} · {KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
+                <h3>Lô {b.id.slice(0, 8)}{b.settings.split ? ` · phần ${b.settings.split.part}/${b.settings.split.of}` : ''} · {b.provider === 'chatgpt' ? 'ChatGPT · ' : ''}{KIND_LABEL[b.kind]} · {BATCH_LABEL[b.status]}{b.archived ? ' · đã lưu hồ sơ' : ''}</h3>
                 <p className="muted">{b.items.length} prompt · {MODE_LABEL[b.settings.mode ?? 'auto']}{b.project ? ` · dự án ${b.project.slice(0, 8)}` : ''} · <span className="num">{done}/{b.items.length}</span> có kết quả</p>
               </div>
               <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
             </div>
-            {b.status === 'paused' && (hintOf(b.pauseReason) || b.pauseReason === 'REF_UPLOAD_UNCERTAIN') && (
+            {b.status === 'paused' && (hintOf(b.pauseReason, b.provider) || b.pauseReason === 'REF_UPLOAD_UNCERTAIN') && (
               <div className="status">
-                {hintOf(b.pauseReason) && <p className="notice warn" role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason)}</p>}
+                {hintOf(b.pauseReason, b.provider) && <p className="notice warn" role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason, b.provider)}</p>}
                 {b.pauseReason === 'REF_UPLOAD_UNCERTAIN' && stuckRefs(b).map((id, k) => ( // the way out of a binding stuck in uploading/uncertain: Huỷ has the focus, so a stray Enter changes nothing
                   <div key={id}><TwoStep label={`Cho phép tải lại ảnh tham chiếu ${k + 1}`} ask="Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này." yes="Có, cho phép tải lại" safeFocus go={() => run(() => window.api.resetAssetBinding({ assetId: id, confirm: true }))} /></div>
                 ))}
@@ -143,7 +143,7 @@ export default function Queue({ batches, q = '', onNew, onStart, onPreset }: { b
                           <div className="line">
                             <Chip tone={tone}>{savedAll(a) ? 'Có kết quả · đã lưu về máy' : itemLabel(a)}{a.item === 'failed' && a.error?.code ? ` (${reasons(a)})` : ''}</Chip>
                           </div>
-                          {(a.item === 'failed' || a.item === 'needs_review') && <Hint a={a} />}
+                          {(a.item === 'failed' || a.item === 'needs_review') && <Hint a={a} provider={b.provider} />}
                           {a.item === 'needs_review' && a.stage === 'uncertain' && (
                             <>
                               <Uncertain a={a} />
