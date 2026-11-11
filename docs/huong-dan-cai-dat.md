@@ -3,13 +3,13 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.5.2-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.5.3-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
 ## Linux
-- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.5.2-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.5.2-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.5.2-x86_64.AppImage --appimage-extract-and-run`.
-- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.5.2-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
+- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.5.3-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.5.3-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.5.3-x86_64.AppImage --appimage-extract-and-run`.
+- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.5.3-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:
