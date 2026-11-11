@@ -10,7 +10,7 @@ export type Batch = { pauseReason?: string | null; id: string; kind: 'image' | '
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' }
 export type UpdateState = { state: 'off' | 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; current: string; version?: string; percent?: number; code?: string }
 export type PresetAsset = { id: string; name: string; bytes: number; missing?: boolean }
-export type Preset = { id: string; name: string; kind: Draft['kind']; mode: Draft['mode']; refs: { assetIds: string[]; mode: 'none' | 'sequential' | 'all'; perItem: number; assets: PresetAsset[] }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } }
+export type Preset = { id: string; name: string; kind: Draft['kind']; mode: Draft['mode']; combo?: import('./combo').Combo; refs: { assetIds: string[]; mode: 'none' | 'sequential' | 'all'; perItem: number; assets: PresetAsset[] }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } }
 export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean }
 export type Session = {
   extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean

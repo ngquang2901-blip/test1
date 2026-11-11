@@ -23,7 +23,7 @@ export type Deps = {
 };
 
 const MAX_TEXT = 1_000_000;
-type Preset = { kind: 'image' | 'video'; mode: 'auto' | 'manual'; refs: { assetIds: string[]; mode: string; perItem: number }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } };
+type Preset = { kind: 'image' | 'video'; mode: 'auto' | 'manual'; combo?: object; refs: { assetIds: string[]; mode: string; perItem: number }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } };
 const bad = (): never => { throw Object.assign(new Error('INVALID_ARGS'), { code: 'INVALID_ARGS' }); };
 const str = (v: unknown): string => (typeof v === 'string' && v.length > 0 && v.length < 200 ? v : bad());
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : bad());
@@ -137,6 +137,7 @@ export function createHandlers(d: Deps) {
       for (const id of ids) if (!d.db.prepare('select 1 from asset where id=?').get(id)) bad();
       const p: Preset = {
         kind: oneOf(o.kind, 'image', 'video'), mode: oneOf(o.mode, 'auto', 'manual'),
+        ...(o.combo === undefined ? {} : { combo: findCombo(oneOf(o.kind, 'image', 'video'), o.combo) ?? bad() }), // only settings the profile offers, stored as its own object
         refs: { assetIds: ids, mode: oneOf(r.mode, ...MODES), perItem: Number.isInteger(r.perItem) && (r.perItem as number) >= 1 && (r.perItem as number) <= 8 ? (r.perItem as number) : bad() },
         template: { template: text(t.template), how: oneOf(t.how, 'all', 'zip'), lists: Object.fromEntries(Object.entries(lists).slice(0, 20).map(([k, v]) => [k.slice(0, 40), text(v)])) },
       };

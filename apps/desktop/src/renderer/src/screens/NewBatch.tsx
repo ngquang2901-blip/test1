@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Draft, Preset } from '../types'
 import TemplateBuilder, { EMPTY_TEMPLATE, type TemplateState } from './TemplateBuilder'
-import flow from '../../../../profiles/flow.json'
-
-const C = flow.combos[0] // the one qualified combo; no user choice yet
-const COMBO_LABEL = `Chế độ đã qualify: Ảnh · ${C.model} · ${C.aspect} · ${C.quality} · x${C.count}`
+import { ComboFields, choicesOf, comboLabel, defaultCombo, withChange, type Combo } from '../combo'
 
 type Row = { n: number; prompt: string; refs: string[]; error: string | null }
 type Asset = { id: string; name: string; bytes: number }
@@ -14,6 +11,7 @@ const PICK_ERR: Record<string, string> = { ASSET_UNSUPPORTED: 'không phải ả
 const size = (n: number): string => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`)
 let kept: Asset[] = [] // shortcut: the picked pool outlives screen switches but not a restart; persist ids in draft.json when it must
 let keptTpl: TemplateState = EMPTY_TEMPLATE // same lifetime as the pool
+let keptCombo: Partial<Record<Draft['kind'], Combo>> = {} // the settings chosen per kind (absent = the app default); same lifetime as the pool
 
 export default function NewBatch({ initial, onCreated, preset, onDraft }: { initial: Draft; onCreated(): void; preset?: Preset | null; onDraft?(d: Draft): void }): React.JSX.Element {
   const [d, setD] = useState<Draft>(initial)
@@ -23,6 +21,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const [tpl, setTpl] = useState<TemplateState>(keptTpl)
   const [refMode, setRefMode] = useState<RefMode>('none')
   const [perItem, setPerItem] = useState(1)
+  const [combos, setCombos] = useState(keptCombo)
+  const putCombo = (kind: Draft['kind'], c: Combo | undefined): void => { keptCombo = { ...keptCombo, [kind]: c }; setCombos(keptCombo) }
+  const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
   const pickBtn = useRef<HTMLButtonElement>(null)
   const [cmd, setCmd] = useState(() => crypto.randomUUID()) // same id on a double click = one batch
@@ -31,9 +32,10 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const [naming, setNaming] = useState<string | null>(null) // the name being typed for "Lưu làm mẫu"
   const loadPresets = (): void => void window.api.listPresets().then(setPresets, () => setPresets([]))
   useEffect(loadPresets, [])
-  /** A saved setup: kind, mode, refs and template come back; the prompt list stays what it is. */
+  /** A saved setup: kind, mode, settings, refs and template come back; the prompt list stays what it is. */
   const applyPreset = (p: Preset): void => {
     set({ kind: p.kind, mode: p.mode })
+    putCombo(p.kind, p.combo && choicesOf(p.kind).some((c) => c.model === p.combo!.model) ? withChange(p.combo, {}) : undefined) // a setup older than the profile: what is no longer offered falls back
     const ok = p.refs.assets.filter((a) => !a.missing)
     keep(ok); setRefMode(p.refs.mode); setPerItem(p.refs.perItem)
     keptTpl = p.template; setTpl(p.template)
@@ -42,20 +44,20 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   useEffect(() => { if (preset) applyPreset(preset) }, [preset]) // eslint-disable-line react-hooks/exhaustive-deps -- once per preset handed over from Hàng đợi
   const savePreset = async (name: string): Promise<void> => {
     try {
-      await window.api.savePreset({ name, kind: d.kind, mode: d.mode, refs: { assetIds: pool.map((a) => a.id), mode: refMode, perItem }, template: tpl })
+      await window.api.savePreset({ name, kind: d.kind, mode: d.mode, ...(chosen ? { combo: chosen } : {}), refs: { assetIds: pool.map((a) => a.id), mode: refMode, perItem }, template: tpl })
       setNaming(null); setMsg(''); loadPresets()
     } catch { setMsg('Không lưu được mẫu: tên cần 1–60 ký tự.') }
   }
 
   const refs = d.kind === 'image' ? { assetIds: pool.map((a) => a.id), mode: refMode, perItem } : { assetIds: [], mode: 'none', perItem: 1 } // video refs are not supported in P2
-  const refsKey = JSON.stringify(refs)
+  const refsKey = JSON.stringify(refs), comboKey = JSON.stringify(chosen ?? null)
   useEffect(() => {
     let live = true
-    window.api.enqueueBatch({ ...d, commandId: cmd, refs: JSON.parse(refsKey), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)) } }, () => { if (live) { setRows([]); setErrs([]) } })
+    window.api.enqueueBatch({ ...d, commandId: cmd, refs: JSON.parse(refsKey), ...(chosen ? { combo: chosen } : {}), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)) } }, () => { if (live) { setRows([]); setErrs([]) } })
     onDraft?.(d) // the app's copy follows at once: coming back to Tạo lô shows this text, not the last one read from main
     const t = setTimeout(() => void window.api.saveDraft(d), 400)
     return () => { live = false; clearTimeout(t) }
-  }, [d, cmd, refsKey]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
+  }, [d, cmd, refsKey, comboKey]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
 
   const latest = useRef(d)
   latest.current = d
@@ -75,7 +77,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   }
   const create = async (): Promise<void> => {
     try {
-      const r = await window.api.enqueueBatch({ ...d, commandId: cmd, refs })
+      const r = await window.api.enqueueBatch({ ...d, commandId: cmd, refs, ...(chosen ? { combo: chosen } : {}) })
       if (!('batchId' in r)) return setMsg('Không tạo được lô: ảnh tham chiếu chưa khớp số prompt.')
       for (const id of (r.batchIds as string[] | undefined) ?? [r.batchId]) await window.api.startBatch(id) // one batch per granted project
       setCmd(crypto.randomUUID())
@@ -125,6 +127,16 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           <label><input type="radio" name="mode" checked={d.mode === 'auto'} onChange={() => set({ mode: 'auto' })} /> Tự động</label>
           <label><input type="radio" name="mode" checked={d.mode === 'manual'} onChange={() => set({ mode: 'manual' })} /> Thủ công (bạn bấm Gửi trong Flow)</label>
         </fieldset>
+        {combo && (
+          <fieldset className="wide" data-testid="batch-settings">
+            <legend>{d.kind === 'video' ? 'Cài đặt tạo video' : 'Cài đặt tạo ảnh'}</legend>
+            <div className="combo-row">
+              <ComboFields value={combo} onChange={(c) => putCombo(d.kind, c)} />
+              {chosen && <button className="small" onClick={() => putCombo(d.kind, undefined)}>Về mặc định</button>}
+            </div>
+            <p className="hint">Trước khi gửi, app tự chọn đúng các mục này trong Flow; Flow không nhận thì dòng đó dừng lại, không gửi bằng cài đặt khác.</p>
+          </fieldset>
+        )}
         <fieldset aria-label="Ảnh tham chiếu" className="wide">
           <legend>Ảnh tham chiếu</legend>
           {d.kind === 'video' ? <p className="muted">Video chưa hỗ trợ ảnh tham chiếu.</p> : (
@@ -139,7 +151,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
                 <label><input type="radio" name="refmode" checked={refMode === 'none'} onChange={() => setRefMode('none')} /> Không dùng</label>
                 <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> Mỗi prompt một nhóm ảnh theo thứ tự</label>
                 <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> Dùng chung tất cả ảnh cho mọi prompt</label>
-                <label>Số ảnh mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>
+                <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>
               </div>
             </div>
           )}
@@ -148,7 +160,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
       {errs.length > 0 && (
         <p role="alert" className="notice" data-testid="map-errors">
           {errs.some((e) => e.code === 'NOT_ENOUGH_REFS') && <>Thiếu ảnh cho prompt nào: {errs.filter((e) => e.code === 'NOT_ENOUGH_REFS').map((e) => `#${e.index + 1}`).join(', ')}. </>}
-          {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>Quá nhiều ảnh: tăng “Số ảnh mỗi prompt” hoặc bỏ bớt ảnh. </>}
+          {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>Quá nhiều ảnh: tăng “Số ảnh tham chiếu mỗi prompt” hoặc bỏ bớt ảnh. </>}
           Sửa cách gán ảnh hoặc chọn “Không dùng” để tạo lô.
         </p>
       )}
@@ -162,7 +174,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
       )}
       {msg && <p role="alert" className="notice">{msg}</p>}
       <div className="actionbar">
-        <span className="muted small-text" data-testid="combo">{COMBO_LABEL}</span>
+        <span className="muted small-text" data-testid="combo">{combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
         <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0}>Tạo lô và chạy</button>
       </div>

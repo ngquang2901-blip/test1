@@ -272,7 +272,7 @@ test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
   await tabTo(page, 'Không dùng')
   await page.keyboard.press('ArrowDown') // radio group: arrows pick the next mode
   await expect(page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự')).toBeChecked()
-  await tabTo(page, 'Số ảnh mỗi prompt')
+  await tabTo(page, 'Số ảnh tham chiếu mỗi prompt')
   await tabTo(page, 'Bỏ ảnh b.png')
   await page.keyboard.press('Enter')
   await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
@@ -318,6 +318,34 @@ test('Mẫu lô: save kind, mode, refs and template; apply it in Tạo lô and f
   await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
   await page.getByRole('button', { name: 'Xoá mẫu Chợ quê' }).click()
   await expect(page.getByRole('button', { name: 'Chợ quê', exact: true })).toHaveCount(0)
+})
+
+test('Tạo lô: the chosen model / aspect / count go into the batch; options follow the model; kept across screens and in a Mẫu lô', async () => {
+  const { page } = await launch(tmp())
+  const PRO = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 }
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  const set = page.getByTestId('batch-settings'), label = page.getByTestId('combo')
+  await expect(label).toContainText('Nano Banana 2.1 · 16:9 · Cao · x2') // the app default
+  await set.getByLabel('Mô hình').selectOption('Nano Banana Pro')
+  await expect(set.getByLabel('Mức suy nghĩ (Thinking level)')).toHaveCount(0) // this model has no such option, so none is offered or sent
+  await set.getByLabel('Tỉ lệ khung hình').selectOption('9:16')
+  await set.getByLabel('Số ảnh mỗi prompt').selectOption('3')
+  await expect(label).toContainText('Nano Banana Pro · 9:16 · x3')
+  await page.getByRole('button', { name: 'Lưu làm mẫu…' }).click()
+  await page.getByLabel('Tên mẫu').fill('Dọc Pro')
+  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
+  await set.getByLabel('Mô hình').selectOption('Nano Banana 2 Lite')
+  await expect(label).toContainText('Nano Banana 2 Lite · 9:16 · x3')
+  await page.getByRole('button', { name: 'Dọc Pro', exact: true }).click() // the saved setup brings the settings back
+  await expect(label).toContainText('Nano Banana Pro · 9:16 · x3')
+  await page.getByRole('button', { name: 'Hàng đợi' }).click() // and they survive a visit to another screen
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await expect(label).toContainText('Nano Banana Pro · 9:16 · x3')
+  await page.getByLabel('Danh sách prompt').fill('một quả cam')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1, { timeout: 60_000 })
+  const combos = await page.evaluate(() => window.api.listBatches().then((r: { batches: { settings: { combo: object } }[] }) => r.batches.map((b) => b.settings.combo)))
+  expect(combos).toEqual([PRO]) // what the runner hands to the page for this batch
 })
 
 test('several tabs (speed Nhanh): grant two projects, a new list is split into two parts that both finish; the cap and Thôi dùng work', async () => {
