@@ -12,8 +12,8 @@ import { createRunner, batchStatus } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 // Real fixture project-Zzl0ze.json: lượt 31 (image, observer blind) was clicked at RUN31.clickMs and found 6.5 s later.
-const PROJECT = 'b89ba0b5-d5e3-44d9-8d86-1851dd147159';
-const RUN31 = { prompt: 'Cận cảnh đĩa bánh cuốn nóng, ảnh chụp đời thường', clickMs: 1793951501654 };
+const PROJECT = 'fa4e0000-0000-4000-8000-000000000001';
+const RUN31 = { prompt: 'Văn bản mẫu 0457', clickMs: 1793951501654 };
 const DEADLINE = 31_000; // past the runner's send deadline (30 s)
 const TEN_MIN = 600_000;
 
