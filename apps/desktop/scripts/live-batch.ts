@@ -44,7 +44,7 @@ const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-live-')), 'toolflow.db'))
 let grants!: ReturnType<typeof createGrants>
 const assets = createAssetStore(db)
 const driver = createExtDriver(server, { allow: (id) => grants.has(id), assets })
-const REF = process.env.REF_FILE ? registerAsset(db, process.env.REF_FILE, Date.now()) : null // every prompt gets this one ref ('all' mode)
+const REFS = (process.env.REF_FILE ?? '').split('|').filter(Boolean).map((f) => registerAsset(db, f, Date.now())) // REF_FILE=a.png|b.png: every prompt gets all of them ('all' mode)
 const clock = { now: () => Date.now() }
 const t0 = Date.now()
 let email = ''
@@ -83,7 +83,7 @@ const sc = await selfCheckTab(driver, await driver.ping(t.tabId), t.tabId, ext.v
 console.log('self-check:', JSON.stringify(sc))
 if (MODE === 'auto') { enableAuto(db, email, Date.now()); console.log('auto enabled for this run (test db only)') }
 
-const r = enqueueBatch(db, { commandId: `live-${Date.now()}`, kind: KIND, projectId: t.projectId!, settings: { combo }, prompts: PROMPTS, refs: PROMPTS.map(() => (REF ? [REF.id] : [])), mode: MODE })
+const r = enqueueBatch(db, { commandId: `live-${Date.now()}`, kind: KIND, projectId: t.projectId!, settings: { combo }, prompts: PROMPTS, refs: PROMPTS.map(() => REFS.map((x) => x.id)), mode: MODE })
 runner.start(r.batchId)
 const view = (): string => (db.prepare('select i.ord o, a.state_json s from item i left join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(r.batchId) as { o: number; s: string | null }[])
   .map((x) => { const s = x.s ? JSON.parse(x.s) : {}; return `#${x.o + 1}:${s.item ?? '-'}/${s.stage ?? '-'}${s.error?.code ? '!' + s.error.code : ''}` }).join('  ')

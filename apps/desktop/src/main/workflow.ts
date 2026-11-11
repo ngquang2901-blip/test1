@@ -23,7 +23,7 @@ const TYPES = ['text', 'image', 'generate', 'download', 'note', 'branch']
 const CONDS = ['all', 'any', 'filtered']
 const WIRES: Record<string, string[]> = { text: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch'], branch: ['generate'] } // source type → allowed target types
 const ID = /^[\w-]{1,64}$/
-const MAX_REFS = 8 // the batch path takes at most 8 reference images per prompt
+export const MAX_REFS = 10 // reference images per prompt: 10 were sent live (2026-11-11); more is not proven
 const ACTIVE = ['queued', 'running', 'paused', 'needs_review']
 const coded = (code: string): Error => Object.assign(new Error(code), { code })
 const bad = (): never => { throw coded('INVALID_ARGS') }

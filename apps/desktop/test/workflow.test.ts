@@ -45,7 +45,7 @@ test('parseGraph: only meaningful wires, unique ids, bounded sizes', () => {
   bad({ nodes: [N('t', 'text')], edges: [{ from: 't', to: 'nope' }] })
   bad({ nodes: [N('t', 'text', 0, { text: 'x'.repeat(1_000_001) })], edges: [] })
   bad({ nodes: [{ id: 't', type: 'text', x: 'left', y: 0 }], edges: [] })
-  bad({ nodes: [N('i', 'image', 0, { assetIds: Array(9).fill('a') })], edges: [] })
+  bad({ nodes: [N('i', 'image', 0, { assetIds: Array(11).fill('a') })], edges: [] })
   // Điều kiện: its wires need a port, other wires must not have one; variables are bounded
   const B = [N('g', 'generate'), N('b', 'branch'), N('h', 'generate')]
   expect(parseGraph({ nodes: B, edges: [{ from: 'g', to: 'b' }, { from: 'b', to: 'h', port: 'fail' }], vars: { 'nhân vật': 'mèo\nchó' } })).toMatchObject({ edges: [{ from: 'g', to: 'b' }, { from: 'b', to: 'h', port: 'fail' }], vars: { 'nhân vật': 'mèo\nchó' } })
@@ -71,7 +71,7 @@ test('plan: reasons a graph cannot run', () => {
   expect(plan(parseGraph({ nodes: [N('t', 'text', 0, { text: '  \n' }), N('g', 'generate')], edges: [{ from: 't', to: 'g' }] })).errors).toEqual([{ node: 'g', code: 'WF_NO_PROMPT' }])
   const loop = plan(parseGraph({ nodes: [N('a', 'generate'), N('b', 'generate')], edges: [{ from: 'a', to: 'b' }, { from: 'b', to: 'a' }] }))
   expect(loop.errors.map((e) => e.code)).toEqual(['WF_CYCLE', 'WF_CYCLE'])
-  const many = Array.from({ length: 9 }, (_, i) => `p${i}`).join('\n') // 9 upstream prompts ⇒ 9 result refs for one prompt
+  const many = Array.from({ length: 11 }, (_, i) => `p${i}`).join('\n') // 11 upstream prompts ⇒ 11 result refs for one prompt
   const big = plan(parseGraph({ nodes: [N('t', 'text', 0, { text: many }), N('a', 'generate'), N('u', 'text', 0, { text: 'x' }), N('b', 'generate', 300)], edges: [{ from: 't', to: 'a' }, { from: 'a', to: 'b' }, { from: 'u', to: 'b' }] }))
   expect(big.errors).toEqual([{ node: 'b', code: 'TOO_MANY_REFS' }])
 })
@@ -229,8 +229,8 @@ test('Điều kiện, parseGraph + plan: the condition sits on the Điều kiệ
   expect(plan(COND('all')).steps[1].deps).toEqual([{ node: 'g1', port: 'ok' }]) // 'all' is the default: the same plan as a graph saved before conditions had kinds
   for (const bad of ['maybe', '', 5, null]) expect(() => parseGraph({ ...BRANCH, nodes: BRANCH.nodes.map((n) => (n.id === 'b' ? { ...n, cond: bad } : n)) }), String(bad)).toThrow(/INVALID_ARGS/)
   expect(() => parseGraph({ nodes: [N('g', 'generate', 0, { cond: 'any' })], edges: [] })).toThrow(/INVALID_ARGS/) // only a Điều kiện node has one
-  // "bị lọc" hands no images on, so nine upstream prompts are not nine refs for the next node
-  const many = Array.from({ length: 9 }, (_, i) => `p${i}`).join('\n')
+  // "bị lọc" hands no images on, so eleven upstream prompts are not eleven refs for the next node
+  const many = Array.from({ length: 11 }, (_, i) => `p${i}`).join('\n')
   const wide = (cond: string) => plan(parseGraph({ nodes: [N('t', 'text', 0, { text: many }), N('a', 'generate'), N('b', 'branch', 200, { cond }), N('u', 'text', 0, { text: 'x' }), N('c', 'generate', 400)], edges: [{ from: 't', to: 'a' }, { from: 'a', to: 'b' }, { from: 'b', to: 'c', port: 'ok' }, { from: 'u', to: 'c' }] })).errors
   expect([wide('filtered'), wide('any')]).toEqual([[], [{ node: 'c', code: 'TOO_MANY_REFS' }]])
 })
@@ -272,7 +272,7 @@ test('video node, run: the batch is a video batch; prompt i starts from the save
   const t = rig()
   const kinds = (): unknown[] => (t.enq as unknown as { kind: string; refs: { assetIds: string[]; mode: string; perItem: number } }[]).map((e) => [e.kind, e.refs.mode, e.refs.perItem, e.refs.assetIds])
   expect(await t.wait(((await t.wf.runWorkflow({ graph: TO_VIDEO(), mode: 'auto' })) as { runId: string }).runId)).toBe('done')
-  expect(kinds()).toEqual([['image', 'none', 8, []], ['video', 'sequential', 1, ['asset:/dl/A.png', 'asset:/dl/B.png']]])
+  expect(kinds()).toEqual([['image', 'none', 10, []], ['video', 'sequential', 1, ['asset:/dl/A.png', 'asset:/dl/B.png']]])
   expect(t.enq[1].combo).toEqual(VIDEO)
   const one = rig(), g = parseGraph({ nodes: [N('t', 'text', 0, { text: 'x\ny' }), N('img', 'image', 0, { assetIds: ['a1'] }), N('v', 'generate', 300, { combo: VIDEO })], edges: [{ from: 't', to: 'v' }, { from: 'img', to: 'v' }] })
   expect(await one.wait(((await one.wf.runWorkflow({ graph: g, mode: 'auto' })) as { runId: string }).runId)).toBe('done')

@@ -1,6 +1,7 @@
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
+import { MAX_REFS } from './workflow';
 import { defaultCombo, findCombo } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
@@ -94,7 +95,7 @@ export function createHandlers(d: Deps) {
       const parsed = parsePrompts(src);
       const ra = o.refs === undefined ? { assetIds: [], mode: 'none', perItem: 1 } : obj(o.refs);
       const ids = Array.isArray(ra.assetIds) ? ra.assetIds.map(str) : bad();
-      const rmode = oneOf(ra.mode, ...MODES), perItem = Number.isInteger(ra.perItem) && (ra.perItem as number) >= 1 && (ra.perItem as number) <= 8 ? (ra.perItem as number) : bad();
+      const rmode = oneOf(ra.mode, ...MODES), perItem = Number.isInteger(ra.perItem) && (ra.perItem as number) >= 1 && (ra.perItem as number) <= MAX_REFS ? (ra.perItem as number) : bad();
       if (new Set(ids).size !== ids.length) bad();
       const names = ids.map((id) => (d.db.prepare('select name from asset where id=?').get(id) as { name: string } | undefined)?.name ?? bad());
       const { refs, errors } = mapRefs(parsed.items.length, ids, rmode, perItem);
@@ -138,7 +139,7 @@ export function createHandlers(d: Deps) {
       const p: Preset = {
         kind: oneOf(o.kind, 'image', 'video'), mode: oneOf(o.mode, 'auto', 'manual'),
         ...(o.combo === undefined ? {} : { combo: findCombo(oneOf(o.kind, 'image', 'video'), o.combo) ?? bad() }), // only settings the profile offers, stored as its own object
-        refs: { assetIds: ids, mode: oneOf(r.mode, ...MODES), perItem: Number.isInteger(r.perItem) && (r.perItem as number) >= 1 && (r.perItem as number) <= 8 ? (r.perItem as number) : bad() },
+        refs: { assetIds: ids, mode: oneOf(r.mode, ...MODES), perItem: Number.isInteger(r.perItem) && (r.perItem as number) >= 1 && (r.perItem as number) <= MAX_REFS ? (r.perItem as number) : bad() },
         template: { template: text(t.template), how: oneOf(t.how, 'all', 'zip'), lists: Object.fromEntries(Object.entries(lists).slice(0, 20).map(([k, v]) => [k.slice(0, 40), text(v)])) },
       };
       const id = (d.db.prepare('select id from preset where name=?').get(name) as { id: string } | undefined)?.id ?? randomUUID();
