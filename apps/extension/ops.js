@@ -1,7 +1,7 @@
 // Pure: the only commands the desktop may send. No eval / debugger / raw CDP.
 import './gpt-logic.js';
 const G = globalThis.TFGpt;
-export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate','gptTabs','gptNew','gptOpen','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gptFetch'];
+export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate','gptTabs','gptNew','gptOpen','gptFront','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gptFetch'];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Flat names only (no path, no leading dot, no '..'): the desktop picks the name, the extension adds the ToolFlow-tmp/ folder.
@@ -32,8 +32,9 @@ export function validate(msg) {
   if (op === 'locate' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId))) return 'locate needs integer tabId and a media uuid';
   if (op === 'fetchMedia' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId) && validTmpName(args.filename))) return 'fetchMedia needs integer tabId, a media uuid and a flat filename';
   if (op === 'downloads' && !(Number.isInteger(args.id) || validTmpName(args.filenamePrefix))) return 'downloads needs an integer id or a filenamePrefix';
-  if (['gptNew', 'gptOpen', 'gptLook', 'gptState', 'gptMode', 'gptPrep', 'gptSend', 'gptTurns', 'gptFetch'].includes(op) && !Number.isInteger(args.tabId)) return `${op} needs integer tabId`;
+  if (['gptNew', 'gptOpen', 'gptFront', 'gptLook', 'gptState', 'gptMode', 'gptPrep', 'gptSend', 'gptTurns', 'gptFetch'].includes(op) && !Number.isInteger(args.tabId)) return `${op} needs integer tabId`;
   if (['gptPrep', 'gptSend', 'gptTurns'].includes(op) && !(typeof args.prompt === 'string' && args.prompt.length >= 1 && args.prompt.length <= 20000)) return `${op} needs a prompt of 1..20000 chars`;
+  if (op === 'gptFront' && args.raise !== undefined && typeof args.raise !== 'boolean') return 'gptFront: raise is a boolean';
   if (op === 'gptOpen' && !G.isUuid(args.conv)) return 'gptOpen needs a conversation uuid';
   if (op === 'gptFetch' && !(G.parseMediaId(args.mediaId) && validTmpName(args.filename))) return 'gptFetch needs a ChatGPT media id and a flat filename';
   if (op === 'open' && !(typeof args.url === 'string' && args.url.startsWith('https://flow.google.com/'))) return 'open url not allowed';

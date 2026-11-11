@@ -48,9 +48,14 @@ async function handle(op, a, epoch) {
     case 'gptTabs': return (await chrome.tabs.query({ url: 'https://chatgpt.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only
     case 'gptNew': case 'gptOpen': { // a new, empty conversation, or one of ours again: the tab goes there (the page op API cannot outlive a navigation)
       if (!/^https:\/\/chatgpt\.com\//.test((await chrome.tabs.get(a.tabId)).url || '')) throw new Error('not a ChatGPT tab');
-      await chrome.tabs.update(a.tabId, { url: op === 'gptOpen' ? `https://chatgpt.com/c/${a.conv}` : 'https://chatgpt.com/' }); // conv is a validated uuid
+      await chrome.tabs.update(a.tabId, { active: true, url: op === 'gptOpen' ? `https://chatgpt.com/c/${a.conv}` : 'https://chatgpt.com/' }); // conv is a validated uuid; active: see gptFront
       for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 250)); if ((await chrome.tabs.get(a.tabId)).status === 'complete') return true; }
       return false;
+    }
+    case 'gptFront': { // ChatGPT's "+" menu does not open while the page is hidden (measured). First the tab becomes the active one of its window, which leaves the user's other windows alone;
+      const t = await chrome.tabs.update(a.tabId, { active: true }); // raise: only when that was not enough (window minimised, or covered where the OS reports it), the window itself comes forward
+      if (a.raise === true) { const w = await chrome.windows.get(t.windowId); await chrome.windows.update(t.windowId, w.state === 'minimized' ? { state: 'normal', focused: true } : { focused: true }); }
+      return true;
     }
     case 'gptFetch': return gptFetchOp(chrome, a); // tab -> image bytes (internal message) -> chrome.downloads
     case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }

@@ -12,6 +12,7 @@ export const GPT_TURNS_PER_CONV = 15
 const SEND_DEADLINE_MS = 30_000 // a click must show its turn within this
 const GEN_DEADLINE_MS = 600_000 // an answer still unfinished after this is for the user to look at
 const NO_IMAGE_GRACE_MS = 20_000 // "finished without an image" is believed only after this: the image can render after the answer ends
+const NOT_STARTED_GRACE_MS = 90_000 // …and only after this when the answer was never seen in progress: a turn reads "complete" for some seconds right after the click (measured: 2–5 s)
 const PAGE_WAIT_TRIES = 30 // x 500 ms: a navigated tab must show its composer within this
 
 type Row = { id: string; batch: string; s: AttemptState }
@@ -33,6 +34,7 @@ export function createGptRunner(o: {
   const reasons = new Map<string, string>() // why this runner paused a batch
   const reopen = new Set<string>() // batches the user resumed: the tab may be taken back to their conversation once
   const noImage = new Map<string, number>() // attempt → when its answer was first seen finished without an image
+  const started = new Set<string>() // attempts whose answer was seen in progress or with an image coming
   let lastTab: string | null = null
   let lastPoll = -Infinity
   let busy = false // a prompt is being typed/sent, or the tab is being taken to a conversation for a download
@@ -60,8 +62,8 @@ export function createGptRunner(o: {
       return (lastTab = t?.tabId ?? null)
     } catch { return null } // the extension is not there: the same as no tab
   }
-  const waitFor = async (tab: string, ok: (s: GptState) => boolean): Promise<GptState | null> => {
-    for (let i = 0; i < PAGE_WAIT_TRIES; i++) {
+  const waitFor = async (tab: string, ok: (s: GptState) => boolean, tries = PAGE_WAIT_TRIES): Promise<GptState | null> => {
+    for (let i = 0; i < tries; i++) {
       try { const s = await driver.state(tab); if (ok(s)) return s } catch { /* the page is loading */ }
       await sleep(500)
     }
@@ -75,9 +77,10 @@ export function createGptRunner(o: {
     let turns: GptTurn[] = [], conv: string | null = null
     if (tab) try { ({ turns, conv } = await driver.turns(tab, s.prompt)) } catch { /* not seen this time */ }
     const age = clock.now() - base.at
+    const moving = (t: GptTurn): boolean => t.state !== 'complete' || t.pending > 0 || t.images.length > 0 // the answer is under way (or there)
     if (s.item === 'submitting') {
       const fresh = turns.filter((t) => !base.keys.includes(t.key)), mine = fresh.filter((t) => t.mine)
-      if (mine.length === 1) { put(a.id, 'turn', { ...s, item: 'generating', stage: 'accepted', request: { turnKey: mine[0].key, conv: base.conv ?? conv } satisfies Req, creditSpent: true, error: null }); return }
+      if (mine.length === 1) { if (moving(mine[0])) started.add(a.id); put(a.id, 'turn', { ...s, item: 'generating', stage: 'accepted', request: { turnKey: mine[0].key, conv: base.conv ?? conv } satisfies Req, creditSpent: true, error: null }); return }
       if (mine.length > 1) { put(a.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'more than one new turn with this prompt')); return }
       if (age >= SEND_DEADLINE_MS) put(a.id, 'deadline', fresh.length ? review(s, 'USER_INTERFERENCE', 'a turn that is not this prompt appeared') : review(s, 'SUBMIT_UNCERTAIN', 'no turn appeared after the click'))
       return
@@ -86,15 +89,16 @@ export function createGptRunner(o: {
     const t = turns.find((x) => x.key === req.turnKey)
     const cur = t && !req.conv && conv ? put(a.id, 'conv', { ...s, request: { ...req, conv } }) : s // a new conversation gets its id a moment after the first send
     if (t && t.state === 'complete' && t.images.length && !t.pending) {
-      noImage.delete(a.id)
+      noImage.delete(a.id); started.delete(a.id)
       put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null })
       await o.download?.(a.batch).catch(() => undefined) // a failed save shows on the output itself
       return
     }
+    if (t && moving(t)) started.add(a.id)
     if (t && t.state === 'complete' && !t.images.length && !t.pending) {
       if (!noImage.has(a.id)) noImage.set(a.id, clock.now())
-      if (clock.now() - noImage.get(a.id)! < NO_IMAGE_GRACE_MS) return
-      noImage.delete(a.id)
+      if (clock.now() - noImage.get(a.id)! < (started.has(a.id) ? NO_IMAGE_GRACE_MS : NOT_STARTED_GRACE_MS)) return
+      noImage.delete(a.id); started.delete(a.id)
       put(a.id, 'no_image', { ...cur, item: 'failed', stage: 'outcome_known', error: { code: 'GPT_NO_IMAGE' }, admission: 'pause' })
       hold(a.batch, 'GPT_NO_IMAGE') // a limit or a refusal: the next prompts would likely end the same way, so the user decides
       return
@@ -127,6 +131,11 @@ export function createGptRunner(o: {
       }
       reopen.delete(batch)
       if (!st) return hold(batch, fresh ? 'GPT_PAGE_NOT_READY' : 'GPT_CONVERSATION_CHANGED')
+      await driver.front(tab) // ChatGPT's "+" menu does not open while the page is hidden (measured): the tab becomes the active one of its window
+      if (!(await waitFor(tab, (x) => x.visible, 4))) { // still hidden: the window is minimised or covered, so it is raised (only now, not to pull Chrome over the user's work for nothing)
+        await driver.front(tab, true)
+        if (!(await waitFor(tab, (x) => x.visible, 6))) return hold(batch, 'GPT_TAB_HIDDEN')
+      }
       if (st.generating) return // the page is still answering something: look again on a later tick
       keys = (await driver.turns(tab, s.prompt)).turns.map((t) => t.key)
       let r: GptStep = await driver.mode(tab)

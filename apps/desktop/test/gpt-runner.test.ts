@@ -262,3 +262,64 @@ test('the user leaves right after the image is there: its own image is still sav
   expect(t.fake.page.conv).not.toBe(conv); // the tab really is elsewhere, and the id we kept is the batch's own conversation
   expect(t.fake.ledger.sends).toEqual(['a red kite']);
 });
+
+test('Send refused once (the button was still locked): after Tiếp tục the prompt already in the composer is sent as it is, once, in the same conversation', async () => {
+  const t = rig([], ['a red kite', 'a blue door'], { fake: { send: ['', 'SEND_DISABLED'] } });
+  await t.ticks(5);
+  expect(t.runner.lastError(t.batch)).toBe('GPT_SEND_DISABLED');
+  expect(t.fake.page.text).toBe('a blue door'); // our own text stays in the composer
+  t.runner.resume(t.batch);
+  await t.ticks(4);
+  expect(items(t.states())).toBe('ready,ready');
+  expect(t.fake.ledger.sends).toEqual(['a red kite', 'a blue door']);
+  expect(t.fake.ledger.newChats).toBe(1);
+  expect(t.states()[1].request.conv).toBe(t.states()[0].request.conv);
+});
+
+test('a turn reads "complete" for a while right after the click, before its answer starts (seen live): that is not an answer without an image', async () => {
+  const t = rig(['early'], ['a red kite']);
+  await t.ticks(2);
+  expect(items(t.states())).toBe('generating');
+  await t.ticks(2, 30_000); // past the short grace while the page still shows the early "complete"
+  expect(items(t.states())).toBe('generating');
+  await t.ticks(3);
+  expect(items(t.states())).toBe('ready');
+});
+
+test('a turn that stays "complete" with no image and was never seen in progress fails only after the long wait', async () => {
+  const t = rig(['mute'], ['a red kite']);
+  await t.ticks(3);
+  await t.ticks(2, 30_000);
+  expect(items(t.states())).toBe('generating');
+  await t.ticks(2, 30_000);
+  expect(t.states()[0]).toMatchObject({ item: 'failed', error: { code: 'GPT_NO_IMAGE' } });
+  expect(t.fake.ledger.sends).toHaveLength(1);
+});
+
+test('the ChatGPT tab is brought to the front of its window before every prompt (its "+" menu does not open in a background tab, seen live)', async () => {
+  const t = rig([], ['a red kite', 'a blue door']);
+  await t.ticks(8);
+  expect(items(t.states())).toBe('ready,ready');
+  expect(t.fake.ledger.fronts).toBe(2);
+  expect(t.fake.ledger.raises).toBe(0); // the tab was shown already: the Chrome window is not pulled in front of the user's work
+});
+
+test('the Chrome window is minimised (or, on Windows, fully covered): making the tab active is not enough, so the window is raised once and the prompt goes out', async () => {
+  const t = rig([], ['a red kite']);
+  t.fake.minimise();
+  await t.ticks(4);
+  expect(items(t.states())).toBe('ready');
+  expect(t.fake.ledger.raises).toBe(1);
+});
+
+test('the ChatGPT tab stays hidden even after its window was raised: nothing is typed, the batch pauses with GPT_TAB_HIDDEN', async () => {
+  const t = rig([], ['a red kite']);
+  t.fake.hideWindow(true);
+  await t.ticks(2);
+  expect(t.runner.lastError(t.batch)).toBe('GPT_TAB_HIDDEN');
+  expect(t.fake.page.text).toBe('');
+  expect(t.fake.ledger.sends).toHaveLength(0);
+  t.fake.hideWindow(false); t.runner.resume(t.batch);
+  await t.ticks(4);
+  expect(items(t.states())).toBe('ready');
+});

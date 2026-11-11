@@ -36,7 +36,7 @@
     gptState() {
       const ed = editor(), send = sendBtn();
       return {
-        conv: G.convOf(location.pathname), start: location.pathname === '/', editor: !!ed, mode: modeOf(ed), textLen: ed ? promptText(ed).length : 0,
+        conv: G.convOf(location.pathname), start: location.pathname === '/', visible: document.visibilityState === 'visible', editor: !!ed, mode: modeOf(ed), textLen: ed ? promptText(ed).length : 0,
         canSend: !!send && !send.disabled, generating: !!document.querySelector('form button[data-testid="stop-button"], form button[aria-label*="Stop" i]'),
         turns: document.querySelectorAll('[data-turn-key]').length,
       };
@@ -63,6 +63,7 @@
     async gptPrep(a) {
       const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
       if (modeOf(ed) !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
+      if (promptText(ed) === G.flat(a.prompt)) return { ok: true }; // exactly this prompt is there already (an earlier try that was not sent)
       if (promptText(ed).length) return { ok: false, code: 'COMPOSER_NOT_EMPTY' };
       ed.focus();
       const sel = getSelection(); sel.selectAllChildren(ed); sel.collapseToEnd();
@@ -75,8 +76,10 @@
       const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
       if (modeOf(ed) !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
       if (promptText(ed) !== G.flat(a.prompt)) return { ok: false, code: 'PROMPT_MISMATCH' };
-      const send = sendBtn(); if (!send) return { ok: false, code: 'NO_SEND' };
-      if (send.disabled) return { ok: false, code: 'SEND_DISABLED' };
+      // measured: right after the previous answer ends the button stays locked for a moment although the text is in
+      const send = await until(() => { const b = sendBtn(); return b && !b.disabled ? b : null; }, 10000);
+      if (!send) return { ok: false, code: sendBtn() ? 'SEND_DISABLED' : 'NO_SEND' };
+      if (modeOf(editor()) !== G.IMAGE_MODE || promptText(editor()) !== G.flat(a.prompt)) return { ok: false, code: 'PROMPT_MISMATCH' }; // the composer changed while waiting
       send.click();
       const cleared = !!(await until(() => { const e = editor(); return e && promptText(e).length === 0; }, 5000));
       return { ok: true, cleared };

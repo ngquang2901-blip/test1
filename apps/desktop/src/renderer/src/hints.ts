@@ -61,6 +61,7 @@ export const HINTS: Record<string, string> = {
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
   GPT_CONVERSATION_CHANGED: 'Tab ChatGPT đã chuyển sang cuộc trò chuyện khác nên app không gõ vào đó. Bấm Tiếp tục: app mở lại cuộc trò chuyện của lô rồi gửi tiếp',
   GPT_PAGE_NOT_READY: 'Trang ChatGPT chưa hiện ô nhập. Kiểm tra tab ChatGPT đã đăng nhập và tải xong rồi bấm Tiếp tục',
+  GPT_TAB_HIDDEN: 'Tab ChatGPT không hiện được trên màn hình (cửa sổ Chrome bị thu nhỏ, che kín hoặc ở màn hình ảo khác) nên ChatGPT không mở được menu. Đưa cửa sổ đó ra trước rồi bấm Tiếp tục',
   GPT_NO_IMAGE: 'ChatGPT trả lời mà không có ảnh (thường do hết lượt tạo ảnh hoặc prompt bị từ chối). Mở tab ChatGPT đọc câu trả lời; bấm Tiếp tục để gửi các prompt còn lại',
   GPT_NO_EDITOR: 'Không thấy ô nhập của ChatGPT. Tải lại tab ChatGPT (F5), kiểm tra đã đăng nhập rồi bấm Tiếp tục',
   GPT_NO_PLUS: 'Không thấy nút “+” trong ô nhập của ChatGPT. App mới chạy với ChatGPT giao diện tiếng Anh: đổi ngôn ngữ ChatGPT sang English rồi bấm Tiếp tục',

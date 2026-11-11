@@ -43,7 +43,7 @@ test('only the bytes of an image may go to the browser download: no http address
 
 test('validate: the ChatGPT ops take a tab, and a prompt / conversation / media id of the right shape', () => {
   const m = (op, args) => validate({ id: 1, epoch: 1, op, args });
-  for (const op of ['gptTabs', 'gptNew', 'gptOpen', 'gptLook', 'gptState', 'gptMode', 'gptPrep', 'gptSend', 'gptTurns', 'gptFetch']) assert.ok(OPS.includes(op), op);
+  for (const op of ['gptTabs', 'gptNew', 'gptOpen', 'gptFront', 'gptLook', 'gptState', 'gptMode', 'gptPrep', 'gptSend', 'gptTurns', 'gptFetch']) assert.ok(OPS.includes(op), op);
   for (const op of ['gptPlus', 'gptFind', 'gptPick', 'gptImgs']) assert.ok(!OPS.includes(op), `spike op ${op} is gone`);
   assert.equal(m('gptTabs', {}), null);
   assert.equal(m('gptPrep', { tabId: 3, prompt: 'a cat' }), null);
@@ -56,6 +56,10 @@ test('validate: the ChatGPT ops take a tab, and a prompt / conversation / media 
   assert.match(m('gptFetch', { tabId: 3, mediaId: MSG, filename: 'a_b.bin' }), /gptFetch/);
   assert.match(m('gptFetch', { tabId: 3, mediaId: `${MSG}-1`, filename: '../a.bin' }), /gptFetch/);
   assert.match(m('gptState', {}), /tabId/);
+  assert.match(m('gptFront', {}), /tabId/);
+  assert.equal(m('gptFront', { tabId: 3 }), null);
+  assert.equal(m('gptFront', { tabId: 3, raise: true }), null);
+  assert.match(m('gptFront', { tabId: 3, raise: 'yes' }), /raise/);
 });
 
 const chromeWith = (o) => {
