@@ -196,3 +196,10 @@ The settings selects of the Workflow's Tạo ảnh node moved into a shared modu
 
 Checked: unit 334, the new e2e ("Tạo lô: the chosen model / aspect / count go into the batch…", seen failing against the previous build first). Live with the real app on `ng***`: Nano Banana Pro · 1:1 · x1 chosen in Tạo lô, one prompt, completed in 28 s, saved file 1024×1024.
 
+## 0.6.0 released (2026-11-11): Flow video
+
+Details and the live record: [plans/2026-11-11-p3-video.md](superpowers/plans/2026-11-11-p3-video.md). Gate on `main` before the build: 346 desktop + 80 extension + 55 protocol unit tests, 40 e2e. The packaged Linux app (fake Flow) ran a video batch from Tạo lô to a saved MP4 that shows in the player, and an image batch. `app.asar`: scrubbed fixtures only, no e-mail, home path, token or real project id.
+
+Release `v0.6.0` of `ngquang2901-blip/test1`: six assets, sizes equal to `dist/`, then un-drafted. Not in it: end frame, other Veo / Omni models (not qualified by a live send).
+
+Update check against the real host: the published 0.5.3 AppImage found 0.6.0, had it downloaded after 21 s, and on "Khởi động lại để cập nhật" replaced itself (the file is renamed to `ToolFlow-0.6.0-x86_64.AppImage`, sha256 equal to the published file); that file starts as 0.6.0 and reports "Bạn đang dùng bản mới nhất".
