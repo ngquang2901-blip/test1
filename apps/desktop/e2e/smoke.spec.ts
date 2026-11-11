@@ -582,6 +582,101 @@ test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar l
   await expect(boxes).toHaveCount(3)
 })
 
+test('Workflow: a clicked wire is named in the side panel and removed there or with the Delete key; undo brings it back', async () => {
+  const { page } = await launch(tmp())
+  const edges = page.locator('.react-flow__edge')
+  const clickWire = async (k: number): Promise<void> => { // the middle of the drawn line, in screen pixels
+    const at = await page.locator('.react-flow__edge-path').nth(k).evaluate((el) => { const p = el as SVGPathElement, pt = p.getPointAtLength(p.getTotalLength() / 2), m = p.getScreenCTM()!; return { x: pt.x * m.a + m.e, y: pt.y * m.d + m.f } })
+    await page.mouse.click(at.x, at.y)
+  }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await expect(edges).toHaveCount(2)
+  await expect(page.getByTestId('wf-wire-hint')).toContainText('bấm vào dây') // how to do it is on screen before anything is selected
+  await page.waitForTimeout(400) // the canvas records an undo step once an edit has settled for 300 ms; a person is never faster than that, this script is
+  await clickWire(0)
+  await expect(page.getByTestId('wf-wire')).toHaveText('Text → Tạo ảnh Flow')
+  await page.getByRole('button', { name: 'Xoá dây này' }).click()
+  await expect(edges).toHaveCount(1)
+  await expect(page.locator('.react-flow__node')).toHaveCount(3) // only the wire went
+  await page.getByRole('button', { name: 'Hoàn tác' }).click()
+  await expect(edges).toHaveCount(2)
+  await clickWire(1)
+  await expect(page.getByTestId('wf-wire')).toHaveText('Tạo ảnh Flow → Tự tải về')
+  await page.keyboard.press('Delete')
+  await expect(edges).toHaveCount(1)
+  await expect(page.getByTestId('wf-wire')).toHaveCount(0)
+})
+
+test('Workflow: a Tạo ảnh node carries its own model / aspect / count into its batch; options follow the model; exported, imported, and back to the default', async () => {
+  const file = join(tmp(), 'wf.toolflow.json')
+  const { page } = await launch(tmp(), '', { TOOLFLOW_WF_FILE: file })
+  const node = (t: string) => page.getByTestId(`wf-${t}`), panel = page.getByTestId('wf-settings'), label = node('generate').getByTestId('wf-combo')
+  const PRO = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('một quả cam\nmột quả táo')
+  await expect(label).toHaveText('Nano Banana 2.1 · 16:9 · Cao · x2') // the app default, readable on the node itself
+  await node('generate').locator('header b').click()
+  await expect(panel).toContainText('Đang dùng cài đặt mặc định của app')
+  await expect(panel.getByLabel('Mức suy nghĩ (Thinking level)')).toHaveValue('High')
+  await panel.getByLabel('Mô hình').selectOption('Nano Banana Pro')
+  await expect(panel.getByLabel('Mức suy nghĩ (Thinking level)')).toHaveCount(0) // this model has no such option, so none is offered or sent
+  await panel.getByLabel('Tỉ lệ khung hình').selectOption('9:16')
+  await panel.getByLabel('Số ảnh mỗi prompt').selectOption('3')
+  await expect(label).toHaveText('Nano Banana Pro · 9:16 · x3')
+  await expect(panel).toContainText('Node này dùng cài đặt riêng')
+  await expect(page.getByTestId('wf-preview')).toContainText('Mỗi prompt tạo 3 ảnh, tổng cộng 6 ảnh')
+
+  await page.getByRole('button', { name: 'Xuất file' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Đã xuất file')
+  expect((JSON.parse(readFileSync(file, 'utf8')).nodes as { type: string; combo?: object }[]).find((n) => n.type === 'generate')!.combo).toEqual(PRO)
+
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  const combos = await page.evaluate(() => window.api.listBatches().then((r: { batches: { settings: { combo: object } }[] }) => r.batches.map((b) => b.settings.combo)))
+  expect(combos).toEqual([PRO]) // what the runner hands to the page for this node's batch
+
+  await panel.getByRole('button', { name: 'Về mặc định' }).click()
+  await expect(label).toHaveText('Nano Banana 2.1 · 16:9 · Cao · x2')
+  await panel.getByLabel('Mô hình').selectOption('Nano Banana Pro') // from the default: the other values stay where this model has them
+  await expect(label).toHaveText('Nano Banana Pro · 16:9 · x2')
+  await page.getByRole('button', { name: 'Nhập file' }).click() // the exported file brings the node's settings back
+  await expect(label).toHaveText('Nano Banana Pro · 9:16 · x3')
+})
+
+test('Workflow: Điều kiện "Có prompt bị Flow lọc" — Flow refuses the first node\'s prompt, so that side runs its rewritten prompt and the other side does not', async () => {
+  const { page } = await launch(tmp(), 'blocked', { TOOLFLOW_DOWNLOAD_ROOT: tmp() }) // the first send comes back refused for its content
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => { await from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`).click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('nhân vật')
+  for (const b of ['+ Điều kiện', '+ Tạo ảnh Flow', '+ Tạo ảnh Flow', '+ Text', '+ Text']) await page.getByRole('button', { name: b, exact: true }).click()
+  await node('text').nth(1).getByLabel('Prompt của node Text').fill('nhân vật, viết lại nhẹ hơn')
+  await node('text').nth(2).getByLabel('Prompt của node Text').fill('cảnh tiếp theo')
+  await wire(node('generate').nth(0), node('branch'))
+  await wire(node('branch'), node('generate').nth(1), 'ok')
+  await wire(node('branch'), node('generate').nth(2), 'fail')
+  await wire(node('text').nth(1), node('generate').nth(1))
+  await wire(node('text').nth(2), node('generate').nth(2))
+  await expect(node('branch')).toContainText('Đủ ảnh đã lưu') // the default question
+  await node('branch').locator('header b').click()
+  await page.getByLabel('Xét node Tạo ảnh phía trước theo điều kiện').selectOption('filtered')
+  await expect(node('branch')).toContainText('Có prompt bị Flow lọc')
+  await expect(node('branch')).toContainText('Không bị lọc')
+  await expect(page.getByTestId('wf-cond-help')).toContainText('Cả hai nhánh không mang ảnh sang node sau')
+  await node('generate').nth(1).locator('header b').click()
+  await expect(page.getByTestId('wf-preview')).toContainText('Chỉ chạy khi node phía trước có prompt bị Flow lọc')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow chạy xong, có node lỗi (xem dòng đỏ)', { timeout: 60_000 }) // the refused node is still a failed node
+  await expect(node('generate').nth(0)).toContainText('Lỗi')
+  await expect(node('generate').nth(1)).toContainText('Xong 1/1')
+  await expect(node('generate').nth(2)).toContainText('Không chạy')
+  const sent = await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string; refs: string[]; attempts: { error: { code: string } | null }[] }[] }[] }) => r.batches.flatMap((b) => b.items.map((i) => [i.prompt, i.refs.length, i.attempts.at(-1)!.error?.code ?? null]))))
+  expect(sent).toEqual([['nhân vật, viết lại nhẹ hơn', 0, null], ['nhân vật', 0, 'CONTENT_BLOCKED']])
+})
+
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()

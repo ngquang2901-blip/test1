@@ -9,13 +9,14 @@ import { EXT_ID } from '../src/main/connector/ext-id'
 import { createExtDriver } from '../src/main/connector/ext-driver'
 import { openDb } from '../src/main/db'
 import { requestDownload } from '../src/main/downloads'
+import pkg from '../package.json'
 
 const userData = process.env.TOOLFLOW_USER_DATA ?? join(homedir(), '.local/share/toolflow-live')
 const ids = JSON.parse(readFileSync(process.env.DL_IDS!, 'utf8')) as { id: string; w: number; h: number }[]
 const N = Number(process.env.N ?? 2)
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 const server = await startConnectorServer({ token: readOrCreateToken(userData), extensionId: EXT_ID })
-installExtension(resolve(process.cwd(), '../extension'), userData, server.port)
+installExtension(resolve(process.cwd(), '../extension'), userData, server.port, pkg.version) // same version stamp as the app
 for (let i = 0; i < 40 && !server.connected(); i++) await sleep(3000)
 if (!server.connected()) { console.log('RESULT: extension never connected'); process.exit(1) }
 const driver = createExtDriver(server, { allow: () => true })

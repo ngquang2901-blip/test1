@@ -8,16 +8,20 @@ import { MAX_PROMPTS, fillLines, varsOf, type ExpandError } from '../template'
 import type { PresetAsset, Session } from '../types'
 import { Chip, Icon, type Tone } from '../ui'
 import { Thumb } from './Results'
+import flow from '../../../../profiles/flow.json'
 
 type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'
-type Data = { text?: string; assets?: PresetAsset[] }
+type Combo = { kind: 'image'; mode: string; model: string; aspect: string; quality?: string; count: number } // a Tạo ảnh node's own settings (absent = the app's default)
+type Choice = { kind: string; mode: string; model: string; aspects: string[]; qualities?: string[]; counts: number[] }
+type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks (absent = 'all')
+type Data = { text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond }
 type WNode = Node<Data, Kind>
 type Var = { name: string; value: string }
 type NodeRun = { state: string; code: string | null; total: number; done: number; thumb: { attemptId: string; mediaId: string } | null }
 type RunView = { status: 'running' | 'done' | 'failed' | 'stopped'; nodes: Record<string, NodeRun> }
-type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[] }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
+type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
 type Saved = Canvas & { id: string; name: string }
-type Plan = { steps: { node: string; prompts: string; images: string[]; deps: { node: string; port: string }[]; save: boolean; feeds: boolean }[]; errors: { node?: string; code: string }[] }
+type Plan = { steps: { node: string; prompts: string; images: string[]; deps: { node: string; port: string; cond?: Cond }[]; save: boolean; feeds: boolean; combo?: Combo }[]; errors: { node?: string; code: string }[] }
 
 const KINDS: Kind[] = ['text', 'image', 'generate', 'branch', 'download', 'note']
 const TITLE: Record<Kind, string> = { text: 'Text', image: 'Ảnh tham chiếu', generate: 'Tạo ảnh Flow', download: 'Tự tải về', note: 'Ghi chú', branch: 'Điều kiện' }
@@ -37,6 +41,41 @@ const WHY: Record<string, string> = {
   WF_BATCH_PARTIAL_FAILED: 'Một phần prompt của node này bị lỗi. Xem lý do ở Hàng đợi',
   WF_BATCH_STOPPED: 'Lô của node này đã bị dừng',
   NO_PROJECT_TAB: 'Chưa có tab Flow nào được cấp quyền. Vào màn Kết nối rồi bấm Dùng tab này',
+  COMBO_NOT_QUALIFIED: 'Cài đặt tạo ảnh của node này không nằm trong danh sách app đã kiểm thử nên không gửi. Chọn lại mô hình, tỉ lệ, số ảnh ở bảng bên phải',
+}
+// ---- a Tạo ảnh node's settings: only what the profile has qualified (profiles/flow.json "choices"), nothing typed by hand ----
+const CHOICES = ((flow as { choices?: Choice[] }).choices ?? []).filter((c) => c.kind === 'image')
+const DEFAULT = flow.combos[0] as Combo // what a node without its own settings runs with
+const QUALITY: Record<string, string> = { Low: 'Thấp', Medium: 'Trung bình', High: 'Cao' } // the words Flow itself shows in Vietnamese
+const ASPECT: Record<string, string> = { '16:9': '16:9 (ngang)', '1:1': '1:1 (vuông)', '9:16': '9:16 (dọc)' }
+const comboLabel = (c: Combo): string => [c.model, c.aspect, ...(c.quality ? [QUALITY[c.quality] ?? c.quality] : []), `x${c.count}`].join(' · ')
+/** The settings after one of them changed: the others stay when the (new) model offers them, else the default's value, else the model's first. */
+const withChange = (cur: Combo, p: Partial<Combo>): Combo => {
+  const next = { ...cur, ...p }, ch = CHOICES.find((c) => c.model === next.model)
+  if (!ch) return next
+  const keep = <T,>(v: T | undefined, list: T[], dflt: T | undefined): T => (v !== undefined && list.includes(v) ? v : dflt !== undefined && list.includes(dflt) ? dflt : list[0])
+  return { kind: 'image', mode: ch.mode, model: ch.model, aspect: keep(next.aspect, ch.aspects, DEFAULT.aspect), ...(ch.qualities ? { quality: keep(next.quality, ch.qualities, DEFAULT.quality) } : {}), count: keep(next.count, ch.counts, DEFAULT.count) }
+}
+// ---- Điều kiện: the question, the names of its two sides, and what a node behind each side is told ----
+const COND: Record<Cond, { name: string; yes: string; no: string; when: [string, string]; help: string }> = {
+  all: { name: 'Đủ ảnh: mọi prompt đều có ảnh đã lưu', yes: 'Đủ ảnh đã lưu', no: 'Thiếu ảnh (lỗi hoặc bị lọc)', when: ['Chỉ chạy khi node phía trước có đủ ảnh.', 'Chỉ chạy khi node phía trước thiếu ảnh.'],
+    help: 'Nối một node Tạo ảnh vào bên trái. Chấm “Đủ ảnh” chạy khi mọi prompt của node đó đều có ảnh đã lưu (ảnh được dùng làm tham chiếu). Chấm “Thiếu ảnh” chạy khi có prompt lỗi hoặc bị lọc, dùng cho prompt dự phòng.' },
+  any: { name: 'Có ít nhất một ảnh đã lưu', yes: 'Có ít nhất một ảnh', no: 'Không có ảnh nào', when: ['Chỉ chạy khi node phía trước có ít nhất một ảnh.', 'Chỉ chạy khi node phía trước không có ảnh nào.'],
+    help: 'Chấm “Có ít nhất một ảnh” chạy khi node phía trước lưu được từ một ảnh trở lên; những ảnh có được sẽ làm tham chiếu cho node sau. Chấm “Không có ảnh nào” chạy khi không lưu được ảnh nào, dùng cho prompt dự phòng.' },
+  filtered: { name: 'Có prompt bị Flow lọc nội dung', yes: 'Có prompt bị Flow lọc', no: 'Không bị lọc', when: ['Chỉ chạy khi node phía trước có prompt bị Flow lọc.', 'Chỉ chạy khi node phía trước không bị lọc prompt nào.'],
+    help: 'Chấm “Có prompt bị Flow lọc” chạy khi Flow từ chối ít nhất một prompt vì nội dung, dùng cho prompt viết lại nhẹ hơn. Chấm “Không bị lọc” chạy trong mọi trường hợp còn lại. Cả hai nhánh không mang ảnh sang node sau: muốn dùng ảnh làm tham chiếu thì nối thẳng node Tạo ảnh sang node đó.' },
+}
+const carries = (d: { port: string; cond?: Cond }): boolean => d.port === 'direct' || (d.port === 'ok' && d.cond !== 'filtered') // the wires that hand result images on (main applies the same rule)
+
+function Opt({ label, value, options, show = (v) => v, onChange }: { label: string; value: string; options: string[]; show?: (v: string) => string; onChange(v: string): void }): React.JSX.Element {
+  return (
+    <label className="wf-opt">{label}
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {!options.includes(value) && <option value={value} disabled>{value ? `${show(value)} (không còn dùng được)` : 'Chọn…'}</option>}
+        {options.map((o) => <option key={o} value={o}>{show(o)}</option>)}
+      </select>
+    </label>
+  )
 }
 const why = (code: string): string => WHY[code] ?? hintOf(code) ?? `Lỗi ${code}`
 const varErr = (e: ExpandError): string =>
@@ -77,13 +116,14 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
           <button className="small nodrag" onClick={() => pick(id)}>{data.assets?.length ? 'Chọn lại ảnh' : 'Chọn ảnh'}</button>
         </>
       )}
+      {type === 'generate' && <p className="wf-combo" data-testid="wf-combo">{comboLabel(data.combo ?? DEFAULT)}</p>}
       {type === 'generate' && (r?.thumb ? <Thumb attemptId={r.thumb.attemptId} media={r.thumb.mediaId} saved /> : <p className="hint">Mỗi prompt nối vào tạo một lượt ảnh. Nối chấm bên phải sang node Tạo ảnh khác để dùng ảnh vừa tạo làm ảnh tham chiếu.</p>)}
       {type === 'download' && <p className="hint">Lưu kết quả của node nối vào đây về thư mục Downloads/ToolFlow.</p>}
       {type === 'branch' && (
         <>
           <p className="hint">Xét node Tạo ảnh nối vào bên trái, rồi chạy tiếp một trong hai nhánh:</p>
-          <div className="wf-port">Đủ ảnh đã lưu<Handle id="ok" type="source" position={Position.Right} /></div>
-          <div className="wf-port">Thiếu ảnh (lỗi hoặc bị lọc)<Handle id="fail" type="source" position={Position.Right} /></div>
+          <div className="wf-port">{COND[data.cond ?? 'all'].yes}<Handle id="ok" type="source" position={Position.Right} /></div>
+          <div className="wf-port">{COND[data.cond ?? 'all'].no}<Handle id="fail" type="source" position={Position.Right} /></div>
         </>
       )}
       {err && <p className="wf-err" role="alert">{err}</p>}
@@ -164,8 +204,9 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const typeOf = (id: string | null): string => nodes.find((n) => n.id === id)?.type ?? ''
   const table = Object.fromEntries(vars.filter((v) => v.name.trim()).map((v) => [v.name.trim(), v.value]))
   /** What is saved, exported and undone: texts as written, with their {biến}. */
-  const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[] }[]; edges: object[]; vars: Record<string, string> } => ({
-    nodes: nodes.map((n) => ({ id: n.id, type: n.type!, x: n.position.x, y: n.position.y, ...(n.data.text !== undefined ? { text: n.data.text } : {}), ...(n.data.assets ? { assetIds: n.data.assets.map((a) => a.id) } : {}) })),
+  const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond }[]; edges: object[]; vars: Record<string, string> } => ({
+    nodes: nodes.map((n) => ({ id: n.id, type: n.type!, x: n.position.x, y: n.position.y, ...(n.data.text !== undefined ? { text: n.data.text } : {}), ...(n.data.assets ? { assetIds: n.data.assets.map((a) => a.id) } : {}),
+      ...(n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}) })),
     edges: edges.map((e) => ({ from: e.source, to: e.target, ...(e.sourceHandle ? { port: e.sourceHandle } : {}) })),
     vars: table,
   })
@@ -185,7 +226,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     reset()
     setName(w?.name ?? '')
     setVars(Object.entries(w?.vars ?? {}).map(([n, value]) => ({ name: n, value })))
-    setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}) } })))
+    setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}), ...(n.combo ? { combo: n.combo } : {}), ...(n.cond ? { cond: n.cond } : {}) } })))
     setEdges((w?.edges ?? []).map((e) => ({ id: `${e.from}>${e.to}`, source: e.from, target: e.to, ...(e.port ? { sourceHandle: e.port } : {}) })))
     setTimeout(() => void rf.current?.fitView(FIT), 50)
   }
@@ -222,6 +263,8 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   })
   const picked = nodes.filter((n) => n.selected)
   const sel = picked.length === 1 ? picked[0] : undefined
+  const wires = picked.length ? [] : edges.filter((e) => e.selected) // a clicked wire turns blue; the side panel then offers to remove it
+  const side1 = (id: string, port?: string | null): string => `${TITLE[typeOf(id) as Kind] ?? '?'}${port ? ` (nhánh “${COND[nodes.find((n) => n.id === id)?.data.cond ?? 'all'][port === 'ok' ? 'yes' : 'no']}”)` : ''}`
   useEffect(() => { // the side panel of a Tạo ảnh node shows what main would really send (same plan as a run, nothing sent)
     if (sel?.type !== 'generate') return
     let live = true
@@ -235,6 +278,14 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const setVar = (i: number, p: Partial<Var>): void => setVars((vs) => vs.map((v, j) => (j === i ? { ...v, ...p } : v)))
 
   const side = (): React.JSX.Element => {
+    if (!sel && wires.length) return (
+      <>
+        <h3>Dây nối đã chọn</h3>
+        {wires.map((e) => <p key={e.id} className="hint" data-testid="wf-wire">{side1(e.source, e.sourceHandle)} → {side1(e.target)}</p>)}
+        <button className="small" onClick={() => void rf.current?.deleteElements({ edges: wires.map(({ id }) => ({ id })) })}>{wires.length > 1 ? `Xoá ${wires.length} dây này` : 'Xoá dây này'}</button>
+        <p className="hint">Hoặc nhấn phím Delete (Backspace cũng được). Xoá nhầm thì bấm Hoàn tác.</p>
+      </>
+    )
     if (!sel) return (
       <>
         <h3>Biến dùng lại</h3>
@@ -249,6 +300,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         <button className="small" onClick={() => setVars((vs) => [...vs, { name: '', value: '' }])}>+ Thêm biến</button>
         {missing.length > 0 && <p className="hint">Đang dùng nhưng chưa khai báo: {missing.map((n) => <button key={n} className="small" onClick={() => setVars((vs) => [...vs, { name: n, value: '' }])}>{`{${n}}`}</button>)}</p>}
         <p className="hint">Bấm vào một node trên khung để xem và sửa cấu hình của node đó ở đây.</p>
+        <p className="hint" data-testid="wf-wire-hint">Muốn bỏ một dây nối: bấm vào dây (dây đổi sang màu xanh) rồi bấm Xoá dây này ở đây, hoặc nhấn phím Delete.</p>
       </>
     )
     const r = run?.nodes[sel.id], t = sel.type!
@@ -272,20 +324,40 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
             <p className="hint">Tối đa 8 ảnh. Mọi prompt của node Tạo ảnh nối vào đều dùng các ảnh này.</p>
           </>
         )}
+        {t === 'generate' && (() => {
+          const cur = sel.data.combo ?? DEFAULT, ch = CHOICES.find((c) => c.model === cur.model)
+          const set = (p: Partial<Combo>): void => tools.patch(sel.id, { combo: withChange(cur, p) })
+          return (
+            <div className="wf-set" data-testid="wf-settings">
+              <h4>Cài đặt tạo ảnh</h4>
+              <Opt label="Mô hình" value={cur.model} options={CHOICES.map((c) => c.model)} onChange={(model) => set({ model })} />
+              <Opt label="Tỉ lệ khung hình" value={cur.aspect} options={ch?.aspects ?? []} show={(a) => ASPECT[a] ?? a} onChange={(aspect) => set({ aspect })} />
+              {(ch?.qualities || cur.quality) && <Opt label="Mức suy nghĩ (Thinking level)" value={cur.quality ?? ''} options={ch?.qualities ?? []} show={(q) => QUALITY[q] ?? q} onChange={(quality) => set({ quality })} />}
+              <Opt label="Số ảnh mỗi prompt" value={String(cur.count)} options={(ch?.counts ?? []).map(String)} show={(n) => `${n} ảnh`} onChange={(n) => set({ count: Number(n) })} />
+              <p className="hint">{sel.data.combo ? 'Node này dùng cài đặt riêng.' : 'Đang dùng cài đặt mặc định của app.'} Trước khi gửi, app tự chọn đúng các mục này trong Flow; Flow không nhận thì node dừng lại, không gửi bằng cài đặt khác.</p>
+              {sel.data.combo && <button className="small" onClick={() => tools.patch(sel.id, { combo: undefined })}>Về mặc định</button>}
+            </div>
+          )
+        })()}
         {t === 'generate' && (
           <div className="wf-preview" data-testid="wf-preview">
             <h4>Sẽ gửi {prompts.length} prompt</h4>
             <ol className="wf-prompts">{prompts.slice(0, 20).map((p, i) => <li key={i}>{p}</li>)}</ol>
             {prompts.length > 20 && <p className="hint">… và {prompts.length - 20} prompt nữa</p>}
-            {step && <p className="hint">Ảnh tham chiếu cho mỗi prompt: {step.images.length} ảnh chọn sẵn{step.deps.some((x) => x.port !== 'fail') ? `, cộng ảnh kết quả của ${step.deps.filter((x) => x.port !== 'fail').length} node phía trước` : ''}.</p>}
-            {step?.deps.some((x) => x.port === 'ok') && <p className="hint">Chỉ chạy khi node phía trước có đủ ảnh.</p>}
-            {step?.deps.some((x) => x.port === 'fail') && <p className="hint">Chỉ chạy khi node phía trước thiếu ảnh.</p>}
+            {step && <p className="hint">Mỗi prompt tạo {(step.combo ?? DEFAULT).count} ảnh, tổng cộng {prompts.length * (step.combo ?? DEFAULT).count} ảnh.{step.feeds && (step.combo ?? DEFAULT).count > 1 ? ' Node phía sau chỉ lấy ảnh đầu tiên của mỗi prompt làm tham chiếu.' : ''}</p>}
+            {step && <p className="hint">Ảnh tham chiếu cho mỗi prompt: {step.images.length} ảnh chọn sẵn{step.deps.some(carries) ? `, cộng ảnh kết quả của ${step.deps.filter(carries).length} node phía trước` : ''}.</p>}
+            {step?.deps.filter((x) => x.port !== 'direct').map((x) => <p key={x.node + x.port} className="hint">{COND[x.cond ?? 'all'].when[x.port === 'ok' ? 0 : 1]}</p>)}
             {step && <p className="hint">{step.save || step.feeds ? 'Kết quả sẽ được tải về máy.' : 'Kết quả chưa tự tải về: nối sang node Tự tải về nếu muốn lưu.'}</p>}
             {[...wired, ...(perr ? [why(perr.code)] : [])].map((m) => <p key={m} className="wf-err" role="alert">{m}</p>)}
           </div>
         )}
         {t === 'download' && <p className="hint">Nối chấm bên phải của node Tạo ảnh vào node này để ảnh tự lưu về Downloads/ToolFlow khi tạo xong. Node này không có gì để chỉnh.</p>}
-        {t === 'branch' && <p className="hint">Nối một node Tạo ảnh vào bên trái. Chấm “Đủ ảnh” chạy khi mọi prompt của node đó đều có ảnh đã lưu (ảnh được dùng làm tham chiếu). Chấm “Thiếu ảnh” chạy khi có prompt lỗi hoặc bị lọc, dùng cho prompt dự phòng.</p>}
+        {t === 'branch' && (
+          <>
+            <Opt label="Xét node Tạo ảnh phía trước theo điều kiện" value={sel.data.cond ?? 'all'} options={Object.keys(COND)} show={(c) => COND[c as Cond].name} onChange={(c) => tools.patch(sel.id, { cond: c === 'all' ? undefined : (c as Cond) })} />
+            <p className="hint" data-testid="wf-cond-help">{COND[sel.data.cond ?? 'all'].help}</p>
+          </>
+        )}
         {r?.code && <p className="wf-err" role="alert">{why(r.code)}</p>}
         <button className="small" onClick={() => tools.del(sel.id)}>Xoá node này</button>
       </>

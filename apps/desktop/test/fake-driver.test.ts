@@ -1,5 +1,6 @@
 import { test, expect } from 'vitest';
 import { parseRpcResponse, readFReq, correlate, parseGenerateRequest, parseImageReceipt, parseVideoReceipt } from '@toolflow/flow-protocol/parse';
+import { classifyGenerateError } from '@toolflow/flow-protocol/errors';
 import { createFakeDriver } from '../src/main/fake-driver';
 import { ConnectorError, type DriverEvent } from '../src/main/driver';
 
@@ -47,6 +48,15 @@ test('throttled: response carries the throttle reason', async () => {
   const { got } = await events(['throttled']);
   const r = got[1] as Extract<DriverEvent, { type: 'response' }>;
   expect((parseRpcResponse(r.text, r.rpc) as { error: { reasons: string[] } }).error.reasons).toContain('PUBLIC_ERROR_USER_REQUESTS_THROTTLED');
+});
+
+test('blocked: the same kind of rejection with a content reason, which the product classifies as CONTENT_BLOCKED (ends the item, never resent)', async () => {
+  const { got } = await events(['blocked']);
+  const r = got[1] as Extract<DriverEvent, { type: 'response' }>;
+  const { error } = parseRpcResponse(r.text, r.rpc) as { error: { grpc: number; reasons: string[] } };
+  expect(error.reasons).toEqual(['PUBLIC_ERROR_UNSAFE_GENERATION']);
+  expect(classifyGenerateError(error)).toMatchObject({ code: 'CONTENT_BLOCKED', admission: 'continue', resubmit: false });
+  expect(parseGenerateRequest(readFReq((got[0] as Extract<DriverEvent, { type: 'sent' }>).request as string)).items[0].prompt).toBe(PROMPT);
 });
 
 test('no-request: click resolves, no events', async () => {

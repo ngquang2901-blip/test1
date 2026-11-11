@@ -16,7 +16,9 @@ import { ConnectorError, type ClickResult, type DlInfo, type DriverEvent, type F
 // Tests only: the profile qualifies the image combo alone, so video batches need a stand-in.
 export const FAKE_COMBOS: Combo[] = [DEFAULT_COMBO, { kind: 'video', mode: 'Video', model: 'fake', aspect: '16:9', quality: 'High', count: 1 }];
 export const fakeCombo = (kind: 'image' | 'video'): Combo => FAKE_COMBOS.find((c) => c.kind === kind)!;
-export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'no-request' | 'drop'>;
+// blocked: there is no live capture of a content block, so this is the throttle capture with its reason swapped for a content one
+// (the product reads only the reasons list of a rejection). It stands in for "Flow refused this prompt", not for the real bytes.
+export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'blocked' | 'no-request' | 'drop'>;
 // Per fetchMedia call, in order; the default after the script runs out is a good PNG.
 // html: the file is an error page · empty: 0 bytes · ack-lost: the transfer happens but the reply is lost · fail-once: this transfer is interrupted · slow: in progress for 2 polls
 export type DownloadScript = 'download-ok' | 'download-html' | 'download-empty' | 'download-ack-lost' | 'download-fail-once' | 'download-slow';
@@ -83,17 +85,17 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
   const later = (...es: DriverEvent[]) => setTimeout(() => es.forEach(emit), 0);
 
   // sent + response of one real-fixture pair carrying the prompt prepared on the tab
-  const pair = (tabId: string, step: 'image-ok' | 'video-ok' | 'throttled', epoch: number): DriverEvent[] => {
+  const pair = (tabId: string, step: 'image-ok' | 'video-ok' | 'throttled' | 'blocked', epoch: number): DriverEvent[] => {
     const to = prompts.get(tabId)!;
     let sent: Rec, done: Rec;
-    if (step === 'throttled') {
+    if (step === 'throttled' || step === 'blocked') {
       const video = kinds.get(tabId) === 'video';
       ({ sent } = video ? next('throttledVideo') : next('throttledImage'));
       done = fx(video ? 'throttled-YhhmEf' : 'throttled-ogiZ0b')[0];
     } else ({ sent, done } = step === 'image-ok' ? next('image') : next('video'));
     const from = promptOf(sent);
     const oldBatch = parseGenerateRequest(fReqOf(sent)).batchId;
-    const subs: Array<[string, string]> = [[from, to], [oldBatch, randomUUID()]];
+    const subs: Array<[string, string]> = [[from, to], [oldBatch, randomUUID()], ...(step === 'blocked' ? [['PUBLIC_ERROR_USER_REQUESTS_THROTTLED', 'PUBLIC_ERROR_UNSAFE_GENERATION'] as [string, string]] : [])];
     const body = new URLSearchParams({ 'f.req': swap(fReqOf(sent), subs) }).toString() + '&at=<redacted>';
     const text = swap(done.res!, subs);
     // A silent swap miss would leak fixture identity into tests.

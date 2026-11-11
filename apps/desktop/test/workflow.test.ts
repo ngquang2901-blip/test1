@@ -12,17 +12,19 @@ const CHAIN: Graph = parseGraph({
   edges: [{ from: 't1', to: 'g1' }, { from: 'img', to: 'g1' }, { from: 'g1', to: 'g2' }, { from: 't2', to: 'g2' }, { from: 'g2', to: 'dl' }],
 })
 
-function rig(o: { missing?: string[]; statusOf?: (b: string) => string } = {}) {
+function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; statusOf?: (b: string) => string } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'tf-wf-')), file = join(dir, 'out.toolflow.json'), dialogs: string[] = []
   const db = openDb(join(dir, 't.db'))
   db.prepare("insert into asset(id,path,sha256,bytes,mime,name,created_at) values('a1','/x/a.png','h',3,'image/png','a.png',1)").run()
-  const calls: string[] = [], enq: { commandId: string; text: string; mode: string; refs: { assetIds: string[]; mode: string } }[] = []
+  const calls: string[] = [], enq: { commandId: string; text: string; mode: string; combo?: object; refs: { assetIds: string[]; mode: string } }[] = []
+  const gone = (k: string) => (o.missing ?? []).includes(k)
   const all = createWorkflows({
     db, now: () => 5, sleep: () => new Promise((r) => setTimeout(r, 1)), // a real macrotask: an instant sleep would starve the timers while a batch is "running"
     enqueue: async (a) => { enq.push(a as (typeof enq)[number]); return { batchIds: [`b${enq.length}`] } },
     start: async (b) => void calls.push(`start ${b}`), stop: async (b) => void calls.push(`stop ${b}`),
-    status: o.statusOf ?? (() => 'completed'), download: async (b) => void calls.push(`download ${b}`),
-    outputs: (b) => (b === 'b1' ? ['/dl/A.png', (o.missing ?? []).includes('B') ? null : '/dl/B.png'] : ['/dl/c.png']),
+    status: o.statusOf ?? (() => 'completed'), download: async (b) => { calls.push(`download ${b}`); if (o.saveFails && b === 'b1') throw Object.assign(new Error('DOWNLOAD_ROOT_UNAVAILABLE'), { code: 'DOWNLOAD_ROOT_UNAVAILABLE' }) },
+    outputs: (b) => (b === 'b1' ? [gone('A') ? null : '/dl/A.png', gone('B') ? null : '/dl/B.png'] : ['/dl/c.png']),
+    codes: (b) => (b === 'b1' ? [null, o.blocked ? 'CONTENT_BLOCKED' : gone('B') ? 'PROVIDER_ERROR_UNKNOWN' : null] : [null]),
     register: (p) => `asset:${p}`,
     savePath: async (suggested) => { dialogs.push(suggested); return file }, openPath: async () => file,
   })
@@ -184,4 +186,66 @@ test('export / import: the file round-trips through the same validator; a file t
     writeFileSync(r.file, junk)
     await expect(r.wf.importWorkflow()).rejects.toThrow(/^WF_FILE_INVALID$/)
   }
+})
+
+// ---- per-node settings: a Tạo ảnh node may carry its own combo (model / aspect / thinking level / count) ----
+const PRO = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 }
+const SET = (combo: unknown): unknown => ({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300, { combo }), N('u', 'text', 300, { text: 'y' }), N('h', 'generate', 600)], edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'h' }, { from: 'u', to: 'h' }] })
+
+test('node settings, parseGraph: a combo is kept on a Tạo ảnh node only, rebuilt from known keys; a malformed one is refused', () => {
+  const g = parseGraph(SET({ count: 3, aspect: '9:16', model: 'Nano Banana Pro', mode: 'Image', kind: 'image' }))
+  expect(g.nodes.find((n) => n.id === 'g')!.combo).toEqual(PRO)
+  expect(g.nodes.find((n) => n.id === 'h')!.combo).toBeUndefined()
+  const bad = (v: unknown) => expect(() => parseGraph(v), JSON.stringify(v)).toThrow(/INVALID_ARGS/)
+  for (const c of [null, 'x', [], {}, { ...PRO, count: 0 }, { ...PRO, count: 9 }, { ...PRO, count: '3' }, { ...PRO, model: '' }, { ...PRO, model: 'm'.repeat(61) }, { ...PRO, quality: 5 }, { ...PRO, kind: 'video' }, { ...PRO, extra: 1 }]) bad(SET(c))
+  bad({ nodes: [N('t', 'text', 0, { text: 'x', combo: PRO })], edges: [] }) // only a Tạo ảnh node has settings
+})
+
+test('node settings, plan + run: the node\'s combo goes to its own batch, the next node keeps the default; a combo that is not qualified stops the run before anything is sent', async () => {
+  const g = parseGraph(SET(PRO))
+  expect(plan(g).steps.map((s) => [s.node, s.combo])).toEqual([['g', PRO], ['h', undefined]])
+  const r = rig()
+  const { runId } = await r.wf.runWorkflow({ graph: g, mode: 'auto' }) as { runId: string }
+  expect(await r.wait(runId)).toBe('done')
+  expect(r.enq.map((e) => [e.text, e.combo, 'combo' in e])).toEqual([['x', PRO, true], ['y', undefined, false]])
+  const off = rig()
+  for (const c of [{ ...PRO, model: 'Imagen 9' }, { ...PRO, quality: 'High' }, { ...PRO, count: 8 }]) // well-formed, but not in the profile
+    expect(await off.wf.runWorkflow({ graph: SET(c), mode: 'auto' }), JSON.stringify(c)).toEqual({ errors: [{ node: 'g', code: 'COMBO_NOT_QUALIFIED' }] })
+  expect(off.enq).toEqual([])
+})
+
+// ---- Điều kiện: what it asks about the node wired into it ----
+const COND = (cond?: string): Graph => parseGraph({ ...BRANCH, nodes: BRANCH.nodes.map((n) => (n.id === 'b' && cond ? { ...n, cond } : n)) })
+const sent = async (cond: string | undefined, o: Parameters<typeof rig>[0]) => {
+  const r = rig(o), { runId } = await r.wf.runWorkflow({ graph: COND(cond), mode: 'auto' }) as { runId: string }
+  await r.wait(runId)
+  const nodes = (await r.wf.workflowRun(runId))!.nodes
+  return { texts: r.enq.slice(1).map((e) => [e.text, e.refs.assetIds]), g2: nodes.g2.state, g3: nodes.g3.state }
+}
+
+test('Điều kiện, parseGraph + plan: the condition sits on the Điều kiện node (default: every result saved) and travels with both wires', () => {
+  expect(COND('any').nodes.find((n) => n.id === 'b')!.cond).toBe('any')
+  expect(plan(COND('any')).steps.map((s) => s.deps)).toEqual([[], [{ node: 'g1', port: 'ok', cond: 'any' }], [{ node: 'g1', port: 'fail', cond: 'any' }]])
+  expect(plan(COND('all')).steps[1].deps).toEqual([{ node: 'g1', port: 'ok' }]) // 'all' is the default: the same plan as a graph saved before conditions had kinds
+  for (const bad of ['maybe', '', 5, null]) expect(() => parseGraph({ ...BRANCH, nodes: BRANCH.nodes.map((n) => (n.id === 'b' ? { ...n, cond: bad } : n)) }), String(bad)).toThrow(/INVALID_ARGS/)
+  expect(() => parseGraph({ nodes: [N('g', 'generate', 0, { cond: 'any' })], edges: [] })).toThrow(/INVALID_ARGS/) // only a Điều kiện node has one
+  // "bị lọc" hands no images on, so nine upstream prompts are not nine refs for the next node
+  const many = Array.from({ length: 9 }, (_, i) => `p${i}`).join('\n')
+  const wide = (cond: string) => plan(parseGraph({ nodes: [N('t', 'text', 0, { text: many }), N('a', 'generate'), N('b', 'branch', 200, { cond }), N('u', 'text', 0, { text: 'x' }), N('c', 'generate', 400)], edges: [{ from: 't', to: 'a' }, { from: 'a', to: 'b' }, { from: 'b', to: 'c', port: 'ok' }, { from: 'u', to: 'c' }] })).errors
+  expect([wide('filtered'), wide('any')]).toEqual([[], [{ node: 'c', code: 'TOO_MANY_REFS' }]])
+})
+
+test('Điều kiện "có ít nhất một ảnh": the yes side runs with the results that exist; the no side only when there is none', async () => {
+  expect(await sent('any', {})).toEqual({ texts: [['cảnh có nhân vật', ['asset:/dl/A.png', 'asset:/dl/B.png']]], g2: 'done', g3: 'bypassed' })
+  expect(await sent('any', { missing: ['B'] })).toEqual({ texts: [['cảnh có nhân vật', ['asset:/dl/A.png']]], g2: 'done', g3: 'bypassed' })
+  expect(await sent('any', { missing: ['A', 'B'] })).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' })
+  expect(await sent(undefined, { missing: ['B'] })).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' }) // the default still needs every result
+})
+
+test('Điều kiện "bị Flow lọc": the yes side runs when Flow blocked a prompt, the no side for any other ending; neither gets the images', async () => {
+  expect(await sent('filtered', { missing: ['B'], blocked: true })).toEqual({ texts: [['cảnh có nhân vật', []]], g2: 'done', g3: 'bypassed' })
+  expect(await sent('filtered', {})).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' })
+  expect(await sent('filtered', { missing: ['B'] })).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' }) // a result missing for another reason is not "bị lọc"
+  expect(await sent('filtered', { missing: ['B'], blocked: true, saveFails: true })).toEqual({ texts: [['cảnh có nhân vật', []]], g2: 'done', g3: 'bypassed' }) // what Flow answered is known even when saving the other results fails
+  expect(await sent(undefined, { saveFails: true })).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' }) // nothing saved ⇒ "Thiếu ảnh"
 })

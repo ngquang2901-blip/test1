@@ -49,7 +49,7 @@ Gate on Linux at `fb9b8ce`: unit 290, flow-protocol 53, extension 61, typecheck 
 | AC | Status | Evidence |
 |---|---|---|
 | AC-01 pick the right Flow tab | PARTIAL | tabs/grants tests, e2e, live `focus`; no live wrong-project tab |
-| AC-03 settings before send | PASS (image) | combo gate tests + live settings round trip x2→x1→x2 |
+| AC-03 settings before send | PASS (image) | combo gate tests + live settings round trip x2→x1→x2; since 2026-11-11 the model is picked too and three models are qualified per value (see "Workflow canvas, round 3") |
 | AC-04 ref pool mapping | PARTIAL | mapping + pick-refs + e2e; `start` mode untested, video refs refused |
 | AC-10 crash / recover / archive | PASS (offline) | recover + archive tests |
 | AC-11 manual mode right tab | PASS | tests + live manual 2/2 |
@@ -130,3 +130,49 @@ Not done: **chat / message node** (needs the ChatGPT automation, P5: nothing to 
 ## 0.5.2 released (2026-11-11)
 
 Workflow polish: zoom +/- buttons and a minimap, a node type can be dragged from the toolbar onto the canvas (click still adds), undo history survives a visit to another screen. Owner's decision: the chat node is not built now (it needs either ChatGPT web automation, against OpenAI's terms, or the paid API). Released `v0.5.2` on `ngquang2901-blip/test1` as draft → verified 6 assets → public; the packaged app was smoke-tested (Workflow run, variables) and the published 0.5.1 AppImage updated itself to 0.5.2. Gate 6/6: unit 321, e2e 33.
+
+## Workflow canvas, round 3: node settings, more conditions, removing a wire (2026-11-11)
+
+Three additions to the Workflow screen (owner: "làm 1 2 3"):
+
+1. **Removing a wire is discoverable.** A clicked wire turns blue and thicker; the side panel names it (`Text → Tạo ảnh Flow`) with a `Xoá dây này` button; Delete / Backspace still work; the default side panel says how. Undo brings it back.
+2. **Per-node settings.** A Tạo ảnh node can carry its own combo (model / aspect / thinking level / count), chosen in the side panel and shown on the node. Stored in the graph (`node.combo`), in saved workflows and in `.toolflow.json`; absent = the app default. `enqueueBatch` takes an optional `combo` and refuses anything not qualified (`COMBO_NOT_QUALIFIED`, nothing created); the runner's gate is unchanged (exact match against the qualified list). The Tạo lô screen still uses the default combo.
+3. **Điều kiện asks one of three questions** (`node.cond`, absent = the old behaviour): every prompt has a saved result (`all`); at least one has (`any`, the results that exist become the refs); Flow blocked a prompt for its content (`filtered`, attempt error `CONTENT_BLOCKED`; neither side hands images on). The yes / no side not taken is `bypassed`.
+
+### What "qualified" means now (AC-03)
+
+`profiles/flow.json` gained `choices`: per model, the aspects, thinking levels and counts that may be combined. The qualified list is `combos` plus every cross product of a `choices` entry (100 image combos). A value is listed only after it went through a real send on that model with the product runner, and before every send the settings panel must read back exactly the wanted combo (model included), else `SETTINGS_MISMATCH` and nothing is sent. So: every *value* was sent live per model; not every one of the 100 *combinations* was.
+
+To make this possible the extension's `settings` op now picks the model from Flow's model menu (a Material menu in an overlay; exactly one item with the wanted label is clicked, otherwise the menu is closed and the op reports a mismatch). Models without a thinking level (Pro, 2 Lite) send `quality: null`, which the page must confirm by showing no such radios.
+
+Live sends, account `ng***` (Profile 2, Vietnamese UI), `MODE=auto COMBO=… npm run live-batch`, one prompt each, 45 s apart. All 14 completed; request facts come from the product parser, sizes from the result tile.
+
+| Model (code in the request) | Aspect → code | Thinking level | Count | Outputs | Size |
+|---|---|---|---|---|---|
+| Nano Banana 2.1 (`BELUGA`) | 9:16 → 2 | Medium | 1 | 1 | not read (tile still loading) |
+| | 1:1 → 1 | Low | 3 | 3 | 1024×1024 |
+| | 4:3 → 5 | High | 4 | 4 | 1200×896 |
+| | 3:4 → 4 | Medium | 1 | 1 | 896×1200 |
+| Nano Banana Pro (`GEM_PIX_2`) | 16:9 → 3 | none | 1 | 1 | 1376×768 |
+| | 4:3 → 5 | none | 2 | 2 | 1200×896 |
+| | 1:1 → 1 | none | 3 | 3 | 1024×1024 |
+| | 3:4 → 4 | none | 4 | 4 | 896×1200 |
+| | 9:16 → 2 | none | 1 | 1 | 768×1376 |
+| Nano Banana 2 Lite (`HARBOR_SEAL`) | 16:9 → 3 | none | 1 | 1 | 1376×768 |
+| | 4:3 → 5 | none | 2 | 2 | 1200×896 |
+| | 1:1 → 1 | none | 3 | 3 | 1024×1024 |
+| | 3:4 → 4 | none | 4 | 4 | 896×1200 |
+| | 9:16 → 2 | none | 1 | 1 | 768×1376 |
+
+(2.1 at 16:9 / High / x2 is the default combo, sent live many times before.) The settings panel showed "0 tín dụng" as the cost for all three models on this account. Settings-only checks (no send) of all three models also passed on account `nt***` (Profile 1, English UI); an unknown model name and a thinking level on a model without one were both reported as mismatches with the menu and the panel closed.
+
+### Live run through the real app (same day, `ng***`, auto)
+
+Workflow built in the UI: Text → Tạo ảnh (Nano Banana Pro · 1:1 · x1) → Điều kiện (default) → [Đủ ảnh] Tạo ảnh (Nano Banana 2 Lite · 9:16 · x2, its own Text) → Tự tải về; [Thiếu ảnh] a fallback node. Result in 54 s: first node 1 image 1024×1024; second node ran with **1 reference** (the first node's saved file, uploaded by the app) and gave 2 images 768×1376 showing the same plate and lemon; the fallback showed "Không chạy"; 3 files in `Downloads/ToolFlow`. This is the first real-Flow run of the Workflow screen and of "a saved result becomes the next node's reference".
+
+### Checked / not checked
+
+Gate 6/6 (unit 333, flow-protocol 53, extension 66, typecheck, e2e 36, pairing). New: profile choices, enqueue combo, workflow parse / plan / run for combo and the three conditions (13 mutations of `workflow.ts` caught), ext-driver `quality: null`, extension model picker on a fake DOM (3 mutations caught), fake-driver `blocked` step, 3 e2e (wire removal; node settings to the batch + export/import; "bị Flow lọc" branch, which also caught a broken `codes` query). One older test changed on purpose: `comboQualified` used to refuse the default model at x4 or 1:1; those are qualified now.
+
+Not checked on real Flow: the "bị Flow lọc" condition (no prompt was sent to provoke the filter; the fake's `blocked` reply is the throttle capture with a content reason, not a real capture) and the "có ít nhất một ảnh" condition; sends on account `nt***`; any of this on Windows.
+

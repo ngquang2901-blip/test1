@@ -14,7 +14,7 @@ export const HINTS: Record<string, string> = {
   CHIP_MISMATCH: 'Ảnh trong ô nhập của Flow khác với lô này. Xoá ảnh trong ô nhập rồi bấm Tiếp tục',
   COMPOSER_NOT_CLEAR: 'Không xoá sạch được ô nhập của Flow. Xoá thủ công chữ và ảnh trong ô nhập rồi bấm Tiếp tục',
   // page state
-  SETTINGS_MISMATCH: 'Cài đặt trong Flow khác chế độ đã qualify. Đặt lại mô hình, tỉ lệ, số lượng trong Flow rồi bấm Tiếp tục',
+  SETTINGS_MISMATCH: 'Flow không nhận đúng cài đặt của lô này (mô hình, tỉ lệ, số ảnh). Xem tài khoản Flow có mô hình đó không, hoặc tự đặt trong Flow rồi bấm Tiếp tục',
   PROMPT_MISMATCH: 'Prompt trong ô nhập của Flow không khớp. Xoá ô nhập, đừng gõ vào Flow khi app đang chạy, rồi bấm Tiếp tục',
   COMBO_NOT_QUALIFIED: 'Tổ hợp mô hình/cài đặt chưa được qualify nên app không chạy. Chọn chế độ đã qualify rồi tạo lại lô',
   UNEXPECTED_GENERATE: 'Flow vừa tạo thứ app không gửi. Xem Flow có đang tạo ảnh/video không, đợi xong rồi bấm Tiếp tục',

@@ -39,9 +39,11 @@
   const mismatches = (cur, want) => [...ORDER, 'model'].filter((g) => cur[g] !== want[g]);
 
   // getButtons(): fresh button list (re-read after EVERY click, Q-31: other groups can jump). click(button) must never reach the submit button.
-  // The model is verified, never changed (P2).
-  async function converge(want, getButtons, click, { passes = 3, settle = async () => {} } = {}) {
+  // pickModel(label), when given, picks the model from its menu: once, before the radios, because the option groups differ per model
+  // (seen live: only Nano Banana 2.1 has the thinking-level radios; such a combo wants quality null). Without it the model is only verified.
+  async function converge(want, getButtons, click, { passes = 3, settle = async () => {}, pickModel } = {}) {
     let r = read(await getButtons());
+    if (pickModel && r.current.model !== want.model) { await pickModel(want.model); await settle(); r = read(await getButtons()); }
     for (let p = 0; p < passes && mismatches(r.current, want).length; p++) {
       for (const g of ORDER) {
         if (r.current[g] === want[g]) continue;

@@ -5,17 +5,22 @@ import { randomUUID } from 'node:crypto'
 import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import type { Db } from './db'
 import { safeComponent } from './downloads'
+import { comboQualified, type Combo } from './profile'
 
-export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; assetIds?: string[] }
-type Port = 'ok' | 'fail' // the two outputs of a Điều kiện node: the generate node wired into it has every result saved / has not
+type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks about the generate node wired into it: every prompt has a saved result / at least one has / Flow blocked a prompt
+/** combo: a Tạo ảnh node's own model / aspect / thinking level / count (absent = the app's default). cond: a Điều kiện node's question (absent = 'all'). */
+export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond }
+type Port = 'ok' | 'fail' // the two outputs of a Điều kiện node: its question is answered yes / no
 export type Graph = { nodes: WfNode[]; edges: { from: string; to: string; port?: Port }[]; vars?: Record<string, string> } // vars: the canvas's reusable {biến}; main only stores them (the renderer fills them in before a run)
-type Dep = { node: string; port: 'direct' | Port }
-/** One generate node, ready to run: prompts = one per non-empty line; deps = the generate nodes it waits for (their results are its refs, except through "fail"). */
-export type Step = { node: string; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean }
-export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: string[] }
+type Dep = { node: string; port: 'direct' | Port; cond?: Cond } // cond: only through a Điều kiện node that asks something other than 'all'
+/** One generate node, ready to run: prompts = one per non-empty line; deps = the generate nodes it waits for (see carries() for which hand their results on as refs). */
+export type Step = { node: string; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo }
+/** assets: per prompt, its first saved result as a reference asset (null = none saved); blocked: Flow refused a prompt of this node for its content. Both only for a node something waits for. */
+export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean }
 export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun> }
 
 const TYPES = ['text', 'image', 'generate', 'download', 'note', 'branch']
+const CONDS = ['all', 'any', 'filtered']
 const WIRES: Record<string, string[]> = { text: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch'], branch: ['generate'] } // source type → allowed target types
 const ID = /^[\w-]{1,64}$/
 const MAX_REFS = 8 // the batch path takes at most 8 reference images per prompt
@@ -23,6 +28,15 @@ const ACTIVE = ['queued', 'running', 'paused', 'needs_review']
 const coded = (code: string): Error => Object.assign(new Error(code), { code })
 const bad = (): never => { throw coded('INVALID_ARGS') }
 const lines = (s: string): number => s.split(/\r\n|\n/).filter((l) => l.trim() !== '').length
+/** A wire that hands the upstream results on as reference images: a direct wire, or the "yes" side of a question about having images. */
+const carries = (dp: Dep): boolean => dp.port === 'direct' || (dp.port === 'ok' && dp.cond !== 'filtered')
+/** Shape only, rebuilt from the known keys. Whether the combo may run is asked when it runs: a file can come from another app version. */
+function comboOf(v: unknown): Combo {
+  const c = v as Record<string, unknown> | null, short = (x: unknown): boolean => typeof x === 'string' && x.length > 0 && x.length <= 60
+  if (!c || typeof c !== 'object' || Array.isArray(c) || Object.keys(c).some((k) => !['kind', 'mode', 'model', 'aspect', 'quality', 'count'].includes(k))) bad()
+  if (c!.kind !== 'image' || ![c!.mode, c!.model, c!.aspect].every(short) || !(c!.quality === undefined || short(c!.quality)) || !Number.isInteger(c!.count) || (c!.count as number) < 1 || (c!.count as number) > 8) bad()
+  return { kind: 'image', mode: c!.mode as string, model: c!.model as string, aspect: c!.aspect as string, ...(c!.quality !== undefined ? { quality: c!.quality as string } : {}), count: c!.count as number }
+}
 
 /** The renderer's graph (or an imported file) is untrusted: types, sizes, ids, and only the wires that mean something. */
 export function parseGraph(v: unknown): Graph {
@@ -32,7 +46,10 @@ export function parseGraph(v: unknown): Graph {
     if (!n || typeof n.id !== 'string' || !ID.test(n.id) || !TYPES.includes(n.type as string) || !Number.isFinite(n.x) || !Number.isFinite(n.y)) bad()
     if (n.text !== undefined && (typeof n.text !== 'string' || n.text.length > 1_000_000)) bad() // the same cap as a batch's prompt list
     if (n.assetIds !== undefined && !(Array.isArray(n.assetIds) && n.assetIds.length <= MAX_REFS && n.assetIds.every((a) => typeof a === 'string' && ID.test(a)))) bad()
-    return { id: n.id as string, type: n.type as WfNode['type'], x: n.x as number, y: n.y as number, ...(n.text !== undefined ? { text: n.text as string } : {}), ...(n.assetIds ? { assetIds: n.assetIds as string[] } : {}) }
+    if (n.combo !== undefined && n.type !== 'generate') bad() // settings belong to a Tạo ảnh node
+    if (n.cond !== undefined && (n.type !== 'branch' || !CONDS.includes(n.cond as string))) bad()
+    return { id: n.id as string, type: n.type as WfNode['type'], x: n.x as number, y: n.y as number, ...(n.text !== undefined ? { text: n.text as string } : {}), ...(n.assetIds ? { assetIds: n.assetIds as string[] } : {}),
+      ...(n.combo !== undefined ? { combo: comboOf(n.combo) } : {}), ...(n.cond !== undefined ? { cond: n.cond as Cond } : {}) }
   })
   const byId = new Map(nodes.map((n) => [n.id, n]))
   if (byId.size !== nodes.length) bad()
@@ -64,7 +81,7 @@ export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: 
     if (src.type !== 'branch') return []
     const ins = into(src.id, 'generate')
     if (ins.length !== 1) { if (!errors.some((x) => x.node === src.id)) errors.push({ node: src.id, code: 'WF_BRANCH_INPUT' }); return [] }
-    return [{ node: ins[0].id, port: e.port! }]
+    return [{ node: ins[0].id, port: e.port!, ...(src.cond && src.cond !== 'all' ? { cond: src.cond } : {}) }]
   })]))
   const order: WfNode[] = [], left = new Set(gens.map((n) => n.id))
   for (let moved = true; moved;) { // Kahn: take every node whose upstream is done; what never gets taken sits on a loop
@@ -79,21 +96,24 @@ export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: 
     const deps = depsOf.get(n.id)!
     count.set(n.id, lines(prompts))
     if (!lines(prompts)) errors.push({ node: n.id, code: 'WF_NO_PROMPT' })
-    else if (images.length + deps.reduce((s, u) => s + (u.port === 'fail' ? 0 : count.get(u.node) ?? 0), 0) > MAX_REFS) errors.push({ node: n.id, code: 'TOO_MANY_REFS' }) // one result image per upstream prompt
+    else if (images.length + deps.reduce((s, u) => s + (carries(u) ? count.get(u.node) ?? 0 : 0), 0) > MAX_REFS) errors.push({ node: n.id, code: 'TOO_MANY_REFS' }) // one result image per upstream prompt
+    if (n.combo && !comboQualified('image', n.combo)) errors.push({ node: n.id, code: 'COMBO_NOT_QUALIFIED' }) // AC-03: no other combo is used instead
     const outs = g.edges.filter((e) => e.from === n.id).map((e) => byId.get(e.to)!.type)
-    return { node: n.id, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch') }
+    return { node: n.id, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch'), ...(n.combo ? { combo: n.combo } : {}) }
   })
   return { steps, errors }
 }
 
-// How an upstream node ended: full = every prompt has a saved result; short = it ran but some result is missing (failed, filtered);
-// off = its branch was not taken; broken = it never ran or was cut off. And what each kind of wire does with that.
-const outcome = (u: NodeRun): 'full' | 'short' | 'off' | 'broken' =>
-  u.assets ? 'full' : u.state === 'bypassed' ? 'off' : u.batchIds.length && (u.state === 'done' || u.state === 'failed') ? 'short' : 'broken'
-const TAKE: Record<Dep['port'], Record<ReturnType<typeof outcome>, 'run' | 'bypassed' | 'skipped'>> = {
-  direct: { full: 'run', off: 'bypassed', short: 'skipped', broken: 'skipped' }, // never send without the reference the user wired
-  ok: { full: 'run', off: 'bypassed', short: 'bypassed', broken: 'skipped' },
-  fail: { full: 'bypassed', off: 'bypassed', short: 'run', broken: 'skipped' },
+// What a wire does once the node it waits for has ended. That node's own branch was not taken ⇒ this one is not either;
+// it never ran or was cut off (stopped, not enqueued) ⇒ skipped. Otherwise it ran: a direct wire needs every prompt's saved result
+// (never send without the reference the user wired); a Điều kiện wire runs on its side of the answer.
+function take(dp: Dep, u: NodeRun): 'run' | 'bypassed' | 'skipped' {
+  if (u.state === 'bypassed') return 'bypassed'
+  if (!(u.batchIds.length && (u.state === 'done' || u.state === 'failed'))) return 'skipped'
+  const saved = u.assets ?? [], full = saved.length > 0 && saved.every(Boolean)
+  if (dp.port === 'direct') return full ? 'run' : 'skipped'
+  const yes = dp.cond === 'any' ? saved.some(Boolean) : dp.cond === 'filtered' ? !!u.blocked : full
+  return yes === (dp.port === 'ok') ? 'run' : 'bypassed'
 }
 
 type Enqueued = { batchId?: string; batchIds?: string[]; errors?: { code: string }[] }
@@ -102,6 +122,7 @@ export type WfDeps = {
   enqueue(a: object): Promise<Enqueued>; start(batchId: string): Promise<unknown>; stop(batchId: string): Promise<unknown> // the same handlers the Tạo lô / Hàng đợi screens call
   status(batchId: string): string; download(batchId: string): Promise<unknown>
   outputs(batchId: string): (string | null)[] // per prompt: the path of its first saved result, null when none is saved
+  codes(batchId: string): (string | null)[] // per prompt: the error code it ended with, null when none
   register(path: string): string // a saved result as a reference asset
   savePath(suggested: string): Promise<string | null>; openPath(): Promise<string | null> // the OS file dialogs (null = cancelled)
 }
@@ -116,23 +137,21 @@ export function createWorkflows(d: WfDeps) {
     for (const s of steps) {
       const n = run.nodes[s.node]
       if (run.stop) { n.state = 'stopped'; continue }
-      const takes = s.deps.map((dp) => TAKE[dp.port][outcome(run.nodes[dp.node])])
+      const takes = s.deps.map((dp) => take(dp, run.nodes[dp.node]))
       if (takes.includes('skipped')) { n.state = 'skipped'; n.code = 'WF_UPSTREAM_INCOMPLETE'; continue }
       if (takes.includes('bypassed')) { n.state = 'bypassed'; continue } // the other side of a Điều kiện: not an error
       try {
         n.state = 'running'
-        const refs = [...s.images, ...s.deps.flatMap((dp) => (dp.port === 'fail' ? [] : run.nodes[dp.node].assets!))]
-        const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: 'image', mode, text: s.prompts, refs: { assetIds: refs, mode: refs.length ? 'all' : 'none', perItem: MAX_REFS } })
+        const refs = [...s.images, ...s.deps.flatMap((dp) => (carries(dp) ? (run.nodes[dp.node].assets ?? []).filter((a): a is string => !!a) : []))]
+        const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: 'image', mode, text: s.prompts, refs: { assetIds: refs, mode: refs.length ? 'all' : 'none', perItem: MAX_REFS }, ...(s.combo ? { combo: s.combo } : {}) })
         if (r.errors?.length) { n.state = 'failed'; n.code = r.errors[0].code; continue }
         n.batchIds = r.batchIds ?? [r.batchId!]
         for (const b of n.batchIds) await d.start(b)
         while (!run.stop && n.batchIds.some((b) => ACTIVE.includes(d.status(b)))) await sleep(500) // paused / needs_review wait for the user in Hàng đợi
         if (run.stop) { for (const b of n.batchIds) await d.stop(b); n.state = 'stopped'; continue }
+        if (s.feeds) n.blocked = n.batchIds.some((b) => d.codes(b).includes('CONTENT_BLOCKED')) // what Flow answered: known before, and whatever becomes of, the saving below
         if (s.save || s.feeds) for (const b of n.batchIds) await d.download(b)
-        if (s.feeds) {
-          const files = n.batchIds.flatMap((b) => d.outputs(b))
-          if (files.every((f): f is string => !!f)) n.assets = files.map((f) => d.register(f))
-        }
+        if (s.feeds) n.assets = n.batchIds.flatMap((b) => d.outputs(b)).map((f) => (f ? d.register(f) : null))
         const notOk = n.batchIds.map((b) => d.status(b)).find((st) => st !== 'completed')
         n.state = notOk ? 'failed' : 'done'
         if (notOk) n.code = `WF_BATCH_${notOk.toUpperCase()}`

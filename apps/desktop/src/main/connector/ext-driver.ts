@@ -91,7 +91,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       // I2: the page is touched only when the tab is on the batch's project (settings, upload and typing would otherwise land in another project)
       const here = ((await server.send('tabs', {})) as Array<{ tabId: string; path: string }>).find((x) => String(x.tabId) === tabId)
       if (!project || !here || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
-      const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, aspect: combo.aspect, quality: combo.quality, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
+      const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
       if ('fail' in s) return { ok: false, code: s.fail }
       if (s?.ok !== true) return { ok: false, code: 'SETTINGS_MISMATCH' }
       const live = (x: unknown): x is { text?: string; chips: string[] } => !!x && typeof x === 'object' && !('fail' in x) && Array.isArray((x as { chips?: unknown }).chips)

@@ -24,7 +24,7 @@ export function validate(msg) {
   if (op === 'arm' && !(Number.isInteger(args.epoch) || args.epoch === null)) return 'arm needs integer epoch or null';
   if (op === 'focus' && !Number.isInteger(args.tabId)) return 'focus needs integer tabId';
   if (op === 'probe' && !(args.selectors && typeof args.selectors === 'object' && !Array.isArray(args.selectors) && Object.values(args.selectors).every((v) => typeof v === 'string' && v.length < 300))) return 'probe needs a selectors map of strings';
-  if (op === 'settings' && !['mode', 'aspect', 'quality', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k])) return 'settings needs mode, aspect, quality, count, model';
+  if (op === 'settings' && !(['mode', 'aspect', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k]) && (args.quality === null || (typeof args.quality === 'string' && args.quality)))) return 'settings needs mode, aspect, count, model and a quality (null for a model without one)';
   if (op === 'attach' && !(typeof args.name === 'string' && args.name.length >= 1 && args.name.length <= 200)) return 'attach needs a name of 1..200 chars';
   if (op === 'locate' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId))) return 'locate needs integer tabId and a media uuid';
   if (op === 'fetchMedia' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId) && validTmpName(args.filename))) return 'fetchMedia needs integer tabId, a media uuid and a flat filename';
