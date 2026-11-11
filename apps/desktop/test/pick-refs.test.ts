@@ -117,3 +117,15 @@ test('presets: save, list with ref names (never paths), same name updates, missi
   expect(await h.listPresets()).toEqual([])
   expect(count(db, 'preset')).toBe(0)
 })
+
+test('presets: the chosen model / aspect / count is kept as the profile\'s own object; settings the profile does not offer are refused', async () => {
+  const { h } = rig()
+  const p = { name: 'Dọc Pro', kind: 'image', mode: 'auto', refs: { assetIds: [], mode: 'none', perItem: 1 }, template: { template: '', how: 'all', lists: {} } }
+  const combo = { count: 3, aspect: '9:16', model: 'Nano Banana Pro', mode: 'Image', kind: 'image' }
+  await h.savePreset({ ...p, combo })
+  expect(((await h.listPresets()) as any[])[0].combo).toEqual({ kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 })
+  for (const bad of [{ ...combo, count: 9 }, { ...combo, model: 'Imagen 9' }, { ...combo, kind: 'video' }, 'x', null])
+    await expect(h.savePreset({ ...p, name: 'x', combo: bad }), JSON.stringify(bad)).rejects.toThrow(/INVALID_ARGS/)
+  await h.savePreset(p) // saved again without settings: the preset carries none (the app default applies)
+  expect(((await h.listPresets()) as any[])[0]).not.toHaveProperty('combo')
+})

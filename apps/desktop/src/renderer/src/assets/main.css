@@ -145,6 +145,8 @@ legend { font-size: 13px; color: var(--ink-2); padding: 0 6px; margin-left: -6px
 fieldset label { display: inline-flex; align-items: center; margin: 4px 18px 4px 0; }
 .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .choices .wide { grid-column: 1 / -1; }
+.combo-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; margin-bottom: 8px; }
+.combo-row .wf-opt { flex: 1 1 170px; width: auto; max-width: 260px; margin: 0; align-items: stretch; }
 
 .panel { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .panel-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }

@@ -190,3 +190,9 @@ Release `v0.5.3` of `ngquang2901-blip/test1`: draft, six assets (sizes equal to 
 
 Update check against the real host: the published 0.5.2 AppImage found 0.5.3, had it downloaded after 26 s, and on "Khởi động lại để cập nhật" replaced itself; the file is renamed to `ToolFlow-0.5.3-x86_64.AppImage`, its sha256 equals the published one, it starts as 0.5.3 and reports "Bạn đang dùng bản mới nhất". Not checked: the Windows installer and the `.deb` (never run on a real machine), an update on Windows. Releases 0.5.1 and 0.5.2 are still public with the unscrubbed fixtures (owner's call).
 
+## Tạo lô: model / aspect / count chosen on the screen (2026-11-11)
+
+The settings selects of the Workflow's Tạo ảnh node moved into a shared module (`src/renderer/src/combo.tsx`: `ComboFields`, `withChange`, `comboLabel`) and Tạo lô now shows them in a "Cài đặt tạo ảnh" box; the batch is created with that combo through the same `enqueueBatch` gate (only what `profiles/flow.json` offers, else `COMBO_NOT_QUALIFIED`). The choice is kept per kind while the app runs (like the ref pool) and inside a Mẫu lô (`savePreset` stores the profile's own object and refuses anything else; a setup older than the profile falls back to what is still offered). The ref count input is now labelled "Số ảnh tham chiếu mỗi prompt" so the screen has one "Số ảnh mỗi prompt".
+
+Checked: unit 334, the new e2e ("Tạo lô: the chosen model / aspect / count go into the batch…", seen failing against the previous build first). Live with the real app on `ng***`: Nano Banana Pro · 1:1 · x1 chosen in Tạo lô, one prompt, completed in 28 s, saved file 1024×1024.
+

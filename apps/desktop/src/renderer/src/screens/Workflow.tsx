@@ -8,11 +8,9 @@ import { MAX_PROMPTS, fillLines, varsOf, type ExpandError } from '../template'
 import type { PresetAsset, Session } from '../types'
 import { Chip, Icon, type Tone } from '../ui'
 import { Thumb } from './Results'
-import flow from '../../../../profiles/flow.json'
+import { ComboFields, Opt, comboLabel, defaultCombo, type Combo } from '../combo'
 
 type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'
-type Combo = { kind: 'image'; mode: string; model: string; aspect: string; quality?: string; count: number } // a Tạo ảnh node's own settings (absent = the app's default)
-type Choice = { kind: string; mode: string; model: string; aspects: string[]; qualities?: string[]; counts: number[] }
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks (absent = 'all')
 type Data = { text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond }
 type WNode = Node<Data, Kind>
@@ -43,19 +41,7 @@ const WHY: Record<string, string> = {
   NO_PROJECT_TAB: 'Chưa có tab Flow nào được cấp quyền. Vào màn Kết nối rồi bấm Dùng tab này',
   COMBO_NOT_QUALIFIED: 'Cài đặt tạo ảnh của node này không nằm trong danh sách app đã kiểm thử nên không gửi. Chọn lại mô hình, tỉ lệ, số ảnh ở bảng bên phải',
 }
-// ---- a Tạo ảnh node's settings: only what the profile has qualified (profiles/flow.json "choices"), nothing typed by hand ----
-const CHOICES = ((flow as { choices?: Choice[] }).choices ?? []).filter((c) => c.kind === 'image')
-const DEFAULT = flow.combos[0] as Combo // what a node without its own settings runs with
-const QUALITY: Record<string, string> = { Low: 'Thấp', Medium: 'Trung bình', High: 'Cao' } // the words Flow itself shows in Vietnamese
-const ASPECT: Record<string, string> = { '16:9': '16:9 (ngang)', '1:1': '1:1 (vuông)', '9:16': '9:16 (dọc)' }
-const comboLabel = (c: Combo): string => [c.model, c.aspect, ...(c.quality ? [QUALITY[c.quality] ?? c.quality] : []), `x${c.count}`].join(' · ')
-/** The settings after one of them changed: the others stay when the (new) model offers them, else the default's value, else the model's first. */
-const withChange = (cur: Combo, p: Partial<Combo>): Combo => {
-  const next = { ...cur, ...p }, ch = CHOICES.find((c) => c.model === next.model)
-  if (!ch) return next
-  const keep = <T,>(v: T | undefined, list: T[], dflt: T | undefined): T => (v !== undefined && list.includes(v) ? v : dflt !== undefined && list.includes(dflt) ? dflt : list[0])
-  return { kind: 'image', mode: ch.mode, model: ch.model, aspect: keep(next.aspect, ch.aspects, DEFAULT.aspect), ...(ch.qualities ? { quality: keep(next.quality, ch.qualities, DEFAULT.quality) } : {}), count: keep(next.count, ch.counts, DEFAULT.count) }
-}
+const DEFAULT = defaultCombo('image')! // what a Tạo ảnh node without its own settings runs with
 // ---- Điều kiện: the question, the names of its two sides, and what a node behind each side is told ----
 const COND: Record<Cond, { name: string; yes: string; no: string; when: [string, string]; help: string }> = {
   all: { name: 'Đủ ảnh: mọi prompt đều có ảnh đã lưu', yes: 'Đủ ảnh đã lưu', no: 'Thiếu ảnh (lỗi hoặc bị lọc)', when: ['Chỉ chạy khi node phía trước có đủ ảnh.', 'Chỉ chạy khi node phía trước thiếu ảnh.'],
@@ -67,16 +53,6 @@ const COND: Record<Cond, { name: string; yes: string; no: string; when: [string,
 }
 const carries = (d: { port: string; cond?: Cond }): boolean => d.port === 'direct' || (d.port === 'ok' && d.cond !== 'filtered') // the wires that hand result images on (main applies the same rule)
 
-function Opt({ label, value, options, show = (v) => v, onChange }: { label: string; value: string; options: string[]; show?: (v: string) => string; onChange(v: string): void }): React.JSX.Element {
-  return (
-    <label className="wf-opt">{label}
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {!options.includes(value) && <option value={value} disabled>{value ? `${show(value)} (không còn dùng được)` : 'Chọn…'}</option>}
-        {options.map((o) => <option key={o} value={o}>{show(o)}</option>)}
-      </select>
-    </label>
-  )
-}
 const why = (code: string): string => WHY[code] ?? hintOf(code) ?? `Lỗi ${code}`
 const varErr = (e: ExpandError): string =>
   e.code === 'EMPTY_VAR' ? `Biến {${e.name}} chưa có giá trị. Bấm vào nền trống rồi khai báo ở bảng Biến bên phải`
@@ -325,15 +301,11 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
           </>
         )}
         {t === 'generate' && (() => {
-          const cur = sel.data.combo ?? DEFAULT, ch = CHOICES.find((c) => c.model === cur.model)
-          const set = (p: Partial<Combo>): void => tools.patch(sel.id, { combo: withChange(cur, p) })
+          const cur = sel.data.combo ?? DEFAULT
           return (
             <div className="wf-set" data-testid="wf-settings">
               <h4>Cài đặt tạo ảnh</h4>
-              <Opt label="Mô hình" value={cur.model} options={CHOICES.map((c) => c.model)} onChange={(model) => set({ model })} />
-              <Opt label="Tỉ lệ khung hình" value={cur.aspect} options={ch?.aspects ?? []} show={(a) => ASPECT[a] ?? a} onChange={(aspect) => set({ aspect })} />
-              {(ch?.qualities || cur.quality) && <Opt label="Mức suy nghĩ (Thinking level)" value={cur.quality ?? ''} options={ch?.qualities ?? []} show={(q) => QUALITY[q] ?? q} onChange={(quality) => set({ quality })} />}
-              <Opt label="Số ảnh mỗi prompt" value={String(cur.count)} options={(ch?.counts ?? []).map(String)} show={(n) => `${n} ảnh`} onChange={(n) => set({ count: Number(n) })} />
+              <ComboFields value={cur} onChange={(combo) => tools.patch(sel.id, { combo })} />
               <p className="hint">{sel.data.combo ? 'Node này dùng cài đặt riêng.' : 'Đang dùng cài đặt mặc định của app.'} Trước khi gửi, app tự chọn đúng các mục này trong Flow; Flow không nhận thì node dừng lại, không gửi bằng cài đặt khác.</p>
               {sel.data.combo && <button className="small" onClick={() => tools.patch(sel.id, { combo: undefined })}>Về mặc định</button>}
             </div>
