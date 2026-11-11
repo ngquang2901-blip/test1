@@ -81,6 +81,13 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
           </ul>
         )}
       </div>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Tab ChatGPT</h3>
+          <span className="muted small-text">Dùng cho lô có nền tảng ChatGPT (tạo ảnh).</span>
+        </div>
+        <p className="panel-body muted" data-testid="gpt-tabs">{(s.gptTabs ?? 0) > 0 ? `Đã thấy ${s.gptTabs} tab chatgpt.com — lô ChatGPT sẽ chạy trong tab đó, mỗi lô một cuộc trò chuyện mới.` : 'Chưa thấy tab chatgpt.com. Muốn tạo ảnh bằng ChatGPT: mở chatgpt.com trong Chrome này và đăng nhập (giao diện tiếng Anh).'}</p>
+      </div>
     </section>
   )
 }

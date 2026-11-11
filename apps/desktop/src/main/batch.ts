@@ -48,7 +48,7 @@ export function mapRefs(count: number, pool: string[], mode: 'none' | 'all' | 's
 
 export function enqueueBatch(
   db: Db,
-  cmd: { commandId: string; kind: 'image' | 'video'; projectId: string; settings: object; prompts: string[]; refs: string[][]; mode: 'auto' | 'manual'; sourceLines?: number[]; ords?: number[] }, // ords: line numbers in the user's list when a list is split across projects
+  cmd: { commandId: string; kind: 'image' | 'video'; projectId: string | null; provider?: 'flow' | 'chatgpt'; settings: object; prompts: string[]; refs: string[][]; mode: 'auto' | 'manual'; sourceLines?: number[]; ords?: number[] }, // ords: line numbers in the user's list when a list is split across projects
 ): { batchId: string; revision: number } {
   if (cmd.prompts.length !== cmd.refs.length) throw new Error('prompts/refs length mismatch');
   if (cmd.sourceLines && cmd.sourceLines.length !== cmd.prompts.length) throw new Error('prompts/sourceLines length mismatch');
@@ -56,8 +56,8 @@ export function enqueueBatch(
     const prev = db.prepare('select result_json r from command where id=?').get(cmd.commandId) as { r: string } | undefined;
     if (prev) return JSON.parse(prev.r);
     const batchId = randomUUID();
-    db.prepare("insert into batch(id,kind,target_project,settings_json,status,created_at,revision) values(?,?,?,?,'queued',?,1)")
-      .run(batchId, cmd.kind, cmd.projectId, JSON.stringify({ ...cmd.settings, mode: cmd.mode }), Date.now());
+    db.prepare("insert into batch(id,kind,target_project,settings_json,status,created_at,revision,provider) values(?,?,?,?,'queued',?,1,?)")
+      .run(batchId, cmd.kind, cmd.projectId, JSON.stringify({ ...cmd.settings, mode: cmd.mode }), Date.now(), cmd.provider ?? 'flow');
     cmd.prompts.forEach((prompt, i) => {
       const itemId = randomUUID();
       const attemptId = randomUUID();

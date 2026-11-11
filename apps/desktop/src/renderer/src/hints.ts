@@ -55,6 +55,23 @@ export const HINTS: Record<string, string> = {
   DOWNLOAD_NO_CONTENT_SCRIPT: 'Tab Flow chưa nạp extension. Tải lại tab Flow (F5) rồi bấm Thử lại',
   PATH_ESCAPE: 'Thư mục đích trỏ ra ngoài vùng được phép nên app không lưu. Kiểm tra thư mục Downloads/ToolFlow',
   PATH_TOO_LONG: 'Đường dẫn thư mục đích quá dài. Chọn thư mục ngắn hơn',
+  DOWNLOAD_NOT_CHATGPT_TAB: 'Tab dùng để tải không còn là ChatGPT. Mở lại chatgpt.com rồi bấm Thử lại',
+  DOWNLOAD_FETCH_FAILED: 'Không đọc được ảnh trên trang ChatGPT. Tải lại tab ChatGPT (F5), đợi ảnh hiện rồi bấm Thử lại',
+  // ChatGPT
+  NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
+  GPT_CONVERSATION_CHANGED: 'Tab ChatGPT đã chuyển sang cuộc trò chuyện khác nên app không gõ vào đó. Bấm Tiếp tục: app mở lại cuộc trò chuyện của lô rồi gửi tiếp',
+  GPT_PAGE_NOT_READY: 'Trang ChatGPT chưa hiện ô nhập. Kiểm tra tab ChatGPT đã đăng nhập và tải xong rồi bấm Tiếp tục',
+  GPT_TAB_HIDDEN: 'Tab ChatGPT không hiện được trên màn hình (cửa sổ Chrome bị thu nhỏ, che kín hoặc ở màn hình ảo khác) nên ChatGPT không mở được menu. Đưa cửa sổ đó ra trước rồi bấm Tiếp tục',
+  GPT_NO_IMAGE: 'ChatGPT trả lời mà không có ảnh (thường do hết lượt tạo ảnh hoặc prompt bị từ chối). Mở tab ChatGPT đọc câu trả lời; bấm Tiếp tục để gửi các prompt còn lại',
+  GPT_NO_EDITOR: 'Không thấy ô nhập của ChatGPT. Tải lại tab ChatGPT (F5), kiểm tra đã đăng nhập rồi bấm Tiếp tục',
+  GPT_NO_PLUS: 'Không thấy nút “+” trong ô nhập của ChatGPT. App mới chạy với ChatGPT giao diện tiếng Anh: đổi ngôn ngữ ChatGPT sang English rồi bấm Tiếp tục',
+  GPT_MODE_NOT_FOUND: 'Không thấy mục “Create image” trong menu “+” của ChatGPT. Kiểm tra đã đăng nhập và ChatGPT đang ở giao diện tiếng Anh rồi bấm Tiếp tục',
+  GPT_MODE_NOT_SET: 'ChatGPT chưa bật chế độ tạo ảnh. Tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
+  GPT_OTHER_MODE: 'Ô nhập của ChatGPT đang bật một công cụ khác. Bỏ công cụ đó trong ô nhập rồi bấm Tiếp tục',
+  GPT_COMPOSER_NOT_EMPTY: 'Ô nhập của ChatGPT đang có chữ nên app không ghi đè. Xoá chữ trong ô nhập rồi bấm Tiếp tục',
+  GPT_PROMPT_MISMATCH: 'Chữ trong ô nhập của ChatGPT không khớp prompt của lô. Xoá ô nhập, đừng gõ vào ChatGPT khi app đang chạy, rồi bấm Tiếp tục',
+  GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
+  GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
   ILLEGAL_TRANSITION: 'Trạng thái lượt này không hợp lệ. Xem lịch sử lượt trong Chi tiết rồi báo người bảo trì',
@@ -62,4 +79,8 @@ export const HINTS: Record<string, string> = {
   INTERNAL_ERROR: 'Lỗi nội bộ của app. Xem nhật ký rồi báo người bảo trì',
   INTENT_REFUSED: 'Chưa ghi được ý định gửi nên app không bấm Gửi. Kiểm tra kết nối ở màn Kết nối rồi bấm Tiếp tục',
 }
-export const hintOf = (code: string | undefined | null): string | undefined => (code && Object.hasOwn(HINTS, code) ? HINTS[code] : undefined)
+/** The line for a code; for a ChatGPT batch the site named in it is ChatGPT (the shared lines were written for Flow). */
+export const hintOf = (code: string | undefined | null, provider?: string): string | undefined => {
+  const h = code && Object.hasOwn(HINTS, code) ? HINTS[code] : undefined
+  return h && provider === 'chatgpt' ? h.replace(/(?<![A-Za-z])Flow/g, 'ChatGPT') : h
+}

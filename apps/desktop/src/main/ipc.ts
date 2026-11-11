@@ -58,8 +58,8 @@ function view(db: Db, id: string) {
     const r = db.prepare("select payload_json p from journal_event where attempt_id=? and type='intent' order by id limit 1").get(attemptId) as { p: string } | undefined;
     return r ? (JSON.parse(r.p).profileVersion ?? null) : null;
   };
-  const b = db.prepare('select id, kind, settings_json s, archived, created_at createdAt, target_project project from batch where id=?').get(id) as
-    { id: string; kind: string; s: string; archived: number; createdAt: number; project: string } | undefined;
+  const b = db.prepare('select id, kind, provider, settings_json s, archived, created_at createdAt, target_project project from batch where id=?').get(id) as
+    { id: string; kind: string; provider: string; s: string; archived: number; createdAt: number; project: string | null } | undefined;
   if (!b) throw Object.assign(new Error('NOT_FOUND'), { code: 'NOT_FOUND' });
   const items = (db.prepare('select id, ord, source_line sourceLine, prompt, refs_json refs, attempt_id cur from item where batch_id=? order by ord').all(id) as
     { id: string; ord: number; sourceLine: number | null; prompt: string; refs: string; cur: string }[]).map((it) => {
@@ -76,7 +76,7 @@ function view(db: Db, id: string) {
     });
     return { id: it.id, ord: it.ord, sourceLine: it.sourceLine, prompt: it.prompt, refs: JSON.parse(it.refs), attemptId: it.cur, attempts };
   });
-  return { id: b.id, kind: b.kind, status: batchStatus(db, id), archived: !!b.archived, createdAt: b.createdAt, settings: JSON.parse(b.s), project: b.project, items };
+  return { id: b.id, kind: b.kind, provider: b.provider, status: batchStatus(db, id), archived: !!b.archived, createdAt: b.createdAt, settings: JSON.parse(b.s), project: b.project, items };
 }
 
 export function createHandlers(d: Deps) {
@@ -90,6 +90,16 @@ export function createHandlers(d: Deps) {
     async enqueueBatch(a: unknown) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
+      if (o.provider !== undefined && oneOf(o.provider, 'flow', 'chatgpt') === 'chatgpt') { // ChatGPT: images only, always sent by the app, no Flow project / settings / refs
+        if (kind !== 'image' || mode !== 'auto') bad();
+        if (o.refs !== undefined && (!Array.isArray(obj(o.refs).assetIds) || (obj(o.refs).assetIds as unknown[]).length)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' });
+        const items = parsePrompts(src).items;
+        if (!items.length) return { rows: [], errors: [{ code: 'EMPTY' }] };
+        if (o.dryRun === true) return { rows: items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: [], error: null })), errors: [] };
+        const r = enqueueBatch(d.db, { commandId, kind, provider: 'chatgpt', projectId: null, mode, settings: { provider: 'chatgpt' }, prompts: items.map((it) => it.prompt), refs: items.map(() => []), sourceLines: items.map((it) => it.sourceLine) });
+        d.emit('batch', r.batchId);
+        return { ...r, batchIds: [r.batchId] };
+      }
       const combo = o.combo === undefined ? defaultCombo(kind) : findCombo(kind, o.combo); // Tạo lô and a workflow node may pick their own model / aspect / count
       if (!combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
       const parsed = parsePrompts(src);

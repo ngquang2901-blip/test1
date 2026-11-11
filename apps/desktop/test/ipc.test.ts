@@ -221,3 +221,21 @@ test('enableAuto / disableAuto cover every account of the granted tabs; without 
   await h.disableAuto()
   expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
 })
+
+test('enqueueBatch for ChatGPT: an image batch with no project, no Flow settings and no refs; anything else creates nothing', async () => {
+  const { h, db } = rig('a@b.c', [], () => null); // no Flow tab at all: a ChatGPT batch does not need one
+  const gpt = { commandId: 'g1', text: 'a red kite\n\na blue door', kind: 'image', mode: 'auto', provider: 'chatgpt' };
+  expect(await h.enqueueBatch({ ...gpt, dryRun: true })).toMatchObject({ rows: [{ n: 1, prompt: 'a red kite' }, { n: 2, prompt: 'a blue door' }], errors: [] });
+  const r = (await h.enqueueBatch(gpt)) as { batchId: string; batchIds: string[] };
+  expect(r.batchIds).toEqual([r.batchId]);
+  expect(db.prepare('select provider, kind, target_project p, settings_json s from batch where id=?').get(r.batchId)).toEqual({ provider: 'chatgpt', kind: 'image', p: null, s: JSON.stringify({ provider: 'chatgpt', mode: 'auto' }) });
+  const b = (await h.getBatch(r.batchId)) as { provider: string; items: { prompt: string; sourceLine: number }[] };
+  expect(b.provider).toBe('chatgpt');
+  expect(b.items.map((i) => [i.prompt, i.sourceLine])).toEqual([['a red kite', 1], ['a blue door', 3]]);
+  for (const bad of [{ ...gpt, kind: 'video' }, { ...gpt, mode: 'manual' }, { ...gpt, provider: 'grok' }])
+    await expect(h.enqueueBatch({ ...bad, commandId: 'g2' }), JSON.stringify(bad)).rejects.toThrow(/INVALID_ARGS/);
+  await expect(h.enqueueBatch({ ...gpt, commandId: 'g3', refs: { assetIds: ['x'], mode: 'all', perItem: 1 } })).rejects.toMatchObject({ code: 'REF_KIND_UNSUPPORTED' });
+  expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 1 });
+  const flow = (await rig().h.enqueueBatch(good)) as { batchId: string };
+  expect(flow.batchId).toBeTruthy(); // a batch without a provider is a Flow batch, as before
+});

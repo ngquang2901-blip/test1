@@ -28,6 +28,16 @@ Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên tro
 - Màn **Workflow** có sẵn 5 mẫu trong ô **Mẫu có sẵn…** (từ bản 0.6.2): chọn một mẫu, sửa prompt trong các ô Text rồi bấm **Chạy workflow**.
 - Mỗi prompt ảnh dùng được tối đa 10 ảnh tham chiếu (từ bản 0.6.2).
 
+## Tạo ảnh bằng ChatGPT (từ bản 0.7.0)
+1. Trong Chrome đã cài extension ToolFlow, mở https://chatgpt.com/ và đăng nhập. ChatGPT cần ở **giao diện tiếng Anh** (app tìm nút theo chữ tiếng Anh).
+2. Sau khi cập nhật app: vào `chrome://extensions`, bấm mũi tên tải lại ở thẻ **ToolFlow Connector**, rồi F5 tab ChatGPT. Màn **Kết nối** của app sẽ ghi "Đã thấy 1 tab chatgpt.com".
+3. Màn **Tạo lô** → **Nền tảng** chọn **ChatGPT (tạo ảnh)** → dán danh sách prompt → **Tạo lô và chạy**.
+- Mỗi lô mở một cuộc trò chuyện mới trong tab ChatGPT, app tự bật "Create image", gửi lần lượt từng prompt và tự lưu ảnh vào `Downloads/ToolFlow` (không cần bấm Tải).
+- Khi lô chạy, app đưa tab ChatGPT lên trước trong cửa sổ Chrome của nó. Đừng thu nhỏ cửa sổ Chrome đó và đừng gõ vào ChatGPT lúc lô đang chạy.
+- Nếu bạn chuyển tab ChatGPT sang cuộc trò chuyện khác, lô tạm dừng; bấm **Tiếp tục** thì app mở lại đúng cuộc trò chuyện của lô.
+- ChatGPT trả lời mà không có ảnh (hết lượt tạo ảnh, hoặc prompt bị từ chối): dòng đó báo lỗi, lô tạm dừng để bạn đọc câu trả lời trong ChatGPT.
+- Chưa có: ảnh tham chiếu, chọn tỉ lệ khung hình (ghi thẳng trong prompt), dùng trong Workflow.
+
 ## Cho trợ lý AI điều khiển ToolFlow (MCP, từ bản 0.6.1)
 MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, Hermes…) tạo lô, xem tiến độ và tải kết quả thay bạn. Mặc định tắt.
 1. **Cài đặt → Trợ lý AI (MCP)**: tích **Cho trợ lý AI trên máy này điều khiển ToolFlow**. App hiện địa chỉ `http://127.0.0.1:47615/mcp`.

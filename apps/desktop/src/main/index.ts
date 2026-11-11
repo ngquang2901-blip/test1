@@ -16,6 +16,8 @@ import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createWorkflows } from './workflow'
+import { createExtGpt, createFakeGpt, isGptMedia, type GptDriver, type GptScript } from './gpt-driver'
+import { createGptRunner, routeRunner } from './gpt-runner'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
@@ -50,6 +52,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const clock = { now: () => t0 + (Date.now() - t0) * x }
 
   let driver: FlowDriver
+  let gptDriver: GptDriver = { tabs: async () => [] } as unknown as GptDriver // no connector: no ChatGPT tab, so its runner never asks anything else
   let grants!: Grants // assigned once the runner exists; the ext driver only asks it lazily
   let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
   let connected: (() => boolean) | null = null // real mode only
@@ -63,6 +66,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     driver = { ...fake, ping: async (t) => ({ ...(await fake.ping(t)), t: clock.now() }) } // heartbeat age is judged on the app clock
     if (process.env.TOOLFLOW_FAKE_AUTO !== '0') enableAuto(db, 'fake@example.invalid', Date.now()) // test fixture: the fake account has opted in; '0' keeps D-19 default (off)
     extVersion = '0.0.0-fake'
+    // the built-in test ChatGPT: TOOLFLOW_FAKE_GPT scripts its answers, TOOLFLOW_FAKE_GPT_TABS=0 means no ChatGPT tab is open
+    const fakeGpt = createFakeGpt((process.env.TOOLFLOW_FAKE_GPT ?? '').split(',').filter(Boolean) as GptScript[], { tabs: Number(process.env.TOOLFLOW_FAKE_GPT_TABS ?? 1), fetchMedia: fake.fetchMedia })
+    gptDriver = fakeGpt.driver
+    if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowFakeGpt?: unknown }).__toolflowFakeGpt = fakeGpt // test-only: e2e plays the user in the ChatGPT tab
   } else {
     rawPing = () => Promise.reject(new Error('no driver'))
     driver = { onEvent: () => () => {} } as unknown as FlowDriver // connector failed: no tabs, so the runner never calls it
@@ -73,6 +80,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const ext = installExtension(process.env.TOOLFLOW_EXT_DIR ?? (app.isPackaged ? join(process.resourcesPath, 'extension') : join(app.getAppPath(), '../extension')), userData, server.port, app.getVersion())
       extVersion = ext.version || extVersion // what the page must report; a mismatch means Chrome still runs an older copy
       driver = createExtDriver(server, { allow: (id) => grants.has(id), assets })
+      gptDriver = createExtGpt(server)
       rawPing = driver.ping
       connected = server.connected
     } catch (e) {
@@ -81,9 +89,13 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     }
   }
 
-  const runner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
+  const flowRunner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
     projectOf: (t) => grants.projectOf(t), // each tab only takes batches of the project it shows
     selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
+  // ChatGPT batches have their own runner (one prompt at a time in the open chatgpt.com tab); each finished image is saved while it is still on the page
+  const gptRunner = createGptRunner({ db, driver: gptDriver, clock, download: (b) => downloader.batch(b) })
+  const runner = routeRunner(flowRunner, gptRunner)
+  const isGptBatch = (b: string): boolean => (db.prepare('select provider p from batch where id=?').get(b) as { p: string } | undefined)?.p === 'chatgpt'
   grants = createGrants(driver, runner)
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
   runner.recover()
@@ -94,7 +106,17 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   // The root is not user-configurable yet. The built-in test Flow never writes into the user's Downloads: its files go to
   // TOOLFLOW_DOWNLOAD_ROOT (e2e) or into the test's own user-data folder.
   const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(homedir(), 'Downloads', 'ToolFlow')
-  const downloader = createDownloader({ db, driver, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => grants.granted()[0] ?? null, onChange: (b) => emit('batch', b) })
+  const downloader = createDownloader({
+    db, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, onChange: (b) => emit('batch', b),
+    // an output is fetched from the tab of its own site: a ChatGPT image id is a message id + image number, a Flow one a plain uuid
+    driver: { fetchMedia: (tab, p) => (isGptMedia(p.mediaId) ? gptRunner.fetchMedia(tab, p) : driver.fetchMedia(tab, p)), downloads: (q) => driver.downloads(q) },
+    async tab(b) {
+      if (!isGptBatch(b)) return grants.granted()[0] ?? null
+      const t = await gptRunner.findTab()
+      if (!t) throw Object.assign(new Error('NO_CHATGPT_TAB'), { code: 'NO_CHATGPT_TAB' })
+      return t
+    },
+  })
   // Update source: TOOLFLOW_UPDATE_URL (http/https) or the URL baked into resources/app-update.yml at build; a placeholder
   // (*.invalid, see electron-builder.yml) or a dev run means no updater. FAKE + TOOLFLOW_FAKE_UPDATE plays a fake release (e2e).
   const updater = ((): Updater | null => {
@@ -143,6 +165,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
         extDir: FAKE ? null : join(userData, 'extension'), // shown in S1 so the user can paste it into Chrome's folder dialog (not secret: pair.json inside is)
         fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
         accounts: accts.map((e) => ({ email: e, auto: autoAllowed(db, e) })), // auto is per account; the runner checks each tab's own
+        gptTabs: await gptDriver.tabs().then((t) => t.length, () => 0), // how many chatgpt.com tabs the extension sees (a ChatGPT batch uses one)
         autoEnabled: accts.length ? accts.every((e) => autoAllowed(db, e)) : autoAllowed(db, em),
         selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }

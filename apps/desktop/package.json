@@ -27,6 +27,8 @@
     "e2e": "electron-vite build && playwright test",
     "live-probe": "rolldown scripts/live-probe.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate && node out/probe/live-probe.js",
     "live-batch": "rolldown scripts/live-batch.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-batch.js",
+    "live-gpt-batch": "rolldown scripts/live-gpt-batch.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-gpt-batch.js",
+    "live-gpt": "rolldown scripts/live-gpt.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate && node out/probe/live-gpt.js",
     "live-dl": "rolldown scripts/live-dl.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-dl.js",
     "dist": "npm run build && electron-builder --linux --win"
   },

@@ -28,6 +28,8 @@ const MIGRATIONS = [
   `create table preset(id text primary key, name text not null unique, json text not null, updated_at integer not null);`,
   // saved node workflows (the canvas graph only: node texts, asset ids, wires)
   `create table workflow(id text primary key, name text not null unique, json text not null, updated_at integer not null);`,
+  // which site a batch is sent to: 'flow' (Google Flow, target_project = its project) or 'chatgpt' (no project; its own runner)
+  `alter table batch add column provider text not null default 'flow';`,
 ];
 
 export function openDb(file: string): Db {

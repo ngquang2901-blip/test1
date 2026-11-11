@@ -980,3 +980,49 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   expect((readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))).toHaveLength(1)
 })
 
+type FakeGpt = { __toolflowFakeGpt: { ledger: { sends: string[]; newChats: number; opens: string[] } } }
+test('ChatGPT batch: chosen in Tạo lô, sent one prompt after another, each image saved by itself; a tab moved to another chat pauses the batch and Tiếp tục reopens its conversation', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_GPT: 'leave' }) // after the first image the "user" moves the ChatGPT tab to another chat
+  const ledger = () => app.evaluate(() => (globalThis as unknown as FakeGpt).__toolflowFakeGpt.ledger)
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('gpt-tabs')).toContainText('Đã thấy 1 tab chatgpt.com')
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
+  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: ChatGPT · Create image · tự động')
+  await expect(page.getByTestId('gpt-note')).toContainText('cuộc trò chuyện mới')
+  await expect(page.getByRole('radio', { name: 'Video', exact: true })).toHaveCount(0) // ChatGPT: images only, no Flow settings, no refs
+  await expect(page.getByTestId('batch-settings')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toHaveCount(0)
+  await create(page, ['một con mèo', 'một con chó', 'một con chim'])
+  await expect(page.getByRole('heading', { name: /ChatGPT · Ảnh/ })).toBeVisible()
+  await expect(page.getByTestId('pause-reason')).toContainText('Tab ChatGPT đã chuyển sang cuộc trò chuyện khác')
+  expect((await ledger()).sends).toEqual(['một con mèo']) // nothing was typed into the other chat
+  await page.getByRole('button', { name: 'Tiếp tục' }).click()
+  await expect(page.getByTestId('pause-reason')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).filter({ hasText: 'Đã lưu' })).toHaveCount(3, { timeout: 30_000 }) // saved without anyone pressing Tải
+  await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' })).toHaveCount(3)
+  const led = await ledger()
+  expect(led.sends).toEqual(['một con mèo', 'một con chó', 'một con chim']) // each prompt once, in order
+  expect(led.newChats).toBe(1)
+  expect(led.opens).toHaveLength(1) // the batch's own conversation was opened again
+  const files = (readdirSync(root, { recursive: true }) as string[]).filter((f) => f.endsWith('.png'))
+  expect(files).toHaveLength(3)
+  for (const f of files) expect(readFileSync(join(root, f)).subarray(1, 4).toString()).toBe('PNG')
+})
+
+test('ChatGPT batch without a ChatGPT tab: it pauses and says what to open; a Flow batch next to it still runs', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GPT_TABS: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('gpt-tabs')).toContainText('Chưa thấy tab chatgpt.com')
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
+  await create(page, ['một con mèo'])
+  await expect(page.getByTestId('pause-reason')).toContainText('Chưa thấy tab ChatGPT nào')
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Google Flow' }).check()
+  await create(page, ['một con chó'])
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1)
+})
+

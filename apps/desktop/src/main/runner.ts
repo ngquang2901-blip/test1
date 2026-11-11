@@ -125,7 +125,7 @@ export function createRunner(o: {
 
   const inFlight = () => {
     const n = { image: 0, video: 0 };
-    const rows = db.prepare('select b.kind, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id').all() as { kind: Kind; j: string }[];
+    const rows = db.prepare("select b.kind, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where b.provider='flow'").all() as { kind: Kind; j: string }[];
     for (const r of rows) if (['submitting', 'awaiting_user', 'generating'].includes((JSON.parse(r.j) as AttemptState).item)) n[r.kind]++;
     return n;
   };
@@ -260,7 +260,7 @@ export function createRunner(o: {
   }
 
   async function admit(tab: string) {
-    const batches = db.prepare("select id, target_project p from batch where status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all() as { id: string; p: string }[];
+    const batches = db.prepare("select id, target_project p from batch where provider='flow' and status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all() as { id: string; p: string }[]; // a ChatGPT batch has its own runner
     for (const b of batches) {
       if (paused.has(b.id)) continue;
       if (o.projectOf && o.projectOf(tab) !== b.p) continue; // another project's batch: never prepare it in this tab (prepare would refuse with TARGET_CHANGED)
@@ -384,7 +384,7 @@ export function createRunner(o: {
       db.prepare('update batch set archived=1, revision=revision+1 where id=?').run(b);
     },
     recover() { // D-04: every intent without a receipt is uncertain after a restart; blocks are rebuilt from the attempts themselves
-      const all = db.prepare('select a.id, a.state_json j from attempt a').all() as { id: string; j: string }[];
+      const all = db.prepare("select a.id, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where b.provider='flow'").all() as { id: string; j: string }[];
       for (const r of all) if (['submitting', 'awaiting_user'].includes((JSON.parse(r.j) as AttemptState).item)) apply(r.id, { type: 'restart' });
       db.transaction(() => {
         db.exec('delete from target_block');

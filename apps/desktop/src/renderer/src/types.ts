@@ -6,14 +6,14 @@ export type Attempt = {
 }
 export type Download = { state: 'intent' | 'started' | 'completed' | 'failed' | 'needs_review'; actualName: string | null; errorCode: string | null }
 export type Item = { id: string; ord: number; prompt: string; refs: string[]; attemptId: string; attempts: Attempt[] } // refs: asset ids
-export type Batch = { pauseReason?: string | null; id: string; kind: 'image' | 'video'; status: string; archived: boolean; createdAt: number; settings: { mode?: string; split?: { part: number; of: number } }; project?: string | null; items: Item[] }
+export type Batch = { pauseReason?: string | null; id: string; kind: 'image' | 'video'; provider?: 'flow' | 'chatgpt'; status: string; archived: boolean; createdAt: number; settings: { mode?: string; split?: { part: number; of: number } }; project?: string | null; items: Item[] }
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' }
 export type UpdateState = { state: 'off' | 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; current: string; version?: string; percent?: number; code?: string }
 export type PresetAsset = { id: string; name: string; bytes: number; missing?: boolean }
 export type Preset = { id: string; name: string; kind: Draft['kind']; mode: Draft['mode']; combo?: import('./combo').Combo; refs: { assetIds: string[]; mode: 'none' | 'sequential' | 'all'; perItem: number; assets: PresetAsset[] }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } }
 export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean }
 export type Session = {
-  extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean
+  extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean; gptTabs?: number
   selfCheck: { ok: true } | { ok: false; code: string; reasons: string[] } | null
 }
 
