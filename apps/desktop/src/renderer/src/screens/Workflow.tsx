@@ -9,6 +9,7 @@ import type { PresetAsset, Session } from '../types'
 import { Chip, Icon, type Tone } from '../ui'
 import { Thumb } from './Results'
 import { ComboFields, Opt, comboLabel, defaultCombo, type Combo } from '../combo'
+import { TEMPLATES } from '../wf-templates'
 
 type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks (absent = 'all')
@@ -346,6 +347,10 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         <select aria-label="Workflow đã lưu" value={id ?? ''} onChange={(e) => open(saved.find((w) => w.id === e.target.value))}>
           <option value="">{saved.length ? 'Mở workflow đã lưu…' : 'Chưa lưu workflow nào'}</option>
           {saved.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+        <select aria-label="Mẫu có sẵn" value="" onChange={(e) => { const t = TEMPLATES.find((x) => x.name === e.target.value); if (t) { open(t); setMsg('Đã mở mẫu. Sửa prompt trong các ô Text rồi bấm Chạy workflow') } }}>
+          <option value="">Mẫu có sẵn…</option>
+          {TEMPLATES.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
         </select>
         <input aria-label="Tên workflow" maxLength={60} placeholder="Tên workflow" value={name} onChange={(e) => setName(e.target.value)} />
         <button className="small" disabled={!name.trim() || !nodes.length} onClick={() => call(() => window.api.saveWorkflow({ name, graph: raw() }).then(list).then(() => setMsg('Đã lưu')))}>Lưu</button>

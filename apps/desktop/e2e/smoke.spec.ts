@@ -954,3 +954,18 @@ test('MCP: a busy port says so in plain words and the switch stays off', async (
   } finally { taken.close() }
 })
 
+test('Workflow: a ready-made workflow opens wired and named, and runs as it is (image, then a video from it)', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(6) // the placeholder + 5 templates
+  await page.getByLabel('Mẫu có sẵn').selectOption('Tạo ảnh rồi làm video từ ảnh đó')
+  await expect(page.getByLabel('Tên workflow')).toHaveValue('Tạo ảnh rồi làm video từ ảnh đó')
+  await expect(page.locator('.react-flow__node')).toHaveCount(6)
+  await expect(page.locator('.react-flow__edge')).toHaveCount(4)
+  await expect(page.getByTestId('wf-generate').nth(1).getByTestId('wf-combo')).toContainText('Video · Veo 3.1 - Lite')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  expect((readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))).toHaveLength(1)
+})
+
