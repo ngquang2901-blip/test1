@@ -182,3 +182,11 @@ Found while preparing 0.5.3: the packaged app bundles five capture fixtures (sta
 
 Done: `packages/flow-protocol/scripts/scrub-fixtures.mjs` replaced, in all 11 fixtures, 789 ids, 687 texts and 10 upload file names with pseudonyms (same original ⇒ same pseudonym everywhere, so every relation between records holds). Checked by comparing old and new leaf by leaf: 25 327 leaves, 3 530 strings changed, each one exactly its mapped value, nothing else different. Test literals that quoted fixture values were updated; a new test (`fixtures-clean.test.mjs`) fails when a fixture holds anything the script would still replace (two put-back mutations caught). A scan of `packages/` and `apps/` for every original value finds none. Not touched: research notes and evidence under `spikes/` and `docs/tobyflow/` (they still name the project id; they are not part of any build) and the repo's git history (local only).
 
+## 0.5.3 released (2026-11-11)
+
+Built from `main` after the fixture scrub; both `app.asar` (Linux, Windows) and the bundled extension scanned for every original fixture value: none. Packaged smoke test (`dist/linux-unpacked/toolflow`, fake Flow): Workflow with a per-node combo (Nano Banana 2 Lite · 3:4 · x4), an "any" condition, the first node's image as the second node's ref, a wire removed in the side panel, and a two-prompt Tạo lô batch.
+
+Release `v0.5.3` of `ngquang2901-blip/test1`: draft, six assets (sizes equal to `dist/`, sha256 of the three installers equal to the local files), then published as latest. The first upload was cut by the 7-minute limit of a foreground command with four of six files up; the two large ones went up in a second run as a background job. No "skipped" and no token in either log.
+
+Update check against the real host: the published 0.5.2 AppImage found 0.5.3, had it downloaded after 26 s, and on "Khởi động lại để cập nhật" replaced itself; the file is renamed to `ToolFlow-0.5.3-x86_64.AppImage`, its sha256 equals the published one, it starts as 0.5.3 and reports "Bạn đang dùng bản mới nhất". Not checked: the Windows installer and the `.deb` (never run on a real machine), an update on Windows. Releases 0.5.1 and 0.5.2 are still public with the unscrubbed fixtures (owner's call).
+

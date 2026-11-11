@@ -35,6 +35,7 @@ Checked on 2026-11-11 (see docs/progress-p2.md, P4 section): the packaged Linux 
    The upload of the three installers (about 370 MB) can take longer than a foreground command is allowed to run: start it as a background job, and when it was cut short run it again with `-f` for the files the release does not list yet (the release stays a draft meanwhile, so nobody sees a half release).
 5. List the release assets (6, `state: uploaded`, sizes equal to `dist/`), then `PATCH` the release with `draft: false`.
 6. Check the real thing: download the previous version's AppImage from the releases page, run it, and watch it update itself.
+   The updater renames an AppImage whose file name carries the version (`ToolFlow-0.5.2-x86_64.AppImage` becomes `ToolFlow-0.5.3-x86_64.AppImage` in the same folder): compare the sha256 of the new name with the published file, then start that file and read Cài đặt → Cập nhật.
 
 The token (user `ngquang2901-blip`, scope `repo`, from a GitHub device login) lives in `~/.config/toolflow/github-token` (0600); never print it or pass it as an argument (the server is shared and argv shows in `ps`). Revoke it in GitHub → Settings → Applications. `TOOLFLOW_UPDATE_URL=http(s)://…` overrides the source at run time (testing).
 
