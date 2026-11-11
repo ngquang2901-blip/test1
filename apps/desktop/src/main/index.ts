@@ -163,6 +163,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       for (const o of (JSON.parse(r.j).outputs ?? []) as { mediaId: string }[]) try { return downloader.file(r.aid, o.mediaId) } catch { /* not saved: try the next one */ }
       return null
     }),
+    codes: (b) => (db.prepare("select json_extract(a.state_json,'$.error.code') c from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord").all(b) as { c: string | null }[]).map((r) => r.c),
   })
   wfActive = wf.active
   registerIpc(ipcMain, { ...h, ...wf.handlers })

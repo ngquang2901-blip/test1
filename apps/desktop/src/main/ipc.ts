@@ -1,7 +1,7 @@
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
-import { DEFAULT_COMBO } from './profile';
+import { DEFAULT_COMBO, findCombo } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
@@ -89,6 +89,8 @@ export function createHandlers(d: Deps) {
     async enqueueBatch(a: unknown) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
+      const combo = o.combo === undefined ? DEFAULT_COMBO : findCombo(kind, o.combo); // a workflow node may pick its own model / aspect / count
+      if (!combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
       const parsed = parsePrompts(src);
       const ra = o.refs === undefined ? { assetIds: [], mode: 'none', perItem: 1 } : obj(o.refs);
       const ids = Array.isArray(ra.assetIds) ? ra.assetIds.map(str) : bad();
@@ -106,7 +108,7 @@ export function createHandlers(d: Deps) {
       const parts = projects.map((projectId, k) => ({ projectId, idx: parsed.items.map((_, i) => i).filter((i) => i % projects.length === k) })).filter((p) => p.idx.length);
       const made = parts.map((p, k) => enqueueBatch(d.db, {
         commandId: parts.length === 1 ? commandId : `${commandId}#${k}`, kind, projectId: p.projectId, mode, ords: p.idx,
-        settings: { combo: DEFAULT_COMBO, ...(parts.length > 1 ? { split: { part: k + 1, of: parts.length } } : {}) },
+        settings: { combo, ...(parts.length > 1 ? { split: { part: k + 1, of: parts.length } } : {}) },
         prompts: p.idx.map((i) => parsed.items[i].prompt), refs: p.idx.map((i) => refs[i]), sourceLines: p.idx.map((i) => parsed.items[i].sourceLine),
       }));
       made.forEach((r) => d.emit('batch', r.batchId));

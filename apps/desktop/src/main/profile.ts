@@ -5,11 +5,22 @@ import flow from '../../profiles/flow.json';
 // version is the profile's identity for diagnostics.
 // Static import: the profile can only change with an app restart, and that is the safe boundary (AC-18): a running attempt never sees a swap.
 export const profile = flow;
-export type Combo = { kind: 'image' | 'video'; mode: string; model: string; aspect: string; quality: string; count: number };
-/** The only live-tested combo; a batch whose settings.combo is not one of profile.combos never reaches the page (AC-03). */
+/** quality = the model's thinking level; a model that has none (seen live: Nano Banana Pro, 2 Lite) has no such key. */
+export type Combo = { kind: 'image' | 'video'; mode: string; model: string; aspect: string; quality?: string; count: number };
+/** What a batch runs with when nothing is chosen. A batch whose settings.combo is not qualified never reaches the page (AC-03). */
 export const DEFAULT_COMBO = flow.combos[0] as Combo;
+/** One model's options. Qualified per value: every listed aspect, count and thinking level went through a live send on that model
+ *  (docs/progress-p2.md), and before each send the page's settings panel must read back exactly the wanted combo. */
+export type Choice = { kind: 'image' | 'video'; mode: string; model: string; aspects: string[]; qualities?: string[]; counts: number[] };
+export const CHOICES = ((flow as { choices?: Choice[] }).choices ?? []) as Choice[];
+export const combosOf = (c: Choice): Combo[] => c.aspects.flatMap((aspect) => (c.qualities ?? [undefined]).flatMap((quality) =>
+  c.counts.map((count): Combo => ({ kind: c.kind, mode: c.mode, model: c.model, aspect, ...(quality ? { quality } : {}), count }))));
+/** Every combo a batch may run with: profile.combos plus each choice's cross product. */
+export const QUALIFIED: readonly Combo[] = [...(flow.combos as Combo[]), ...CHOICES.flatMap(combosOf)];
 const norm = (o: unknown) => JSON.stringify(Object.entries((o && typeof o === 'object' ? o : {}) as object).sort(([a], [b]) => (a < b ? -1 : 1)));
-export const comboQualified = (kind: string, combo: unknown, list: readonly Combo[] = flow.combos as Combo[]): boolean => list.some((c) => c.kind === kind && norm(c) === norm(combo));
+/** The qualified combo equal to `combo` (the list's own object, never the caller's), or null. */
+export const findCombo = (kind: string, combo: unknown, list: readonly Combo[] = QUALIFIED): Combo | null => list.find((c) => c.kind === kind && norm(c) === norm(combo)) ?? null;
+export const comboQualified = (kind: string, combo: unknown, list: readonly Combo[] = QUALIFIED): boolean => findCombo(kind, combo, list) !== null;
 export const PROFILE_PATH = 'profiles/flow.json';
 const SELECTORS = ['editor', 'submit', 'clear', 'chip', 'tile', 'creditWarning', 'assetSearch', 'assetItem'];
 const RPC = ['image', 't2v', 'poll', 'upload', 'project'];
@@ -27,9 +38,17 @@ export function validateProfile(p: unknown): string | null {
   if (!Array.isArray(root.selfCheck)) return 'selfCheck';
   for (const k of root.selfCheck) if (typeof k !== 'string' || !SELECTORS.includes(k)) return `selfCheck.${String(k)}`;
   if (!Array.isArray(root.combos) || root.combos.length === 0) return 'combos';
+  const int = (v: unknown) => Number.isInteger(v) && (v as number) >= 1, list = (v: unknown, ok: (x: unknown) => boolean) => Array.isArray(v) && v.length > 0 && v.every(ok);
   for (const c of root.combos) {
     const x = o(c);
-    if (!x || !['kind', 'mode', 'model', 'aspect', 'quality'].every((k) => str(x[k])) || !Number.isInteger(x.count) || (x.count as number) < 1) return 'combos';
+    if (!x || !['kind', 'mode', 'model', 'aspect'].every((k) => str(x[k])) || !(x.quality === undefined || str(x.quality)) || !int(x.count)) return 'combos';
+  }
+  if (root.choices !== undefined) {
+    if (!Array.isArray(root.choices)) return 'choices';
+    for (const c of root.choices) {
+      const x = o(c);
+      if (!x || !['kind', 'mode', 'model'].every((k) => str(x[k])) || !list(x.aspects, str) || !(x.qualities === undefined || list(x.qualities, str)) || !list(x.counts, int)) return 'choices';
+    }
   }
   if (!rpc) return 'rpc';
   for (const k of RPC) if (!str(rpc[k])) return `rpc.${k}`;

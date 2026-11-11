@@ -90,6 +90,31 @@ test('model mismatch is reported and never clicked', async () => {
   assert.ok(!w.clicks.includes('MODEL'));
 });
 
+// Flow as measured live (2026-11-11): the model menu offers three models; only Nano Banana 2.1 has the thinking-level radios.
+const MODELS = ['Nano Banana Pro', 'Nano Banana 2 Lite', 'Nano Banana 2.1'];
+const panelOf = (w, model) => w.btns.filter((b) => model === 'Nano Banana 2.1' || !['Low', 'Medium', 'High'].includes(T.label(b.text))).map((b) => (b.role === 'radio' ? b : { ...b, text: `🍌 ${model} arrow_drop_down` }));
+
+test('model: picked first (its option groups differ), then the radios; a model without a thinking level wants quality null', async () => {
+  const w = world({ aspect: '4:3' });
+  let model = 'Nano Banana 2.1';
+  const picks = [];
+  const want = { mode: 'Image', aspect: '9:16', quality: null, count: 'x1', model: 'Nano Banana Pro' };
+  const r = await T.converge(want, () => panelOf(w, model), (b) => b.click(), { pickModel: async (l) => { picks.push(l); model = l; } });
+  assert.deepEqual([r.ok, r.mismatches, r.current, picks], [true, [], want, ['Nano Banana Pro']]);
+  assert.deepEqual(w.clicks, ['9:16', 'x1']); // radios only: the model went through pickModel
+});
+
+test('model: already the wanted one ⇒ the menu is never opened; a pick that does not take, or a thinking level the model lacks, is a mismatch', async () => {
+  const w = world({});
+  const picks = [];
+  const same = await T.converge(WANT, () => panelOf(w, 'Nano Banana 2.1'), (b) => b.click(), { pickModel: async (l) => { picks.push(l); } });
+  assert.deepEqual([same.ok, picks], [true, []]);
+  const stuck = await T.converge({ ...WANT, model: 'Nano Banana Pro', quality: null }, () => panelOf(w, 'Nano Banana 2.1'), (b) => b.click(), { pickModel: async (l) => { picks.push(l); } });
+  assert.deepEqual([stuck.ok, stuck.mismatches, picks], [false, ['quality', 'model'], ['Nano Banana Pro']]); // asked once, never in a loop
+  const noLevel = await T.converge({ ...WANT, model: 'Nano Banana 2 Lite' }, () => panelOf(w, 'Nano Banana 2 Lite'), (b) => b.click());
+  assert.deepEqual([noLevel.ok, noLevel.mismatches], [false, ['quality']]); // High wanted, the model has no such group
+});
+
 test('missing wanted option ⇒ mismatch, no throw', async () => {
   const w = world({});
   const r = await T.converge({ ...WANT, count: 'x9' }, () => w.btns, (b) => b.click());
@@ -99,6 +124,8 @@ test('missing wanted option ⇒ mismatch, no throw', async () => {
 test('ops: settings is an allowed op with the same validate rules', () => {
   assert.ok(OPS.includes('settings'));
   assert.equal(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT } }), null);
+  assert.equal(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT, quality: null } }), null); // a model without a thinking level
+  for (const bad of [{ quality: '' }, { quality: undefined }, { quality: 3 }, { model: null }, { count: null }]) assert.match(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT, ...bad } }), /settings needs/, JSON.stringify(bad));
   assert.ok(readFileSync(new URL('../sw.js', import.meta.url), 'utf8').includes("'settings'"));
   const m = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
   const iso = m.content_scripts.find((c) => c.js.includes('page-ops.js')).js;
@@ -107,11 +134,13 @@ test('ops: settings is an allowed op with the same validate rules', () => {
 });
 
 // ---- page-ops.js against a fake DOM ----
-function page({ text = '', panel = false, start = {}, doubled = false, clearWorks = true, model } = {}) {
-  const w = world(start, () => {}, model);
-  const dom = { open: panel, submitClicks: 0, text, w };
+function page({ text = '', panel = false, start = {}, doubled = false, clearWorks = true, model = 'Nano Banana 2.1', models = MODELS } = {}) {
+  const w = world(start);
+  const dom = { open: panel, submitClicks: 0, text, w, model, menu: false, menuOpened: 0 };
   const el = (o) => ({ getAttribute: (n) => ({ role: o.role, 'aria-checked': o.checked })[n === 'aria-checked' ? 'aria-checked' : n] ?? null, innerText: o.text, click: o.click });
-  const radios = () => w.btns.map((b) => el({ role: b.role, checked: b.checked, text: b.text, click: () => b.click() }));
+  // the role-less button opens the model menu (an overlay outside the panel); picking an item or clicking the backdrop closes it
+  const radios = () => panelOf(w, dom.model).map((b) => el({ role: b.role, checked: b.checked, text: b.text, click: b.role === 'radio' ? () => b.click() : () => { dom.menu = true; dom.menuOpened++; } }));
+  const overlay = { '[role="menu"] [role="menuitem"]': () => models.map((m) => ({ innerText: `🍌 ${m}`, click() { dom.model = m; dom.menu = false; } })), '.cdk-overlay-backdrop': () => [{ click() { dom.menu = false; } }] };
   const trigger = { innerText: 'trigger', click() { dom.open = !dom.open; } };
   const ed = { focus() {}, get innerText() { return dom.text; } };
   const clear = { click() { if (clearWorks) dom.text = ''; } };
@@ -124,7 +153,7 @@ function page({ text = '', panel = false, start = {}, doubled = false, clearWork
   let listener;
   const document = {
     createElement: () => ({}), documentElement: { append() {} }, addEventListener() {}, removeEventListener() {}, dispatchEvent() {}, body: { innerText: '' },
-    querySelector: (s) => (SEL[s] ? SEL[s]() : null), querySelectorAll: () => [],
+    querySelector: (s) => (SEL[s] ? SEL[s]() : null), querySelectorAll: (s) => (dom.menu && overlay[s] ? overlay[s]() : []),
     execCommand: (_c, _u, t) => { dom.text += doubled ? t + t : t; return true; },
   };
   const ctx = vm.createContext({ document, chrome: { runtime: { getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set });
@@ -142,10 +171,25 @@ test('settings op: opens the closed panel, converges, closes, never submits', as
   assert.equal(p.dom.submitClicks, 0);
 });
 
-test('settings op: model mismatch ⇒ ok false, reported, nothing else broken', async () => {
-  const p = page({ model: '🍌 Nano Banana Pro arrow_drop_down' });
-  const r = (await p.call('settings', { tabId: 1, ...WANT })).result;
-  assert.deepEqual([r.ok, r.mismatches, p.dom.open], [false, ['model'], false]);
+test('settings op: the wanted model is picked from the menu by label; a model without a thinking level takes quality null', async () => {
+  const p = page({ model: 'Nano Banana Pro', start: { aspect: '1:1' } });
+  const back = (await p.call('settings', { tabId: 1, ...WANT })).result; // Pro shown, 2.1 wanted
+  assert.deepEqual([back.ok, back.current, p.dom.model, p.dom.menu, p.dom.open], [true, WANT, 'Nano Banana 2.1', false, false]);
+  const want = { mode: 'Image', aspect: '9:16', quality: null, count: 'x3', model: 'Nano Banana 2 Lite' };
+  const lite = (await p.call('settings', { tabId: 1, ...want })).result;
+  assert.deepEqual([lite.ok, lite.current, p.dom.model, p.dom.menuOpened], [true, want, 'Nano Banana 2 Lite', 2]);
+  assert.equal((await p.call('settings', { tabId: 1, ...want })).result.ok, true);
+  assert.equal(p.dom.menuOpened, 2); // already that model: the menu stays shut
+  assert.equal(p.dom.submitClicks, 0);
+});
+
+test('settings op: a model the menu does not offer (or offers twice) ⇒ mismatch, nothing picked, menu and panel closed', async () => {
+  const p = page({ model: 'Nano Banana Pro' });
+  const r = (await p.call('settings', { tabId: 1, ...WANT, model: 'Imagen 9' })).result;
+  assert.deepEqual([r.ok, r.mismatches.includes('model'), p.dom.model, p.dom.menu, p.dom.open], [false, true, 'Nano Banana Pro', false, false]);
+  const twice = page({ model: 'Nano Banana Pro', models: ['Nano Banana 2.1', 'Nano Banana 2.1'] });
+  const t = (await twice.call('settings', { tabId: 1, ...WANT })).result;
+  assert.deepEqual([t.ok, twice.dom.model, twice.dom.menu], [false, 'Nano Banana Pro', false]); // never a guess between two
 });
 
 test('prep: stale text is cleared first, then the prompt is typed and matches', async () => {

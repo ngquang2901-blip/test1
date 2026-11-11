@@ -30,6 +30,17 @@ test('enqueueBatch rejects kind "mixed" and every other malformed argument', asy
   expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 0 });
 });
 
+test('enqueueBatch: an optional combo must be a qualified one and is stored as the profile\'s own object; any other combo creates nothing', async () => {
+  const { h, db } = rig();
+  const combo = { count: 3, aspect: '9:16', model: 'Nano Banana Pro', mode: 'Image', kind: 'image' };
+  const r = (await h.enqueueBatch({ ...good, combo })) as { batchId: string };
+  expect(JSON.parse((db.prepare('select settings_json s from batch where id=?').get(r.batchId) as { s: string }).s).combo).toEqual({ kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 });
+  for (const bad of [{ ...combo, count: 9 }, { ...combo, quality: 'High' }, { ...combo, model: 'Imagen 9' }, { ...combo, kind: 'video' }, null, 'x', {}])
+    await expect(h.enqueueBatch({ ...good, commandId: 'c2', combo: bad }), JSON.stringify(bad)).rejects.toMatchObject({ code: 'COMBO_NOT_QUALIFIED' });
+  await expect(h.enqueueBatch({ ...good, commandId: 'c3', dryRun: true, combo: { ...combo, count: 9 } })).rejects.toMatchObject({ code: 'COMBO_NOT_QUALIFIED' }); // the preview says so too
+  expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 1 });
+});
+
 test('dryRun previews without creating; real call creates one item per non-empty line', async () => {
   const { h, db } = rig();
   const p = (await h.enqueueBatch({ ...good, dryRun: true })) as { rows: { n: number; prompt: string }[] };

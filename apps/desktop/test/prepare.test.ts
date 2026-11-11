@@ -40,6 +40,13 @@ test('prepare: settings (count as x2) then prep; ok only when both pass', async 
   ])
 })
 
+test('prepare: a model without a thinking level sends quality null (the page must then show none); the key is never left out', async () => {
+  const { server, seen } = stub(clean((op) => (op === 'settings' ? SETTINGS_OK : PREP_OK)))
+  const combo = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 }
+  expect(await createExtDriver(server, OPEN).prepare('7', { ...prep, settings: { combo } })).toEqual({ ok: true })
+  expect(seen[1]).toEqual(['settings', { tabId: '7', mode: 'Image', aspect: '9:16', quality: null, count: 'x3', model: 'Nano Banana Pro' }])
+})
+
 test.each([
   ['settings mismatch', (op: string) => (op === 'settings' ? { ok: false, mismatches: ['model'] } : PREP_OK), 'SETTINGS_MISMATCH', ['settings']],
   ['settings op throws', (op: string) => (op === 'settings' ? new Error('no panel') : PREP_OK), 'SETTINGS_MISMATCH', ['settings']],
@@ -146,8 +153,13 @@ test('comboQualified: exact match per kind only', () => {
   expect(comboQualified('image', DEFAULT_COMBO)).toBe(true)
   expect(comboQualified('image', { ...DEFAULT_COMBO })).toBe(true)
   expect(comboQualified('video', DEFAULT_COMBO)).toBe(false)
-  for (const bad of [undefined, null, {}, 'x', { ...DEFAULT_COMBO, count: 4 }, { ...DEFAULT_COMBO, aspect: '1:1' }, { ...DEFAULT_COMBO, extra: 1 }, { ...DEFAULT_COMBO, model: 'Nano Banana Pro' }])
+  // since the per-model choices (profile "choices", each value sent live): other counts / aspects of a listed model are qualified too; a value outside the lists is not
+  for (const bad of [undefined, null, {}, 'x', { ...DEFAULT_COMBO, count: 5 }, { ...DEFAULT_COMBO, aspect: '21:9' }, { ...DEFAULT_COMBO, extra: 1 }, { ...DEFAULT_COMBO, model: 'Nano Banana Pro' } /* Pro has no thinking level */])
     expect(comboQualified('image', bad), JSON.stringify(bad)).toBe(false)
+  for (const near of [{ ...DEFAULT_COMBO, count: 4 }, { ...DEFAULT_COMBO, aspect: '1:1' }]) {
+    expect(comboQualified('image', near), JSON.stringify(near)).toBe(true)
+    expect(comboQualified('image', near, [DEFAULT_COMBO]), JSON.stringify(near)).toBe(false) // against an explicit list the match is still exact
+  }
 })
 
 // ---- runner: combo gate (AC-03) and scripted driver failures ----
@@ -162,6 +174,23 @@ function rig(settings: object, fail: { prepare?: string[]; check?: string[] } = 
   const state = () => JSON.parse((db.prepare('select state_json j from attempt').get() as { j: string }).j)
   return { db, fake, runner, batchId, journal, state }
 }
+test('combo gate with the profile\'s own list (how the app runs): a listed choice is prepared with exactly that combo; a value outside the lists never reaches the page', async () => {
+  const run = async (combo: object) => {
+    const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'))
+    const fake = createFakeDriver(['image-ok']), seen: unknown[] = []
+    const driver = { ...fake, prepare: async (t: string, p: Parameters<typeof fake.prepare>[1]) => { seen.push((p.settings as { combo?: unknown }).combo); return fake.prepare(t, p) } }
+    const { batchId } = enqueueBatch(db, { commandId: 'c', kind: 'image', projectId: 'p', settings: { combo }, mode: 'auto', prompts: ['a'], refs: [[]] })
+    const runner = createRunner({ db, driver, clock: { now: () => Date.now() }, tabs: ['t1'], speed: 'default', autoAllowed: () => true }) // no combos option
+    runner.start(batchId)
+    await runner.tick(); await runner.tick()
+    return { seen, error: runner.lastError(batchId), clicks: fake.ledger.clicks }
+  }
+  const pro = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 }
+  expect(await run(pro)).toEqual({ seen: [pro], error: null, clicks: 1 })
+  expect(await run({ ...pro, count: 5 })).toEqual({ seen: [], error: 'COMBO_NOT_QUALIFIED', clicks: 0 })
+  expect(await run({ ...pro, quality: 'High' })).toEqual({ seen: [], error: 'COMBO_NOT_QUALIFIED', clicks: 0 }) // a thinking level on a model that has none
+})
+
 test.each([['no combo', {}], ['unknown model', { combo: { ...DEFAULT_COMBO, model: 'Nano Banana Pro' } }], ['wrong count', { combo: { ...DEFAULT_COMBO, count: 4 } }], ['wrong kind', { combo: fakeCombo('video') }], ['junk', { combo: 5 }]])(
   'combo gate: %s ⇒ batch paused COMBO_NOT_QUALIFIED, no intent, no page calls', async (_n, settings) => {
     const t = rig(settings)

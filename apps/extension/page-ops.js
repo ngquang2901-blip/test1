@@ -81,14 +81,25 @@
       await sleep(1500);
       return { chips: document.querySelectorAll('flow-prompt-box flow-image-ingredient-chip').length };
     },
-    // Radios by LABEL (settings-logic.js), re-read after every click; model is verified only. Opens/closes the panel, never touches submit.
+    // Model and radios by LABEL (settings-logic.js), re-read after every click. Opens/closes the panel, never touches submit.
     async settings(a) {
       const trigger = $(TRIGGER); if (!trigger) return { ok: false, current: null, mismatches: ['trigger'] };
       if (!$('flow-prompt-box-settings')) trigger.click();
       if (!(await until(() => $('flow-prompt-box-settings'), 3000))) return { ok: false, current: null, mismatches: ['panel'] };
       const buttons = () => [...$('flow-prompt-box-settings').querySelectorAll('button')].map((el) => ({ role: el.getAttribute('role'), text: el.innerText, checked: el.getAttribute('aria-checked'), el }));
+      // The model menu is a Material menu in an overlay (measured live): the role-less button opens it. Exactly one item with the wanted
+      // label is clicked; none or several ⇒ the menu is closed by its backdrop and nothing changes (the caller reports the mismatch).
+      const items = () => [...document.querySelectorAll('[role="menu"] [role="menuitem"]')];
+      const pickModel = async (label) => {
+        const open = buttons().find((b) => b.role == null); if (!open) return;
+        open.el.click();
+        const hit = ((await until(() => (items().length ? items() : null), 3000)) || []).filter((el) => TFSettings.modelLabel(el.innerText) === label);
+        if (hit.length === 1) hit[0].click();
+        else { const b = document.querySelectorAll('.cdk-overlay-backdrop'); if (b.length) b[b.length - 1].click(); }
+        await until(() => !items().length, 3000);
+      };
       try {
-        return await TFSettings.converge({ mode: a.mode, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150) });
+        return await TFSettings.converge({ mode: a.mode, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150), pickModel });
       } finally { if ($('flow-prompt-box-settings')) trigger.click(); }
     },
     // Library -> chip by upload name (ref-logic.js). Opens/closes the '+' popover, never touches submit; returns codes only.

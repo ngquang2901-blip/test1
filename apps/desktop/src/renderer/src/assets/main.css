@@ -311,6 +311,11 @@ textarea.short { min-height: 64px; }
 .wf .react-flow__controls-button svg { fill: currentColor; }
 .wf .react-flow__handle { width: 14px; height: 14px; }
 .wf .react-flow__edge-path { stroke-width: 2; }
+.wf .react-flow__edge.selected .react-flow__edge-path { stroke-width: 3; }
+.wf-set { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.wf-opt { width: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.wf-opt select { font: inherit; font-size: 13px; width: 100%; padding: 5px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.wf-combo { margin: 0; font-size: 12px; color: var(--ink-2); }
 .wf-node { width: 280px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; color: var(--ink); }
 .react-flow__node.selected .wf-node { border-color: var(--blue); }
 .wf-node[data-state='running'] { border-color: var(--ink); }

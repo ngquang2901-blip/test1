@@ -8,6 +8,7 @@ import { startConnectorServer } from '../src/main/connector/server'
 import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
 import { EXT_ID } from '../src/main/connector/ext-id'
 import flow from '../profiles/flow.json'
+import pkg from '../package.json'
 import { createExtDriver } from '../src/main/connector/ext-driver'
 import { DEFAULT_COMBO } from '../src/main/profile'
 import { correlate, parseGenerateRequest, parseImageReceipt, parseRpcResponse, readFReq } from '@toolflow/flow-protocol/parse'
@@ -18,13 +19,15 @@ const PROMPT = process.env.PROMPT ?? 'a single yellow lemon on a blue plate'
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 const server = await startConnectorServer({ token: readOrCreateToken(userData), extensionId: EXT_ID })
-installExtension(resolve(process.cwd(), '../extension'), userData, server.port) // run via npm from apps/desktop
+installExtension(resolve(process.cwd(), '../extension'), userData, server.port, pkg.version) // run via npm from apps/desktop; same version stamp as the app, so a later app start asks for no reload
 console.log('listening; waiting for the extension to (re)connect (it retries every 30 s)')
 for (let i = 0; i < 40 && !server.connected(); i++) await sleep(3000)
 if (!server.connected()) { console.log('RESULT: extension never connected'); process.exit(1) }
 console.log('extension connected')
 
-type Tab = { tabId: number; active: boolean; path: string; status: string }
+type Tab = { tabId: string; active: boolean; path: string; status: string }
+// ACCOUNT=<start of the email>: only that account's Flow tab (several Chrome profiles can be connected; each reconnects within 30 s).
+const WANT = process.env.ACCOUNT
 // Wait (up to 6 min) until the extension runs the NEW code (tabs op exists) and a Flow tab has our page hooks (needs F5 after the extension reload).
 let tabs: Tab[] = []
 const t0 = Date.now()
@@ -34,9 +37,14 @@ for (let note = ''; Date.now() - t0 < 360_000; await sleep(4000)) {
     tabs = (await server.send('tabs', {})) as Tab[]
     if (!tabs.length) why = 'no Flow tab open (https://flow.google.com/...)'
     else {
-      const p = (await server.send('ping', { tabId: tabs[0].tabId }).catch(() => null)) as { version?: string } | null
+      if (WANT) {
+        const mine: Tab[] = []
+        for (const t of tabs) if (String(await server.send('account', { tabId: t.tabId }).catch(() => '')).startsWith(WANT)) mine.push(t)
+        tabs = mine
+      }
+      const p = tabs[0] ? (await server.send('ping', { tabId: tabs[0].tabId }).catch(() => null)) as { version?: string } | null : null
       if (p?.version) break
-      why = 'Flow tab has no ToolFlow hooks yet: reload the tab (F5)'
+      why = tabs[0] ? 'Flow tab has no ToolFlow hooks yet: reload the tab (F5)' : `no Flow tab of account ${WANT}*** connected yet`
     }
   } catch (e) { why = `extension runs old code or is away (${(e as Error).message}): reload it on chrome://extensions` }
   if (why !== note) { console.log('waiting:', why); note = why }
@@ -73,6 +81,61 @@ if (process.env.INSPECT === '1' && tabs[0]) {
   console.log('close settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
   await sleep(600)
   console.log('radios after close:', JSON.stringify(await server.send('radios', a)))
+}
+// MODELS=1: read-only look at the model menu: open the settings panel, click the model button, report which candidate selectors
+// exist before/while it is open (HOLD=<s> keeps it open for a screenshot; close it with Escape), then close the panel. Nothing is chosen or sent.
+if (process.env.MODELS === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }, TRIGGER = 'flow-prompt-box button.settings-trigger-button'
+  const cand = {
+    roleMenu: '[role="menu"]', roleMenuitem: '[role="menuitem"]', roleMenuitemradio: '[role="menuitemradio"]', roleOption: '[role="option"]', roleListbox: '[role="listbox"]',
+    matMenuPanel: '.mat-mdc-menu-panel', matMenuItem: '.mat-mdc-menu-item', matOption: 'mat-option', matSelectPanel: '.mat-mdc-select-panel', cdkOverlay: '.cdk-overlay-pane', cdkBackdrop: '.cdk-overlay-backdrop',
+    inPanelMenuitem: 'flow-prompt-box-settings [role="menuitem"]', inPanelOption: 'flow-prompt-box-settings [role="option"]', expanded: 'flow-prompt-box-settings button[aria-expanded="true"]', haspopup: 'flow-prompt-box-settings button[aria-haspopup]',
+    popover: '[popover]', dialog: '[role="dialog"]', menuButtons: '[role="menu"] button', menuLi: '[role="menu"] li',
+  }
+  const seen = async (): Promise<string> => Object.entries(((await server.send('probe', { ...a, selectors: cand })) as { present: Record<string, boolean> }).present).filter(([, v]) => v).map(([k]) => k).join(' ') || '(none)'
+  console.log('open settings:', JSON.stringify(await server.send('click', { ...a, sel: TRIGGER })))
+  await sleep(1200)
+  console.log('present before:', await seen())
+  console.log('click model button:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box-settings button:not([role="radio"])' })))
+  await sleep(1500)
+  console.log('present with the menu open:', await seen())
+  console.log('radios with the menu open:', JSON.stringify(await server.send('radios', a)))
+  await sleep(Number(process.env.HOLD ?? 0) * 1000)
+  console.log('present after hold:', await seen())
+  // MODELS=all: additionally pick every menu item in turn, list the panel's options for it (they can differ per model), then put the first model back.
+  // This changes the composer's model setting for a few seconds; nothing is typed or sent.
+  if (process.env.MODELS_ALL === '1') {
+    const ITEM = '[role="menu"] button[role="menuitem"]', MODEL = 'flow-prompt-box-settings button:not([role="radio"])'
+    const model = async (): Promise<string> => String(((await server.send('radios', a)) as [number, string | null, string][]).find((r) => r[1] === null)?.[2] ?? '?')
+    const orig = await model()
+    let back = -1
+    for (let k = 0; k < 8; k++) {
+      if ((await seen()).includes('roleMenuitem') === false) { await server.send('click', { ...a, sel: MODEL }); await sleep(1200) }
+      if ((await server.send('click', { ...a, sel: ITEM, idx: k })) !== 'clicked') break
+      await sleep(1800)
+      const now = await model()
+      if (now === orig) back = k
+      console.log(`MODEL ${k}: ${now} | radios: ${JSON.stringify(((await server.send('radios', a)) as [number, string | null, string, string | null][]).filter((r) => r[1] === 'radio').map((r) => r[2] + (r[3] === 'true' ? '*' : '')))} | chip: ${JSON.stringify(((await server.send('state', a)) as { settings: string }).settings)}`)
+      await sleep(Number(process.env.HOLD ?? 0) * 1000)
+    }
+    if (back >= 0 && (await model()) !== orig) { await server.send('click', { ...a, sel: MODEL }); await sleep(1200); await server.send('click', { ...a, sel: ITEM, idx: back }); await sleep(1500) }
+    console.log(`MODEL restored: ${(await model()) === orig}`)
+  }
+  if ((await server.send('radios', a)) !== 'no panel') console.log('close settings:', JSON.stringify(await server.send('click', { ...a, sel: TRIGGER })))
+  await sleep(600)
+  console.log('panel after close:', JSON.stringify(await server.send('radios', a)) === '"no panel"' ? 'closed' : 'STILL OPEN')
+}
+// SET='[{"model":"Nano Banana Pro","aspect":"9:16","quality":null,"count":"x1"}, ...]': run the product `settings` op for each entry (mode Image),
+// print what the panel reads back, then put the default combo back. Changes the composer's settings for a moment; nothing is typed or sent.
+if (process.env.SET && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  const chip = async (): Promise<string> => JSON.stringify(((await server.send('state', a)) as { settings: string }).settings)
+  for (const w of [...(JSON.parse(process.env.SET) as Record<string, unknown>[]), { model: DEFAULT_COMBO.model, aspect: DEFAULT_COMBO.aspect, quality: DEFAULT_COMBO.quality, count: `x${DEFAULT_COMBO.count}` }]) {
+    const t1 = Date.now()
+    const r = (await server.send('settings', { ...a, mode: 'Image', ...w }).catch((e) => ({ error: String((e as Error).message).slice(0, 120) }))) as { ok?: boolean; mismatches?: string[]; current?: object; error?: string }
+    console.log(`SET ${JSON.stringify(w)} -> ok=${r.ok} mismatches=${JSON.stringify(r.mismatches ?? r.error)} current=${JSON.stringify(r.current)} ${Date.now() - t1}ms | chip ${await chip()} | panel ${(await server.send('radios', a)) === 'no panel' ? 'closed' : 'OPEN'} | menu ${((await server.send('probe', { ...a, selectors: { m: '[role="menu"]' } })) as { present: { m: boolean } }).present.m ? 'OPEN' : 'closed'}`)
+    await sleep(800)
+  }
 }
 // PREP=1: product ext-driver on the real tab, never clicks Send: prepare (settings + prompt), pre-click checks, stale-text replace, settings round trip, then clears the composer.
 if (process.env.PREP === '1' && tabs[0]) {
