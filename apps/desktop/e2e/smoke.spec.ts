@@ -707,6 +707,24 @@ test('Workflow: Điều kiện "Có prompt bị Flow lọc" — Flow refuses the
 
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
+test('video from a start frame: one image per prompt in Tạo lô, each video is sent with its own frame', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await expect(page.getByRole('group', { name: 'Khung hình đầu' })).toBeVisible()
+  await expect(page.getByLabel('Số ảnh tham chiếu mỗi prompt')).toHaveCount(0) // a video takes exactly one
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await page.getByLabel('Mỗi prompt một ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png')
+  await expect(row(page, 1)).toContainText('b.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  const l = await ledger(app)
+  expect([l.uploads.length, l.refs.map((r) => r.length), new Set(l.refs.flat()).size]).toEqual([2, [1, 1], 2])
+})
+
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
 const outputs = (page: Page) => page.locator('[data-testid=output]')
 

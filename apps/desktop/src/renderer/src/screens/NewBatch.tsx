@@ -49,7 +49,8 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
     } catch { setMsg('Không lưu được mẫu: tên cần 1–60 ký tự.') }
   }
 
-  const refs = d.kind === 'image' ? { assetIds: pool.map((a) => a.id), mode: refMode, perItem } : { assetIds: [], mode: 'none', perItem: 1 } // video refs are not supported in P2
+  const video = d.kind === 'video'
+  const refs = { assetIds: pool.map((a) => a.id), mode: refMode, perItem: video ? 1 : perItem } // a video takes one image: its start frame
   const refsKey = JSON.stringify(refs), comboKey = JSON.stringify(chosen ?? null)
   useEffect(() => {
     let live = true
@@ -137,10 +138,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
             <p className="hint">Trước khi gửi, app tự chọn đúng các mục này trong Flow; Flow không nhận thì dòng đó dừng lại, không gửi bằng cài đặt khác.</p>
           </fieldset>
         )}
-        <fieldset aria-label="Ảnh tham chiếu" className="wide">
-          <legend>Ảnh tham chiếu</legend>
-          {d.kind === 'video' ? <p className="muted">Video chưa hỗ trợ ảnh tham chiếu.</p> : (
-            <div className="status">
+        <fieldset aria-label={video ? 'Khung hình đầu' : 'Ảnh tham chiếu'} className="wide">
+          <legend>{video ? 'Khung hình đầu (video bắt đầu từ ảnh này)' : 'Ảnh tham chiếu'}</legend>
+          <div className="status">
               <div className="toolbar">
                 <button ref={pickBtn} className="small" onClick={() => void pick()}>Chọn ảnh…</button>
                 <ul aria-label="Ảnh đã chọn" data-testid="pool" className="pool">
@@ -149,18 +149,17 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
               </div>
               <div>
                 <label><input type="radio" name="refmode" checked={refMode === 'none'} onChange={() => setRefMode('none')} /> Không dùng</label>
-                <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> Mỗi prompt một nhóm ảnh theo thứ tự</label>
-                <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> Dùng chung tất cả ảnh cho mọi prompt</label>
-                <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>
+                <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> {video ? 'Mỗi prompt một ảnh theo thứ tự' : 'Mỗi prompt một nhóm ảnh theo thứ tự'}</label>
+                <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> {video ? 'Dùng chung một ảnh cho mọi prompt' : 'Dùng chung tất cả ảnh cho mọi prompt'}</label>
+                {!video && <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={8} value={perItem} onChange={(e) => setPerItem(Math.min(8, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>}
               </div>
-            </div>
-          )}
+          </div>
         </fieldset>
       </div>
       {errs.length > 0 && (
         <p role="alert" className="notice" data-testid="map-errors">
           {errs.some((e) => e.code === 'NOT_ENOUGH_REFS') && <>Thiếu ảnh cho prompt nào: {errs.filter((e) => e.code === 'NOT_ENOUGH_REFS').map((e) => `#${e.index + 1}`).join(', ')}. </>}
-          {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>Quá nhiều ảnh: tăng “Số ảnh tham chiếu mỗi prompt” hoặc bỏ bớt ảnh. </>}
+          {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>{video ? 'Quá nhiều ảnh: mỗi video chỉ dùng một ảnh, bỏ bớt ảnh hoặc chọn “Mỗi prompt một ảnh theo thứ tự”. ' : 'Quá nhiều ảnh: tăng “Số ảnh tham chiếu mỗi prompt” hoặc bỏ bớt ảnh. '}</>}
           Sửa cách gán ảnh hoặc chọn “Không dùng” để tạo lô.
         </p>
       )}

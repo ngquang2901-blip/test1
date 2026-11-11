@@ -240,3 +240,10 @@ test('ping reports the rpc names seen complete since load, names only', async ()
   assert.deepEqual([...m.ping().seen].sort(), ['Zzl0ze', 'ogiZ0b']);
   assert.ok(!JSON.stringify(m.ping()).includes('SECRET'));
 });
+
+test('attach: a slot, when named, is the start frame; any other slot is refused', () => {
+  const msg = (args) => ({ id: 1, epoch: 2, op: 'attach', args });
+  assert.equal(validate(msg({ tabId: 1, name: 'tf-a.png', slot: 'start' })), null);
+  assert.equal(validate(msg({ tabId: 1, name: 'tf-a.png' })), null);
+  assert.match(validate(msg({ tabId: 1, name: 'tf-a.png', slot: 'end' })), /slot/);
+});

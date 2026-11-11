@@ -105,7 +105,7 @@
     // Library -> chip by upload name (ref-logic.js). Opens/closes the '+' popover, never touches submit; returns codes only.
     async attach(a) {
       const pop = () => $('flow-add-menu-popover-content');
-      const plus = () => { const bs = [...document.querySelectorAll('flow-prompt-box button')].filter((b) => !b.closest('flow-add-menu-popover-content')); const i = TFRef.plusIndex(bs.map((b) => ({ text: b.innerText, label: b.getAttribute('aria-label') }))); return i < 0 ? null : bs[i]; };
+      const plus = () => { const bs = [...document.querySelectorAll('flow-prompt-box button')].filter((b) => !b.closest('flow-add-menu-popover-content')); const d = bs.map((b) => ({ text: b.innerText, label: b.getAttribute('aria-label') })); const i = a.slot === 'start' ? TFRef.startIndex(d) : TFRef.plusIndex(d); return i < 0 ? null : bs[i]; }; // a.slot 'start': the Start slot of the Frames composer opens the library
       const env = {
         chips: () => OPS.state().chips,
         isOpen: () => !!pop(),

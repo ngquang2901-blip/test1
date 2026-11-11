@@ -98,6 +98,20 @@ function rig(script: UploadScript[] = [], o: Parameters<typeof createFakeFlow>[1
   return { flow, m, driver, prepare, clock }
 }
 
+test('video from a start frame: the composer goes to Frames and the image is attached through the Start slot; an image names no slot', async () => {
+  const spy = (t: ReturnType<typeof rig>) => { const seen: Array<[string, Record<string, unknown>]> = [], send = t.flow.server.send.bind(t.flow.server); t.flow.server.send = async (op, args) => { seen.push([op, args]); return send(op, args) }; return seen }
+  const t = rig(), a = t.m.add(), seen = spy(t)
+  const combo = { kind: 'video', mode: 'Video', model: 'Veo 3.1 - Lite', aspect: '9:16', count: 1 }
+  expect(await t.driver.prepare('7', { prompt: 'a prompt', kind: 'video', settings: { combo }, refIds: [a], projectId: P })).toEqual({ ok: true })
+  expect(seen.find(([op]) => op === 'settings')![1]).toMatchObject({ mode: 'Video', input: 'Frames' })
+  const attaches = seen.filter(([op]) => op === 'attach')
+  expect([attaches.length > 0, attaches.every(([, x]) => x.slot === 'start')]).toEqual([true, true])
+  expect(t.flow.chips()).toEqual([t.m.store.binding(a, P)!.mediaId])
+  const i = rig(), b = i.m.add(), plain = spy(i)
+  expect(await i.prepare([b])).toEqual({ ok: true })
+  expect(plain.filter(([op]) => op === 'attach').some(([, x]) => 'slot' in x)).toBe(false)
+})
+
 test('upload-no-ack: one upload across two prepares, both REF_UPLOAD_UNCERTAIN, binding uncertain', async () => {
   const t = rig(['upload-no-ack']), a = t.m.add()
   expect(await t.prepare([a])).toEqual({ ok: false, code: 'REF_UPLOAD_UNCERTAIN' })
