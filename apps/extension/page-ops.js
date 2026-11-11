@@ -99,7 +99,7 @@
         await until(() => !items().length, 3000);
       };
       try {
-        return await TFSettings.converge({ mode: a.mode, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150), pickModel });
+        return await TFSettings.converge({ mode: a.mode, input: a.input, aspect: a.aspect, quality: a.quality, count: a.count, model: a.model }, buttons, (b) => b.el.click(), { settle: () => sleep(150), pickModel });
       } finally { if ($('flow-prompt-box-settings')) trigger.click(); }
     },
     // Library -> chip by upload name (ref-logic.js). Opens/closes the '+' popover, never touches submit; returns codes only.
@@ -150,8 +150,10 @@
     if (m?.tf === 'src') { // INTERNAL: only our own service worker may ask; the src goes to chrome.downloads and nowhere else
       if (s?.id !== chrome.runtime.id) return;
       const t = tile(m.mediaId);
-      reply(t.img && t.img.src ? { src: t.img.src } : { code: t.code ?? 'NOT_FOUND' });
-      return;
+      if (t.code !== 'NOT_FOUND') { reply(t.img && t.img.src ? { src: t.img.src } : { code: t.code ?? 'NOT_FOUND' }); return; }
+      // No tile carries this id: a video. The main world learnt its MP4 address from Flow's own answers (media-logic.js).
+      ask('toolflow:media', 500, { mediaId: m.mediaId }).then((r) => reply(r && typeof r.src === 'string' ? { src: r.src } : { code: 'NOT_FOUND' }));
+      return true;
     }
     if (m?.tf !== 'op') return;
     const f = OPS[m.op];

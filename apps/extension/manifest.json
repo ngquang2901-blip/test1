@@ -8,7 +8,7 @@
   "permissions": ["tabs", "scripting", "downloads", "alarms", "storage"],
   "host_permissions": ["https://flow.google.com/*"],
   "content_scripts": [
-    { "matches": ["https://flow.google.com/*"], "js": ["epoch.js", "main-world.js"], "world": "MAIN", "run_at": "document_start" },
+    { "matches": ["https://flow.google.com/*"], "js": ["epoch.js", "media-logic.js", "main-world.js"], "world": "MAIN", "run_at": "document_start" },
     { "matches": ["https://flow.google.com/*"], "js": ["settings-logic.js", "ref-logic.js", "page-ops.js"], "run_at": "document_start" }
   ]
 }

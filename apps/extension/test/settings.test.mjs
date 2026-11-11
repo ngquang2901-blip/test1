@@ -115,6 +115,37 @@ test('model: already the wanted one ⇒ the menu is never opened; a pick that do
   assert.deepEqual([noLevel.ok, noLevel.mismatches], [false, ['quality']]); // High wanted, the model has no such group
 });
 
+// The Video panel as measured live on 2026-11-11 (Vietnamese UI): mode, input type, two aspects, the model button, counts.
+const VIDEO = [['mode', 'image Hình ảnh'], ['mode', 'videocam Video'], ['input', 'crop_free Khung hình'], ['input', 'chrome_extension Thành phần'], ['aspect', 'crop_16_9 16:9'], ['aspect', 'crop_9_16 9:16'], ['count', 'x1'], ['count', 'x2'], ['count', 'x3'], ['count', 'x4']];
+function twoModes(start) { // one composer, two panels: the radios and the model on show follow the mode, each mode keeps its own model
+  const st = { mode: 'Image', aspect: '16:9', quality: 'High', count: 'x2', input: 'Ingredients', models: { Image: 'Nano Banana 2.1', Video: 'Omni 1.2 Flash' }, ...start };
+  const clicks = [];
+  const radio = ([g, text]) => { const l = T.label(text); return { role: 'radio', text, get checked() { return String(st[g] === l); }, click() { clicks.push(l); st[g] = l; if (g === 'mode' && l === 'Video' && !['16:9', '9:16'].includes(st.aspect)) st.aspect = '16:9'; } }; };
+  const buttons = () => [...(st.mode === 'Video' ? VIDEO : TABLE.map(([g, t]) => [g, t.replace('image Image', 'image Hình ảnh')])).map(radio), { role: undefined, text: `${st.models[st.mode]} arrow_drop_down`, checked: null }];
+  return { st, clicks, buttons, pickModel: async (l) => { clicks.push(`MODEL ${l} in ${st.mode}`); st.models[st.mode] = l; } };
+}
+
+test('video: the mode is switched before the model is picked (each mode has its own model menu), then input type, aspect and count', async () => {
+  const w = twoModes({});
+  const want = { mode: 'Video', input: 'Ingredients', aspect: '9:16', quality: null, count: 'x1', model: 'Veo 3.1 - Lite' };
+  const r = await T.converge(want, w.buttons, (b) => b.click(), { pickModel: w.pickModel });
+  assert.deepEqual([r.ok, r.mismatches, r.current], [true, [], want]);
+  assert.deepEqual(w.clicks, ['Video', 'MODEL Veo 3.1 - Lite in Video', '9:16', 'x1']);
+  assert.equal(w.st.models.Image, 'Nano Banana 2.1'); // the image mode's model was not touched
+  const frames = await T.converge({ ...want, input: 'Frames' }, w.buttons, (b) => b.click(), { pickModel: w.pickModel });
+  assert.deepEqual([frames.ok, w.clicks.at(-1), w.st.input], [true, 'Frames', 'Frames']); // "Khung hình", picked by its label
+});
+
+test('input type: an image combo names none and the image panel has none; a video combo must name the one on show', async () => {
+  const w = twoModes({});
+  const image = await T.converge(WANT, w.buttons, (b) => b.click(), { pickModel: w.pickModel });
+  assert.deepEqual([image.ok, w.clicks], [true, []]);
+  const noInput = await T.converge({ mode: 'Video', aspect: '16:9', quality: null, count: 'x2', model: 'Omni 1.2 Flash' }, w.buttons, (b) => b.click(), { pickModel: w.pickModel });
+  assert.deepEqual([noInput.ok, noInput.mismatches], [false, ['input']]); // fail closed: never send a video without knowing which input type is on
+  const back = await T.converge(WANT, w.buttons, (b) => b.click(), { pickModel: w.pickModel }); // and back to the image combo
+  assert.deepEqual([back.ok, back.current.model, 'input' in back.current], [true, 'Nano Banana 2.1', false]);
+});
+
 test('missing wanted option ⇒ mismatch, no throw', async () => {
   const w = world({});
   const r = await T.converge({ ...WANT, count: 'x9' }, () => w.btns, (b) => b.click());
@@ -126,6 +157,8 @@ test('ops: settings is an allowed op with the same validate rules', () => {
   assert.equal(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT } }), null);
   assert.equal(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT, quality: null } }), null); // a model without a thinking level
   for (const bad of [{ quality: '' }, { quality: undefined }, { quality: 3 }, { model: null }, { count: null }]) assert.match(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT, ...bad } }), /settings needs/, JSON.stringify(bad));
+  assert.equal(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT, mode: 'Video', quality: null, input: 'Frames' } }), null); // video: the input type that must be on
+  for (const bad of [{ input: '' }, { input: 3 }, { input: null }]) assert.match(validate({ id: 1, epoch: 2, op: 'settings', args: { tabId: 1, ...WANT, ...bad } }), /settings needs/, JSON.stringify(bad));
   assert.ok(readFileSync(new URL('../sw.js', import.meta.url), 'utf8').includes("'settings'"));
   const m = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'));
   const iso = m.content_scripts.find((c) => c.js.includes('page-ops.js')).js;
