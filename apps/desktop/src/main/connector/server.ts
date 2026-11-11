@@ -17,7 +17,7 @@ export type ConnectorServer = Awaited<ReturnType<typeof startConnectorServer>>
 
 export const PROTO = 'toolflow.v1'
 // Ops without a tab that every connected Chrome profile answers; the answers are concatenated (tab ids namespaced).
-const BROADCAST = new Set(['tabs', 'gptTabs', 'downloads'])
+const BROADCAST = new Set(['tabs', 'gptTabs', 'gemTabs', 'downloads'])
 /** App-facing tab id: `<instance>:<chrome tab id>` for an extension that names its instance (one per Chrome profile), the bare id otherwise. */
 const ns = (inst: string, tab: unknown): string => (inst ? `${inst}:${tab}` : String(tab))
 const parse = (id: string | number): [string, number] => {
@@ -140,7 +140,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
       const got = await Promise.allSettled(all.map(async (c) => {
         const r = await sendTo(c, op, args, msgEpoch)
         const list = Array.isArray(r) ? r : []
-        return op === 'tabs' || op === 'gptTabs' ? list.map((t: { tabId?: unknown }) => ({ ...t, tabId: ns(c.inst, t.tabId) })) : list
+        return op === 'tabs' || op === 'gptTabs' || op === 'gemTabs' ? list.map((t: { tabId?: unknown }) => ({ ...t, tabId: ns(c.inst, t.tabId) })) : list
       }))
       const ok = got.filter((g): g is PromiseFulfilledResult<unknown[]> => g.status === 'fulfilled')
       if (!ok.length) throw (got[0] as PromiseRejectedResult).reason // every profile failed: the caller's usual error path
