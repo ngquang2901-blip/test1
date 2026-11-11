@@ -20,7 +20,7 @@ test('validate rejects unknown ops and malformed envelopes', () => {
 });
 
 test('OPS is the exact allowlist, no debugger-style ops', () => {
-  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate']);
+  assert.deepEqual(OPS, ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate','gptTabs','gptLook','gptPlus','gptFind','gptPick','gptNew','gptState','gptPrep','gptSend','gptImgs','gptTurns']);
   for (const bad of ['cdp', 'eval', 'debugger']) assert.ok(!OPS.includes(bad));
 });
 
