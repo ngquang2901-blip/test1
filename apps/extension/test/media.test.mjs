@@ -28,6 +28,12 @@ test('as29s: the answer is one media entry in the same layout', () => {
   assert.deepEqual(M.videoTokens(envelope('as29s', e), 'Zzl0ze'), [], 'read as the rpc it is, never guessed');
 });
 
+test('as29s right after a video finishes: [5][5] is still empty, the same token sits at [5][10] (measured live 2026-11-11)', () => {
+  const [e] = videos[0];
+  const fresh = structuredClone(e); fresh[5][5] = null; fresh[5][10] = `https://lh3.googleusercontent.com/asb/${tok(77)}`;
+  assert.deepEqual(M.videoTokens(envelope('as29s', fresh), 'as29s'), [[e[0], tok(77)]]);
+});
+
 test('anything that is not a plain token on the content host teaches nothing', () => {
   const [e] = videos[0];
   const withUrl = (u) => { const c = structuredClone(e); c[5][5] = u; return M.videoTokens(envelope('as29s', c), 'as29s'); };

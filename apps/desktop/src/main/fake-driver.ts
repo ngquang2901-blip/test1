@@ -23,7 +23,7 @@ export const fakeCombo = (kind: 'image' | 'video'): Combo => FAKE_COMBOS.find((c
 export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'blocked' | 'no-request' | 'drop'>;
 // Per fetchMedia call, in order; the default after the script runs out is a good PNG.
 // html: the file is an error page · empty: 0 bytes · ack-lost: the transfer happens but the reply is lost · fail-once: this transfer is interrupted · slow: in progress for 2 polls
-export type DownloadScript = 'download-ok' | 'download-mp4' | 'download-html' | 'download-empty' | 'download-ack-lost' | 'download-fail-once' | 'download-slow';
+export type DownloadScript = 'download-ok' | 'download-mp4' | 'download-html' | 'download-empty' | 'download-ack-lost' | 'download-fail-once' | 'download-slow' | 'download-not-yet';
 export const TINY_MP4 = Buffer.from('00000018667479706d703432000000006d70343269736f6d', 'hex'); // the file-type box every MP4 starts with ("ftypmp42"), nothing more
 export const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==', 'base64'); // a real 1x1 PNG, same bytes every time
 type Rec = { phase: string; rpc: string; req?: string; res?: string };
@@ -148,6 +148,7 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
     dlDir ??= join(mkdtempSync(join(tmpdir(), 'tf-fake-dl-')), 'ToolFlow-tmp');
     mkdirSync(dlDir, { recursive: true });
     const step = dlScript.shift() ?? 'download-ok';
+    if (step === 'download-not-yet') return { ok: false, code: 'NOT_FOUND' }; // the page does not know this media yet: nothing starts
     let name = p.filename, n = 1;
     while (dlItems.some((x) => x.filename === join(dlDir!, name))) name = p.filename.replace(/(\.[^.]*)?$/, ` (${n++})$1`); // uniquify, like the browser
     const filename = join(dlDir, name);

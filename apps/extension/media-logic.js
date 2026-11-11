@@ -7,7 +7,7 @@
   const CONTENT = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com\/asb\/([A-Za-z0-9_-]{20,400})(?:=[^/?#]*)?$/; // a plain token only: it becomes part of a download address
   const one = (e) => {
     if (!Array.isArray(e) || typeof e[0] !== 'string' || !UUID.test(e[0]) || !Array.isArray(e[5]) || !Array.isArray(e[7])) return null; // [7] exists for a video only
-    const m = typeof e[5][5] === 'string' ? CONTENT.exec(e[5][5]) : null;
+    const m = [e[5][5], e[5][10]].map((u) => (typeof u === 'string' ? CONTENT.exec(u) : null)).find(Boolean); // [5][5] is empty in the as29s answer that follows a finish; [5][10] holds the same token
     return m ? [e[0].toLowerCase(), m[1]] : null;
   };
   /** [[mediaId, token], …] for the video media in one batchexecute answer of `rpc`; anything unreadable teaches nothing. */

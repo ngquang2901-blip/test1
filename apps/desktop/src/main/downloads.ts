@@ -174,7 +174,11 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
     env.onChange?.()
   }
   let sent: FetchMediaResult
-  try { sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` }) } catch (e) {
+  try {
+    sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` })
+    // Flow fetches a finished video's address about 0.6 s after the poll that reports it (measured); "not found" started nothing, so one more ask is safe
+    if (!sent.ok && sent.code === 'NOT_FOUND' && a.kind === 'video') { await env.sleep(3000); sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` }) }
+  } catch (e) {
     if (!(e instanceof ConnectorError)) return set({ state: 'failed', error_code: 'DOWNLOAD_REFUSED' }) // the extension refused the request: nothing was started
     set({ state: 'needs_review', error_code: 'DOWNLOAD_ACK_LOST' }) // the transfer may have started: look before anything else
     const r = await reconcile(false)

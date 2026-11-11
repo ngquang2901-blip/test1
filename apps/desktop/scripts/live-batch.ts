@@ -98,6 +98,10 @@ for (; Date.now() - t0 < LIMIT; await sleep(500)) {
 }
 console.log('FINAL:', view())
 if (KIND === 'video') { // save every finished video through the product's own download check (it must be an MP4)
+  if (process.env.NET) { // NET=1: which answers the page got besides the polls, and whether they name a finished video (names and counts only)
+    const ops = (db.prepare('select a.state_json s from item i join attempt a on a.id=i.attempt_id where i.batch_id=?').all(r.batchId) as { s: string }[]).flatMap((x) => ((JSON.parse(x.s).operations ?? []) as { operationId: string }[]).map((o) => o.operationId))
+    for (let i = 0; i < 4; i++, await sleep(5000)) for (const n of (await server.send('net', { tabId: t.tabId })) as { rpc: string; res: string }[]) if (n.rpc !== 'jwpduf') console.log(`net: ${n.rpc} ${n.res.length}B namesOurVideo=${ops.some((o) => n.res.includes(o))} asb=${n.res.split('/asb/').length - 1}`)
+  }
   const root = mkdtempSync(join(tmpdir(), 'tf-live-video-'))
   for (const x of db.prepare('select i.ord o, i.prompt p, a.id aid, a.state_json s from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(r.batchId) as { o: number; p: string; aid: string; s: string }[]) {
     for (const m of (JSON.parse(x.s).outputs ?? []) as { mediaId: string }[]) {

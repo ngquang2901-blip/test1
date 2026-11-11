@@ -228,6 +228,18 @@ test('a video output is saved only when the file is an MP4: the still picture Fl
   expect([row.state, row.error_code, onlyFiles(image.root)]).toEqual(['failed', 'DOWNLOAD_NOT_IMAGE', []])
 })
 
+test('a video asked for right at its finish: the page learns its address a moment later, so "not found" is asked once more; an image is not', async () => {
+  const r = rig(['download-not-yet', 'download-mp4'])
+  const row = await requestDownload(r.db, r.spy, r.args({ kind: 'video' }), r.env)
+  expect([row.state, r.calls.filter((c) => c === 'fetchMedia').length]).toEqual(['completed', 2])
+  const twice = rig(['download-not-yet', 'download-not-yet', 'download-mp4'])
+  const lost = await requestDownload(twice.db, twice.spy, twice.args({ kind: 'video' }), twice.env)
+  expect([lost.state, lost.error_code, twice.calls.filter((c) => c === 'fetchMedia').length]).toEqual(['failed', 'DOWNLOAD_NOT_FOUND', 2])
+  const image = rig(['download-not-yet'])
+  await requestDownload(image.db, image.spy, image.args(), image.env)
+  expect(image.calls.filter((c) => c === 'fetchMedia').length).toBe(1)
+})
+
 for (const script of ['download-html', 'download-empty'] as const) test(`${script} is never completed: DOWNLOAD_NOT_IMAGE, temp file deleted, nothing in root; retry keeps the planned name`, async () => {
   const r = rig([script])
   const row = await requestDownload(r.db, r.spy, r.args(), r.env)
