@@ -24,8 +24,9 @@ export function validate(msg) {
   if (op === 'arm' && !(Number.isInteger(args.epoch) || args.epoch === null)) return 'arm needs integer epoch or null';
   if (op === 'focus' && !Number.isInteger(args.tabId)) return 'focus needs integer tabId';
   if (op === 'probe' && !(args.selectors && typeof args.selectors === 'object' && !Array.isArray(args.selectors) && Object.values(args.selectors).every((v) => typeof v === 'string' && v.length < 300))) return 'probe needs a selectors map of strings';
-  if (op === 'settings' && !(['mode', 'aspect', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k]) && (args.quality === null || (typeof args.quality === 'string' && args.quality)))) return 'settings needs mode, aspect, count, model and a quality (null for a model without one)';
+  if (op === 'settings' && !(['mode', 'aspect', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k]) && (args.quality === null || (typeof args.quality === 'string' && args.quality)) && (args.input === undefined || (typeof args.input === 'string' && args.input)))) return 'settings needs mode, aspect, count, model, a quality (null for a model without one) and, for video, the input type';
   if (op === 'attach' && !(typeof args.name === 'string' && args.name.length >= 1 && args.name.length <= 200)) return 'attach needs a name of 1..200 chars';
+  if (op === 'attach' && args.slot !== undefined && args.slot !== 'start') return 'attach: the only slot is start';
   if (op === 'locate' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId))) return 'locate needs integer tabId and a media uuid';
   if (op === 'fetchMedia' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId) && validTmpName(args.filename))) return 'fetchMedia needs integer tabId, a media uuid and a flat filename';
   if (op === 'downloads' && !(Number.isInteger(args.id) || validTmpName(args.filenamePrefix))) return 'downloads needs an integer id or a filenamePrefix';
@@ -35,6 +36,7 @@ export function validate(msg) {
 
 // Event from a tab -> message for the desktop. The epoch is the one main-world captured at its own submit; no epoch => not ours.
 export function forwardEvent(tabId, ev) {
+  if (ev?.type === 'poll') return typeof ev.text === 'string' ? { type: 'poll', tabId, text: ev.text } : null; // Flow's own video polls: no click, so no epoch
   if (!ev || !Number.isInteger(ev.epoch)) return null;
   return { type: ev.type, tabId, epoch: ev.epoch, ...(ev.type === 'response' ? { rpc: ev.rpc, text: ev.text } : {}), request: ev.request };
 }

@@ -19,7 +19,7 @@ type NodeRun = { state: string; code: string | null; total: number; done: number
 type RunView = { status: 'running' | 'done' | 'failed' | 'stopped'; nodes: Record<string, NodeRun> }
 type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
 type Saved = Canvas & { id: string; name: string }
-type Plan = { steps: { node: string; prompts: string; images: string[]; deps: { node: string; port: string; cond?: Cond }[]; save: boolean; feeds: boolean; combo?: Combo }[]; errors: { node?: string; code: string }[] }
+type Plan = { steps: { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: { node: string; port: string; cond?: Cond }[]; save: boolean; feeds: boolean; combo?: Combo }[]; errors: { node?: string; code: string }[] }
 
 const KINDS: Kind[] = ['text', 'image', 'generate', 'branch', 'download', 'note']
 const TITLE: Record<Kind, string> = { text: 'Text', image: 'Ảnh tham chiếu', generate: 'Tạo ảnh Flow', download: 'Tự tải về', note: 'Ghi chú', branch: 'Điều kiện' }
@@ -31,6 +31,8 @@ const WHY: Record<string, string> = {
   WF_NO_PROMPT: 'Node này chưa có prompt. Nối một node Text có chữ vào chấm bên trái',
   WF_CYCLE: 'Các node Tạo ảnh đang nối thành vòng tròn. Bỏ bớt một dây nối',
   WF_BRANCH_INPUT: 'Node Điều kiện cần đúng một node Tạo ảnh nối vào chấm bên trái',
+  WF_VIDEO_FRAMES: 'Node video cần 1 ảnh dùng chung, hoặc số ảnh đúng bằng số prompt (mỗi prompt một ảnh làm khung hình đầu). Sửa số prompt hoặc số ảnh nối vào',
+  WF_VIDEO_OUTPUT: 'Kết quả video chỉ nối được sang node Tự tải về. Bỏ dây nối sang node Tạo ảnh hoặc Điều kiện',
   WF_FILE_INVALID: 'File này không phải workflow của ToolFlow hoặc đã hỏng',
   TOO_MANY_REFS: 'Quá 8 ảnh tham chiếu cho một prompt. Bớt ảnh hoặc bớt prompt ở node phía trước',
   REF_ASSET_MISSING: 'Có ảnh tham chiếu không còn trên máy. Chọn lại ảnh ở node Ảnh tham chiếu',
@@ -92,7 +94,7 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
           <button className="small nodrag" onClick={() => pick(id)}>{data.assets?.length ? 'Chọn lại ảnh' : 'Chọn ảnh'}</button>
         </>
       )}
-      {type === 'generate' && <p className="wf-combo" data-testid="wf-combo">{comboLabel(data.combo ?? DEFAULT)}</p>}
+      {type === 'generate' && <p className="wf-combo" data-testid="wf-combo">{data.combo?.kind === 'video' ? 'Video · ' : ''}{comboLabel(data.combo ?? DEFAULT)}</p>}
       {type === 'generate' && (r?.thumb ? <Thumb attemptId={r.thumb.attemptId} media={r.thumb.mediaId} saved /> : <p className="hint">Mỗi prompt nối vào tạo một lượt ảnh. Nối chấm bên phải sang node Tạo ảnh khác để dùng ảnh vừa tạo làm ảnh tham chiếu.</p>)}
       {type === 'download' && <p className="hint">Lưu kết quả của node nối vào đây về thư mục Downloads/ToolFlow.</p>}
       {type === 'branch' && (
@@ -304,7 +306,8 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
           const cur = sel.data.combo ?? DEFAULT
           return (
             <div className="wf-set" data-testid="wf-settings">
-              <h4>Cài đặt tạo ảnh</h4>
+              <h4>Cài đặt tạo {cur.kind === 'video' ? 'video' : 'ảnh'}</h4>
+              <Opt label="Loại kết quả" value={cur.kind} options={['image', 'video']} show={(k) => (k === 'video' ? 'Video' : 'Ảnh')} onChange={(k) => tools.patch(sel.id, { combo: k === 'video' ? defaultCombo('video') : undefined })} />
               <ComboFields value={cur} onChange={(combo) => tools.patch(sel.id, { combo })} />
               <p className="hint">{sel.data.combo ? 'Node này dùng cài đặt riêng.' : 'Đang dùng cài đặt mặc định của app.'} Trước khi gửi, app tự chọn đúng các mục này trong Flow; Flow không nhận thì node dừng lại, không gửi bằng cài đặt khác.</p>
               {sel.data.combo && <button className="small" onClick={() => tools.patch(sel.id, { combo: undefined })}>Về mặc định</button>}
@@ -316,8 +319,9 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
             <h4>Sẽ gửi {prompts.length} prompt</h4>
             <ol className="wf-prompts">{prompts.slice(0, 20).map((p, i) => <li key={i}>{p}</li>)}</ol>
             {prompts.length > 20 && <p className="hint">… và {prompts.length - 20} prompt nữa</p>}
-            {step && <p className="hint">Mỗi prompt tạo {(step.combo ?? DEFAULT).count} ảnh, tổng cộng {prompts.length * (step.combo ?? DEFAULT).count} ảnh.{step.feeds && (step.combo ?? DEFAULT).count > 1 ? ' Node phía sau chỉ lấy ảnh đầu tiên của mỗi prompt làm tham chiếu.' : ''}</p>}
-            {step && <p className="hint">Ảnh tham chiếu cho mỗi prompt: {step.images.length} ảnh chọn sẵn{step.deps.some(carries) ? `, cộng ảnh kết quả của ${step.deps.filter(carries).length} node phía trước` : ''}.</p>}
+            {step && <p className="hint">Mỗi prompt tạo {(step.combo ?? DEFAULT).count} {step.kind === 'video' ? 'video' : 'ảnh'}, tổng cộng {prompts.length * (step.combo ?? DEFAULT).count} {step.kind === 'video' ? 'video' : 'ảnh'}.{step.feeds && (step.combo ?? DEFAULT).count > 1 ? ' Node phía sau chỉ lấy ảnh đầu tiên của mỗi prompt làm tham chiếu.' : ''}</p>}
+            {step?.kind === 'video' && <p className="hint">Video bắt đầu từ ảnh nối vào (khung hình đầu): một ảnh thì dùng chung, nhiều ảnh thì mỗi prompt một ảnh theo thứ tự. Không nối ảnh thì tạo video từ chữ.</p>}
+            {step && step.kind !== 'video' && <p className="hint">Ảnh tham chiếu cho mỗi prompt: {step.images.length} ảnh chọn sẵn{step.deps.some(carries) ? `, cộng ảnh kết quả của ${step.deps.filter(carries).length} node phía trước` : ''}.</p>}
             {step?.deps.filter((x) => x.port !== 'direct').map((x) => <p key={x.node + x.port} className="hint">{COND[x.cond ?? 'all'].when[x.port === 'ok' ? 0 : 1]}</p>)}
             {step && <p className="hint">{step.save || step.feeds ? 'Kết quả sẽ được tải về máy.' : 'Kết quả chưa tự tải về: nối sang node Tự tải về nếu muốn lưu.'}</p>}
             {[...wired, ...(perr ? [why(perr.code)] : [])].map((m) => <p key={m} className="wf-err" role="alert">{m}</p>)}

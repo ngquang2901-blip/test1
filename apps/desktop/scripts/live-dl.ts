@@ -20,15 +20,17 @@ installExtension(resolve(process.cwd(), '../extension'), userData, server.port, 
 for (let i = 0; i < 40 && !server.connected(); i++) await sleep(3000)
 if (!server.connected()) { console.log('RESULT: extension never connected'); process.exit(1) }
 const driver = createExtDriver(server, { allow: () => true })
-const tab = (await driver.listTabs()).find((t) => t.projectId)
+// ACCOUNT=<start of the email>: that account's tab when several Chrome profiles are connected (each one reconnects within 30 s)
+let tab: Awaited<ReturnType<typeof driver.listTabs>>[number] | undefined
+for (let i = 0; i < 25 && !tab; i++, tab || await sleep(3000)) tab = (await driver.listTabs()).find((t) => t.projectId && (!process.env.ACCOUNT || t.email?.startsWith(process.env.ACCOUNT)))
 if (!tab) { console.log('RESULT: no project tab'); process.exit(1) }
-if (process.env.RAW === '1') { console.log('raw fetchMedia:', JSON.stringify(await server.send('fetchMedia', { tabId: Number(tab.tabId), mediaId: ids[0].id, filename: 'raw-check.bin' }).catch((e) => String(e)))); process.exit(0) }
+if (process.env.RAW === '1') { console.log('raw fetchMedia:', JSON.stringify(await server.send('fetchMedia', { tabId: tab.tabId, mediaId: ids[0].id, filename: 'raw-check.bin' }).catch((e) => String(e)))); process.exit(0) }
 const tmp = mkdtempSync(join(tmpdir(), 'tf-dl-'))
 const db = openDb(join(tmp, 'toolflow.db'))
 const root = join(tmp, 'root')
 for (const [i, o] of ids.slice(0, N).entries()) {
   const t0 = Date.now()
-  const loc = await server.send('locate', { tabId: Number(tab.tabId), mediaId: o.id }).catch((e) => String(e))
+  const loc = await server.send('locate', { tabId: tab.tabId, mediaId: o.id }).catch((e) => String(e))
   console.log(`#${i + 1} locate:`, JSON.stringify(loc))
   const row = await requestDownload(db, driver, { attemptId: `live-${i}`, mediaId: o.id, tab: tab.tabId, batchLabel: 'live', at: Date.now(), index: i + 1, prompt: 'live download check', tz: 'Asia/Ho_Chi_Minh' }, { root, now: () => Date.now(), sleep })
   console.log(`#${i + 1} state=${row.state} err=${row.error_code ?? '-'} bytes=${row.bytes ?? '-'} name=${row.actual_name ?? '-'} ${Date.now() - t0}ms receipt=${o.w}x${o.h}`)

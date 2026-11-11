@@ -148,7 +148,7 @@ test('selfCheckTab: scripted driver.probeTab drives the verdict; absent or throw
 });
 
 // Per-model options (choices): a batch may run with the default combo or with any value of a listed model's options.
-import { CHOICES, QUALIFIED, combosOf, comboQualified, findCombo, DEFAULT_COMBO } from '../src/main/profile';
+import { CHOICES, QUALIFIED, combosOf, comboQualified, defaultCombo, findCombo, DEFAULT_COMBO } from '../src/main/profile';
 const C21 = { kind: 'image', mode: 'Image', model: 'Nano Banana 2.1' }, PRO = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro' };
 test('choices: the default combo and every listed option value are qualified; anything else is not', () => {
   expect(comboQualified('image', DEFAULT_COMBO)).toBe(true);
@@ -176,6 +176,18 @@ test('choices: combosOf is the cross product (no quality key for a model without
   expect(findCombo('image', { ...PRO, aspect: '3:4', quality: 'High', count: 4 })).toBeNull();
   expect(CHOICES.map((c) => c.model)).toContain(DEFAULT_COMBO.model); // the default's model is one of the choices, so the picker can show it
 });
+test('video: each kind has its own default; the video choices are what was sent live (Veo 3.1 - Lite, both aspects, one video per prompt)', () => {
+  const LITE = { kind: 'video', mode: 'Video', model: 'Veo 3.1 - Lite' };
+  expect(defaultCombo('image')).toBe(DEFAULT_COMBO);
+  expect(defaultCombo('video')).toEqual({ ...LITE, aspect: '16:9', count: 1 });
+  expect(defaultCombo('gif')).toBeNull();
+  expect(comboQualified('video', defaultCombo('video'))).toBe(true);
+  expect(comboQualified('video', { ...LITE, aspect: '9:16', count: 1 })).toBe(true);
+  for (const bad of [{ ...LITE, aspect: '1:1', count: 1 }, { ...LITE, aspect: '16:9', count: 2 }, { ...LITE, model: 'Veo 3.1 - Quality', aspect: '16:9', count: 1 }, { ...LITE, aspect: '16:9', quality: 'High', count: 1 }, DEFAULT_COMBO])
+    expect(comboQualified('video', bad), JSON.stringify(bad)).toBe(false);
+  expect(comboQualified('image', defaultCombo('video'))).toBe(false);
+});
+
 test('validateProfile: choices are optional, but a malformed entry blocks the profile; a combo may leave quality out, never empty', () => {
   const none = clone(); delete none.choices;
   expect(validateProfile(none)).toBeNull();

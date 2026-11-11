@@ -53,6 +53,7 @@ test('video on real traffic: accepted → running → poll that also lists anoth
     'generating', 'a poll listing only other attempts says nothing about ours');
   s = next(s, { type: 'poll', operations: pollDone.operations });
   assert.deepEqual([s.item, s.outputs.map((o) => o.operationId)], ['ready', [vidRec.operations[0].operationId]]);
+  assert.deepEqual(s.outputs.map((o) => o.mediaId), [vidRec.operations[0].operationId]); // a finished video is the media with its operation's id (listing, as29s): what a download asks for
 });
 
 test('poll INTERNAL: failed, Flow refunds, and there is no edge back to submitting', () => {

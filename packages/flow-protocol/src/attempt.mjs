@@ -100,7 +100,7 @@ export function next(s, ev) {
       const mine = s.operations.map((o) => ev.operations.find((p) => p.operationId === o.operationId) || o);
       if (mine.some((o) => o.status === 'accepted' || o.status === 'running')) return { ...s, operations: mine };
       const ok = mine.filter((o) => o.status === 'succeeded');
-      if (ok.length) return { ...s, item: 'ready', stage: 'outcome_known', operations: mine, outputs: ok };
+      if (ok.length) return { ...s, item: 'ready', stage: 'outcome_known', operations: mine, outputs: ok.map((o) => ({ ...o, mediaId: o.operationId })) }; // a finished video is the media with its operation's id
       return { ...fail(s, classifyPollFailure(mine[0].failure)), operations: mine };
     }
 

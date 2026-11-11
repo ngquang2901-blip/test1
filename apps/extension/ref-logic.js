@@ -26,6 +26,14 @@
     return hits.length === 1 ? hits[0] : -1;
   }
 
+  // The empty Start slot of the Frames composer (video from a first frame) is a button showing only its label; it opens the same library popover as '+'.
+  const START = ['Start', 'Bắt đầu'];
+  function startIndex(buttons) {
+    const hits = [];
+    buttons.forEach((b, i) => { if (START.includes(flat(b.text).trim())) hits.push(i); });
+    return hits.length === 1 ? hits[0] : -1;
+  }
+
   // env: chips() isOpen() open()->bool close() setSearch(q) items()->[{text,click}] addButton()->{click}|null. o.until(fn, ms) polls fn until truthy (null on timeout).
   async function attach(env, name, o) {
     const before = env.chips();
@@ -61,5 +69,5 @@
   // The library's confirm button, per Flow UI language (Vietnamese seen live 2026-11-10 on a vi account).
   const ADD_LABELS = ['Add to prompt', 'Thêm vào câu lệnh'];
   const isAddLabel = (t) => ADD_LABELS.includes(String(t || '').replace(/\s+/g, ' ').trim());
-  globalThis.TFRef = { prefix, matchByName, newChip, plusIndex, attach, isAddLabel };
+  globalThis.TFRef = { prefix, matchByName, newChip, plusIndex, startIndex, attach, isAddLabel };
 })();

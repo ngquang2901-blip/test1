@@ -78,17 +78,20 @@ test('downloads op: by id or by tmp-folder prefix; results are shaped', async ()
 });
 
 // ---- page-ops.js: locate / src against a fake DOM ----
-function page(imgs) {
+function page(imgs, videoSrc = {}) { // videoSrc: what the main world answers for a media id (it learnt it from Flow's own answers)
   let listener;
+  const on = {};
   const document = {
-    createElement: () => ({}), documentElement: { append() {} }, addEventListener() {}, removeEventListener() {}, dispatchEvent() {}, body: { innerText: '' },
+    createElement: () => ({}), documentElement: { append() {} }, addEventListener(t, h) { on[t] = h; }, removeEventListener(t) { delete on[t]; }, body: { innerText: '' },
+    dispatchEvent(e) { if (e.type === 'toolflow:media') on['toolflow:media-result']?.({ detail: JSON.stringify({ src: videoSrc[JSON.parse(e.detail).mediaId] ?? null }) }); },
     querySelector: () => null,
     querySelectorAll: (sel) => { const m = /^img\[data-media-id="([^"]*)"\]$/.exec(sel); return m ? imgs.filter((i) => i.id === m[1]) : []; },
   };
-  const ctx = vm.createContext({ document, CSS: { escape: (s) => s }, chrome: { runtime: { id: 'me', getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set });
+  const ctx = vm.createContext({ document, CSS: { escape: (s) => s }, chrome: { runtime: { id: 'me', getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set,
+    CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o?.detail; } } });
   ctx.globalThis = ctx; ctx.window = ctx;
   vm.runInContext(readFileSync(new URL('../page-ops.js', import.meta.url), 'utf8'), ctx);
-  const ask = (m, sender = { id: 'me' }) => new Promise((res) => { const keep = listener(m, sender, (r) => res(JSON.parse(JSON.stringify(r)))); if (!keep) setTimeout(() => res('no-reply'), 20); });
+  const ask = (m, sender = { id: 'me' }) => new Promise((res) => { let done = false; const keep = listener(m, sender, (r) => { done = true; res(JSON.parse(JSON.stringify(r))); }); if (!keep && !done) setTimeout(() => res('no-reply'), 20); });
   return { op: (op, args) => ask({ tf: 'op', op, args }), src: (mediaId, sender) => ask({ tf: 'src', mediaId }, sender) };
 }
 const img = (id, extra = {}) => ({ id, src: SRC, naturalWidth: 1024, naturalHeight: 768, complete: true, ...extra });
@@ -113,6 +116,23 @@ test('internal src message: only from our own extension, only for exactly one ti
   assert.deepEqual(await page([]).src(ID), { code: 'NOT_FOUND' });
   assert.deepEqual(await page([img(ID, { src: '' })]).src(ID), { code: 'NOT_FOUND' });
   assert.equal(await page([img(ID)]).src(ID, { id: 'someone-else' }), 'no-reply');
+});
+
+test('internal src message: a video has no tile carrying its id, so the page\'s own knowledge answers; an unknown media is NOT_FOUND', async () => {
+  const MP4 = 'https://flow.google.com/asb/AbCdEfGh_ijklmnop-QRSTUVWXYZ0123456789=mm,22,15';
+  assert.deepEqual(await page([], { [ID]: MP4 }).src(ID), { src: MP4 });
+  assert.deepEqual(await page([img(ID)], { [ID]: MP4 }).src(ID), { src: SRC }, 'a tile with the id wins: that is an image');
+  assert.deepEqual(await page([img(ID), img(ID)], { [ID]: MP4 }).src(ID), { code: 'AMBIGUOUS' });
+  assert.deepEqual(await page([], {}).src(ID), { code: 'NOT_FOUND' });
+  assert.equal(await page([], { [ID]: MP4 }).src(ID, { id: 'someone-else' }), 'no-reply');
+});
+
+test('fetchMedia: the MP4 address of a video is downloaded like a tile\'s src and never returned', async () => {
+  const MP4 = 'https://flow.google.com/asb/AbCdEfGh_ijklmnop-QRSTUVWXYZ0123456789=mm,22,15';
+  const c = chromeFake({ reply: { src: MP4 } });
+  const r = await fetchMediaOp(c, { tabId: 3, mediaId: ID, filename: 'v.bin' });
+  assert.deepEqual(r, { ok: true, downloadId: 7 });
+  assert.ok(!JSON.stringify(r).includes('asb'));
 });
 
 test('wiring: sw.js routes locate to the page and fetchMedia/downloads to ops.js; src is not an op', () => {

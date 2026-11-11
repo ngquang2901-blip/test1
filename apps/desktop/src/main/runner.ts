@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { canClick, initial, type AttemptEvent, type AttemptState, type ItemState } from '@toolflow/flow-protocol/attempt';
 import { classifyGenerateError } from '@toolflow/flow-protocol/errors';
-import { parseGenerateRequest, parseImageReceipt, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
+import { parseGenerateRequest, parseImageReceipt, parsePoll, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
 import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
@@ -10,6 +10,7 @@ import { comboQualified, profile, type Combo } from './profile';
 import { CLICK_MS, RECONCILE_MS, runReconcile, unblock } from './reconcile';
 
 const SEND_DEADLINE_MS = 30_000; // a click whose request the observer never reports is uncertain after this (04 Q-09)
+const GENERATING_DEADLINE_MS = 20 * 60_000; // an accepted video with no final poll by then: needs review (07 §3: a limit of watching, not proof); a poll that still comes settles it
 const RESPONSE_DEADLINE_MS = 120_000; // sent recorded but no response by then: uncertain (blocks the project, reconcile later), never resent
 const BEAT_MS = 5_000; // while a response is awaited the tab is pinged at most this often
 const coded = (code: string) => Object.assign(new Error(code), { code });
@@ -147,8 +148,23 @@ export function createRunner(o: {
     for (const id of ids) if (id && state(id).item === 'submitting') apply(id, { type: 'deadline' });
   }
 
+  /** Flow polls its videos by itself; an answer can name operations of any attempt and of the user's own videos: only attempts that own one take it. */
+  function onPoll(text: string) {
+    const waiting = (db.prepare("select a.id, a.state_json j from attempt a where json_extract(a.state_json,'$.item') in ('generating','needs_review')").all() as { id: string; j: string }[])
+      .map((r) => ({ id: r.id, s: JSON.parse(r.j) as AttemptState })).filter((a) => a.s.operations && (a.s.item === 'generating' || a.s.stage === 'accepted'));
+    if (!waiting.length) return;
+    let ops: { operationId: string }[];
+    try {
+      const r = parseRpcResponse(text, 'jwpduf') as { error?: unknown; payload?: unknown };
+      if (r.error) return; // the poll itself was refused: says nothing about a video, the next one will
+      ops = (parsePoll(r.payload) as { operations: { operationId: string }[] }).operations;
+    } catch (err) { for (const b of new Set(waiting.map((a) => info(a.id).batch))) fail(b, err); return; } // unreadable: every batch that waits on a poll stops (PROTOCOL_DRIFT)
+    for (const a of waiting) if ((a.s.operations as { operationId: string }[]).some((o) => ops.some((p) => p.operationId === o.operationId))) apply(a.id, { type: 'poll', operations: ops } as AttemptEvent);
+  }
+
   function onEvent(e: DriverEvent) {
     if (e.type === 'disconnected') { fence(e.tabId); return; }
+    if (e.type === 'poll') { onPoll(e.text); return; }
     if (!(e.epoch >= epoch(e.tabId))) return; // answers a connection that is gone; reconcile settles what it left uncertain
     if (e.type === 'sent') {
       const pg = pages.get(e.tabId); if (pg) pg.ours++; // the page's gen counted this send
@@ -267,7 +283,7 @@ export function createRunner(o: {
     const drain = () => {
       while (queue.length) { // events in arrival order
         const e = queue.shift()!;
-        const owner = e.type === 'disconnected' ? undefined : (slot.get(e.tabId) ?? awaiting.find((a) => a.tab === e.tabId)?.id);
+        const owner = e.type === 'disconnected' || e.type === 'poll' ? undefined : (slot.get(e.tabId) ?? awaiting.find((a) => a.tab === e.tabId)?.id);
         try { onEvent(e); } catch (err) { if (owner) fail(info(owner).batch, err); else console.error('runner: event without owner', err); }
       }
     };
@@ -292,6 +308,9 @@ export function createRunner(o: {
           if (tab) fence(tab); else apply(r.id, { type: 'deadline' });
         } catch (err) { fail(info(r.id).batch, err); }
       }
+    }
+    for (const r of db.prepare("select a.id from attempt a where a.click_at is not null and json_extract(a.state_json, '$.item') = 'generating' and ? - a.click_at >= ?").all(clock.now(), GENERATING_DEADLINE_MS) as { id: string }[]) {
+      try { apply(r.id, { type: 'deadline' }); } catch (err) { fail(info(r.id).batch, err); }
     }
     for (const a of [...awaiting]) if (awaiting.includes(a) && clock.now() - a.at >= RESPONSE_DEADLINE_MS) { // no response in time: uncertain via the same deadline path as a lost tab
       try { fence(a.tab); } catch (err) { fail(info(a.id).batch, err); }

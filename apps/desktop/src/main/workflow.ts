@@ -14,7 +14,7 @@ type Port = 'ok' | 'fail' // the two outputs of a Điều kiện node: its quest
 export type Graph = { nodes: WfNode[]; edges: { from: string; to: string; port?: Port }[]; vars?: Record<string, string> } // vars: the canvas's reusable {biến}; main only stores them (the renderer fills them in before a run)
 type Dep = { node: string; port: 'direct' | Port; cond?: Cond } // cond: only through a Điều kiện node that asks something other than 'all'
 /** One generate node, ready to run: prompts = one per non-empty line; deps = the generate nodes it waits for (see carries() for which hand their results on as refs). */
-export type Step = { node: string; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo }
+export type Step = { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo } // kind: the node's settings decide (video settings = a video node)
 /** assets: per prompt, its first saved result as a reference asset (null = none saved); blocked: Flow refused a prompt of this node for its content. Both only for a node something waits for. */
 export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean }
 export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun> }
@@ -34,8 +34,8 @@ const carries = (dp: Dep): boolean => dp.port === 'direct' || (dp.port === 'ok' 
 function comboOf(v: unknown): Combo {
   const c = v as Record<string, unknown> | null, short = (x: unknown): boolean => typeof x === 'string' && x.length > 0 && x.length <= 60
   if (!c || typeof c !== 'object' || Array.isArray(c) || Object.keys(c).some((k) => !['kind', 'mode', 'model', 'aspect', 'quality', 'count'].includes(k))) bad()
-  if (c!.kind !== 'image' || ![c!.mode, c!.model, c!.aspect].every(short) || !(c!.quality === undefined || short(c!.quality)) || !Number.isInteger(c!.count) || (c!.count as number) < 1 || (c!.count as number) > 8) bad()
-  return { kind: 'image', mode: c!.mode as string, model: c!.model as string, aspect: c!.aspect as string, ...(c!.quality !== undefined ? { quality: c!.quality as string } : {}), count: c!.count as number }
+  if ((c!.kind !== 'image' && c!.kind !== 'video') || ![c!.mode, c!.model, c!.aspect].every(short) || !(c!.quality === undefined || short(c!.quality)) || !Number.isInteger(c!.count) || (c!.count as number) < 1 || (c!.count as number) > 8) bad()
+  return { kind: c!.kind as Combo['kind'], mode: c!.mode as string, model: c!.model as string, aspect: c!.aspect as string, ...(c!.quality !== undefined ? { quality: c!.quality as string } : {}), count: c!.count as number }
 }
 
 /** The renderer's graph (or an imported file) is untrusted: types, sizes, ids, and only the wires that mean something. */
@@ -93,13 +93,15 @@ export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: 
   const steps = order.map((n): Step => {
     const prompts = into(n.id, 'text').map((t) => t.text ?? '').join('\n')
     const images = [...new Set(into(n.id, 'image').flatMap((i) => i.assetIds ?? []))]
-    const deps = depsOf.get(n.id)!
+    const deps = depsOf.get(n.id)!, kind = n.combo?.kind ?? 'image'
+    const refs = images.length + deps.reduce((s, u) => s + (carries(u) ? count.get(u.node) ?? 0 : 0), 0) // one result image per upstream prompt
     count.set(n.id, lines(prompts))
     if (!lines(prompts)) errors.push({ node: n.id, code: 'WF_NO_PROMPT' })
-    else if (images.length + deps.reduce((s, u) => s + (carries(u) ? count.get(u.node) ?? 0 : 0), 0) > MAX_REFS) errors.push({ node: n.id, code: 'TOO_MANY_REFS' }) // one result image per upstream prompt
-    if (n.combo && !comboQualified('image', n.combo)) errors.push({ node: n.id, code: 'COMBO_NOT_QUALIFIED' }) // AC-03: no other combo is used instead
+    else if (kind === 'video' ? refs > 1 && refs !== lines(prompts) : refs > MAX_REFS) errors.push({ node: n.id, code: kind === 'video' ? 'WF_VIDEO_FRAMES' : 'TOO_MANY_REFS' }) // a video starts from one image: the same for all prompts, or one each
+    if (n.combo && !comboQualified(kind, n.combo)) errors.push({ node: n.id, code: 'COMBO_NOT_QUALIFIED' }) // AC-03: no other combo is used instead
     const outs = g.edges.filter((e) => e.from === n.id).map((e) => byId.get(e.to)!.type)
-    return { node: n.id, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch'), ...(n.combo ? { combo: n.combo } : {}) }
+    if (kind === 'video' && outs.some((t) => t !== 'download')) errors.push({ node: n.id, code: 'WF_VIDEO_OUTPUT' }) // a video is not a reference image, and a Điều kiện node reads images
+    return { node: n.id, kind, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch'), ...(n.combo ? { combo: n.combo } : {}) }
   })
   return { steps, errors }
 }
@@ -143,7 +145,8 @@ export function createWorkflows(d: WfDeps) {
       try {
         n.state = 'running'
         const refs = [...s.images, ...s.deps.flatMap((dp) => (carries(dp) ? (run.nodes[dp.node].assets ?? []).filter((a): a is string => !!a) : []))]
-        const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: 'image', mode, text: s.prompts, refs: { assetIds: refs, mode: refs.length ? 'all' : 'none', perItem: MAX_REFS }, ...(s.combo ? { combo: s.combo } : {}) })
+        const each = s.kind === 'video' && refs.length > 1 // a video's start frames: prompt i gets image i
+        const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: s.kind, mode, text: s.prompts, refs: { assetIds: refs, mode: each ? 'sequential' : refs.length ? 'all' : 'none', perItem: each ? 1 : MAX_REFS }, ...(s.combo ? { combo: s.combo } : {}) })
         if (r.errors?.length) { n.state = 'failed'; n.code = r.errors[0].code; continue }
         n.batchIds = r.batchIds ?? [r.batchId!]
         for (const b of n.batchIds) await d.start(b)

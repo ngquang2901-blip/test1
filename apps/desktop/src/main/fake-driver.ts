@@ -5,6 +5,8 @@ import { basename, join } from 'node:path';
 import { parseRpcResponse, parseGenerateRequest, parseImageReceipt, parseVideoReceipt } from '@toolflow/flow-protocol/parse';
 import burst3 from '../../../../packages/flow-protocol/test/fixtures/image-1x1-burst3.json';
 import videoT2v from '../../../../packages/flow-protocol/test/fixtures/video-t2v.json';
+import pollRunning from '../../../../packages/flow-protocol/test/fixtures/poll-running.json';
+import pollDone from '../../../../packages/flow-protocol/test/fixtures/poll-succeeded-2.json';
 import throttledVideo from '../../../../packages/flow-protocol/test/fixtures/throttled-YhhmEf.json';
 import throttledImage from '../../../../packages/flow-protocol/test/fixtures/throttled-ogiZ0b.json';
 import project from '../../../../packages/flow-protocol/test/fixtures/project-Zzl0ze.json';
@@ -21,13 +23,14 @@ export const fakeCombo = (kind: 'image' | 'video'): Combo => FAKE_COMBOS.find((c
 export type FakeScript = Array<'image-ok' | 'video-ok' | 'throttled' | 'blocked' | 'no-request' | 'drop'>;
 // Per fetchMedia call, in order; the default after the script runs out is a good PNG.
 // html: the file is an error page · empty: 0 bytes · ack-lost: the transfer happens but the reply is lost · fail-once: this transfer is interrupted · slow: in progress for 2 polls
-export type DownloadScript = 'download-ok' | 'download-html' | 'download-empty' | 'download-ack-lost' | 'download-fail-once' | 'download-slow';
+export type DownloadScript = 'download-ok' | 'download-mp4' | 'download-html' | 'download-empty' | 'download-ack-lost' | 'download-fail-once' | 'download-slow' | 'download-not-yet';
+export const TINY_MP4 = Buffer.from('00000018667479706d703432000000006d70343269736f6d', 'hex'); // the file-type box every MP4 starts with ("ftypmp42"), nothing more
 export const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==', 'base64'); // a real 1x1 PNG, same bytes every time
 type Rec = { phase: string; rpc: string; req?: string; res?: string };
 
 // Real redacted captures; the fake only swaps the prompt text and keeps their structure.
 // Static imports so the bundled main process carries the fixtures (R53).
-const FIXTURES: Record<string, { records: Rec[] }> = { 'image-1x1-burst3': burst3, 'video-t2v': videoT2v, 'throttled-YhhmEf': throttledVideo, 'throttled-ogiZ0b': throttledImage, 'project-Zzl0ze': project } as never;
+const FIXTURES: Record<string, { records: Rec[] }> = { 'image-1x1-burst3': burst3, 'video-t2v': videoT2v, 'poll-running': pollRunning, 'poll-succeeded-2': pollDone, 'throttled-YhhmEf': throttledVideo, 'throttled-ogiZ0b': throttledImage, 'project-Zzl0ze': project } as never;
 const fx = (name: string): Rec[] => FIXTURES[name].records;
 const fReqOf = (r: Rec) => r.req!.slice('f.req='.length, r.req!.indexOf('&at='));
 const promptOf = (r: Rec) => parseGenerateRequest(fReqOf(r)).items[0].prompt as string;
@@ -47,6 +50,22 @@ function swap(text: string, subs: Array<[string, string]>): string {
   return text.split('\n').map((l) => (l.startsWith('[') ? JSON.stringify(walk(JSON.parse(l))) : l)).join('\n');
 }
 
+// The captured poll answer in which the fixture video finished (it lists a second, foreign video too), with the status of operation
+// `op` replaced: running = the tuple of the real running capture, failed = the tuple seen in lượt 21 (the protocol tests use the same).
+function pollText(op: string, status: 'running' | 'succeeded' | 'failed'): string {
+  const tuple = status === 'running' ? (payloadOf(fx('poll-running')[0]) as unknown[][][][])[2][0][5][8] : status === 'failed' ? [4, [13, 'INTERNAL'], ['INTERNAL']] : null;
+  return fx('poll-succeeded-2')[0].res!.split('\n').map((l) => {
+    if (!l.startsWith('[') || !tuple) return l;
+    const frames = JSON.parse(l) as unknown[][];
+    for (const f of frames) if (f[0] === 'wrb.fr' && f[1] === 'jwpduf') {
+      const p = JSON.parse(f[2] as string) as unknown[][][][];
+      for (const o of p[2]) if ((o as unknown[])[0] === op) o[5][8] = tuple as never;
+      f[2] = JSON.stringify(p);
+    }
+    return JSON.stringify(frames);
+  }).join('\n');
+}
+
 // All (sent, done) pairs of a fixture, matched by batchId; `ok` drops pairs the real parser rejects.
 function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array<{ sent: Rec; done: Rec }> {
   const recs = fx(name);
@@ -62,7 +81,8 @@ function pairs(name: string, ok: (payload: unknown) => unknown = () => 0): Array
 }
 
 // fail: codes returned (in order, one per call) by prepare / checkBeforeClick before they go back to ok.
-export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string; tabs?: number; version?: string } = {}) {
+// autoPollMs: the fake Flow reports a video as running after this long and as finished after twice as long (absent: only when videoPolls() is called).
+export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; check?: string[]; assets?: AssetStore; downloads?: DownloadScript[]; downloadsDir?: string; tabs?: number; version?: string; autoPollMs?: number } = {}) {
   const script = [...input];
   // shortcut: server media ids repeat across clicks, when a test needs distinct media ids substitute them too
   const pools = {
@@ -81,6 +101,14 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
   const gens = new Map<string, number>(); // generate sends the page made (ours or not), reported by ping
   const bump = (tab: string) => gens.set(tab, (gens.get(tab) ?? 0) + 1);
   const prompts = new Map<string, string>();
+  const videos = new Set<string>(); // media ids of the videos this fake has generated
+  const pendingVideos: { tabId: string; from: string; to: string }[] = []; // accepted, no final poll yet
+  /** What Flow's own poll says about the pending fake videos (all, or the one at `only`): one event each; a final status ends the wait. */
+  const videoPolls = (status: 'running' | 'succeeded' | 'failed' = 'succeeded', only?: number): DriverEvent[] => {
+    const ops = only === undefined ? [...pendingVideos] : pendingVideos.slice(only, only + 1);
+    if (status !== 'running') for (const o of ops) pendingVideos.splice(pendingVideos.indexOf(o), 1);
+    return ops.map((o) => ({ tabId: o.tabId, type: 'poll' as const, text: swap(pollText(o.from, status), [[o.from, o.to]]) }));
+  };
   const emit = (e: DriverEvent) => listeners.forEach((cb) => cb(e));
   const later = (...es: DriverEvent[]) => setTimeout(() => es.forEach(emit), 0);
 
@@ -96,6 +124,10 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
     const from = promptOf(sent);
     const oldBatch = parseGenerateRequest(fReqOf(sent)).batchId;
     const subs: Array<[string, string]> = [[from, to], [oldBatch, randomUUID()], ...(step === 'blocked' ? [['PUBLIC_ERROR_USER_REQUESTS_THROTTLED', 'PUBLIC_ERROR_UNSAFE_GENERATION'] as [string, string]] : [])];
+    if (step === 'video-ok') { // every fake video is its own operation (= its media id once finished)
+      const op = { tabId, from: (parseVideoReceipt(payloadOf(done)) as { operations: { operationId: string }[] }).operations[0].operationId, to: randomUUID() };
+      subs.push([op.from, op.to]); pendingVideos.push(op); videos.add(op.to);
+    }
     const body = new URLSearchParams({ 'f.req': swap(fReqOf(sent), subs) }).toString() + '&at=<redacted>';
     const text = swap(done.res!, subs);
     // A silent swap miss would leak fixture identity into tests.
@@ -116,13 +148,15 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
     dlDir ??= join(mkdtempSync(join(tmpdir(), 'tf-fake-dl-')), 'ToolFlow-tmp');
     mkdirSync(dlDir, { recursive: true });
     const step = dlScript.shift() ?? 'download-ok';
+    if (step === 'download-not-yet') return { ok: false, code: 'NOT_FOUND' }; // the page does not know this media yet: nothing starts
     let name = p.filename, n = 1;
     while (dlItems.some((x) => x.filename === join(dlDir!, name))) name = p.filename.replace(/(\.[^.]*)?$/, ` (${n++})$1`); // uniquify, like the browser
     const filename = join(dlDir, name);
     const item: DlInfo & { polls: number } = { id: dlItems.length + 1, state: 'complete', filename, fileSize: 0, mime: '', error: null, polls: step === 'download-slow' ? 2 : 0 };
-    const body = step === 'download-html' ? Buffer.from('<!doctype html><title>403</title>') : step === 'download-empty' ? Buffer.alloc(0) : TINY_PNG;
+    const mp4 = step === 'download-mp4' || videos.has(p.mediaId); // a video this fake generated downloads as an MP4
+    const body = step === 'download-html' ? Buffer.from('<!doctype html><title>403</title>') : step === 'download-empty' ? Buffer.alloc(0) : mp4 ? TINY_MP4 : TINY_PNG;
     if (step === 'download-fail-once') Object.assign(item, { state: 'interrupted', error: 'NETWORK_FAILED' });
-    else { writeFileSync(filename, body); item.fileSize = body.length; item.mime = step === 'download-html' ? 'text/html' : 'image/png'; }
+    else { writeFileSync(filename, body); item.fileSize = body.length; item.mime = step === 'download-html' ? 'text/html' : mp4 ? 'video/mp4' : 'image/png'; }
     dlItems.push(item);
     if (step === 'download-ack-lost') throw new ConnectorError('fake: ack lost');
     return { ok: true, downloadId: item.id };
@@ -136,8 +170,9 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
       return { ...x, state: 'in_progress' as const, fileSize: -1 };
     });
 
-  const driver: FlowDriver & { ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[] } = {
-    ledger, emit, focusLog, fetchMedia, downloads,
+  const driver: FlowDriver & { ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[]; videoPolls: typeof videoPolls; foreignPoll(): string } = {
+    ledger, emit, focusLog, fetchMedia, downloads, videoPolls,
+    foreignPoll: () => fx('poll-succeeded-2')[0].res!, // the capture as it is: two finished videos that belong to nobody here
     async ping(tabId): Promise<Ping> {
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: fail.version ?? '0.0.0-fake', email: 'fake@example.invalid' };
     },
@@ -161,6 +196,10 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
       const want = step.endsWith('-ok') ? step.slice(0, 5) : undefined;
       if (want && want !== prepared) throw new Error(`fake: script kind ${want} does not match prepared kind ${prepared}`);
       if (step !== 'no-request') { bump(tabId); later(...pair(tabId, step, epoch)); }
+      if (step === 'video-ok' && fail.autoPollMs !== undefined) {
+        setTimeout(() => videoPolls('running').forEach(emit), fail.autoPollMs);
+        setTimeout(() => videoPolls().forEach(emit), fail.autoPollMs * 2);
+      }
       return { found: true, disabled: false, listeners: 1, called: 1 };
     },
     async readProject() {

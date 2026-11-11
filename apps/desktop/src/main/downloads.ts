@@ -80,7 +80,7 @@ export function moveNoClobber(src: string, want: string): string {
 
 // ---------- state machine (docs/app/06 §6) ----------
 export type DlRow = { id: string; attempt_id: string; media_id: string; planned_name: string; state: 'intent' | 'started' | 'completed' | 'failed' | 'needs_review'; handle: string | null; actual_name: string | null; bytes: number | null; error_code: string | null; created_at: number; updated_at: number }
-export type DlArgs = { attemptId: string; mediaId: string; tab: string; explicit?: boolean; batchLabel: string; at: number; index: number; prompt: string; tz: string; withPrompt?: boolean }
+export type DlArgs = { attemptId: string; mediaId: string; tab: string; explicit?: boolean; batchLabel: string; at: number; index: number; prompt: string; tz: string; withPrompt?: boolean; kind?: 'image' | 'video' } // kind: what the output is (default image); the file must be that
 export type DlEnv = { root: string; now(): number; sleep(ms: number): Promise<void>; budgetMs?: number; onChange?(): void }
 const BUDGET_MS = 120_000
 const TMP_DIR = 'ToolFlow-tmp'
@@ -120,10 +120,11 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
       const head = Buffer.alloc(12)
       const fd = openSync(path, 'r')
       try { readSync(fd, head, 0, 12, 0) } finally { closeSync(fd) }
-      mime = size > 0 ? sniff(head) : null
+      // a video must be an MP4 (file-type box at byte 4): the still picture Flow shows for it, saved as if it were the result, would be a wrong file
+      mime = size === 0 ? null : a.kind === 'video' ? (head.subarray(4, 8).toString('latin1') === 'ftyp' ? 'video/mp4' : null) : sniff(head)
     } catch { return null }
-    if (!mime) { rmSync(path, { force: true }); return set({ state: 'failed', error_code: 'DOWNLOAD_NOT_IMAGE' }) } // HTML error page, login redirect, 0 bytes
-    const rel = planned().replace(/\.[^./]+$/, `.${EXT[mime]}`) // the real type decides the extension; the stored plan stays as planned
+    if (!mime) { rmSync(path, { force: true }); return set({ state: 'failed', error_code: a.kind === 'video' ? 'DOWNLOAD_NOT_VIDEO' : 'DOWNLOAD_NOT_IMAGE' }) } // HTML error page, login redirect, 0 bytes, the other kind of file
+    const rel = planned().replace(/\.[^./]+$/, `.${mime === 'video/mp4' ? 'mp4' : EXT[mime]}`) // the real type decides the extension; the stored plan stays as planned
     try {
       const dst = moveNoClobber(path, join(ensureDir(env.root, rel), basename(rel)))
       return set({ state: 'completed', actual_name: `${dirname(rel)}/${basename(dst)}`, bytes: size, error_code: null })
@@ -168,12 +169,16 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
   // fresh transfer: the intent row is durable before anything is sent
   if (cur) set({ state: 'intent', handle: null, error_code: null })
   else {
-    const name = planName({ batchLabel: a.batchLabel, at: a.at, index: a.index, prompt: a.prompt, outputId: a.mediaId, ext: 'png', root: env.root, tz: a.tz, withPrompt: a.withPrompt })
+    const name = planName({ batchLabel: a.batchLabel, at: a.at, index: a.index, prompt: a.prompt, outputId: a.mediaId, ext: a.kind === 'video' ? 'mp4' : 'png', root: env.root, tz: a.tz, withPrompt: a.withPrompt })
     db.prepare("insert into download(id,attempt_id,media_id,planned_name,state,created_at,updated_at) values(?,?,?,?,'intent',?,?)").run(randomUUID(), a.attemptId, a.mediaId, name, env.now(), env.now())
     env.onChange?.()
   }
   let sent: FetchMediaResult
-  try { sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` }) } catch (e) {
+  try {
+    sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` })
+    // Flow fetches a finished video's address about 0.6 s after the poll that reports it (measured); "not found" started nothing, so one more ask is safe
+    if (!sent.ok && sent.code === 'NOT_FOUND' && a.kind === 'video') { await env.sleep(3000); sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` }) }
+  } catch (e) {
     if (!(e instanceof ConnectorError)) return set({ state: 'failed', error_code: 'DOWNLOAD_REFUSED' }) // the extension refused the request: nothing was started
     set({ state: 'needs_review', error_code: 'DOWNLOAD_ACK_LOST' }) // the transfer may have started: look before anything else
     const r = await reconcile(false)
@@ -191,13 +196,13 @@ const WORKERS = 2
 export function createDownloader(o: DownloaderOptions) {
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const inflight = new Map<string, Promise<DlRow>>() // a double click must not open a second transfer
-  type Out = { batchId: string; attemptId: string; mediaId: string; index: number; prompt: string; at: number }
+  type Out = { batchId: string; attemptId: string; mediaId: string; index: number; prompt: string; at: number; kind: 'image' | 'video' }
 
   const outputsOf = (batchId: string): Out[] => {
-    const b = o.db.prepare('select created_at at from batch where id=?').get(batchId) as { at: number } | undefined
+    const b = o.db.prepare('select created_at at, kind from batch where id=?').get(batchId) as { at: number; kind: 'image' | 'video' } | undefined
     if (!b) throw coded('NOT_FOUND')
     const items = o.db.prepare('select i.ord ord, i.prompt prompt, a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batchId) as { ord: number; prompt: string; aid: string; j: string }[]
-    return items.flatMap((it) => ((JSON.parse(it.j) as AttemptState).outputs ?? []).map((m: { mediaId: string }) => ({ batchId, attemptId: it.aid, mediaId: m.mediaId, index: it.ord + 1, prompt: it.prompt, at: b.at })))
+    return items.flatMap((it) => ((JSON.parse(it.j) as AttemptState).outputs ?? []).map((m: { mediaId: string }) => ({ batchId, attemptId: it.aid, mediaId: m.mediaId, index: it.ord + 1, prompt: it.prompt, at: b.at, kind: b.kind })))
   }
   const stateOf = (x: Out): string | undefined => (o.db.prepare('select state from download where attempt_id=? and media_id=?').get(x.attemptId, x.mediaId) as { state: string } | undefined)?.state
 
@@ -207,7 +212,7 @@ export function createDownloader(o: DownloaderOptions) {
     if (have) return have
     const tab = o.tab()
     if (!tab) return Promise.reject(coded('NO_PROJECT_TAB'))
-    const p = requestDownload(o.db, o.driver, { attemptId: x.attemptId, mediaId: x.mediaId, tab, explicit, batchLabel: x.batchId.slice(0, 8), at: x.at, index: x.index, prompt: x.prompt, tz: o.tz },
+    const p = requestDownload(o.db, o.driver, { attemptId: x.attemptId, mediaId: x.mediaId, tab, explicit, batchLabel: x.batchId.slice(0, 8), at: x.at, index: x.index, prompt: x.prompt, tz: o.tz, kind: x.kind },
       { root: o.root, now: o.now, sleep, budgetMs: o.budgetMs, onChange: () => o.onChange?.(x.batchId) }).finally(() => inflight.delete(key))
     inflight.set(key, p)
     return p

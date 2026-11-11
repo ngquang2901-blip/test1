@@ -41,6 +41,18 @@ test('enqueueBatch: an optional combo must be a qualified one and is stored as t
   expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 1 });
 });
 
+test('enqueueBatch: a video batch without chosen settings runs with the profile\'s video default; settings of the other kind create nothing', async () => {
+  const { h, db } = rig();
+  const combo = (id: string) => JSON.parse((db.prepare('select settings_json s from batch where id=?').get(id) as { s: string }).s).combo;
+  const v = (await h.enqueueBatch({ ...good, kind: 'video' })) as { batchId: string };
+  expect(combo(v.batchId)).toEqual({ kind: 'video', mode: 'Video', model: 'Veo 3.1 - Lite', aspect: '16:9', count: 1 });
+  const tall = (await h.enqueueBatch({ ...good, commandId: 'c2', kind: 'video', combo: { kind: 'video', mode: 'Video', model: 'Veo 3.1 - Lite', aspect: '9:16', count: 1 } })) as { batchId: string };
+  expect(combo(tall.batchId).aspect).toBe('9:16');
+  await expect(h.enqueueBatch({ ...good, commandId: 'c3', kind: 'video', combo: DEFAULT_COMBO })).rejects.toMatchObject({ code: 'COMBO_NOT_QUALIFIED' });
+  await expect(h.enqueueBatch({ ...good, commandId: 'c4', kind: 'image', combo: combo(v.batchId) })).rejects.toMatchObject({ code: 'COMBO_NOT_QUALIFIED' });
+  expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 2 });
+});
+
 test('dryRun previews without creating; real call creates one item per non-empty line', async () => {
   const { h, db } = rig();
   const p = (await h.enqueueBatch({ ...good, dryRun: true })) as { rows: { n: number; prompt: string }[] };

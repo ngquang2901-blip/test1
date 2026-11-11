@@ -91,7 +91,9 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       // I2: the page is touched only when the tab is on the batch's project (settings, upload and typing would otherwise land in another project)
       const here = ((await server.send('tabs', {})) as Array<{ tabId: string; path: string }>).find((x) => String(x.tabId) === tabId)
       if (!project || !here || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
-      const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
+      // A video names its input type: Frames when it has a start frame, else Ingredients (without refs that is text-to-video; Flow has no separate text mode). An image panel has no such group.
+      const slot = p.kind === 'video' ? { slot: 'start' } : {} // a video's one image goes into the Start slot of the Frames composer
+      const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, ...(p.kind === 'video' ? { input: refs.length ? 'Frames' : 'Ingredients' } : {}), aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
       if ('fail' in s) return { ok: false, code: s.fail }
       if (s?.ok !== true) return { ok: false, code: 'SETTINGS_MISMATCH' }
       const live = (x: unknown): x is { text?: string; chips: string[] } => !!x && typeof x === 'object' && !('fail' in x) && Array.isArray((x as { chips?: unknown }).chips)
@@ -116,7 +118,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
         if (!asset) return { ok: false, code: 'REF_ASSET_MISSING' }
         let b = o.assets!.binding(id, project!)
         if (b?.state === 'bound' && have.includes(b.mediaId!)) continue
-        const attach = async (name: string) => await call<AttachResult>('attach', { name }, 'REF_ATTACH_ERROR')
+        const attach = async (name: string) => await call<AttachResult>('attach', { name, ...slot }, 'REF_ATTACH_ERROR')
         const attachWait = async (name: string) => { // the upload is async: the library may need a while to show it
           const t0 = now()
           for (;;) {

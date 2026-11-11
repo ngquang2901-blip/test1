@@ -38,13 +38,17 @@ test('enqueueBatch refs: every malformed refs argument is INVALID_ARGS and creat
   expect(count(db, 'batch')).toBe(0)
 })
 
-test('video with refs is refused with REF_KIND_UNSUPPORTED (a video without refs still works)', async () => {
+test('video: one image per prompt is its start frame; more than one image for a prompt is refused with REF_KIND_UNSUPPORTED', async () => {
   const { h, db, png } = rig()
-  const a = png('a.png')
-  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x', refs: { assetIds: [a.id], mode: 'all', perItem: 1 } })).rejects.toThrow(/REF_KIND_UNSUPPORTED/)
+  const a = png('a.png'), b = png('b.png')
+  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x', refs: { assetIds: [a.id, b.id], mode: 'all', perItem: 2 } })).rejects.toThrow(/REF_KIND_UNSUPPORTED/)
+  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x\ny', refs: { assetIds: [a.id, b.id], mode: 'sequential', perItem: 2 }, dryRun: true })).rejects.toThrow(/REF_KIND_UNSUPPORTED/)
   expect(count(db, 'batch')).toBe(0)
-  await h.enqueueBatch({ ...base, kind: 'video', text: 'x', refs: { assetIds: [], mode: 'none', perItem: 1 } })
-  expect(count(db, 'batch')).toBe(1)
+  await h.enqueueBatch({ ...base, kind: 'video', text: 'x\ny', refs: { assetIds: [a.id, b.id], mode: 'sequential', perItem: 1 } })
+  expect((db.prepare('select refs_json r from item order by ord').all() as { r: string }[]).map((x) => JSON.parse(x.r))).toEqual([[a.id], [b.id]])
+  await h.enqueueBatch({ ...base, commandId: 'v2', kind: 'video', text: 'x\ny', refs: { assetIds: [a.id], mode: 'all', perItem: 1 } }) // one frame shared by every prompt
+  await h.enqueueBatch({ ...base, commandId: 'v3', kind: 'video', text: 'x', refs: { assetIds: [], mode: 'none', perItem: 1 } })
+  expect(count(db, 'batch')).toBe(3)
 })
 
 test('mapping errors block creation: no batch, no command row, no rotation or truncation (AC-04)', async () => {

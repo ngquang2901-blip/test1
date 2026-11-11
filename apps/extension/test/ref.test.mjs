@@ -39,6 +39,14 @@ test('newChip: exactly one new uuid; none, two, or removals are not a success', 
   assert.equal(R.newChip(['a'], ['a', undefined]).ok, false, 'a chip without a parsable uuid is no proof');
 });
 
+test('startIndex: the empty Start slot of the Frames composer by its label (both languages), exactly one, else fail closed', () => {
+  assert.equal(R.startIndex([{ text: 'Bắt đầu' }, { text: 'swap_horiz' }, { text: 'Kết\nthúc' }, { text: 'Tác nhân' }]), 0);
+  assert.equal(R.startIndex([{ text: 'tune' }, { text: ' Start ' }, { text: 'End' }]), 1);
+  assert.equal(R.startIndex([{ text: 'Start' }, { text: 'Bắt đầu' }]), -1);
+  assert.equal(R.startIndex([{ text: '' }, { text: 'Kết thúc' }]), -1); // a slot that already holds an image has no label
+  assert.equal(R.startIndex([{ text: 'Start now' }]), -1);
+});
+
 test('plusIndex: icon text add or aria-label add*, exactly one, else fail closed', () => {
   assert.equal(R.plusIndex([{ text: 'send', label: '' }, { text: ' add ', label: '' }]), 1);
   assert.equal(R.plusIndex([{ text: '', label: 'Add media' }, { text: 'tune', label: '' }]), 0);

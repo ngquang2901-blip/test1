@@ -48,6 +48,17 @@ test('image 9:16 x2: two items with their own seeds, outputs paired by seed', ()
   assert.deepEqual(correlate(forged, r), { owned: false, reason: 'seed_mismatch' });
 });
 
+test('video from a start frame (eb1hJf): the request names the frame media, the receipt reads like any video receipt', () => {
+  const recs = fx('video-frame.json');
+  const q = parseGenerateRequest(fReq(sent(recs)[0]));
+  const r = parseVideoReceipt(payload(done(recs)[0]));
+  assert.deepEqual([q.rpc, q.items.length, q.items[0].model], ['eb1hJf', 1, 'veo_3_1_i2v_lite']);
+  assert.match(q.items[0].refIds[0], /^fa4e0000-/); // the start frame: the uploaded image's media id
+  assert.equal(q.items[0].refIds.length, 1);
+  assert.deepEqual([r.operations.length, r.operations[0].status, r.operations[0].prompt], [1, 'accepted', q.items[0].prompt]);
+  assert.equal(correlate(q, r).owned, true);
+});
+
 test('video text-to-video: receipt is accepted, not finished, and carries credits', () => {
   const recs = fx('video-t2v.json');
   const q = parseGenerateRequest(fReq(sent(recs)[0]));
@@ -140,7 +151,7 @@ test('drift: unexpected shapes throw ProtocolDrift instead of guessing', () => {
   drift(() => parseEnvelope(okRes.slice(4)));                          // XSSI prefix missing
   drift(() => parseRpcResponse(okRes, 'YhhmEf'));                       // no frame for that rpc
   drift(() => parseRpcResponse(okRes.replace('["di"', '["wrb.fr","ogiZ0b","[]"],["di"'), 'ogiZ0b')); // two frames
-  drift(() => parseGenerateRequest(okReq.replace('"ogiZ0b"', '"eb1hJf"'))); // start-frame RPC: no fixture yet
+  drift(() => parseGenerateRequest(okReq.replace('"ogiZ0b"', '"eb1hJf"'))); // an image request under the start-frame rpc name: its layout does not fit
 
   const inner = JSON.parse(JSON.parse(okReq)[0][0][1]);
   inner[1][0][3] = String(inner[1][0][3]);                              // seed became a string

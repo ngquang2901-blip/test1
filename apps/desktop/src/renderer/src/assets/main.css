@@ -239,6 +239,7 @@ tr[data-tone='wait'] td { background: var(--blue-wash); }
 .gallery li { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .thumb { aspect-ratio: 16 / 9; border-radius: var(--r); background: var(--side); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; color: var(--ink-3); font-size: 13px; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb video { width: 100%; height: 100%; object-fit: contain; display: block; }
 .gallery .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .prompt-line { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gallery .file { font-size: 13px; color: var(--ink-2); }

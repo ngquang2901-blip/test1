@@ -61,8 +61,8 @@ test('plan: upstream first; prompts are the wired Text lines; a result wire make
   const { steps, errors } = plan(CHAIN)
   expect(errors).toEqual([])
   expect(steps).toEqual([
-    { node: 'g1', prompts: 'nhân vật A\n\nnhân vật B', images: ['a1'], deps: [], save: false, feeds: true },
-    { node: 'g2', prompts: 'cảnh 1', images: [], deps: [{ node: 'g1', port: 'direct' }], save: true, feeds: false },
+    { node: 'g1', kind: 'image', prompts: 'nhân vật A\n\nnhân vật B', images: ['a1'], deps: [], save: false, feeds: true },
+    { node: 'g2', kind: 'image', prompts: 'cảnh 1', images: [], deps: [{ node: 'g1', port: 'direct' }], save: true, feeds: false },
   ])
 })
 
@@ -197,7 +197,7 @@ test('node settings, parseGraph: a combo is kept on a Tạo ảnh node only, reb
   expect(g.nodes.find((n) => n.id === 'g')!.combo).toEqual(PRO)
   expect(g.nodes.find((n) => n.id === 'h')!.combo).toBeUndefined()
   const bad = (v: unknown) => expect(() => parseGraph(v), JSON.stringify(v)).toThrow(/INVALID_ARGS/)
-  for (const c of [null, 'x', [], {}, { ...PRO, count: 0 }, { ...PRO, count: 9 }, { ...PRO, count: '3' }, { ...PRO, model: '' }, { ...PRO, model: 'm'.repeat(61) }, { ...PRO, quality: 5 }, { ...PRO, kind: 'video' }, { ...PRO, extra: 1 }]) bad(SET(c))
+  for (const c of [null, 'x', [], {}, { ...PRO, count: 0 }, { ...PRO, count: 9 }, { ...PRO, count: '3' }, { ...PRO, model: '' }, { ...PRO, model: 'm'.repeat(61) }, { ...PRO, quality: 5 }, { ...PRO, kind: 'audio' }, { ...PRO, extra: 1 }]) bad(SET(c)) // kind video is a shape the plan judges (video node)
   bad({ nodes: [N('t', 'text', 0, { text: 'x', combo: PRO })], edges: [] }) // only a Tạo ảnh node has settings
 })
 
@@ -248,4 +248,34 @@ test('Điều kiện "bị Flow lọc": the yes side runs when Flow blocked a pr
   expect(await sent('filtered', { missing: ['B'] })).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' }) // a result missing for another reason is not "bị lọc"
   expect(await sent('filtered', { missing: ['B'], blocked: true, saveFails: true })).toEqual({ texts: [['cảnh có nhân vật', []]], g2: 'done', g3: 'bypassed' }) // what Flow answered is known even when saving the other results fails
   expect(await sent(undefined, { saveFails: true })).toEqual({ texts: [['cảnh dự phòng', []]], g2: 'bypassed', g3: 'done' }) // nothing saved ⇒ "Thiếu ảnh"
+})
+
+const VIDEO = { kind: 'video', mode: 'Video', model: 'Veo 3.1 - Lite', aspect: '9:16', count: 1 }
+// Text (2 prompts) → G1 (image) → V (video, its own 2 prompts) → Tải về
+const TO_VIDEO = (vText = 'cảnh 1\ncảnh 2', extra: { nodes?: object[]; edges?: object[] } = {}): Graph => parseGraph({
+  nodes: [N('t1', 'text', 0, { text: 'A\nB' }), N('g1', 'generate', 300), N('t2', 'text', 300, { text: vText }), N('v', 'generate', 600, { combo: VIDEO }), N('dl', 'download', 900), ...(extra.nodes ?? [])],
+  edges: [{ from: 't1', to: 'g1' }, { from: 'g1', to: 'v' }, { from: 't2', to: 'v' }, { from: 'v', to: 'dl' }, ...(extra.edges ?? [])],
+})
+
+test('video node, plan: a Tạo ảnh node with video settings is a video step; its images are start frames (one for all prompts, or one per prompt); it cannot feed another node', () => {
+  expect(parseGraph({ nodes: [N('v', 'generate', 0, { combo: VIDEO })], edges: [] }).nodes[0].combo).toEqual(VIDEO)
+  const ok = plan(TO_VIDEO())
+  expect([ok.errors, ok.steps.map((s) => [s.node, s.kind])]).toEqual([[], [['g1', 'image'], ['v', 'video']]])
+  expect(plan(TO_VIDEO('một cảnh')).errors).toEqual([{ node: 'v', code: 'WF_VIDEO_FRAMES' }]) // 2 upstream images, 1 prompt
+  expect(plan(TO_VIDEO('1\n2\n3')).errors).toEqual([{ node: 'v', code: 'WF_VIDEO_FRAMES' }])
+  const fed = TO_VIDEO('1\n2', { nodes: [N('t3', 'text', 900, { text: 'x' }), N('g3', 'generate', 1200)], edges: [{ from: 'v', to: 'g3' }, { from: 't3', to: 'g3' }] })
+  expect(plan(fed).errors).toContainEqual({ node: 'v', code: 'WF_VIDEO_OUTPUT' })
+  expect(plan(parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('v', 'generate', 300, { combo: { ...VIDEO, aspect: '1:1' } })], edges: [{ from: 't', to: 'v' }] })).errors).toEqual([{ node: 'v', code: 'COMBO_NOT_QUALIFIED' }])
+})
+
+test('video node, run: the batch is a video batch; prompt i starts from the saved image of upstream prompt i; one image serves every prompt', async () => {
+  const t = rig()
+  const kinds = (): unknown[] => (t.enq as unknown as { kind: string; refs: { assetIds: string[]; mode: string; perItem: number } }[]).map((e) => [e.kind, e.refs.mode, e.refs.perItem, e.refs.assetIds])
+  expect(await t.wait(((await t.wf.runWorkflow({ graph: TO_VIDEO(), mode: 'auto' })) as { runId: string }).runId)).toBe('done')
+  expect(kinds()).toEqual([['image', 'none', 8, []], ['video', 'sequential', 1, ['asset:/dl/A.png', 'asset:/dl/B.png']]])
+  expect(t.enq[1].combo).toEqual(VIDEO)
+  const one = rig(), g = parseGraph({ nodes: [N('t', 'text', 0, { text: 'x\ny' }), N('img', 'image', 0, { assetIds: ['a1'] }), N('v', 'generate', 300, { combo: VIDEO })], edges: [{ from: 't', to: 'v' }, { from: 'img', to: 'v' }] })
+  expect(await one.wait(((await one.wf.runWorkflow({ graph: g, mode: 'auto' })) as { runId: string }).runId)).toBe('done')
+  expect((one.enq[0] as unknown as { kind: string }).kind).toBe('video')
+  expect([one.enq[0].refs.mode, one.enq[0].refs.assetIds]).toEqual(['all', ['a1']])
 })

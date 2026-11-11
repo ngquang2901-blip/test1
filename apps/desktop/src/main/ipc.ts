@@ -1,7 +1,7 @@
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
-import { DEFAULT_COMBO, findCombo } from './profile';
+import { defaultCombo, findCombo } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
 import { disableAuto, enableAuto } from './account';
@@ -89,7 +89,7 @@ export function createHandlers(d: Deps) {
     async enqueueBatch(a: unknown) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
-      const combo = o.combo === undefined ? DEFAULT_COMBO : findCombo(kind, o.combo); // a workflow node may pick its own model / aspect / count
+      const combo = o.combo === undefined ? defaultCombo(kind) : findCombo(kind, o.combo); // Tạo lô and a workflow node may pick their own model / aspect / count
       if (!combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
       const parsed = parsePrompts(src);
       const ra = o.refs === undefined ? { assetIds: [], mode: 'none', perItem: 1 } : obj(o.refs);
@@ -97,8 +97,8 @@ export function createHandlers(d: Deps) {
       const rmode = oneOf(ra.mode, ...MODES), perItem = Number.isInteger(ra.perItem) && (ra.perItem as number) >= 1 && (ra.perItem as number) <= 8 ? (ra.perItem as number) : bad();
       if (new Set(ids).size !== ids.length) bad();
       const names = ids.map((id) => (d.db.prepare('select name from asset where id=?').get(id) as { name: string } | undefined)?.name ?? bad());
-      if (kind === 'video' && rmode !== 'none' && ids.length) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // shortcut: video refs (start frame) arrive after P2
       const { refs, errors } = mapRefs(parsed.items.length, ids, rmode, perItem);
+      if (kind === 'video' && refs.some((r) => r.length > 1)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // a video takes one image: its start frame (end frame and several ingredients are not built)
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
       const rows = parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i].map((id) => names[ids.indexOf(id)]), error: errors.find((e) => e.index === i)?.code ?? null }));
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
@@ -186,6 +186,8 @@ export function createHandlers(d: Deps) {
     },
     async previewOutput(a: unknown) { // a saved file as a data URL for the S4 thumbnail; nothing is shown before it is on disk
       const o = obj(a), buf = readFileSync(d.downloader.file(str(o.attemptId), str(o.mediaId)));
+      // shortcut: a video goes to the player as one data URL, only on the user's "Xem video" and only up to 64 MB (Flow's 8 s clips are 1-4 MB); serve it through a file protocol when clips get long
+      if (buf.subarray(4, 8).toString('latin1') === 'ftyp') return { url: o.play === true && buf.length <= 64_000_000 ? `data:video/mp4;base64,${buf.toString('base64')}` : null, video: true };
       const mime = sniff(buf.subarray(0, 12));
       if (!mime || !(mime in EXT)) throw Object.assign(new Error('DOWNLOAD_NOT_IMAGE'), { code: 'DOWNLOAD_NOT_IMAGE' });
       const small = d.thumb(buf);

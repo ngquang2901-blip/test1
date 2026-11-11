@@ -2,6 +2,7 @@
 // Never clicks, fills or sends anything on the page. Prints no URLs/tokens; the account email is masked.
 // Run: npm run live-probe -w apps/desktop   (stop the app first: only one process may own the pairing port)
 import { deflateSync } from 'node:zlib'
+import { appendFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { startConnectorServer } from '../src/main/connector/server'
@@ -78,6 +79,7 @@ if (process.env.INSPECT === '1' && tabs[0]) {
   console.log('open settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
   await sleep(1200)
   console.log('radios:', JSON.stringify(await server.send('radios', a)))
+  await sleep(Number(process.env.HOLD ?? 0) * 1000) // HOLD=<s>: keep the panel open for a screenshot (the cost line is only readable there)
   console.log('close settings:', JSON.stringify(await server.send('click', { ...a, sel: 'flow-prompt-box button.settings-trigger-button' })))
   await sleep(600)
   console.log('radios after close:', JSON.stringify(await server.send('radios', a)))
@@ -130,7 +132,8 @@ if (process.env.MODELS === '1' && tabs[0]) {
 if (process.env.SET && tabs[0]) {
   const a = { tabId: tabs[0].tabId }
   const chip = async (): Promise<string> => JSON.stringify(((await server.send('state', a)) as { settings: string }).settings)
-  for (const w of [...(JSON.parse(process.env.SET) as Record<string, unknown>[]), { model: DEFAULT_COMBO.model, aspect: DEFAULT_COMBO.aspect, quality: DEFAULT_COMBO.quality, count: `x${DEFAULT_COMBO.count}` }]) {
+  // SET_KEEP=1 leaves the last entry in place (to look at the panel of another mode with INSPECT / MODELS afterwards); run SET='[]' to put the default back
+  for (const w of [...(JSON.parse(process.env.SET) as Record<string, unknown>[]), ...(process.env.SET_KEEP === '1' ? [] : [{ model: DEFAULT_COMBO.model, aspect: DEFAULT_COMBO.aspect, quality: DEFAULT_COMBO.quality, count: `x${DEFAULT_COMBO.count}` }])]) {
     const t1 = Date.now()
     const r = (await server.send('settings', { ...a, mode: 'Image', ...w }).catch((e) => ({ error: String((e as Error).message).slice(0, 120) }))) as { ok?: boolean; mismatches?: string[]; current?: object; error?: string }
     console.log(`SET ${JSON.stringify(w)} -> ok=${r.ok} mismatches=${JSON.stringify(r.mismatches ?? r.error)} current=${JSON.stringify(r.current)} ${Date.now() - t1}ms | chip ${await chip()} | panel ${(await server.send('radios', a)) === 'no panel' ? 'closed' : 'OPEN'} | menu ${((await server.send('probe', { ...a, selectors: { m: '[role="menu"]' } })) as { present: { m: boolean } }).present.m ? 'OPEN' : 'closed'}`)
@@ -197,6 +200,34 @@ if (process.env.SEL === '1' && tabs[0]) {
   const sels = JSON.parse(process.env.SELS ?? '{}') as Record<string, string>
   console.log('probe:', JSON.stringify(await server.send('probe', { tabId: tabs[0].tabId, selectors: sels })))
 }
+// ASB=1 (design §8.1): which part of a video's listing entry shows up on its tile? Reloads the tab, reads the project listing the page
+// loads (Zzl0ze, in memory only), waits ASB_WAIT s (open the Video view by hand meanwhile), then asks the page for the presence of
+// each candidate (the media id, the workflow id, the token of each content url) on the page. Prints yes/no per candidate, never a token.
+if (process.env.ASB === '1' && tabs[0]) {
+  const a = { tabId: tabs[0].tabId }
+  await server.send('net', a) // drop what is already in the ring
+  await server.send('reloadTab', a)
+  let text = ''
+  for (let i = 0; i < 40 && !text; i++) { await sleep(1500); try { text = ((await server.send('net', a)) as { rpc: string; res: string }[]).find((r) => r.rpc === 'Zzl0ze')?.res ?? '' } catch { /* the tab is still loading */ } }
+  if (!text) console.log('ASB: no project listing seen after the reload')
+  else {
+    const payload = (parseRpcResponse(text, 'Zzl0ze') as { payload: unknown[][] }).payload
+    const media = payload[2] as unknown[][], token = (u: unknown): string => (typeof u === 'string' ? (/googleusercontent\.com\/([^=?]+)/.exec(u)?.[1] ?? '') : '')
+    const videos = media.filter((e) => Array.isArray(e[7])).sort((x, y) => (y[5] as number[][])[0][0] - (x[5] as number[][])[0][0]).slice(0, 10)
+    console.log(`ASB: listing has ${media.length} media, ${media.filter((e) => Array.isArray(e[7])).length} videos; waiting ${process.env.ASB_WAIT ?? 15} s before probing the newest ${videos.length}`)
+    const shape = (u: unknown): string => (typeof u === 'string' ? u.replace(/[A-Za-z]/g, 'a').replace(/[0-9]/g, '0').replace(/a{4,}|0{4,}|(?:a|0){6,}/g, (m) => `${m[0]}{${m.length}}`) : String(u)) // letters and digits masked: only the punctuation and the lengths show
+    console.log(`ASB url shape of the newest video: ${shape((videos[0]?.[5] as unknown[])?.[5])}`)
+    await sleep(Number(process.env.ASB_WAIT ?? 15) * 1000)
+    for (const [i, e] of videos.entries()) {
+      const g = e[5] as unknown[], v = e[7] as unknown[][]
+      const cand: Record<string, string> = { mediaIdAttr: `[data-media-id="${e[0]}"]`, hrefMedia: `a[href*="${e[0]}"]`, hrefWorkflow: `a[href*="${e[2]}"]` }
+      for (const [k, u] of [['g5', g[5]], ['g10', g[10]], ['v0_8', v[0]?.[8]], ['v5_0', v[5]?.[0]]] as const) if (token(u)) { const t = token(u).slice(0, 60); cand[`img_${k}`] = `img[src*="${t}"]`; cand[`poster_${k}`] = `[poster*="${t}"]`; cand[`style_${k}`] = `[style*="${t}"]` } // a head of the token: the op takes short selectors only
+      const r = (await server.send('probe', { ...a, selectors: cand })) as { present: Record<string, boolean> }
+      console.log(`ASB video ${i}: tokens ${['g5', 'g10', 'v0_8', 'v5_0'].map((k) => `${k}=${token(k === 'g5' ? g[5] : k === 'g10' ? g[10] : k === 'v0_8' ? v[0]?.[8] : v[5]?.[0]).length}ch`).join(' ')} same(g5,g10)=${token(g[5]) === token(g[10])} same(g5,v0_8)=${token(g[5]) === token(v[0]?.[8])} same(v0_8,v5_0)=${token(v[0]?.[8]) === token(v[5]?.[0])} | present: ${Object.entries(r.present).filter(([, p]) => p).map(([k]) => k).join(' ') || '(none)'}`)
+    }
+    console.log('ASB generic:', JSON.stringify(((await server.send('probe', { ...a, selectors: { imgAsb: 'img[src*="/asb/"]', imgLh3: 'img[src*="googleusercontent.com"]', video: 'video', tile: 'flow-grid-tile-container', tileImgAsb: 'flow-grid-tile-container img[src*="/asb/"]' } })) as { present: object }).present))
+  }
+}
 // ATTACH=<name prefix>: run the attach op once (opens library, searches, attaches ONE chip, closes) and print the raw answer + chips.
 if (process.env.ATTACH && tabs[0]) {
   const a = { tabId: tabs[0].tabId }
@@ -249,6 +280,8 @@ if (watchMin > 0 && tabs[0]) {
       if (p.gen !== lastGen) { console.log(`${new Date().toISOString().slice(11, 19)} gen=${p.gen}${lastGen >= 0 ? ' (a generate send was seen)' : ''}`); lastGen = p.gen }
       const net = (await server.send('net', { tabId: tabs[0].tabId })) as { rpc: string; via: string; status: number; res: string }[]
       for (const r of net) console.log(`${new Date().toISOString().slice(11, 19)} rpc=${r.rpc} via=${r.via} status=${r.status} bytes=${r.res.length}`)
+      // DUMP_NET=<file outside the repo>: keep the observed responses for offline study of their shape; what opens media is cut out before anything is written
+      if (process.env.DUMP_NET) for (const r of net) appendFileSync(process.env.DUMP_NET, JSON.stringify({ ...r, res: r.res.replace(/Signature=[^&"\\]+/g, 'Signature=<redacted>').replace(/(googleusercontent\.com\/)[^"\\]+/g, '$1<redacted>').replace(/(\/asb\/)[^"\\=]+/g, '$1<redacted>') }) + '\n', { mode: 0o600 })
     } catch (e) { console.log('watch:', (e as Error).message) }
   }
 }

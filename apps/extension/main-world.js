@@ -22,6 +22,8 @@
 
   const tracker = globalThis.makeEpochTracker(); // epoch.js: one click ↔ one generate send, else undefined
   delete globalThis.makeEpochTracker;
+  const TFMedia = globalThis.TFMedia; // media-logic.js
+  delete globalThis.TFMedia;
   // manual mode: the user clicks Gửi, we only observe; arm(epoch) = same as our own click, null disarms
   nativeAdd.call(document, 'toolflow:arm', (e) => {
     let ep; try { ep = JSON.parse(e.detail).epoch; } catch (_) { return; }
@@ -61,19 +63,22 @@
 
   // Read-only network observer.
   const RPCS = /rpcids=(ogiZ0b|YhhmEf|eb1hJf|nprQif|MZZa6b|maseQ|jwpduf|as29s|Zzl0ze|nzlxg|bOKtO)/;
-  const GEN = /^(ogiZ0b|YhhmEf|MZZa6b)$/; // generate calls: forwarded to the desktop as events
+  const GEN = /^(ogiZ0b|YhhmEf|MZZa6b|eb1hJf)$/; // generate calls: forwarded to the desktop as events
   const BIG = /^(Zzl0ze|bOKtO)$/;
   const net = [];
   const seen = {}; // rpc names that completed OK since page load (names only: the self-check wants proof the project loaded)
   const obs = { id: crypto.randomUUID(), seq: 0, dropped: 0 };
+  const media = new Map(); // video media id -> content token, learnt from Flow's own answers; never leaves the page except as the download's address
   const push = (url, body, status, text, via) => {
     const m = RPCS.exec(url); if (!m) return;
+    if (m[1] === 'as29s' || m[1] === 'Zzl0ze') for (const [id, token] of TFMedia.videoTokens(text, m[1])) media.set(id, token);
     const rec = { t: Date.now(), rpc: m[1], via, status, res: String(text || '').slice(0, BIG.test(m[1]) ? 3_000_000 : 6000), seq: ++obs.seq };
     if (status >= 200 && status < 300) seen[rec.rpc] = true;
     net.push(rec); if (net.length > 200) net.shift(); // overflow is normal (the ring is a debug tail): sent/response events never go through it
   };
   const out = (ev) => { try { emit('toolflow:event', ev); } catch (_) { obs.dropped++; } }; // dropped = a real observer failure, so a skip can no longer prove 'nothing sent'
   const gen = (url) => { const m = RPCS.exec(url); return m && GEN.test(m[1]) ? m[1] : null; };
+  const poll = (url, text) => { if (/rpcids=jwpduf/.test(url)) out({ type: 'poll', text: String(text || '') }); }; // Flow polls its videos by itself; the desktop only reads the answers
   const xo = XMLHttpRequest.prototype.open, xs = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.open = function (m, u) { this.__tfUrl = String(u); return xo.apply(this, arguments); };
   XMLHttpRequest.prototype.send = function (b) {
@@ -83,6 +88,7 @@
       if (rpc) out({ type: 'sent', epoch, request: req });
       nativeAdd.call(this, 'loadend', () => { try {
         push(url, b, this.status, this.responseText, 'xhr');
+        poll(url, this.responseText);
         if (rpc) out({ type: 'response', epoch, rpc, text: this.responseText, request: req });
       } catch (e) { /* observer must never break the page */ } });
     }
@@ -103,11 +109,17 @@
     const r = await of.apply(this, arguments);
     if (RPCS.test(url)) r.clone().text().then(async (t) => {
       push(url, '', r.status, t, 'fetch');
+      poll(url, t);
       if (rpc) out({ type: 'response', epoch, rpc, text: t, request: await reqP });
     }).catch(() => {});
     return r;
   };
   nativeAdd.call(document, 'toolflow:net', () => emit('toolflow:net-result', net.splice(0, net.length)));
+  // The MP4 address of one video media, for the isolated world's internal download message only.
+  nativeAdd.call(document, 'toolflow:media', (e) => {
+    let id; try { id = String(JSON.parse(e.detail).mediaId).toLowerCase(); } catch (_) { return; }
+    emit('toolflow:media-result', { src: media.has(id) ? TFMedia.mp4(media.get(id)) : null });
+  });
   // heartbeat: are our hooks still the ones the page calls?
   const ourSend = XMLHttpRequest.prototype.send, ourOpen = XMLHttpRequest.prototype.open, ourFetch = window.fetch;
   nativeAdd.call(document, 'toolflow:ping', () => {

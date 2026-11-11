@@ -707,6 +707,24 @@ test('Workflow: Điều kiện "Có prompt bị Flow lọc" — Flow refuses the
 
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
+test('video from a start frame: one image per prompt in Tạo lô, each video is sent with its own frame', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await expect(page.getByRole('group', { name: 'Khung hình đầu' })).toBeVisible()
+  await expect(page.getByLabel('Số ảnh tham chiếu mỗi prompt')).toHaveCount(0) // a video takes exactly one
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await page.getByLabel('Mỗi prompt một ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png')
+  await expect(row(page, 1)).toContainText('b.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  const l = await ledger(app)
+  expect([l.uploads.length, l.refs.map((r) => r.length), new Set(l.refs.flat()).size]).toEqual([2, [1, 1], 2])
+})
+
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
 const outputs = (page: Page) => page.locator('[data-testid=output]')
 
@@ -728,6 +746,27 @@ test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only 
   expect(files.every((f) => /^\d{4}-\d\d-\d\d_[0-9a-f]{8}\/00[123]_.+_[0-9a-f]{8}\.png$/.test(f))).toBe(true)
   await expect(page.locator('body')).not.toContainText('Lỗi tải')
   await expect(outputs(page).locator('img[src^="data:image/png;base64,"]')).toHaveCount(3) // the thumbnail is the saved file, read back from disk
+})
+
+test('video batch: chosen in Tạo lô, runs to ready on Flow\'s polls, Tải tất cả saves MP4 files and Kết quả shows them as saved videos', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await expect(page.getByTestId('combo')).toContainText('Video · Veo 3.1 - Lite')
+  await create(page, ['một con mèo', 'một con chó'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).filter({ hasText: 'Đã lưu' })).toHaveCount(2)
+  const files = (readdirSync(root, { recursive: true }) as string[]).filter((f) => f.endsWith('.mp4'))
+  expect(files).toHaveLength(2)
+  for (const f of files) expect(readFileSync(join(root, f)).subarray(4, 8).toString()).toBe('ftyp')
+  await expect(outputs(page).filter({ hasText: 'Video đã lưu' })).toHaveCount(2) // the file is read only when asked for
+  await expect(page.locator('video')).toHaveCount(0)
+  await outputs(page).first().getByRole('button', { name: 'Xem video' }).click()
+  await expect(outputs(page).first().locator('video[controls][src^="data:video/mp4;base64,"]')).toBeVisible() // the saved file itself, played inside the app
+  await expect(page.locator('body')).not.toContainText('Không thấy tệp trên máy')
 })
 
 test('Bắt đầu nhanh opens Tạo lô with the preset; search narrows the queue and the results', async () => {
@@ -838,4 +877,30 @@ test('I4b: a batch paused on REF_UPLOAD_UNCERTAIN offers an inline two-step rese
   await expect(page.getByRole('group', { name: ask })).toHaveCount(0)
   await expect(page.getByRole('alert')).toHaveCount(0)
   expect(dialogs).toEqual([])
+})
+
+test('Workflow: a node switched to Video starts from the image the node before it made, and its MP4 is saved', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  const node = (t: string) => page.getByTestId(`wf-${t}`), panel = page.getByTestId('wf-settings')
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('nhân vật A')
+  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await page.getByRole('button', { name: '+ Text' }).click()
+  await node('text').nth(1).getByLabel('Prompt của node Text').fill('nhân vật quay đầu lại')
+  await wire(node('generate').nth(0), node('generate').nth(1))
+  await wire(node('text').nth(1), node('generate').nth(1))
+  await wire(node('generate').nth(1), node('download'))
+  await node('generate').nth(1).locator('header b').click()
+  await panel.getByLabel('Loại kết quả').selectOption('video')
+  await expect(node('generate').nth(1).getByTestId('wf-combo')).toHaveText('Video · Veo 3.1 - Lite · 16:9 · x1')
+  await expect(page.getByTestId('wf-preview')).toContainText('Mỗi prompt tạo 1 video, tổng cộng 1 video')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  await expect(node('generate').nth(1)).toContainText('Video đã lưu')
+  const files = (readdirSync(root, { recursive: true }) as string[]).map(String)
+  expect([files.filter((f) => f.endsWith('.mp4')).length, files.filter((f) => f.endsWith('.png')).length]).toEqual([1, 1])
+  expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1]) // only the video was sent with an image: its start frame
 })

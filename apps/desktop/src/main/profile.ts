@@ -9,6 +9,8 @@ export const profile = flow;
 export type Combo = { kind: 'image' | 'video'; mode: string; model: string; aspect: string; quality?: string; count: number };
 /** What a batch runs with when nothing is chosen. A batch whose settings.combo is not qualified never reaches the page (AC-03). */
 export const DEFAULT_COMBO = flow.combos[0] as Combo;
+/** The first combo of that kind in the profile: what a batch of that kind runs with when nothing is chosen. */
+export const defaultCombo = (kind: string): Combo | null => (flow.combos as Combo[]).find((c) => c.kind === kind) ?? null;
 /** One model's options. Qualified per value: every listed aspect, count and thinking level went through a live send on that model
  *  (docs/progress-p2.md), and before each send the page's settings panel must read back exactly the wanted combo. */
 export type Choice = { kind: 'image' | 'video'; mode: string; model: string; aspects: string[]; qualities?: string[]; counts: number[] };
