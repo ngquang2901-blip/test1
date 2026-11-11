@@ -762,7 +762,10 @@ test('video batch: chosen in Tạo lô, runs to ready on Flow\'s polls, Tải t�
   const files = (readdirSync(root, { recursive: true }) as string[]).filter((f) => f.endsWith('.mp4'))
   expect(files).toHaveLength(2)
   for (const f of files) expect(readFileSync(join(root, f)).subarray(4, 8).toString()).toBe('ftyp')
-  await expect(outputs(page).filter({ hasText: 'Video đã lưu' })).toHaveCount(2) // no picture of a video in the app: the card says what the file is
+  await expect(outputs(page).filter({ hasText: 'Video đã lưu' })).toHaveCount(2) // the file is read only when asked for
+  await expect(page.locator('video')).toHaveCount(0)
+  await outputs(page).first().getByRole('button', { name: 'Xem video' }).click()
+  await expect(outputs(page).first().locator('video[controls][src^="data:video/mp4;base64,"]')).toBeVisible() // the saved file itself, played inside the app
   await expect(page.locator('body')).not.toContainText('Không thấy tệp trên máy')
 })
 

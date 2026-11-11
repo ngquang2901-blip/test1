@@ -186,7 +186,8 @@ export function createHandlers(d: Deps) {
     },
     async previewOutput(a: unknown) { // a saved file as a data URL for the S4 thumbnail; nothing is shown before it is on disk
       const o = obj(a), buf = readFileSync(d.downloader.file(str(o.attemptId), str(o.mediaId)));
-      if (buf.subarray(4, 8).toString('latin1') === 'ftyp') return { url: null, video: true }; // shortcut: a saved video has no picture in the app (the card names it, "Mở thư mục" plays it); add a file protocol + <video> when a preview is asked for
+      // shortcut: a video goes to the player as one data URL, only on the user's "Xem video" and only up to 64 MB (Flow's 8 s clips are 1-4 MB); serve it through a file protocol when clips get long
+      if (buf.subarray(4, 8).toString('latin1') === 'ftyp') return { url: o.play === true && buf.length <= 64_000_000 ? `data:video/mp4;base64,${buf.toString('base64')}` : null, video: true };
       const mime = sniff(buf.subarray(0, 12));
       if (!mime || !(mime in EXT)) throw Object.assign(new Error('DOWNLOAD_NOT_IMAGE'), { code: 'DOWNLOAD_NOT_IMAGE' });
       const small = d.thumb(buf);
