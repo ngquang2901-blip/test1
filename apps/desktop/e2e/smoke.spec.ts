@@ -428,6 +428,8 @@ test('auto-update: a new version downloads by itself; the bar offers a restart; 
   await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(0, { timeout: 10_000 })
   await bar.getByRole('button', { name: 'Khởi động lại để cập nhật' }).click()
   await expect.poll(() => installs(app)).toBe(1)
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()))).toEqual([false]) // gone at once, before the installer runs
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show()) // (the fake installer does not quit the app)
   await bar.getByRole('button', { name: 'Để sau' }).click()
   await expect(bar).toHaveCount(0)
 })
