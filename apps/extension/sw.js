@@ -1,8 +1,8 @@
-import { validate, forwardEvent, fetchMediaOp, gptFetchOp, downloadsOp } from './ops.js';
+import { validate, forwardEvent, fetchMediaOp, gptFetchOp, gemFetchOp, downloadsOp } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gemLook']);
+const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gemLook','gemState','gemMode','gemPrep','gemSend','gemTurns']);
 
 // One id per Chrome profile (this extension's storage is per profile): the app keeps one connection per profile, so several accounts can work at once.
 async function instance() {
@@ -47,9 +47,10 @@ async function handle(op, a, epoch) {
     case 'tabs': return (await chrome.tabs.query({ url: 'https://flow.google.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only, no query string
     case 'gptTabs': return (await chrome.tabs.query({ url: 'https://chatgpt.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only
     case 'gemTabs': return (await chrome.tabs.query({ url: 'https://gemini.google.com/*' })).map((t) => ({ tabId: t.id, windowId: t.windowId, active: t.active, path: new URL(t.url).pathname, status: t.status })); // read-only; path only
-    case 'gptNew': case 'gptOpen': { // a new, empty conversation, or one of ours again: the tab goes there (the page op API cannot outlive a navigation)
-      if (!/^https:\/\/chatgpt\.com\//.test((await chrome.tabs.get(a.tabId)).url || '')) throw new Error('not a ChatGPT tab');
-      await chrome.tabs.update(a.tabId, { active: true, url: op === 'gptOpen' ? `https://chatgpt.com/c/${a.conv}` : 'https://chatgpt.com/' }); // conv is a validated uuid; active: see gptFront
+    case 'gptNew': case 'gptOpen': case 'gemNew': case 'gemOpen': { // a new, empty conversation, or one of ours again: the tab goes there (the page op API cannot outlive a navigation)
+      const site = op.startsWith('gem') ? { origin: 'https://gemini.google.com/', home: 'app', conv: 'app/' } : { origin: 'https://chatgpt.com/', home: '', conv: 'c/' };
+      if (!((await chrome.tabs.get(a.tabId)).url || '').startsWith(site.origin)) throw new Error('not a tab of that site');
+      await chrome.tabs.update(a.tabId, { active: true, url: site.origin + (op.endsWith('Open') ? site.conv + a.conv : site.home) }); // conv is a validated id; active: see gptFront
       for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 250)); if ((await chrome.tabs.get(a.tabId)).status === 'complete') return true; }
       return false;
     }
@@ -58,6 +59,7 @@ async function handle(op, a, epoch) {
       if (a.raise === true) { const w = await chrome.windows.get(t.windowId); await chrome.windows.update(t.windowId, w.state === 'minimized' ? { state: 'normal', focused: true } : { focused: true }); }
       return true;
     }
+    case 'gemFetch': return gemFetchOp(chrome, a); // tab presses its own full-size download -> that download is named into ToolFlow-tmp
     case 'gptFetch': return gptFetchOp(chrome, a); // tab -> image bytes (internal message) -> chrome.downloads
     case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;

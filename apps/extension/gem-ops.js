@@ -1,31 +1,107 @@
-// SPIKE, isolated-world content script on gemini.google.com: read-only structure of the page for the Gemini driver.
-// Nothing here returns conversation text, titles or addresses: tags, attribute NAMES, control labels of the composer, counts, masked shapes.
+// Isolated-world content script on gemini.google.com. Fixed menu of ops, no eval. Nothing here reads cookies or tokens, and no op returns
+// conversation text or an address: only ids, states, counts and, for our own prompt, whether it matches.
+// Controls are found by their icon's name, which is the same in every UI language. Page facts were measured on 2026-11-12:
+// docs/superpowers/plans/2026-11-12-gemini.md.
 (() => {
   if (window.__tfGemOps) return; window.__tfGemOps = true;
-  const short = (s, n = 40) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, n);
-  const shape = (s) => String(s || '').replace(/[a-z]/g, 'a').replace(/[A-Z]/g, 'A').replace(/[0-9]/g, '9').slice(0, 60); // what an id looks like, not the id
-  const ctl = (e) => { const o = { tag: e.tagName.toLowerCase() }; for (const [k, a] of [['testid', 'data-test-id'], ['aria', 'aria-label'], ['tip', 'mattooltip'], ['role', 'role']]) { const v = e.getAttribute(a); if (v) o[k] = short(v, 50); } if (e.disabled || e.getAttribute('aria-disabled') === 'true') o.disabled = true; o.cls = short(e.className, 50); return o; };
-  const img = (i) => { let u; try { u = new URL(i.currentSrc || i.src, location.href); } catch (_) { return { bad: true }; } return { scheme: u.protocol, host: u.host, pathShape: shape(u.pathname.slice(0, 30)), keys: [...u.searchParams.keys()].slice(0, 6), w: i.naturalWidth, h: i.naturalHeight, complete: i.complete, cls: short(i.className, 40) }; };
-  const census = (root) => { const n = {}; for (const e of root.querySelectorAll('*')) if (e.tagName.includes('-')) n[e.tagName.toLowerCase()] = (n[e.tagName.toLowerCase()] || 0) + 1; return n; };
-  const attrNames = (e) => [...e.attributes].map((x) => x.name).filter((n) => n !== 'class' && n !== 'style' && !n.startsWith('_ng'));
+  const G = globalThis.TFGem;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const until = async (fn, ms = 4000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = fn(); if (v) return v; await sleep(120); } return null; };
+  const iconsOf = (e) => [...e.querySelectorAll('mat-icon, gem-icon')].map((i) => i.getAttribute('fonticon') || i.getAttribute('data-mat-icon-name') || i.getAttribute('name') || i.textContent.trim()).filter(Boolean);
+  const esc = () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+
+  const area = () => document.querySelector('input-area-v2');
+  const editor = () => area()?.querySelector('rich-textarea .ql-editor') ?? null;
+  const btn = (icon) => [...(area()?.querySelectorAll('button') ?? [])].find((b) => iconsOf(b).includes(icon)) ?? null;
+  const locked = (b) => b.disabled || b.getAttribute('aria-disabled') === 'true';
+  // the chosen tool shows as a chip in the input area; it stays on after a send
+  const chip = () => area()?.querySelector('[data-test-id="deselect-drawer-item-gem-button"]') ?? null;
+  const modeOf = () => { const c = chip(); return !c ? null : iconsOf(c).includes(G.IMAGE_ICON) ? G.IMAGE_MODE : 'other'; };
+  const promptText = () => G.flat(editor()?.innerText);
+  const menuItems = () => [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemcheckbox"], .cdk-overlay-pane [role="menuitem"]')];
+  const turnEls = () => [...document.querySelectorAll('.conversation-container')].filter((t) => G.isId(t.id));
+  const singles = (t) => [...t.querySelectorAll('generated-image single-image')];
+  const shown = (i) => !!i && i.complete && i.naturalWidth > 0;
 
   const OPS = {
+    // Read-only outline for diagnosing a changed page: structure only.
     gemLook() {
-      const main = document.querySelector('main') || document.body;
-      const input = document.querySelector('input-area-v2, input-area, .input-area-container, rich-textarea')?.closest('input-area-v2, input-area, .input-area-container') || document.querySelector('rich-textarea')?.parentElement;
-      const turns = [...document.querySelectorAll('.conversation-container, [id^="conversation-container"], conversation-turn')].slice(-3);
+      const a = area();
       return {
-        pathShape: shape(location.pathname), visible: document.visibilityState,
-        editors: [...document.querySelectorAll('rich-textarea [contenteditable], .ql-editor, textarea')].map((e) => ({ ...ctl(e), editable: e.getAttribute('contenteditable'), len: (e.innerText || e.value || '').length })),
-        inputButtons: input ? [...input.querySelectorAll('button, [role="button"]')].slice(0, 20).map(ctl) : null,
-        mainTags: census(main),
-        turns: turns.map((t) => ({ tag: t.tagName.toLowerCase(), attrs: attrNames(t), idShape: shape(t.id), tags: census(t), imgs: [...t.querySelectorAll('img')].slice(0, 4).map(img), buttons: [...t.querySelectorAll('button')].slice(0, 12).map(ctl), textLen: t.innerText.length })),
-        overlays: [...document.querySelectorAll('.cdk-overlay-pane, mat-dialog-container, [role="dialog"], [role="menu"]')].map((d) => ({ ...ctl(d), items: [...d.querySelectorAll('button, [role="menuitem"]')].slice(0, 20).map(ctl) })),
+        path: location.pathname.replace(/[0-9a-f]{8,32}/g, '<id>'), visible: document.visibilityState, editor: !!editor(), mode: modeOf(),
+        areaIcons: a ? [...a.querySelectorAll('button')].map((b) => iconsOf(b).join('+')).filter(Boolean) : null,
+        turns: turnEls().slice(-6).map((t) => ({ query: t.querySelectorAll('user-query .query-text-line').length, response: !!t.querySelector('model-response'), pending: !!t.querySelector('pending-response, pending-request'), actions: !!t.querySelector('message-actions'), images: singles(t).length, shown: singles(t).filter((s) => shown(s.querySelector('img'))).length, download: t.querySelectorAll('download-generated-image-button button').length })),
+        unnamedTurns: document.querySelectorAll('.conversation-container').length - turnEls().length,
       };
+    },
+    // What the composer and the conversation are right now.
+    gemState() {
+      const send = btn('arrow_upward');
+      return {
+        conv: G.convOf(location.pathname), start: location.pathname === '/app', visible: document.visibilityState === 'visible', editor: !!editor(), mode: modeOf(),
+        textLen: promptText().length, canSend: !!send && !locked(send), generating: !!btn('stop'), turns: turnEls().length,
+      };
+    },
+    // Turns on the image tool ("+" → the entry with the image icon) unless it is on already. The postcondition is the chip in the input area.
+    async gemMode() {
+      if (!editor()) return { ok: false, code: 'NO_EDITOR' };
+      if (modeOf() === G.IMAGE_MODE) return { ok: true };
+      if (modeOf()) return { ok: false, code: 'OTHER_MODE' }; // the user chose another tool for this message
+      const plus = btn('plus'); if (!plus) return { ok: false, code: 'NO_PLUS' };
+      const before = new Set(menuItems());
+      plus.click();
+      const hit = ((await until(() => { const f = menuItems().filter((x) => !before.has(x)); return f.length ? f : null; })) || []).filter((b) => iconsOf(b).includes(G.IMAGE_ICON));
+      if (hit.length !== 1) { esc(); return { ok: false, code: 'MODE_NOT_FOUND' }; } // nothing is clicked on a menu we cannot read
+      hit[0].click();
+      return (await until(() => modeOf() === G.IMAGE_MODE, 4000)) ? { ok: true } : { ok: false, code: 'MODE_NOT_SET' };
+    },
+    // Types the prompt. Never sends, never replaces something that is in the editor already (Gemini brings an unsent draft back after a reload).
+    async gemPrep(a) {
+      const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
+      if (modeOf() !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
+      if (promptText() === G.flat(a.prompt)) return { ok: true }; // exactly this prompt is there already (an earlier try that was not sent)
+      if (promptText().length) return { ok: false, code: 'COMPOSER_NOT_EMPTY' };
+      ed.focus();
+      const sel = getSelection(); sel.selectAllChildren(ed); sel.collapseToEnd();
+      document.execCommand('insertText', false, String(a.prompt));
+      await sleep(400);
+      return promptText() === G.flat(a.prompt) ? { ok: true } : { ok: false, code: 'PROMPT_MISMATCH' };
+    },
+    // Clicks Send once, only when the editor holds exactly this prompt with the image tool on. ok:false = nothing was clicked.
+    async gemSend(a) {
+      if (!editor()) return { ok: false, code: 'NO_EDITOR' };
+      const ready = () => modeOf() === G.IMAGE_MODE && promptText() === G.flat(a.prompt);
+      if (modeOf() !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
+      if (!ready()) return { ok: false, code: 'PROMPT_MISMATCH' };
+      const send = await until(() => { const b = btn('arrow_upward'); return b && !locked(b) ? b : null; }, 10000);
+      if (!send) return { ok: false, code: btn('arrow_upward') ? 'SEND_DISABLED' : 'NO_SEND' };
+      if (!ready()) return { ok: false, code: 'PROMPT_MISMATCH' }; // the composer changed while waiting
+      send.click();
+      const cleared = !!(await until(() => promptText().length === 0, 5000));
+      return { ok: true, cleared };
+    },
+    // The conversation and its last turns in one look: id, state, whether the query is exactly this prompt, the ids of its shown images.
+    gemTurns(a) {
+      const all = turnEls(), last = all[all.length - 1];
+      return { conv: G.convOf(location.pathname), turns: all.slice(-30).map((t) => {
+        const query = [...t.querySelectorAll('user-query .query-text-line')].map((l) => l.innerText).join(' ');
+        const images = []; let pending = 0;
+        singles(t).forEach((s, k) => { if (shown(s.querySelector('img'))) images.push(G.mediaId(t.id, k + 1)); else pending++; });
+        const done = !!t.querySelector('message-actions') && !t.querySelector('pending-response, pending-request') && ![...t.querySelectorAll('[aria-busy]')].some((e) => e.getAttribute('aria-busy') === 'true') && !(t === last && btn('stop'));
+        return { key: t.id, state: done ? 'complete' : 'in_progress', mine: G.ownsQuery(query, a.prompt), images, pending };
+      }) };
     },
   };
 
   chrome.runtime.onMessage.addListener((m, s, reply) => {
+    if (m?.tf === 'gemDownload') { // INTERNAL: only our own service worker may ask. Presses the page's own "download full size" of one image.
+      if (s?.id !== chrome.runtime.id) return;
+      const id = G.parseMediaId(m.mediaId), t = id && turnEls().find((x) => x.id === id.turn), one = t && singles(t)[id.n - 1];
+      const b = one && shown(one.querySelector('img')) ? one.querySelector('download-generated-image-button button') : null;
+      if (!b) { reply({ code: 'NOT_FOUND' }); return; }
+      if (locked(b)) { reply({ code: 'DOWNLOAD_BUSY' }); return; }
+      b.click(); reply({ ok: true }); return;
+    }
     if (m?.tf !== 'op') return;
     const f = OPS[m.op];
     if (!f) { reply({ error: 'unknown page op ' + m.op }); return; }

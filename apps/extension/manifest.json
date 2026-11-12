@@ -11,6 +11,6 @@
     { "matches": ["https://flow.google.com/*"], "js": ["epoch.js", "media-logic.js", "main-world.js"], "world": "MAIN", "run_at": "document_start" },
     { "matches": ["https://flow.google.com/*"], "js": ["settings-logic.js", "ref-logic.js", "page-ops.js"], "run_at": "document_start" },
     { "matches": ["https://chatgpt.com/*"], "js": ["gpt-logic.js", "gpt-ops.js"], "run_at": "document_idle" },
-    { "matches": ["https://gemini.google.com/*"], "js": ["gem-ops.js"], "run_at": "document_idle" }
+    { "matches": ["https://gemini.google.com/*"], "js": ["gem-logic.js", "gem-ops.js"], "run_at": "document_idle" }
   ]
 }
