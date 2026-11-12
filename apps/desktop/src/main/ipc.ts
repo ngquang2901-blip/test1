@@ -90,13 +90,14 @@ export function createHandlers(d: Deps) {
     async enqueueBatch(a: unknown) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
-      if (o.provider !== undefined && oneOf(o.provider, 'flow', 'chatgpt') === 'chatgpt') { // ChatGPT: images only, always sent by the app, no Flow project / settings / refs
+      const provider = o.provider === undefined ? 'flow' : oneOf(o.provider, 'flow', 'chatgpt', 'gemini');
+      if (provider !== 'flow') { // ChatGPT / Gemini: images only, always sent by the app, no Flow project / settings / refs
         if (kind !== 'image' || mode !== 'auto') bad();
         if (o.refs !== undefined && (!Array.isArray(obj(o.refs).assetIds) || (obj(o.refs).assetIds as unknown[]).length)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' });
         const items = parsePrompts(src).items;
         if (!items.length) return { rows: [], errors: [{ code: 'EMPTY' }] };
         if (o.dryRun === true) return { rows: items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: [], error: null })), errors: [] };
-        const r = enqueueBatch(d.db, { commandId, kind, provider: 'chatgpt', projectId: null, mode, settings: { provider: 'chatgpt' }, prompts: items.map((it) => it.prompt), refs: items.map(() => []), sourceLines: items.map((it) => it.sourceLine) });
+        const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider }, prompts: items.map((it) => it.prompt), refs: items.map(() => []), sourceLines: items.map((it) => it.sourceLine) });
         d.emit('batch', r.batchId);
         return { ...r, batchIds: [r.batchId] };
       }

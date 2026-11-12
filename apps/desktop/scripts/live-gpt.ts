@@ -18,7 +18,7 @@ for (let i = 0; i < 40 && !server.connected(); i++) await sleep(3000)
 if (!server.connected()) { console.log('RESULT: extension never connected'); process.exit(1) }
 let tabs: { tabId: string; active: boolean; path: string; status: string }[] = []
 for (let i = 0; i < 20 && !tabs.length; i++, tabs.length || await sleep(3000)) tabs = (await server.send(`${SITE}Tabs`, {}).catch((e) => { console.log(`${SITE}Tabs:`, (e as Error).message); return [] })) as typeof tabs
-console.log(`${SITE} tabs: ${tabs.length}`, tabs.map((t) => `${t.active ? 'active' : 'background'} ${t.status} ${t.path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, '<id>')}`).join(' | '))
+console.log(`${SITE} tabs: ${tabs.length}`, tabs.map((t) => `${t.active ? 'active' : 'background'} ${t.status} ${t.path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}|[0-9a-f]{12,32}/g, "<id>")}`).join(' | '))
 const tab = tabs[0]
 if (tab) {
   const a = { tabId: tab.tabId }

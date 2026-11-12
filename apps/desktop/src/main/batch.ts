@@ -48,7 +48,7 @@ export function mapRefs(count: number, pool: string[], mode: 'none' | 'all' | 's
 
 export function enqueueBatch(
   db: Db,
-  cmd: { commandId: string; kind: 'image' | 'video'; projectId: string | null; provider?: 'flow' | 'chatgpt'; settings: object; prompts: string[]; refs: string[][]; mode: 'auto' | 'manual'; sourceLines?: number[]; ords?: number[] }, // ords: line numbers in the user's list when a list is split across projects
+  cmd: { commandId: string; kind: 'image' | 'video'; projectId: string | null; provider?: 'flow' | 'chatgpt' | 'gemini'; settings: object; prompts: string[]; refs: string[][]; mode: 'auto' | 'manual'; sourceLines?: number[]; ords?: number[] }, // ords: line numbers in the user's list when a list is split across projects
 ): { batchId: string; revision: number } {
   if (cmd.prompts.length !== cmd.refs.length) throw new Error('prompts/refs length mismatch');
   if (cmd.sourceLines && cmd.sourceLines.length !== cmd.prompts.length) throw new Error('prompts/sourceLines length mismatch');

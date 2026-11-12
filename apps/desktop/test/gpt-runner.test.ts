@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import { openDb } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
-import { createFakeGpt, isGptMedia, type GptScript } from '../src/main/gpt-driver';
+import { createFakeGpt, isGemMedia, isGptMedia, type GptScript } from '../src/main/gpt-driver';
 import { createGptRunner, routeRunner, GPT_TURNS_PER_CONV } from '../src/main/gpt-runner';
 import { createFakeDriver, FAKE_COMBOS } from '../src/main/fake-driver';
 import { batchStatus, createRunner } from '../src/main/runner';
@@ -322,4 +322,61 @@ test('the ChatGPT tab stays hidden even after its window was raised: nothing is 
   t.fake.hideWindow(false); t.runner.resume(t.batch);
   await t.ticks(4);
   expect(items(t.states())).toBe('ready');
+});
+
+test('a Gemini batch runs in the Gemini tab through its own runner; the ChatGPT side is never asked about it, and the other way round', async () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-gem-')), 't.db'));
+  const clock = { t: 1_800_000_000_000, now() { return this.t; } };
+  const gptFake = createFakeGpt([]), gemFake = createFakeGpt([], { site: 'gemini' });
+  const mk = (provider: 'chatgpt' | 'gemini', fake: typeof gptFake) => createGptRunner({ db, provider, driver: fake.driver, clock, pollMs: 0, sleep: async () => undefined });
+  const gpt = mk('chatgpt', gptFake), gem = mk('gemini', gemFake);
+  const runner = routeRunner(createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true, projectOf: () => 'p-flow' }), gpt, gem);
+  const add = (provider: 'chatgpt' | 'gemini', prompt: string, id: string = provider): string => enqueueBatch(db, { commandId: id, kind: 'image', provider, projectId: null, settings: { provider }, prompts: [prompt], refs: [[]], mode: 'auto' }).batchId;
+  const state = (b: string): AttemptState => JSON.parse((db.prepare('select a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?').get(b) as { j: string }).j);
+  const g = add('gemini', 'a red kite'), c = add('chatgpt', 'a blue door');
+  runner.start(g); runner.start(c);
+  for (let i = 0; i < 2; i++) await gem.tick(); // the Gemini runner alone
+  expect(state(g).item).toBe('generating');
+  expect(state(c).item).toBe('queued');
+  expect(gptFake.ledger.sends).toEqual([]);
+  for (let i = 0; i < 4; i++) await runner.tick(); // all of them
+  expect([state(g).item, state(c).item]).toEqual(['ready', 'ready']);
+  expect(gemFake.ledger.sends).toEqual(['a red kite']);
+  expect(gptFake.ledger.sends).toEqual(['a blue door']);
+  const gm = state(g).outputs![0].mediaId, cm = state(c).outputs![0].mediaId;
+  expect([isGemMedia(gm), isGptMedia(gm), isGemMedia(cm), isGptMedia(cm)]).toEqual([true, false, false, true]); // the id's shape says which site's tab holds the image
+  expect(state(g).request.conv).toMatch(/^[0-9a-f]{16}$/);
+  gemFake.closeTab();
+  const g2 = add('gemini', 'a green hill', 'g2');
+  runner.start(g2);
+  for (let i = 0; i < 2; i++) await runner.tick();
+  expect(runner.lastError(g2)).toBe('NO_CHATGPT_TAB'); // one code for "this site's tab is not open"; the hint names the site
+});
+
+test('the browser did not start the save of a finished image (Chrome holds back a site\'s second automatic download): the batch pauses with that reason; Tiếp tục saves again first, then sends the next prompt', async () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-gem-')), 't.db'));
+  const clock = { t: 1_800_000_000_000, now() { return this.t; } };
+  const fake = createFakeGpt([], { site: 'gemini' });
+  const saves: string[] = [];
+  let blocked = true;
+  const download = async (b: string): Promise<void> => { // what the downloader leaves behind: one row per output, failed or completed
+    saves.push(blocked ? 'blocked' : 'saved');
+    for (const r of db.prepare("select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?").all(b) as { id: string; j: string }[]) for (const o of (JSON.parse(r.j).outputs ?? []) as { mediaId: string }[])
+      db.prepare("insert into download(id,attempt_id,media_id,planned_name,state,error_code,created_at,updated_at) values(?,?,?,?,?,?,0,0) on conflict(attempt_id,media_id) do update set state=excluded.state, error_code=excluded.error_code")
+        .run(`${r.id}${o.mediaId}`, r.id, o.mediaId, 'x.png', blocked ? 'failed' : 'completed', blocked ? 'DOWNLOAD_NOT_STARTED' : null);
+  };
+  const gem = createGptRunner({ db, provider: 'gemini', driver: fake.driver, clock, pollMs: 0, sleep: async () => undefined, download });
+  const runner = routeRunner(createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true, projectOf: () => 'p-flow' }), gem);
+  const b = enqueueBatch(db, { commandId: 'g', kind: 'image', provider: 'gemini', projectId: null, settings: {}, prompts: ['a red kite', 'a blue door'], refs: [[], []], mode: 'auto' }).batchId;
+  runner.start(b);
+  for (let i = 0; i < 6; i++) await runner.tick();
+  expect(runner.lastError(b)).toBe('DOWNLOAD_NOT_STARTED');
+  expect(fake.ledger.sends).toEqual(['a red kite']); // the next prompt waits: its image would not be saved either
+  expect(saves).toEqual(['blocked']);
+  blocked = false; // the user allowed it in Chrome
+  runner.resume(b);
+  for (let i = 0; i < 8; i++) await runner.tick();
+  expect(saves).toEqual(['blocked', 'saved', 'saved']); // first the image that was left behind, then the new one
+  expect(fake.ledger.sends).toEqual(['a red kite', 'a blue door']);
+  expect(runner.lastError(b)).toBeNull();
 });

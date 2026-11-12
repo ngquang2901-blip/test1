@@ -30,7 +30,8 @@ const server = await startConnectorServer({ token: readOrCreateToken(userData), 
 installExtension(resolve(process.cwd(), '../extension'), userData, server.port, pkg.version)
 for (let i = 0; i < 40 && !server.connected(); i++) await sleep(3000)
 if (!server.connected()) { console.log('RESULT: extension never connected'); process.exit(1) }
-const real = createExtGpt(server)
+const provider = process.env.SITE === 'gem' ? 'gemini' : 'chatgpt' // SITE=gem runs the same batch on the Gemini tab
+const real = createExtGpt(server, provider)
 let seen = ''
 const gpt: GptDriver = { ...real,
   async turns(tab, prompt) { // WATCH: what the page says about the turns, whenever it changes
@@ -40,16 +41,16 @@ const gpt: GptDriver = { ...real,
     return r
   } }
 for (let i = 0; i < 20 && !(await gpt.tabs().catch(() => [])).length; i++) await sleep(3000)
-console.log('chatgpt tabs:', (await gpt.tabs()).length)
+console.log(`${provider} tabs:`, (await gpt.tabs()).length)
 
 const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-live-gpt-')), 'toolflow.db'))
 const clock = { now: () => Date.now() }
 const root = process.env.DL_ROOT ?? join(homedir(), 'Downloads', 'ToolFlow')
 const flow = createExtDriver(server, { allow: () => false }) // only its downloads() list is used here
-const runner = createGptRunner({ db, driver: gpt, clock, download: (b) => downloader.batch(b) })
+const runner = createGptRunner({ db, driver: gpt, provider, clock, download: (b) => downloader.batch(b) })
 const downloader = createDownloader({ db, root, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => runner.findTab(),
   driver: { fetchMedia: (tab, p) => runner.fetchMedia(tab, p), downloads: (q) => flow.downloads(q) } })
-const batch = enqueueBatch(db, { commandId: randomUUID(), kind: 'image', provider: 'chatgpt', projectId: null, settings: { provider: 'chatgpt' }, prompts, refs: prompts.map(() => []), mode: 'auto' }).batchId
+const batch = enqueueBatch(db, { commandId: randomUUID(), kind: 'image', provider, projectId: null, settings: { provider }, prompts, refs: prompts.map(() => []), mode: 'auto' }).batchId
 db.prepare("update batch set status='running' where id=?").run(batch)
 
 const states = (): AttemptState[] => (db.prepare('select a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batch) as { j: string }[]).map((r) => JSON.parse(r.j))

@@ -11,7 +11,12 @@ const PICK_ERR: Record<string, string> = { ASSET_UNSUPPORTED: 'không phải ả
 const size = (n: number): string => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`)
 let kept: Asset[] = [] // shortcut: the picked pool outlives screen switches but not a restart; persist ids in draft.json when it must
 let keptTpl: TemplateState = EMPTY_TEMPLATE // same lifetime as the pool
-let keptProvider: 'flow' | 'chatgpt' = 'flow' // the site this batch goes to; same lifetime as the pool
+type Provider = 'flow' | 'chatgpt' | 'gemini'
+const SITE: Record<Exclude<Provider, 'flow'>, { name: string; tool: string; note: string }> = {
+  chatgpt: { name: 'ChatGPT', tool: 'Create image', note: 'Mỗi lô mở một cuộc trò chuyện mới trong tab chatgpt.com đang mở, app tự gửi lần lượt từng prompt ở chế độ “Create image” và lưu ảnh về máy. Cần tab ChatGPT đã đăng nhập, giao diện tiếng Anh. Chưa dùng được ảnh tham chiếu; muốn tỉ lệ khung hình nào thì ghi ngay trong prompt.' },
+  gemini: { name: 'Gemini', tool: 'Tạo hình ảnh', note: 'Mỗi lô mở một cuộc trò chuyện mới trong tab gemini.google.com đang mở, app tự bật công cụ tạo hình ảnh, gửi lần lượt từng prompt và lưu ảnh cỡ đầy đủ về máy. Cần tab Gemini đã đăng nhập. Mô hình và tỉ lệ khung hình là cái đang chọn trong Gemini; chưa dùng được ảnh tham chiếu.' },
+}
+let keptProvider: Provider = 'flow' // the site this batch goes to; same lifetime as the pool
 let keptCombo: Partial<Record<Draft['kind'], Combo>> = {} // the settings chosen per kind (absent = the app default); same lifetime as the pool
 
 export default function NewBatch({ initial, onCreated, preset, onDraft }: { initial: Draft; onCreated(): void; preset?: Preset | null; onDraft?(d: Draft): void }): React.JSX.Element {
@@ -24,8 +29,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const [perItem, setPerItem] = useState(1)
   const [combos, setCombos] = useState(keptCombo)
   const [provider, setProv] = useState(keptProvider)
-  const setProvider = (p: 'flow' | 'chatgpt'): void => { keptProvider = p; setProv(p) }
-  const gpt = provider === 'chatgpt' // ChatGPT: images only, always sent by the app, no settings and no reference images
+  const setProvider = (p: Provider): void => { keptProvider = p; setProv(p) }
+  const gpt = provider !== 'flow' // a chat site (ChatGPT, Gemini): images only, always sent by the app, no settings and no reference images
+  const site = provider !== 'flow' ? SITE[provider] : null
   const putCombo = (kind: Draft['kind'], c: Combo | undefined): void => { keptCombo = { ...keptCombo, [kind]: c }; setCombos(keptCombo) }
   const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
@@ -57,14 +63,14 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const refs = { assetIds: pool.map((a) => a.id), mode: refMode, perItem: video ? 1 : perItem } // a video takes one image: its start frame
   const refsKey = JSON.stringify(refs), comboKey = JSON.stringify(chosen ?? null)
   /** What goes to main for this batch (preview and create alike). */
-  const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider: 'chatgpt', commandId: cmd } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
+  const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
   useEffect(() => {
     let live = true
     window.api.enqueueBatch({ ...args(JSON.parse(refsKey)), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)) } }, () => { if (live) { setRows([]); setErrs([]) } })
     onDraft?.(d) // the app's copy follows at once: coming back to Tạo lô shows this text, not the last one read from main
     const t = setTimeout(() => void window.api.saveDraft(d), 400)
     return () => { live = false; clearTimeout(t) }
-  }, [d, cmd, refsKey, comboKey, gpt]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
+  }, [d, cmd, refsKey, comboKey, provider]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
 
   const latest = useRef(d)
   latest.current = d
@@ -127,8 +133,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
         <fieldset className="wide">
           <legend>Nền tảng</legend>
           <label><input type="radio" name="provider" checked={!gpt} onChange={() => setProvider('flow')} /> Google Flow</label>
-          <label><input type="radio" name="provider" checked={gpt} onChange={() => setProvider('chatgpt')} /> ChatGPT (tạo ảnh)</label>
-          {gpt && <p className="hint" data-testid="gpt-note">Mỗi lô mở một cuộc trò chuyện mới trong tab chatgpt.com đang mở, app tự gửi lần lượt từng prompt ở chế độ “Create image” và lưu ảnh về máy. Cần tab ChatGPT đã đăng nhập, giao diện tiếng Anh. Chưa dùng được ảnh tham chiếu; muốn tỉ lệ khung hình nào thì ghi ngay trong prompt.</p>}
+          <label><input type="radio" name="provider" checked={provider === 'chatgpt'} onChange={() => setProvider('chatgpt')} /> ChatGPT (tạo ảnh)</label>
+          <label><input type="radio" name="provider" checked={provider === 'gemini'} onChange={() => setProvider('gemini')} /> Gemini (tạo ảnh)</label>
+          {site && <p className="hint" data-testid="gpt-note">{site.note}</p>}
         </fieldset>
         {!gpt && <fieldset>
           <legend>Loại (mỗi lô một loại)</legend>
@@ -185,7 +192,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
       )}
       {msg && <p role="alert" className="notice">{msg}</p>}
       <div className="actionbar">
-        <span className="muted small-text" data-testid="combo">{gpt ? 'Sẽ gửi: ChatGPT · Create image · tự động' : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
+        <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
         <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || (!gpt && errs.length > 0)}>Tạo lô và chạy</button>
       </div>

@@ -99,7 +99,7 @@
       const id = G.parseMediaId(m.mediaId), t = id && turnEls().find((x) => x.id === id.turn), one = t && singles(t)[id.n - 1];
       const b = one && shown(one.querySelector('img')) ? one.querySelector('download-generated-image-button button') : null;
       if (!b) { reply({ code: 'NOT_FOUND' }); return; }
-      if (locked(b)) { reply({ code: 'DOWNLOAD_BUSY' }); return; }
+      if (locked(b)) { reply({ code: 'BUSY' }); return; }
       b.click(); reply({ ok: true }); return;
     }
     if (m?.tf !== 'op') return;

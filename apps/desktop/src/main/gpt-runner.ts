@@ -1,4 +1,4 @@
-// ChatGPT image runner (docs/app/05, D-09): one new conversation per batch, prompts sent one after another in it, at most 15 turns per
+// Image runner for a chat site (ChatGPT, Gemini; docs/app/05, D-09): one new conversation per batch, prompts sent one after another in it, at most 15 turns per
 // conversation. It writes the same batch / item / attempt rows as the Flow runner, so the queue, the results and the downloader show a
 // ChatGPT batch like any other; the Flow runner skips batches with provider 'chatgpt'.
 // Never sends twice: the intent is journaled before the click, and a click without a turn of exactly our prompt ends in "needs review".
@@ -6,7 +6,7 @@ import { next, type AttemptState } from '@toolflow/flow-protocol/attempt'
 import type { Db } from './db'
 import type { FetchMediaResult } from './driver'
 import type { Runner } from './runner'
-import type { GptDriver, GptState, GptStep, GptTurn } from './gpt-driver'
+import type { GptDriver, GptState, GptStep, GptTurn, Site } from './gpt-driver'
 
 export const GPT_TURNS_PER_CONV = 15
 const SEND_DEADLINE_MS = 30_000 // a click must show its turn within this
@@ -25,12 +25,14 @@ export type GptRunner = {
 }
 
 export function createGptRunner(o: {
-  db: Db; driver: GptDriver; clock: { now(): number }; pollMs?: number; sleep?(ms: number): Promise<void>
+  db: Db; driver: GptDriver; provider?: Site; clock: { now(): number }; pollMs?: number; // provider: the batches this runner owns (default chatgpt)
+  sleep?(ms: number): Promise<void>
   download?(batchId: string): Promise<void> // saves the batch's finished images; called while they are still on the page
 }): GptRunner {
   const { db, driver, clock } = o
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const pollMs = o.pollMs ?? 1500
+  const provider = o.provider ?? 'chatgpt'
   const reasons = new Map<string, string>() // why this runner paused a batch
   const reopen = new Set<string>() // batches the user resumed: the tab may be taken back to their conversation once
   const noImage = new Map<string, number>() // attempt → when its answer was first seen finished without an image
@@ -48,7 +50,7 @@ export function createGptRunner(o: {
   }
   const rows = (where: string, ...args: unknown[]): Row[] => (db.prepare(
     `select a.id, i.batch_id batch, a.state_json j from item i join attempt a on a.id=i.attempt_id join batch b on b.id=i.batch_id
-     where b.provider='chatgpt' and ${where} order by b.created_at, b.rowid, i.ord`).all(...args) as { id: string; batch: string; j: string }[]).map((r) => ({ id: r.id, batch: r.batch, s: JSON.parse(r.j) as AttemptState }))
+     where b.provider=? and ${where} order by b.created_at, b.rowid, i.ord`).all(provider, ...args) as { id: string; batch: string; j: string }[]).map((r) => ({ id: r.id, batch: r.batch, s: JSON.parse(r.j) as AttemptState }))
   const flying = (): Row[] => rows("json_extract(a.state_json,'$.item') in ('submitting','generating')")
   const review = (s: AttemptState, code: string, why: string): AttemptState => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, why }, admission: 'pause', creditSpent: true })
   const hold = (batch: string, code: string): void => {
@@ -92,6 +94,8 @@ export function createGptRunner(o: {
       noImage.delete(a.id); started.delete(a.id)
       put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null })
       await o.download?.(a.batch).catch(() => undefined) // a failed save shows on the output itself
+      // …except the one the user must lift in the browser: the next images would be held back the same way, so the batch waits
+      if (db.prepare("select 1 from download where attempt_id=? and error_code='DOWNLOAD_NOT_STARTED'").get(a.id)) hold(a.batch, 'DOWNLOAD_NOT_STARTED')
       return
     }
     if (t && moving(t)) started.add(a.id)
@@ -155,10 +159,13 @@ export function createGptRunner(o: {
 
   async function run(): Promise<void> {
     for (const b of [...reasons.keys()]) { // the user resumed a batch this runner paused
-      if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status === 'running') { reasons.delete(b); reopen.add(b) }
+      if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status !== 'running') continue
+      const why = reasons.get(b)
+      reasons.delete(b); reopen.add(b)
+      if (why === 'DOWNLOAD_NOT_STARTED') await o.download?.(b).catch(() => undefined) // the images left behind are saved before anything new is sent
     }
     const fly = flying()
-    const batches = fly.length ? [] : db.prepare("select id from batch where provider='chatgpt' and status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all() as { id: string }[]
+    const batches = fly.length ? [] : db.prepare("select id from batch where provider=? and status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all(provider) as { id: string }[]
     if (!fly.length && !batches.length) return // nothing of ours: the extension is not asked anything
     if (clock.now() - lastPoll < pollMs || busy) return
     lastPoll = clock.now()
@@ -203,11 +210,11 @@ export function createGptRunner(o: {
 
 /** One Runner for the IPC: the user's actions on a batch (start, pause, resume, stop, confirm, rerun, archive) are plain state and work for both
  *  sites; ticking, restart recovery and the pause reason come from both runners. */
-export function routeRunner(flow: Runner, gpt: GptRunner): Runner {
+export function routeRunner(flow: Runner, ...sites: GptRunner[]): Runner {
   return {
     ...flow,
-    async tick() { const r = await Promise.allSettled([flow.tick(), gpt.tick()]); for (const x of r) if (x.status === 'rejected') throw x.reason },
-    recover() { flow.recover(); gpt.recover() },
-    lastError: (b) => gpt.lastError(b) ?? flow.lastError(b),
+    async tick() { const r = await Promise.allSettled([flow.tick(), ...sites.map((s) => s.tick())]); for (const x of r) if (x.status === 'rejected') throw x.reason },
+    recover() { flow.recover(); for (const s of sites) s.recover() },
+    lastError: (b) => sites.map((s) => s.lastError(b)).find((e) => e != null) ?? flow.lastError(b),
   }
 }
