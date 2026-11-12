@@ -22,7 +22,6 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux",
     "test": "node scripts/unit.mjs",
     "e2e": "electron-vite build && playwright test",
     "live-probe": "rolldown scripts/live-probe.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate && node out/probe/live-probe.js",
@@ -30,7 +29,7 @@
     "live-gpt-batch": "rolldown scripts/live-gpt-batch.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-gpt-batch.js",
     "live-gpt": "rolldown scripts/live-gpt.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate && node out/probe/live-gpt.js",
     "live-dl": "rolldown scripts/live-dl.ts -d out/probe -f esm -p node --external bufferutil --external utf-8-validate --external better-sqlite3 && node out/probe/live-dl.js",
-    "dist": "npm run build && electron-builder --linux --win"
+    "dist": "npm run build && electron-builder --win"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3"

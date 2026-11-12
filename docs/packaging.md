@@ -1,3 +1,5 @@
+> **2026-11-13: Windows only.** The owner dropped the Linux installers (AppImage, .deb); everything is built and tested on the owner's Windows PC. The Linux steps below are history.
+
 # Packaging (P4): building the installers
 
 All three installers build on the Linux dev machine from `apps/desktop`:
