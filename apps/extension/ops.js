@@ -59,6 +59,25 @@ export function forwardEvent(tabId, ev) {
 
 // ---- downloads: the url lives only inside the extension (R54); results carry ids, state, path, size, mime, error code ----
 export const shapeDownload = (d) => ({ id: d.id, state: d.state, filename: d.filename, fileSize: d.fileSize, mime: d.mime, error: d.error ?? null });
+// Measured: while this extension listens for filenames (a Gemini save does, and a moment after), the browser drops download()'s own filename for
+// EVERY download of ours: a ChatGPT image of that moment landed in Downloads as "download". So each one is remembered by its id and named
+// again when the browser asks (nameOurs).
+const ourNames = new Map(); // download id -> its name inside ToolFlow-tmp; in memory only
+async function startDownload(c, url, filename) {
+  const id = await c.downloads.download({ url, filename: 'ToolFlow-tmp/' + filename, conflictAction: 'uniquify' });
+  if (Number.isInteger(id)) { ourNames.set(id, filename); if (ourNames.size > 500) ourNames.delete(ourNames.keys().next().value); } // nobody asks when no listener is up: the oldest go
+  return id;
+}
+/** For a filename listener: true when the download is ours; its name is suggested as soon as download() has said which id it is. */
+function nameOurs(c, item, suggest) {
+  if (!item || item.byExtensionId !== c.runtime.id) return false;
+  (async () => {
+    for (let i = 0; i < 40 && !ourNames.has(item.id); i++) await new Promise((r) => setTimeout(r, 50)); // the browser may ask first
+    const name = ourNames.get(item.id); ourNames.delete(item.id);
+    if (name) suggest({ filename: 'ToolFlow-tmp/' + name, conflictAction: 'uniquify' }); else suggest();
+  })();
+  return true; // the answer comes later
+}
 const codeOf = (c) => (typeof c === 'string' && /^[A-Z_]{1,30}$/.test(c) ? c : 'NOT_FOUND');
 
 /** The tab's content script answers an INTERNAL message with the tile's src (not an allowlisted op, never forwarded). Codes only on failure. */
@@ -68,7 +87,7 @@ export async function fetchMediaOp(c, a) {
   if (!r || typeof r.src !== 'string') return { ok: false, code: codeOf(r?.code) };
   if (!isAllowedDownloadUrl(r.src)) { let host = '?'; try { host = new URL(r.src).hostname; } catch { /* keep ? */ } return { ok: false, code: 'SRC_NOT_ALLOWED', host }; } // host only: never the url
   try {
-    const downloadId = await c.downloads.download({ url: r.src, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
+    const downloadId = await startDownload(c, r.src, a.filename);
     return Number.isInteger(downloadId) ? { ok: true, downloadId } : { ok: false, code: 'DOWNLOAD_REFUSED' };
   } catch { return { ok: false, code: 'DOWNLOAD_REFUSED' }; } // the browser's message can echo the url: never forward it
 }
@@ -82,7 +101,7 @@ export async function gptFetchOp(c, a) {
   if (!r || typeof r.src !== 'string') return { ok: false, code: codeOf(r?.code) };
   if (!G.isImageDataUrl(r.src)) return { ok: false, code: 'SRC_NOT_ALLOWED' };
   try {
-    const downloadId = await c.downloads.download({ url: r.src, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
+    const downloadId = await startDownload(c, r.src, a.filename);
     return Number.isInteger(downloadId) ? { ok: true, downloadId } : { ok: false, code: 'DOWNLOAD_REFUSED' };
   } catch { return { ok: false, code: 'DOWNLOAD_REFUSED' }; }
 }
@@ -92,7 +111,6 @@ export async function gptFetchOp(c, a) {
  *  may start by itself is cancelled while this runs and a moment after. One at a time: one press at a time on the page.
  *  Measured: once an extension listens for filenames, the browser drops download()'s own filename, so ours is suggested when it asks. */
 let gemQueue = Promise.resolve();
-const gemNames = new Map(); // address we asked the browser to download -> the name it must get; in memory, until the browser asks
 let gemLinger = null; // the listener of the request before, still up for its moment after
 export function gemFetchOp(c, a, lingerMs = 15000) {
   const run = async () => {
@@ -100,8 +118,7 @@ export function gemFetchOp(c, a, lingerMs = 15000) {
     if (!tabUrl.startsWith('https://gemini.google.com/')) return { ok: false, code: 'NOT_GEMINI_TAB' };
     if (gemLinger) { clearTimeout(gemLinger.timer); gemLinger.off(); gemLinger = null; }
     const asked = (item, suggest) => {
-      const name = gemNames.get(item?.url);
-      if (name) { gemNames.delete(item.url); suggest({ filename: 'ToolFlow-tmp/' + name, conflictAction: 'uniquify' }); return; }
+      if (nameOurs(c, item, suggest)) return true; // ours, of any site
       if (M.isGeminiDownload(item)) Promise.resolve().then(() => c.downloads.cancel(item.id)).then(() => c.downloads.erase({ id: item.id })).catch(() => undefined);
     };
     const off = () => c.downloads.onDeterminingFilename.removeListener(asked);
@@ -111,12 +128,10 @@ export function gemFetchOp(c, a, lingerMs = 15000) {
       try { r = await c.tabs.sendMessage(a.tabId, { tf: 'gemDownload', mediaId: a.mediaId }); } catch { return { ok: false, code: 'NO_CONTENT_SCRIPT' }; }
       if (!r || typeof r.url !== 'string') return { ok: false, code: codeOf(r?.code) };
       if (!M.isFullSizeUrl(r.url)) { let host = '?'; try { host = new URL(r.url).hostname; } catch { /* keep ? */ } return { ok: false, code: 'SRC_NOT_ALLOWED', host }; } // host only: never the url
-      gemNames.set(r.url, a.filename);
       try {
-        const downloadId = await c.downloads.download({ url: r.url, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
+        const downloadId = await startDownload(c, r.url, a.filename);
         if (Number.isInteger(downloadId)) return { ok: true, downloadId };
       } catch { /* the browser's message can echo the url: never forward it */ }
-      gemNames.delete(r.url);
       return { ok: false, code: 'DOWNLOAD_REFUSED' };
     } finally { const me = { off, timer: setTimeout(() => { off(); if (gemLinger === me) gemLinger = null; }, lingerMs) }; gemLinger = me; }
   };

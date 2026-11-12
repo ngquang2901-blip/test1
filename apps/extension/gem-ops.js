@@ -57,7 +57,7 @@
         if (!b) return { ok: false, code: 'ASPECT_NOT_FOUND' };
         if (iconsOf(b).includes(want)) return { ok: true };
         b.click();
-        const hit = ((await until(() => { const f = [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemradio"]')]; return f.length ? f : null; })) || []).filter((x) => iconsOf(x).includes(want));
+        const hit = (await until(() => { const f = [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemradio"]')].filter((x) => iconsOf(x).includes(want)); return f.length ? f : null; })) || []; // the entry itself is waited for: see the "+" menu
         if (hit.length !== 1) { esc(); return { ok: false, code: 'ASPECT_NOT_FOUND' }; }
         hit[0].click();
         return (await until(() => { const x = aspectBtn(); return x && iconsOf(x).includes(want); }, 4000)) ? { ok: true } : { ok: false, code: 'ASPECT_NOT_SET' };
@@ -68,7 +68,7 @@
         if (!b) return { ok: false, code: 'MODEL_NOT_FOUND' };
         if (G.flat(b.innerText) === a.model) return { ok: true };
         b.click();
-        const hit = ((await until(() => { const f = [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemradio"][data-test-id^="bard-mode-option-"]')]; return f.length ? f : null; })) || []).filter((x) => G.isModelItem(x.innerText, a.model) && !iconsOf(x).includes('lock'));
+        const hit = (await until(() => { const f = [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemradio"][data-test-id^="bard-mode-option-"]')].filter((x) => G.isModelItem(x.innerText, a.model) && !iconsOf(x).includes('lock')); return f.length ? f : null; })) || [];
         if (hit.length !== 1) { esc(); return { ok: false, code: 'MODEL_NOT_FOUND' }; }
         hit[0].click();
         return (await until(() => G.flat(b.innerText) === a.model, 4000)) ? { ok: true } : { ok: false, code: 'MODEL_NOT_SET' };
@@ -79,7 +79,8 @@
       const plus = btn('plus'); if (!plus) return { ok: false, code: 'NO_PLUS' };
       const before = new Set(menuItems());
       plus.click();
-      const hit = ((await until(() => { const f = menuItems().filter((x) => !before.has(x)); return f.length ? f : null; })) || []).filter((b) => iconsOf(b).includes(G.IMAGE_ICON));
+      // measured: the menu fills in steps (attach_file and drive first, the tools up to 1.5 s later), so the entry itself is waited for, not the first new item
+      const hit = (await until(() => { const f = menuItems().filter((x) => !before.has(x) && iconsOf(x).includes(G.IMAGE_ICON)); return f.length ? f : null; }, 8000)) || [];
       if (hit.length !== 1) { esc(); return { ok: false, code: 'MODE_NOT_FOUND' }; } // nothing is clicked on a menu we cannot read
       hit[0].click();
       return (await until(() => modeOf() === G.IMAGE_MODE, 4000)) ? rest() : { ok: false, code: 'MODE_NOT_SET' };

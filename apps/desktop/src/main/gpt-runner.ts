@@ -30,7 +30,7 @@ export function createGptRunner(o: {
   sleep?(ms: number): Promise<void>
   assets?: Pick<AssetStore, 'get'> // reference images of a batch
   download?(batchId: string): Promise<void> // saves the batch's finished images; called while they are still on the page
-  hands?: { busy: boolean } // shared by the site runners of one Chrome: working one site's tab brings it forward, which hides the other's (measured: its menu then does not open)
+  hands?: { busy: boolean; last?: Site | null } // shared by the site runners of one Chrome; last: the site that sent the previous prompt. Working one site's tab brings it forward, which hides the other's, and ChatGPT's menu does not open while hidden (measured). The sites take turns a whole prompt at a time: what else needs the tab in front is not known
 }): GptRunner {
   const { db, driver, clock } = o
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
@@ -42,7 +42,7 @@ export function createGptRunner(o: {
   const started = new Set<string>() // attempts whose answer was seen in progress or with an image coming
   let lastTab: string | null = null
   let lastPoll = -Infinity
-  const hands = o.hands ?? { busy: false } // busy: a prompt is being typed/sent, or the tab is being taken to a conversation for a download
+  const hands: { busy: boolean; last?: Site | null } = o.hands ?? { busy: false } // busy: a prompt is being typed/sent, or the tab is being taken to a conversation for a download
 
   const put = (id: string, type: string, s: AttemptState): AttemptState => {
     db.transaction(() => {
@@ -54,7 +54,9 @@ export function createGptRunner(o: {
   const rows = (where: string, ...args: unknown[]): Row[] => (db.prepare(
     `select a.id, i.batch_id batch, a.state_json j from item i join attempt a on a.id=i.attempt_id join batch b on b.id=i.batch_id
      where b.provider=? and ${where} order by b.created_at, b.rowid, i.ord`).all(provider, ...args) as { id: string; batch: string; j: string }[]).map((r) => ({ id: r.id, batch: r.batch, s: JSON.parse(r.j) as AttemptState }))
-  const otherSiteFlying = (): boolean => !!db.prepare("select 1 from item i join attempt a on a.id=i.attempt_id join batch b on b.id=i.batch_id where b.provider not in ('flow', ?) and b.archived=0 and json_extract(a.state_json,'$.item') in ('submitting','generating') limit 1").get(provider)
+  const otherSite = (items: string, batch = ''): boolean => !!db.prepare(`select 1 from item i join attempt a on a.id=i.attempt_id join batch b on b.id=i.batch_id where b.provider not in ('flow', ?) and b.archived=0 ${batch} and json_extract(a.state_json,'$.item') in (${items}) limit 1`).get(provider)
+  const otherSiteFlying = (): boolean => otherSite("'submitting','generating'")
+  const otherSiteWaiting = (): boolean => otherSite("'queued','preparing'", "and b.status='running' and b.stop_requested=0")
   const flying = (): Row[] => rows("json_extract(a.state_json,'$.item') in ('submitting','generating')")
   const review = (s: AttemptState, code: string, why: string): AttemptState => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, why }, admission: 'pause', creditSpent: true })
   const hold = (batch: string, code: string): void => {
@@ -97,7 +99,7 @@ export function createGptRunner(o: {
     if (t && t.state === 'complete' && t.images.length && !t.pending) {
       noImage.delete(a.id); started.delete(a.id)
       put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null })
-      hands.busy = true // the save works the tab too (measured: Gemini's full-size file does not come while its tab is hidden)
+      hands.busy = true // the other site does not start while this one saves
       try { await o.download?.(a.batch).catch(() => undefined) } finally { hands.busy = false } // a failed save shows on the output itself
       return
     }
@@ -184,7 +186,8 @@ export function createGptRunner(o: {
       const tab = await theTab()
       if (!tab) { hold(b.id, 'NO_CHATGPT_TAB'); continue }
       if (hands.busy || otherSiteFlying()) return // the other chat site is at work (typing, answering or saving): its prompt first, then ours
-      hands.busy = true
+      if (hands.last === provider && otherSiteWaiting()) { hands.last = null; return } // we sent the last prompt: the other site goes first, this once (it may be unable to)
+      hands.busy = true; hands.last = provider
       try { await dispatch(tab, b.id, c, list) } finally { hands.busy = false }
       return
     }
@@ -201,7 +204,7 @@ export function createGptRunner(o: {
     /** The image is only on the page of its own conversation: when the tab is elsewhere and no prompt is in flight, take it back there. */
     async fetchMedia(tab, p) {
       let r = await driver.fetchMedia(tab, p)
-      if (r.ok || r.code !== 'NOT_FOUND' || hands.busy || flying().length) return r
+      if (r.ok || r.code !== 'NOT_FOUND' || hands.busy || flying().length || otherSiteFlying()) return r // nor while the other site answers: going there would hide its tab
       const owner = (db.prepare('select state_json j from attempt where state_json like ?').all(`%"mediaId":"${p.mediaId}"%`) as { j: string }[])[0]
       const conv = owner ? (JSON.parse(owner.j).request as Req | null)?.conv : null
       if (!conv) return r

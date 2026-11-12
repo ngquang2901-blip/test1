@@ -429,5 +429,34 @@ test('a ChatGPT batch and a Gemini batch at the same time, both tabs in one wind
   expect([gptFake.ledger.sends, gemFake.ledger.sends]).toEqual([['a blue door', 'a blue window'], ['a red kite', 'a red boat']]);
   expect(log).toHaveLength(8);
   for (let i = 0; i < log.length; i += 2) expect([log[i].slice(0, 5), log[i + 1]], log.join(', ')).toEqual(['send ', log[i].replace('send', 'saved')]); // nothing of the other site between a send and its save
+  const order = log.filter((x) => x.startsWith('send '));
+  expect([order[0] !== order[1], order[1] !== order[2], order[2] !== order[3]], order.join(', ')).toEqual([true, true, true]); // and fairly: the site that sent last lets the other go first
+});
+
+test('a download of an older image whose tab left its conversation: the tab is not taken back there while the other chat site has a prompt in flight (it would hide that tab); afterwards it is', async () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-turn-')), 't.db'));
+  const clock = { t: 1_800_000_000_000, now() { return this.t; } };
+  const gptFake = createFakeGpt([]), gemFake = createFakeGpt([], { site: 'gemini', fetchMedia: async () => ({ ok: true, downloadId: 7 }) });
+  const hands = { busy: false };
+  const mk = (provider: 'chatgpt' | 'gemini', fake: typeof gptFake) => createGptRunner({ db, provider, driver: fake.driver, clock, pollMs: 0, sleep: async () => undefined, hands });
+  const gpt = mk('chatgpt', gptFake), gem = mk('gemini', gemFake);
+  const runner = routeRunner(createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true, projectOf: () => 'p-flow' }), gpt, gem);
+  const add = (provider: 'chatgpt' | 'gemini', prompt: string): string => enqueueBatch(db, { commandId: provider, kind: 'image', provider, projectId: null, settings: { provider }, prompts: [prompt], refs: [[]], mode: 'auto' }).batchId;
+  const state = (b: string): AttemptState => JSON.parse((db.prepare('select a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?').get(b) as { j: string }).j);
+  const g = add('gemini', 'a red kite');
+  runner.start(g);
+  for (let i = 0; i < 4; i++) await runner.tick();
+  const media = state(g).outputs![0].mediaId, conv = state(g).request.conv;
+  gemFake.userLeaves();
+  const c = add('chatgpt', 'a blue door');
+  runner.start(c);
+  for (let i = 0; i < 2; i++) await runner.tick();
+  expect(state(c).item).toBe('generating');
+  expect(await gem.fetchMedia('m1', { mediaId: media, filename: 'x.bin' })).toEqual({ ok: false, code: 'NOT_FOUND' });
+  expect(gemFake.ledger.opens).toEqual([]);
+  for (let i = 0; i < 4; i++) await runner.tick();
+  expect(state(c).item).toBe('ready');
+  expect(await gem.fetchMedia('m1', { mediaId: media, filename: 'x.bin' })).toEqual({ ok: true, downloadId: 7 });
+  expect(gemFake.ledger.opens).toEqual([conv]);
 });
 
