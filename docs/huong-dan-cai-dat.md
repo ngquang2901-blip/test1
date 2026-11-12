@@ -3,13 +3,13 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.10.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.11.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
 ## Linux
-- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.10.0-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.10.0-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.10.0-x86_64.AppImage --appimage-extract-and-run`.
-- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.10.0-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
+- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.11.0-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.11.0-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.11.0-x86_64.AppImage --appimage-extract-and-run`.
+- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.11.0-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:
@@ -51,6 +51,7 @@ Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên tro
 - Khi lô chạy, app đưa tab Gemini lên trước. Đừng thu nhỏ cửa sổ Chrome đó, đừng gõ vào Gemini và đừng để sẵn chữ trong ô nhập của Gemini (app không gõ đè lên chữ có sẵn, lô sẽ tạm dừng).
 - Lúc lấy ảnh cỡ đầy đủ, app bấm nút tải của Gemini; bản tải riêng của Gemini (tên `Gemini_Generated_Image_…`) nếu có sẽ bị app huỷ để không lưu trùng. Trong lúc lô chạy, đừng tự bấm tải ảnh trong Gemini.
 - **Trong Workflow** (từ bản 0.10.0): bấm vào node **Tạo ảnh**, ở ô **Nền tảng** chọn Google Flow, ChatGPT hoặc Gemini. Node Gemini có thêm ô Mô hình và Tỉ lệ khung hình. Ảnh của node trước nối sang sẽ thành ảnh tham chiếu của node sau, kể cả khi hai node ở hai nền tảng khác nhau.
+- Có lô ChatGPT và lô Gemini chạy cùng lúc thì app làm lần lượt, mỗi lúc một prompt (từ bản 0.11.0), vì hai tab nằm chung một cửa sổ Chrome. Lô Flow vẫn chạy song song như cũ.
 
 ## Cho trợ lý AI điều khiển ToolFlow (MCP, từ bản 0.6.1)
 MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, Hermes…) tạo lô, xem tiến độ và tải kết quả thay bạn. Mặc định tắt.
@@ -58,6 +59,7 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 2. Bấm **Mở thư mục chứa mã khoá**, mở file `mcp.json`, chép dòng `token`.
 3. Khai báo trong trợ lý. Ví dụ Claude Code: `claude mcp add --transport http toolflow http://127.0.0.1:47615/mcp --header "Authorization: Bearer <token>"`.
 - Trợ lý có 4 lệnh: xem trạng thái, tạo lô (ảnh hoặc video, dùng cài đặt mặc định của app), xem các lô, tải kết quả về máy.
+- Từ bản 0.11.0, lệnh tạo lô nhận thêm nền tảng **ChatGPT** hoặc **Gemini** (chỉ ảnh; Gemini chọn được tỉ lệ và mô hình). Lô đó chạy trong tab chatgpt.com / gemini.google.com đang mở, app tự gửi và tự lưu, tốn lượt tạo ảnh của tài khoản đó chứ không tốn credit Flow.
 - Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được **Tự động gửi**: nếu bạn chưa bật, lô của nó chờ bạn bấm Gửi trong Flow.
 - Ai đọc được file `mcp.json` cũng điều khiển được app: đừng gửi file đó cho người khác. Muốn khoá lại thì bỏ tích.
 

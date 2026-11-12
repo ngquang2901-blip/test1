@@ -404,3 +404,30 @@ test('a ChatGPT batch with reference images: each prompt goes out with exactly i
   expect(fake.ledger.attached.map((x) => x.clear)).toEqual([true, true, false]);
 });
 
+test('a ChatGPT batch and a Gemini batch at the same time, both tabs in one window: bringing one tab forward hides the other, so the sites take turns, one prompt at a time from its send to the end of its save, and both batches finish', async () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-two-')), 't.db'));
+  const clock = { t: 1_800_000_000_000, now() { return this.t; } };
+  const gptFake = createFakeGpt([]), gemFake = createFakeGpt([], { site: 'gemini' });
+  const log: string[] = [];
+  const oneWindow = (a: typeof gptFake, b: typeof gptFake, name: string): void => { // a tab that becomes the active one puts the other in the background
+    const front = a.driver.front, newChat = a.driver.newChat, open = a.driver.open, send = a.driver.send;
+    a.driver.send = async (...x) => { log.push(`send ${name}`); return send(...x); };
+    a.driver.front = async (...x) => { b.toBackground(); const r = await front(...x); await new Promise((res) => setTimeout(res, 1)); return r; }; // the pause: room for the other runner to do the same
+    a.driver.newChat = async (...x) => { b.toBackground(); return newChat(...x); };
+    a.driver.open = async (...x) => { b.toBackground(); return open(...x); };
+  };
+  oneWindow(gptFake, gemFake, 'chatgpt'); oneWindow(gemFake, gptFake, 'gemini');
+  const hands = { busy: false };
+  const mk = (provider: 'chatgpt' | 'gemini', fake: typeof gptFake) => createGptRunner({ db, provider, driver: fake.driver, clock, pollMs: 0, sleep: async () => undefined, hands, download: async () => { await new Promise((res) => setTimeout(res, 1)); log.push(`saved ${provider}`); } });
+  const runner = routeRunner(createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true, projectOf: () => 'p-flow' }), mk('chatgpt', gptFake), mk('gemini', gemFake));
+  const add = (provider: 'chatgpt' | 'gemini', prompts: string[]): string => enqueueBatch(db, { commandId: provider, kind: 'image', provider, projectId: null, settings: { provider }, prompts, refs: prompts.map(() => []), mode: 'auto' }).batchId;
+  const c = add('chatgpt', ['a blue door', 'a blue window']), g = add('gemini', ['a red kite', 'a red boat']);
+  runner.start(c); runner.start(g);
+  for (let i = 0; i < 24; i++) await runner.tick();
+  const items = (b: string): string[] => (db.prepare('select a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(b) as { j: string }[]).map((r) => (JSON.parse(r.j) as AttemptState).item);
+  expect([items(c), runner.lastError(c), items(g), runner.lastError(g)]).toEqual([['ready', 'ready'], null, ['ready', 'ready'], null]);
+  expect([gptFake.ledger.sends, gemFake.ledger.sends]).toEqual([['a blue door', 'a blue window'], ['a red kite', 'a red boat']]);
+  expect(log).toHaveLength(8);
+  for (let i = 0; i < log.length; i += 2) expect([log[i].slice(0, 5), log[i + 1]], log.join(', ')).toEqual(['send ', log[i].replace('send', 'saved')]); // nothing of the other site between a send and its save
+});
+

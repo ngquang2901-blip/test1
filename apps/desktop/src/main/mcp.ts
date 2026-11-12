@@ -87,20 +87,21 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
   })) })
   return {
     toolflow_status: {
-      description: 'ToolFlow state: is Chrome connected, how many Flow tabs are in use, did the self-check pass, is auto-send on (off = the user must click Send in Flow).',
+      description: 'ToolFlow state: is Chrome connected, how many Flow tabs are in use, how many chatgpt.com / gemini.google.com tabs are open, did the self-check pass, is auto-send on (off = the user must click Send in Flow).',
       inputSchema: { type: 'object', properties: {} },
       async run() {
-        const s = (await d.list()).session as { connected: boolean | null; tabs: { granted: boolean }[]; autoEnabled: boolean; selfCheck: { ok: boolean } | null; email: string | null }
-        return { connected: s.connected !== false, /* null: the built-in test Flow, which has no Chrome to lose */ tabsInUse: s.tabs.filter((t) => t.granted).length, selfCheckOk: !!s.selfCheck?.ok, autoSend: s.autoEnabled, account: s.email ? s.email.replace(/^(..)[^@]*/, '$1***') : null }
+        const s = (await d.list()).session as { connected: boolean | null; tabs: { granted: boolean }[]; gptTabs?: number; gemTabs?: number; autoEnabled: boolean; selfCheck: { ok: boolean } | null; email: string | null }
+        return { connected: s.connected !== false, /* null: the built-in test Flow, which has no Chrome to lose */ tabsInUse: s.tabs.filter((t) => t.granted).length, chatgptTabs: s.gptTabs ?? 0, geminiTabs: s.gemTabs ?? 0, selfCheckOk: !!s.selfCheck?.ok, autoSend: s.autoEnabled, account: s.email ? s.email.replace(/^(..)[^@]*/, '$1***') : null }
       },
     },
     toolflow_create_batch: {
-      description: 'Send prompts to Google Flow through ToolFlow, one result set per prompt, with the app\'s default settings (image: 2 images per prompt; video: one 8 s video, 10 Flow credits each). Spends the user\'s Flow credits. Returns batch ids; poll toolflow_list_batches.',
-      inputSchema: { type: 'object', required: ['prompts'], properties: { prompts: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'string', maxLength: 5000 }, description: 'One prompt per entry, no line breaks.' }, kind: { type: 'string', enum: ['image', 'video'], default: 'image' } } },
+      description: 'Send prompts to Google Flow (or, with site, to the ChatGPT / Gemini tab) through ToolFlow, one result set per prompt, with the app\'s default settings (image: 2 images per prompt; video: one 8 s video, 10 Flow credits each). Spends the user\'s Flow credits. Returns batch ids; poll toolflow_list_batches.',
+      inputSchema: { type: 'object', required: ['prompts'], properties: { prompts: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'string', maxLength: 5000 }, description: 'One prompt per entry, no line breaks.' }, kind: { type: 'string', enum: ['image', 'video'], default: 'image' }, site: { type: 'string', enum: ['flow', 'chatgpt', 'gemini'], default: 'flow', description: 'chatgpt / gemini: images only, one per prompt, sent in the open chatgpt.com / gemini.google.com tab and saved by the app; uses that account\'s image quota, not Flow credits.' }, aspect: { type: 'string', enum: ['1:1', '9:16', '3:4', '4:3', '16:9'], description: 'gemini only.' }, model: { type: 'string', enum: ['Flash-Lite', 'Flash', 'Pro'], description: 'gemini only; also changes the model in the user\'s Gemini tab.' } } },
       async run(a) {
-        const kind = a.kind ?? 'image', p = a.prompts
-        if ((kind !== 'image' && kind !== 'video') || !Array.isArray(p) || !p.length || p.length > 100 || p.some((x) => typeof x !== 'string' || !x.trim() || x.length > 5000 || /[\r\n]/.test(x))) throw coded('INVALID_ARGS')
-        const r = await d.enqueue({ commandId: `mcp:${randomUUID()}`, kind, mode: 'auto', text: (p as string[]).map((x) => x.trim()).join('\n') })
+        const kind = a.kind ?? 'image', p = a.prompts, site = a.site ?? 'flow'
+        if (!['flow', 'chatgpt', 'gemini'].includes(site as string) || (kind !== 'image' && kind !== 'video') || !Array.isArray(p) || !p.length || p.length > 100 || p.some((x) => typeof x !== 'string' || !x.trim() || x.length > 5000 || /[\r\n]/.test(x))) throw coded('INVALID_ARGS')
+        const r = await d.enqueue({ commandId: `mcp:${randomUUID()}`, kind, mode: 'auto', text: (p as string[]).map((x) => x.trim()).join('\n'),
+          ...(site !== 'flow' ? { provider: site, ...(a.aspect !== undefined ? { aspect: a.aspect } : {}), ...(a.model !== undefined ? { model: a.model } : {}) } : {}) }) // enqueue refuses a wrong mix (a video, a ratio for ChatGPT)
         if (r.errors?.length) return { errors: r.errors }
         const batchIds = r.batchIds ?? [r.batchId!]
         for (const id of batchIds) await d.start(id)

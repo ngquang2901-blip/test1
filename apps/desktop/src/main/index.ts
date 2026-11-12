@@ -98,8 +98,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     projectOf: (t) => grants.projectOf(t), // each tab only takes batches of the project it shows
     selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
   // ChatGPT batches have their own runner (one prompt at a time in the open chatgpt.com tab); each finished image is saved while it is still on the page
-  const gptRunner = createGptRunner({ db, driver: gptDriver, assets, clock, download: (b) => downloader.batch(b) })
-  const gemRunner = createGptRunner({ db, driver: gemDriver, provider: 'gemini', assets, clock, download: (b) => downloader.batch(b) }) // Gemini: the same kind of runner on the gemini.google.com tab
+  const hands = { busy: false } // ChatGPT and Gemini tabs are worked one at a time
+  const gptRunner = createGptRunner({ db, driver: gptDriver, assets, clock, hands, download: (b) => downloader.batch(b) })
+  const gemRunner = createGptRunner({ db, driver: gemDriver, provider: 'gemini', assets, clock, hands, download: (b) => downloader.batch(b) }) // Gemini: the same kind of runner on the gemini.google.com tab
   const runner = routeRunner(flowRunner, gptRunner, gemRunner)
   const siteOf = (b: string): typeof gptRunner | null => { const p = (db.prepare('select provider p from batch where id=?').get(b) as { p: string } | undefined)?.p; return p === 'chatgpt' ? gptRunner : p === 'gemini' ? gemRunner : null }
   grants = createGrants(driver, runner)

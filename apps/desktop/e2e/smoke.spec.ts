@@ -943,6 +943,12 @@ test('MCP: off until turned on in Cài đặt; then an agent with the key create
   const done = await tool('toolflow_download', { batchId: batchIds[0] }) as { batches: { items: { prompt: string; state: string; files: string[] }[] }[] }
   expect(done.batches[0].items.map((i) => [i.prompt, i.state, i.files.length])).toEqual([['một con mèo', 'ready', 1], ['một con chó', 'ready', 1]])
   for (const f of done.batches[0].items.flatMap((i) => i.files)) expect([f.startsWith(root), readFileSync(f).subarray(0, 4).toString('hex')]).toEqual([true, '89504e47'])
+  // the same tool sends to a chat site: the app's own door takes the Gemini choices and refuses a wrong mix
+  expect(await tool('toolflow_status')).toMatchObject({ chatgptTabs: 1, geminiTabs: 1 })
+  const g = await tool('toolflow_create_batch', { prompts: ['một con cá'], site: 'gemini', aspect: '9:16', model: 'Pro' }) as { batchIds: string[] }
+  await expect.poll(async () => (await tool('toolflow_list_batches', { batchId: g.batchIds[0] })).batches[0].items[0].files.length, { timeout: 30_000 }).toBe(1) // saved by the app itself
+  expect((await ask('tools/call', { name: 'toolflow_create_batch', arguments: { prompts: ['x'], site: 'chatgpt', aspect: '9:16' } })).body!.isError).toBe(true)
+  expect((await ask('tools/call', { name: 'toolflow_create_batch', arguments: { prompts: ['x'], site: 'gemini', kind: 'video' } })).body!.isError).toBe(true)
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await expect(items(page).filter({ hasText: 'một con mèo' })).toHaveCount(1) // the user sees the agent's batch like any other
   await page.getByRole('button', { name: 'Cài đặt' }).click()
