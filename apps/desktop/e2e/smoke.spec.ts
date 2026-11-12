@@ -840,7 +840,9 @@ test('Flow results save themselves as they get ready, and a save that failed is 
   expect(pngFiles(root)).toHaveLength(1)
   expect((await ledger(app)).fetches).toBe(2) // the first transfer was bad, the app's own second one was good
   await page.getByRole('button', { name: 'Cài đặt' }).click()
-  await page.getByLabel('Tự lưu kết quả của lô Flow về máy khi tạo xong').uncheck()
+  const box = page.getByLabel('Tự lưu kết quả của lô Flow về máy khi tạo xong')
+  await box.click() // the box shows the saved setting, which arrives a moment after the click: wait for it instead of uncheck()'s instant check
+  await expect(box).not.toBeChecked()
   await create(page, ['một con chó'])
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
   await page.waitForTimeout(5000)
