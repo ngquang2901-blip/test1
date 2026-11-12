@@ -59,7 +59,7 @@ async function handle(op, a, epoch) {
       if (a.raise === true) { const w = await chrome.windows.get(t.windowId); await chrome.windows.update(t.windowId, w.state === 'minimized' ? { state: 'normal', focused: true } : { focused: true }); }
       return true;
     }
-    case 'gemFetch': return gemFetchOp(chrome, a); // tab presses its own full-size download -> that download is named into ToolFlow-tmp
+    case 'gemFetch': return gemFetchOp(chrome, a); // tab presses its own full-size download and says where the page got the file -> downloaded here into ToolFlow-tmp
     case 'gptFetch': return gptFetchOp(chrome, a); // tab -> image bytes (internal message) -> chrome.downloads
     case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;

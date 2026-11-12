@@ -94,8 +94,6 @@ export function createGptRunner(o: {
       noImage.delete(a.id); started.delete(a.id)
       put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null })
       await o.download?.(a.batch).catch(() => undefined) // a failed save shows on the output itself
-      // …except the one the user must lift in the browser: the next images would be held back the same way, so the batch waits
-      if (db.prepare("select 1 from download where attempt_id=? and error_code='DOWNLOAD_NOT_STARTED'").get(a.id)) hold(a.batch, 'DOWNLOAD_NOT_STARTED')
       return
     }
     if (t && moving(t)) started.add(a.id)
@@ -159,10 +157,7 @@ export function createGptRunner(o: {
 
   async function run(): Promise<void> {
     for (const b of [...reasons.keys()]) { // the user resumed a batch this runner paused
-      if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status !== 'running') continue
-      const why = reasons.get(b)
-      reasons.delete(b); reopen.add(b)
-      if (why === 'DOWNLOAD_NOT_STARTED') await o.download?.(b).catch(() => undefined) // the images left behind are saved before anything new is sent
+      if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status === 'running') { reasons.delete(b); reopen.add(b) }
     }
     const fly = flying()
     const batches = fly.length ? [] : db.prepare("select id from batch where provider=? and status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all(provider) as { id: string }[]

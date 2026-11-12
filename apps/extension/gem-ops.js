@@ -6,6 +6,7 @@
   if (window.__tfGemOps) return; window.__tfGemOps = true;
   const G = globalThis.TFGem;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const FULL_SIZE_WAIT_MS = 45000; // measured: 1 s (the page had it) to 15 s
   const until = async (fn, ms = 4000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = fn(); if (v) return v; await sleep(120); } return null; };
   const iconsOf = (e) => [...e.querySelectorAll('mat-icon, gem-icon')].map((i) => i.getAttribute('fonticon') || i.getAttribute('data-mat-icon-name') || i.getAttribute('name') || i.textContent.trim()).filter(Boolean);
   const esc = () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
@@ -94,13 +95,20 @@
   };
 
   chrome.runtime.onMessage.addListener((m, s, reply) => {
-    if (m?.tf === 'gemDownload') { // INTERNAL: only our own service worker may ask. Presses the page's own "download full size" of one image.
+    if (m?.tf === 'gemDownload') { // INTERNAL: only our own service worker may ask. Presses the page's own "download full size" of one image and answers with where the page got the file.
       if (s?.id !== chrome.runtime.id) return;
       const id = G.parseMediaId(m.mediaId), t = id && turnEls().find((x) => x.id === id.turn), one = t && singles(t)[id.n - 1];
       const b = one && shown(one.querySelector('img')) ? one.querySelector('download-generated-image-button button') : null;
       if (!b) { reply({ code: 'NOT_FOUND' }); return; }
       if (locked(b)) { reply({ code: 'BUSY' }); return; }
-      b.click(); reply({ ok: true }); return;
+      // The press makes the page fetch the real file; where from is read off the page's resource timing (an observer: the timing buffer of a
+      // long-lived page is full). The address goes to our service worker only, which downloads it; it is never returned by an op.
+      let url = null;
+      const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) if (G.isFullSize(e)) url = e.name; });
+      po.observe({ type: 'resource' });
+      b.click();
+      until(() => url, FULL_SIZE_WAIT_MS).then(() => { po.disconnect(); reply(url ? { url } : { code: 'NO_FULL_SIZE' }); });
+      return true;
     }
     if (m?.tf !== 'op') return;
     const f = OPS[m.op];

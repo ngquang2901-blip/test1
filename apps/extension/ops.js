@@ -83,26 +83,38 @@ export async function gptFetchOp(c, a) {
   } catch { return { ok: false, code: 'DOWNLOAD_REFUSED' }; }
 }
 
-/** Gemini: the image on the page is a preview, the full-size file comes from the page's own download button. The content script presses it
- *  (INTERNAL message) and the download that Gemini then starts is named into ToolFlow-tmp here; any other download is left alone.
- *  One at a time: two presses at once could not be told apart. */
+/** Gemini: the image on the page is a preview. The content script presses the page's own "download full size" (INTERNAL message) and answers
+ *  with the address the page fetched the real file from; that address, checked, is downloaded here like any other output. The copy the page
+ *  may start by itself is cancelled while this runs and a moment after. One at a time: one press at a time on the page.
+ *  Measured: once an extension listens for filenames, the browser drops download()'s own filename, so ours is suggested when it asks. */
 let gemQueue = Promise.resolve();
-export function gemFetchOp(c, a, waitMs = 40000) {
+const gemNames = new Map(); // address we asked the browser to download -> the name it must get; in memory, until the browser asks
+let gemLinger = null; // the listener of the request before, still up for its moment after
+export function gemFetchOp(c, a, lingerMs = 15000) {
   const run = async () => {
-    let url = ''; try { url = (await c.tabs.get(a.tabId)).url || ''; } catch { /* no such tab */ }
-    if (!url.startsWith('https://gemini.google.com/')) return { ok: false, code: 'NOT_GEMINI_TAB' };
-    let got; const started = new Promise((r) => { got = r; });
-    const seen = []; // the downloads we did not take: scheme + host, type and the SHAPE of the name; never a path or a real name
-    const where = (u) => { try { const x = new URL(String(u).replace(/^blob:/, '')); return (String(u).startsWith('blob:') ? 'blob:' : '') + x.protocol + '//' + x.host; } catch { return String(u || '').slice(0, 5) || '-'; } };
-    const name = (item, suggest) => { if (!M.isGeminiDownload(item)) { seen.push([where(item?.referrer), where(item?.url), String(item?.mime || '-').slice(0, 30), String(item?.filename || '-').split(/[\\/]/).pop().replace(/[a-z]/g, 'a').replace(/[A-Z]/g, 'A').replace(/[0-9]/g, '9').slice(0, 40)].join(' ')); return; } suggest({ filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' }); got(item.id); };
-    c.downloads.onDeterminingFilename.addListener(name);
+    let tabUrl = ''; try { tabUrl = (await c.tabs.get(a.tabId)).url || ''; } catch { /* no such tab */ }
+    if (!tabUrl.startsWith('https://gemini.google.com/')) return { ok: false, code: 'NOT_GEMINI_TAB' };
+    if (gemLinger) { clearTimeout(gemLinger.timer); gemLinger.off(); gemLinger = null; }
+    const asked = (item, suggest) => {
+      const name = gemNames.get(item?.url);
+      if (name) { gemNames.delete(item.url); suggest({ filename: 'ToolFlow-tmp/' + name, conflictAction: 'uniquify' }); return; }
+      if (M.isGeminiDownload(item)) Promise.resolve().then(() => c.downloads.cancel(item.id)).then(() => c.downloads.erase({ id: item.id })).catch(() => undefined);
+    };
+    const off = () => c.downloads.onDeterminingFilename.removeListener(asked);
+    c.downloads.onDeterminingFilename.addListener(asked);
     try {
       let r;
       try { r = await c.tabs.sendMessage(a.tabId, { tf: 'gemDownload', mediaId: a.mediaId }); } catch { return { ok: false, code: 'NO_CONTENT_SCRIPT' }; }
-      if (!r || r.ok !== true) return { ok: false, code: codeOf(r?.code) };
-      const downloadId = await Promise.race([started, new Promise((r2) => setTimeout(() => r2(null), waitMs))]);
-      return Number.isInteger(downloadId) ? { ok: true, downloadId } : { ok: false, code: 'DOWNLOAD_NOT_STARTED', ...(seen.length ? { seen: seen.slice(0, 5) } : {}) };
-    } finally { c.downloads.onDeterminingFilename.removeListener(name); }
+      if (!r || typeof r.url !== 'string') return { ok: false, code: codeOf(r?.code) };
+      if (!M.isFullSizeUrl(r.url)) { let host = '?'; try { host = new URL(r.url).hostname; } catch { /* keep ? */ } return { ok: false, code: 'SRC_NOT_ALLOWED', host }; } // host only: never the url
+      gemNames.set(r.url, a.filename);
+      try {
+        const downloadId = await c.downloads.download({ url: r.url, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
+        if (Number.isInteger(downloadId)) return { ok: true, downloadId };
+      } catch { /* the browser's message can echo the url: never forward it */ }
+      gemNames.delete(r.url);
+      return { ok: false, code: 'DOWNLOAD_REFUSED' };
+    } finally { const me = { off, timer: setTimeout(() => { off(); if (gemLinger === me) gemLinger = null; }, lingerMs) }; gemLinger = me; }
   };
   const p = gemQueue.then(run, run);
   gemQueue = p.catch(() => undefined);

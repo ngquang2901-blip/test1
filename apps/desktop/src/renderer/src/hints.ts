@@ -58,7 +58,7 @@ export const HINTS: Record<string, string> = {
   DOWNLOAD_NOT_CHATGPT_TAB: 'Tab dùng để tải không còn là ChatGPT. Mở lại chatgpt.com rồi bấm Thử lại',
   DOWNLOAD_FETCH_FAILED: 'Không đọc được ảnh trên trang ChatGPT. Tải lại tab ChatGPT (F5), đợi ảnh hiện rồi bấm Thử lại',
   DOWNLOAD_NOT_GEMINI_TAB: 'Tab dùng để tải không còn là Gemini. Mở lại gemini.google.com rồi bấm Thử lại',
-  DOWNLOAD_NOT_STARTED: 'Chrome không cho Gemini tự tải ảnh thứ hai trở đi. Làm một lần: mở chrome://settings/content/automaticDownloads, ở mục được phép tự động tải nhiều tệp bấm Thêm và nhập https://gemini.google.com — rồi bấm Tiếp tục (hoặc Thử lại ở ảnh chưa lưu)',
+  DOWNLOAD_NO_FULL_SIZE: 'Đã bấm nút tải ảnh cỡ đầy đủ của Gemini nhưng trang không lấy được file. Mở tab Gemini xem ảnh còn đó không, tải lại tab (F5) rồi bấm Thử lại',
   DOWNLOAD_BUSY: 'Nút tải ảnh của Gemini đang bận (đang tải ảnh này). Đợi một lúc rồi bấm Thử lại',
   // ChatGPT
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
