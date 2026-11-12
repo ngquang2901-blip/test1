@@ -288,3 +288,21 @@ Release `v0.11.1` (id 442735459): gate on the branch before the merge: typecheck
 
 Not checked: the Windows installer on a real Windows machine; the packaged app against the real tabs; Flow live in this round, although its save now goes through `startDownload`; the Tải gate live. Open: `DOWNLOAD_NO_FULL_SIZE` unexplained; whether the sites could run side by side again now that the two real causes are fixed (faster, needs its own live proof); ChatGPT aspect ratio; last frame and video x2–x4 (waiting for credit).
 
+## Auto save and retry, Flow heartbeat fix, video x2 / end frame / Veo Fast, 0.12.0 (2026-11-12)
+
+Asked by the owner ("làm 1 2 3") on the list "còn thiếu": (1) auto save of Flow results + automatic retry, (2) ChatGPT aspect ratio, (3) Veo Fast / Quality, end frame, video x2–x4.
+
+**An old bug found first: on 0.11.1 no Flow batch could start.** The self-check failed with `PROTOCOL_DRIFT heartbeat:hook_xhr_send`, the item stayed `preparing`, nothing was sent. Cause: Flow's own bundle now wraps `XMLHttpRequest.prototype.send` on top of ours and calls ours, so our "is it still our function" check failed although every request still passes our hook. Fixed (a probe request put through the installed `send`; details in the P3 video plan). Unknown since when; the last Flow live send before was on 2026-11-11, so 0.11.0 / 0.11.1 may have been affected from some point on 2026-11-12.
+
+(1) Built: Flow results save themselves as they get ready (Cài đặt → Lưu kết quả, on by default); a failed save of this session is tried again twice, 30 s apart (any site); a ChatGPT / Gemini batch paused before the click because the page was not ready (`MODE_NOT_FOUND`, `NO_EDITOR`, attach not finished …) is resumed once after 30 s per prompt. Not retried, on purpose: anything after a send (no image, refused, uncertain), which stays the user's "Chạy lại". Live: real app, Flow image batch, both outputs saved 3 s after they appeared without pressing Tải. The retry of a failed save and the resume are proven on the fakes only.
+
+(2) Not built. Measured: ChatGPT's composer has no aspect-ratio control with image mode on (only "+", the pill, Think, Dictate, Send), so a ratio can only be asked in the prompt text; and the account's images ran out ("0 images left until 9:52 PM") before it could be tried. Found on the way and built: a send that does nothing (button looks enabled, click ignored, prompt stays) now pauses as `GPT_SEND_NO_EFFECT` with a plain hint instead of ending `SUBMIT_UNCERTAIN` after 30 s; live: paused in 26 s, journal `prepare,intent,not_clicked`.
+
+(3) Live on `ng***`, 58 → 8 credits: x2 with Veo 3.1 - Lite (two MP4 1280x720); end frame (`nprQif`, start + end image; the video opens on the start image and ends on the end image's colour); Veo 3.1 - Fast 9:16 (720x1280; Google marks it retiring on 5 Dec). Offered: Lite x1/x2 in both ratios, Fast x1 9:16. Not offered: x3/x4 (30/40 credits), Fast 16:9, Quality (100 credits, more than the balance).
+
+A mistake of mine on the way: the branch was merged into `main` with one e2e failing (the auto-save box test unticked the box before the saved setting arrived); I had read only the last two lines of the e2e output. Fixed in the test (the screen is right: it shows the saved setting), the whole e2e run again (52 passed) before the build.
+
+Release `v0.12.0` (id 442901998): gate on `main`: typecheck 0, unit 389, extension 107, flow-protocol 56, e2e 52. Packaged smoke on the fakes as 0.11.1, now 9 PNG in all (the Flow image batch saved itself). Assets equal to `dist/`, AppImage 134 374 856 (sha `3249a6c83a58`). Self-update 0.11.1 → 0.12.0: ready after 21 s, file equals the published AppImage, runs 0.12.0.
+
+Open after 0.12.0: ChatGPT aspect ratio (prompt text; needs the image allowance back, measured to return at 21:52 local); video x3/x4 and Veo Quality (credits); Max Speed in one tab; Auto Muse; Telegram (owner: not now); Humanized mode (left out on purpose).
+
