@@ -25,7 +25,8 @@ if (tab) {
   const a = { tabId: tab.tabId }
   // STEPS='[["gptNew",{}],["gptPrep",{"prompt":"…"}]]' runs ops in order (default: one read-only gptLook); WATCH=<seconds> then prints gptState whenever it changes
   // a string value "@b64:<path>" in STEPS becomes that file's bytes in base64 (reference images are too big for an env var)
-  const steps = process.env.STEPS ? (JSON.parse(process.env.STEPS, (_k, v) => (typeof v === 'string' && v.startsWith('@b64:') ? readFileSync(v.slice(5)).toString('base64') : v)) as [string, object][]) : (process.env.OPS ?? `${SITE}Look`).split(',').map((op): [string, object] => [op, JSON.parse(process.env.ARGS ?? '{}')])
+  // a string value "@tab:<n>" becomes tab n of the same Chrome (the other site's tab, for a cross-site probe)
+  const steps = process.env.STEPS ? (JSON.parse(process.env.STEPS, (_k, v) => (typeof v === 'string' && v.startsWith('@b64:') ? readFileSync(v.slice(5)).toString('base64') : typeof v === 'string' && v.startsWith('@tab:') ? String(tab.tabId).replace(/[^:]*$/, v.slice(5)) : v)) as [string, object][]) : (process.env.OPS ?? `${SITE}Look`).split(',').map((op): [string, object] => [op, JSON.parse(process.env.ARGS ?? '{}')])
   for (const [op, args] of steps) {
     if (op === 'until') { // ["until",{"op":"gptState","key":"editor"}]: polls that op until the key is truthy, like the runner's own wait (max 15 s)
       const w = args as { op: string; key: string }; let ok = false

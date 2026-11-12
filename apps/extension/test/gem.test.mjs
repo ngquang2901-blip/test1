@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import '../gem-logic.js';
-import { OPS, validate, gemFetchOp } from '../ops.js';
+import { OPS, validate, gemFetchOp, gptFetchOp } from '../ops.js';
 const G = globalThis.TFGem;
 
 const TURN = '9ab3cde45f01a2b7', CONV = '0c1d2e3f4a5b6c7d';
@@ -115,11 +115,13 @@ const chromeWith = (o) => {
   const calls = [], names = new Set();
   const fire = (item) => { for (const l of [...names]) l(item, (x) => calls.push(['suggest', item.id, x])); };
   let next = o.id ?? 31;
-  return { calls, names, fire,
+  return { calls, names, fire, runtime: { id: 'me' },
     tabs: { get: async () => ({ url: o.url ?? 'https://gemini.google.com/app/x' }),
       sendMessage: async (tabId, msg) => { calls.push(['msg', tabId, msg]); if (o.throws) throw new Error('no receiver'); return o.reply; } },
     downloads: { onDeterminingFilename: { addListener: (l) => names.add(l), removeListener: (l) => names.delete(l) },
-      download: async (q) => { calls.push(['download', q]); if (o.refuse) throw new Error('refused ' + q.url); const id = next++; setTimeout(() => fire({ id, url: q.url, mime: 'image/png', filename: 'upsampled_img_1.png' }), 8); return id; },
+      download: async (q) => { calls.push(['download', q]); if (o.refuse) throw new Error('refused ' + q.url); const id = next++, ask = () => fire({ id, byExtensionId: 'me', url: q.url, mime: 'image/png', filename: 'upsampled_img_1.png' });
+        if (o.early) { ask(); await new Promise((r) => setTimeout(r, 30)); } else setTimeout(ask, 8); // early: the browser asks before download() has answered with the id
+        return id; },
       cancel: async (id) => { calls.push(['cancel', id]); }, erase: async (q) => { calls.push(['erase', q]); } } };
 };
 const A = { tabId: 3, mediaId: `${TURN}-1`, filename: 'att_med.bin' };
@@ -132,6 +134,19 @@ test('gemFetch: the tab presses its own full-size download and says where the pa
   await tick(15);
   assert.deepEqual(c.calls, [['msg', 3, { tf: 'gemDownload', mediaId: `${TURN}-1` }], ['download', { url: FULL, filename: 'ToolFlow-tmp/att_med.bin', conflictAction: 'uniquify' }],
     ['suggest', 31, { filename: 'ToolFlow-tmp/att_med.bin', conflictAction: 'uniquify' }]]); // named when the browser asks: its own filename option does not hold
+});
+
+test('a download of another site that starts while a Gemini save still listens for filenames is named into ToolFlow-tmp too (measured: it landed in Downloads as "download"), also when the browser asks before the id is known', async () => {
+  for (const early of [false, true]) {
+    const c = chromeWith({ reply: { url: FULL }, early });
+    assert.deepEqual(await gemFetchOp(c, A, 200), { ok: true, downloadId: 31 }); // its listener stays up for a moment after
+    c.tabs.get = async () => ({ url: 'https://chatgpt.com/c/x' });
+    c.tabs.sendMessage = async () => ({ src: 'data:image/png;base64,iVBORw0KGgo=' });
+    assert.deepEqual(await gptFetchOp(c, { tabId: 4, mediaId: 'm-1', filename: 'att_gpt.bin' }), { ok: true, downloadId: 32 });
+    await tick(60);
+    assert.deepEqual(c.calls.filter((x) => x[0] === 'suggest'), [['suggest', 31, { filename: 'ToolFlow-tmp/att_med.bin', conflictAction: 'uniquify' }], ['suggest', 32, { filename: 'ToolFlow-tmp/att_gpt.bin', conflictAction: 'uniquify' }]], `early ${early}`);
+    await tick(200);
+  }
 });
 
 test('gemFetch: the copy the page starts by itself is cancelled and forgotten, during the fetch and a moment after; any other download is left alone; then no listener stays', async () => {
