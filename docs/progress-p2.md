@@ -256,3 +256,19 @@ Not checked: the Windows installer on a real Windows machine; the packaged app a
 
 Open after 0.10.0: Gemini / ChatGPT over MCP; ChatGPT aspect ratio; last frame and video x2–x4 (waiting for credit on the test account); the rest of the TobyFlow table.
 
+## Chat sites take turns, ChatGPT / Gemini over MCP, 0.11.0 (2026-11-12)
+
+Asked by the owner ("làm đi") after the 0.10.0 report: (1) prove Tiếp tục on a paused ChatGPT batch, (2) Gemini / ChatGPT over MCP.
+
+(1) Live, real app: prompt 1 answered without an image, batch paused, the tab taken to a new chat by hand, Tiếp tục: the tab went back to the batch's conversation, prompt 2 was sent there and its images saved. No code change.
+
+(2) `toolflow_create_batch` takes `site` (`chatgpt` / `gemini`) with Gemini's `aspect` / `model`; `toolflow_status` reports the open chat-site tabs.
+
+A bug older than this work, found by the first live MCP run (a Gemini and a ChatGPT batch created in the same second): the two site runners worked their tabs at the same time, and since both tabs sit in one Chrome window each hid the other's. Three live runs failed in three ways (`GPT_MODE_NOT_FOUND` on Gemini twice; then `DOWNLOAD_NO_FULL_SIZE` on Gemini with `DOWNLOAD_BAD_PATH` on ChatGPT). It has been there since 0.8.0 for anyone starting a batch of each site together. Fix: the sites take turns, one prompt at a time from its typing to the end of its save (`hands` in `gpt-runner.ts`). The fourth live run, same two batches over MCP, saved both (ChatGPT 2 images, Gemini 1536x2752). Details in `2026-11-12-gemini.md`.
+
+Release `v0.11.0` (id 442680994): gate on the branch before the merge: typecheck 0, unit 384, extension 103, flow-protocol 55, e2e 50. Packaged smoke on the fakes: as 0.10.0 plus a Gemini batch created over MCP, 1 file saved. Assets equal to `dist/`: Setup.exe 127 421 068, AppImage 134 370 790 (sha `f9b5f57802ae`), deb 107 451 104. Self-update 0.10.0 → 0.11.0: ready after 20 s, file equals the published AppImage, runs 0.11.0, "Bạn đang dùng bản mới nhất".
+
+Not checked: the Windows installer on a real Windows machine; the packaged app against the real tabs; Flow live in this round; two batches of each site with several prompts running together live (the live proof is one prompt per site; the alternation over more prompts is in the unit test only). Not explained: `DOWNLOAD_BAD_PATH` on the ChatGPT save that ran next to a Gemini save; ChatGPT sometimes ignoring the "+" menu right after a page load. Known gap: pressing Tải on an old finished batch while the other site is answering can still bring its tab forward.
+
+Open after 0.11.0: ChatGPT aspect ratio; last frame and video x2–x4 (waiting for credit on the test account); the rest of the TobyFlow table.
+
