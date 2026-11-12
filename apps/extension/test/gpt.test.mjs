@@ -90,3 +90,15 @@ test('gptFetch: refuses a tab that is not ChatGPT, an answer that is not image b
   assert.deepEqual(await gptFetchOp(chromeWith({ reply: undefined }), a), { ok: false, code: 'NOT_FOUND' });
   assert.deepEqual(await gptFetchOp(chromeWith({ throws: true }), a), { ok: false, code: 'NO_CONTENT_SCRIPT' });
 });
+
+test('validate: a reference image for ChatGPT has the same shape as Gemini\'s; a send may name how many must be attached', () => {
+  const m = (op, args) => validate({ id: 1, epoch: 1, op, args });
+  const f = { tabId: 3, name: 'ref-1.png', mime: 'image/png', b64: 'iVBORw0KGgo=' };
+  assert.ok(OPS.includes('gptAttach'));
+  assert.equal(m('gptAttach', f), null);
+  assert.equal(m('gptAttach', { ...f, clear: true }), null);
+  for (const bad of [{ tabId: 'x' }, { name: '../x.png' }, { mime: 'text/html' }, { b64: '' }, { clear: 1 }]) assert.match(m('gptAttach', { ...f, ...bad }), /gptAttach/, JSON.stringify(bad));
+  assert.equal(m('gptSend', { tabId: 3, prompt: 'a cat', refs: 0 }), null);
+  assert.match(m('gptSend', { tabId: 3, prompt: 'a cat', refs: 11 }), /refs/);
+});
+

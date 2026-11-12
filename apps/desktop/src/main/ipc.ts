@@ -2,6 +2,7 @@ import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
 import { MAX_REFS } from './workflow';
+import { GEM_ASPECTS, GEM_MODELS } from './gpt-driver';
 import { defaultCombo, findCombo } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
 import { batchStatus, type Runner } from './runner';
@@ -30,7 +31,6 @@ const str = (v: unknown): string => (typeof v === 'string' && v.length > 0 && v.
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : bad());
 const oneOf = <T extends string>(v: unknown, ...ok: T[]): T => (ok.includes(v as T) ? (v as T) : bad());
 const MODES = ['none', 'all', 'sequential', 'start'] as const;
-const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9'] as const; // the ratios Gemini's menu offers (measured)
 const text = (v: unknown): string => (typeof v === 'string' && v.length <= MAX_TEXT ? v : bad());
 
 /** Monotonic revision stamped in main; the renderer drops older ones. */
@@ -94,8 +94,8 @@ export function createHandlers(d: Deps) {
       const provider = o.provider === undefined ? 'flow' : oneOf(o.provider, 'flow', 'chatgpt', 'gemini');
       const site = provider !== 'flow'; // ChatGPT / Gemini: images only, always sent by the app, no Flow project / settings
       if (site && (kind !== 'image' || mode !== 'auto')) bad();
-      if (provider === 'chatgpt' && o.refs !== undefined && (!Array.isArray(obj(o.refs).assetIds) || (obj(o.refs).assetIds as unknown[]).length)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // ChatGPT: no reference images
       const aspect = o.aspect === undefined ? undefined : provider === 'gemini' ? oneOf(o.aspect, ...GEM_ASPECTS) : bad(); // Gemini's own ratio menu
+      const model = o.model === undefined ? undefined : provider === 'gemini' ? oneOf(o.model, ...GEM_MODELS) : bad(); // …and model menu
       const combo = site ? null : o.combo === undefined ? defaultCombo(kind) : findCombo(kind, o.combo); // Tạo lô and a workflow node may pick their own model / aspect / count
       if (!site && !combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
       const parsed = parsePrompts(src);
@@ -110,7 +110,7 @@ export function createHandlers(d: Deps) {
       const rows = parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i].map((id) => names[ids.indexOf(id)]), error: errors.find((e) => e.index === i)?.code ?? null }));
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
       if (site) {
-        const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider, ...(aspect ? { aspect } : {}) }, prompts: parsed.items.map((it) => it.prompt), refs, sourceLines: parsed.items.map((it) => it.sourceLine) });
+        const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider, ...(aspect ? { aspect } : {}), ...(model ? { model } : {}) }, prompts: parsed.items.map((it) => it.prompt), refs, sourceLines: parsed.items.map((it) => it.sourceLine) });
         d.emit('batch', r.batchId);
         return { ...r, batchIds: [r.batchId] };
       }

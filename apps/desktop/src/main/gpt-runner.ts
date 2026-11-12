@@ -28,7 +28,7 @@ export type GptRunner = {
 export function createGptRunner(o: {
   db: Db; driver: GptDriver; provider?: Site; clock: { now(): number }; pollMs?: number; // provider: the batches this runner owns (default chatgpt)
   sleep?(ms: number): Promise<void>
-  assets?: Pick<AssetStore, 'get'> // reference images of a batch (Gemini)
+  assets?: Pick<AssetStore, 'get'> // reference images of a batch
   download?(batchId: string): Promise<void> // saves the batch's finished images; called while they are still on the page
 }): GptRunner {
   const { db, driver, clock } = o
@@ -119,11 +119,11 @@ export function createGptRunner(o: {
     const cur = sent.length ? (sent[sent.length - 1].s.request as Req).conv : null
     const used = cur ? sent.filter((a) => (a.s.request as Req).conv === cur).length : 0
     const fresh = !cur || used >= GPT_TURNS_PER_CONV
-    // what this prompt takes with it: the batch's aspect ratio and the item's reference images (Gemini; a ChatGPT batch has neither)
+    // what this prompt takes with it: the batch's aspect ratio and model (Gemini) and the item's reference images
     const x = db.prepare('select b.settings_json s, i.refs_json r from item i join batch b on b.id=i.batch_id where i.attempt_id=?').get(c.id) as { s: string; r: string }
-    const aspect = (JSON.parse(x.s) as { aspect?: string }).aspect, refIds = JSON.parse(x.r) as string[]
+    const { aspect, model } = JSON.parse(x.s) as { aspect?: string; model?: string }, refIds = JSON.parse(x.r) as string[]
     const files = refIds.map((id, k) => { try { const f = o.assets?.get(id); return f ? { name: `ref-${k + 1}.${EXT[f.mime] ?? 'bin'}`, mime: f.mime, b64: f.bytes().toString('base64') } : null } catch { return null } }) // bytes(): the file may be gone or changed
-    if (files.some((f) => !f) || (files.length && !driver.attach)) return hold(batch, 'GPT_REF_ASSET_MISSING')
+    if (files.some((f) => !f)) return hold(batch, 'GPT_REF_ASSET_MISSING')
     let keys: string[]
     try {
       let st: GptState | null
@@ -147,15 +147,15 @@ export function createGptRunner(o: {
       }
       if (st.generating) return // the page is still answering something: look again on a later tick
       keys = (await driver.turns(tab, s.prompt)).turns.map((t) => t.key)
-      let r: GptStep = await driver.mode(tab, aspect)
-      for (let k = 0; r.ok && k < files.length; k++) r = await driver.attach!(tab, files[k]!, k === 0)
+      let r: GptStep = await driver.mode(tab, { aspect, model })
+      for (let k = 0; r.ok && k < files.length; k++) r = await driver.attach(tab, files[k]!, k === 0)
       if (r.ok) r = await driver.prep(tab, s.prompt)
       if (!r.ok) return hold(batch, `GPT_${r.code}`)
     } catch { return hold(batch, 'CONNECTOR_LOST') } // nothing was sent
     const base: Base = { keys, conv: fresh ? null : cur, at: clock.now() }
     s = put(c.id, 'intent', { ...s, item: 'submitting', stage: 'intent_recorded', clicked: false, baseline: base, request: null, error: null, manual: false })
     let r: GptStep
-    try { r = await driver.send(tab, s.prompt, provider === 'gemini' ? files.length : undefined) } catch { put(c.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'the page did not answer the click')); return }
+    try { r = await driver.send(tab, s.prompt, files.length) } catch { put(c.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'the page did not answer the click')); return }
     if (!r.ok) { // the page refused before clicking
       put(c.id, 'not_clicked', { ...s, item: 'preparing', stage: 'rejected_before_dispatch', error: { code: `GPT_${r.code}` } })
       return hold(batch, `GPT_${r.code}`)

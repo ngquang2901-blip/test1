@@ -6,15 +6,16 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import type { Db } from './db'
 import { safeComponent } from './downloads'
 import { comboQualified, type Combo } from './profile'
+import { GEM_ASPECTS, GEM_MODELS, type Site } from './gpt-driver'
 
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks about the generate node wired into it: every prompt has a saved result / at least one has / Flow blocked a prompt
 /** combo: a Tạo ảnh node's own model / aspect / thinking level / count (absent = the app's default). cond: a Điều kiện node's question (absent = 'all'). */
-export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond }
+export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string } // site: a Tạo ảnh node that goes to ChatGPT / Gemini instead of Flow (aspect, model: Gemini's menus)
 type Port = 'ok' | 'fail' // the two outputs of a Điều kiện node: its question is answered yes / no
 export type Graph = { nodes: WfNode[]; edges: { from: string; to: string; port?: Port }[]; vars?: Record<string, string> } // vars: the canvas's reusable {biến}; main only stores them (the renderer fills them in before a run)
 type Dep = { node: string; port: 'direct' | Port; cond?: Cond } // cond: only through a Điều kiện node that asks something other than 'all'
 /** One generate node, ready to run: prompts = one per non-empty line; deps = the generate nodes it waits for (see carries() for which hand their results on as refs). */
-export type Step = { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo } // kind: the node's settings decide (video settings = a video node)
+export type Step = { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo; site?: Site; aspect?: string; model?: string } // kind: the node's settings decide (video settings = a video node)
 /** assets: per prompt, its first saved result as a reference asset (null = none saved); blocked: Flow refused a prompt of this node for its content. Both only for a node something waits for. */
 export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean }
 export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun> }
@@ -48,8 +49,11 @@ export function parseGraph(v: unknown): Graph {
     if (n.assetIds !== undefined && !(Array.isArray(n.assetIds) && n.assetIds.length <= MAX_REFS && n.assetIds.every((a) => typeof a === 'string' && ID.test(a)))) bad()
     if (n.combo !== undefined && n.type !== 'generate') bad() // settings belong to a Tạo ảnh node
     if (n.cond !== undefined && (n.type !== 'branch' || !CONDS.includes(n.cond as string))) bad()
+    if (n.site !== undefined && (n.type !== 'generate' || (n.site !== 'chatgpt' && n.site !== 'gemini') || n.combo !== undefined)) bad() // a site node has no Flow settings
+    if (n.aspect !== undefined && (n.site !== 'gemini' || !(GEM_ASPECTS as readonly unknown[]).includes(n.aspect))) bad()
+    if (n.model !== undefined && (n.site !== 'gemini' || !(GEM_MODELS as readonly unknown[]).includes(n.model))) bad()
     return { id: n.id as string, type: n.type as WfNode['type'], x: n.x as number, y: n.y as number, ...(n.text !== undefined ? { text: n.text as string } : {}), ...(n.assetIds ? { assetIds: n.assetIds as string[] } : {}),
-      ...(n.combo !== undefined ? { combo: comboOf(n.combo) } : {}), ...(n.cond !== undefined ? { cond: n.cond as Cond } : {}) }
+      ...(n.combo !== undefined ? { combo: comboOf(n.combo) } : {}), ...(n.cond !== undefined ? { cond: n.cond as Cond } : {}), ...(n.site !== undefined ? { site: n.site as Site } : {}), ...(n.aspect !== undefined ? { aspect: n.aspect as string } : {}), ...(n.model !== undefined ? { model: n.model as string } : {}) }
   })
   const byId = new Map(nodes.map((n) => [n.id, n]))
   if (byId.size !== nodes.length) bad()
@@ -101,7 +105,7 @@ export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: 
     if (n.combo && !comboQualified(kind, n.combo)) errors.push({ node: n.id, code: 'COMBO_NOT_QUALIFIED' }) // AC-03: no other combo is used instead
     const outs = g.edges.filter((e) => e.from === n.id).map((e) => byId.get(e.to)!.type)
     if (kind === 'video' && outs.some((t) => t !== 'download')) errors.push({ node: n.id, code: 'WF_VIDEO_OUTPUT' }) // a video is not a reference image, and a Điều kiện node reads images
-    return { node: n.id, kind, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch'), ...(n.combo ? { combo: n.combo } : {}) }
+    return { node: n.id, kind, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch'), ...(n.combo ? { combo: n.combo } : {}), ...(n.site ? { site: n.site } : {}), ...(n.aspect ? { aspect: n.aspect } : {}), ...(n.model ? { model: n.model } : {}) }
   })
   return { steps, errors }
 }
@@ -146,7 +150,7 @@ export function createWorkflows(d: WfDeps) {
         n.state = 'running'
         const refs = [...s.images, ...s.deps.flatMap((dp) => (carries(dp) ? (run.nodes[dp.node].assets ?? []).filter((a): a is string => !!a) : []))]
         const each = s.kind === 'video' && refs.length > 1 // a video's start frames: prompt i gets image i
-        const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: s.kind, mode, text: s.prompts, refs: { assetIds: refs, mode: each ? 'sequential' : refs.length ? 'all' : 'none', perItem: each ? 1 : MAX_REFS }, ...(s.combo ? { combo: s.combo } : {}) })
+        const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: s.kind, mode: s.site ? 'auto' : mode, text: s.prompts, refs: { assetIds: refs, mode: each ? 'sequential' : refs.length ? 'all' : 'none', perItem: each ? 1 : MAX_REFS }, ...(s.combo ? { combo: s.combo } : {}), ...(s.site ? { provider: s.site, ...(s.aspect ? { aspect: s.aspect } : {}), ...(s.model ? { model: s.model } : {}) } : {}) }) // a site's batch is always sent by the app
         if (r.errors?.length) { n.state = 'failed'; n.code = r.errors[0].code; continue }
         n.batchIds = r.batchIds ?? [r.batchId!]
         for (const b of n.batchIds) await d.start(b)
