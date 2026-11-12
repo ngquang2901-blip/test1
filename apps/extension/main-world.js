@@ -63,7 +63,7 @@
 
   // Read-only network observer.
   const RPCS = /rpcids=(ogiZ0b|YhhmEf|eb1hJf|nprQif|MZZa6b|maseQ|jwpduf|as29s|Zzl0ze|nzlxg|bOKtO)/;
-  const GEN = /^(ogiZ0b|YhhmEf|MZZa6b|eb1hJf)$/; // generate calls: forwarded to the desktop as events
+  const GEN = /^(ogiZ0b|YhhmEf|MZZa6b|eb1hJf|nprQif)$/; // generate calls: forwarded to the desktop as events
   const BIG = /^(Zzl0ze|bOKtO)$/;
   const net = [];
   const seen = {}; // rpc names that completed OK since page load (names only: the self-check wants proof the project loaded)

@@ -31,6 +31,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const [tpl, setTpl] = useState<TemplateState>(keptTpl)
   const [refMode, setRefMode] = useState<RefMode>('none')
   const [perItem, setPerItem] = useState(1)
+  const [endFrame, setEndFrame] = useState(false) // a video's second image is its end frame
   const [combos, setCombos] = useState(keptCombo)
   const [provider, setProv] = useState(keptProvider)
   const setProvider = (p: Provider): void => { keptProvider = p; setProv(p) }
@@ -56,7 +57,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
     set({ kind: p.kind, mode: p.mode }); setProvider('flow') // a saved setup is a Flow setup
     putCombo(p.kind, p.combo && choicesOf(p.kind).some((c) => c.model === p.combo!.model) ? withChange(p.combo, {}) : undefined) // a setup older than the profile: what is no longer offered falls back
     const ok = p.refs.assets.filter((a) => !a.missing)
-    keep(ok); setRefMode(p.refs.mode); setPerItem(p.refs.perItem)
+    keep(ok); setRefMode(p.refs.mode); setPerItem(p.refs.perItem); setEndFrame(p.refs.perItem === 2)
     keptTpl = p.template; setTpl(p.template)
     setMsg(ok.length < p.refs.assets.length ? `${p.refs.assets.length - ok.length} ảnh tham chiếu của mẫu “${p.name}” không còn trong app, đã bỏ qua — chọn lại ảnh nếu cần.` : '')
   }
@@ -69,7 +70,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   }
 
   const video = !gpt && d.kind === 'video' // a chat site's batch is always images
-  const refs = { assetIds: pool.map((a) => a.id), mode: refMode, perItem: video ? 1 : perItem } // a video takes one image: its start frame
+  const refs = { assetIds: pool.map((a) => a.id), mode: refMode, perItem: video ? (endFrame ? 2 : 1) : perItem } // a video takes its start frame, and with the box its end frame
   const refsKey = JSON.stringify(refs), comboKey = JSON.stringify(chosen ?? null)
   /** What goes to main for this batch (preview and create alike). */
   const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd, refs: r, ...(gem && aspect ? { aspect } : {}), ...(gem && model ? { model } : {}) } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
@@ -181,7 +182,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </select>
         </fieldset>}
         <fieldset aria-label={video ? 'Khung hình đầu' : 'Ảnh tham chiếu'} className="wide">
-          <legend>{video ? 'Khung hình đầu (video bắt đầu từ ảnh này)' : 'Ảnh tham chiếu'}</legend>
+          <legend>{video ? (endFrame ? 'Khung hình đầu và cuối (ảnh 1 mở đầu, ảnh 2 kết thúc video)' : 'Khung hình đầu (video bắt đầu từ ảnh này)') : 'Ảnh tham chiếu'}</legend>
           <div className="status">
               <div className="toolbar">
                 <button ref={pickBtn} className="small" onClick={() => void pick()}>Chọn ảnh…</button>
@@ -191,8 +192,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
               </div>
               <div>
                 <label><input type="radio" name="refmode" checked={refMode === 'none'} onChange={() => setRefMode('none')} /> Không dùng</label>
-                <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> {video ? 'Mỗi prompt một ảnh theo thứ tự' : 'Mỗi prompt một nhóm ảnh theo thứ tự'}</label>
-                <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> {video ? 'Dùng chung một ảnh cho mọi prompt' : 'Dùng chung tất cả ảnh cho mọi prompt'}</label>
+                <label><input type="radio" name="refmode" checked={refMode === 'sequential'} onChange={() => setRefMode('sequential')} /> {video ? (endFrame ? 'Mỗi prompt hai ảnh theo thứ tự' : 'Mỗi prompt một ảnh theo thứ tự') : 'Mỗi prompt một nhóm ảnh theo thứ tự'}</label>
+                <label><input type="radio" name="refmode" checked={refMode === 'all'} onChange={() => setRefMode('all')} /> {video ? (endFrame ? 'Dùng chung hai ảnh cho mọi prompt' : 'Dùng chung một ảnh cho mọi prompt') : 'Dùng chung tất cả ảnh cho mọi prompt'}</label>
+                {video && <label><input type="checkbox" checked={endFrame} onChange={(e) => setEndFrame(e.target.checked)} /> Có khung hình cuối (ảnh thứ hai của mỗi prompt)</label>}
                 {!video && <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={10} value={perItem} onChange={(e) => setPerItem(Math.min(10, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>}
               </div>
           </div>
@@ -201,7 +203,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
       {errs.length > 0 && (
         <p role="alert" className="notice" data-testid="map-errors">
           {errs.some((e) => e.code === 'NOT_ENOUGH_REFS') && <>Thiếu ảnh cho prompt nào: {errs.filter((e) => e.code === 'NOT_ENOUGH_REFS').map((e) => `#${e.index + 1}`).join(', ')}. </>}
-          {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>{video ? 'Quá nhiều ảnh: mỗi video chỉ dùng một ảnh, bỏ bớt ảnh hoặc chọn “Mỗi prompt một ảnh theo thứ tự”. ' : 'Quá nhiều ảnh: tăng “Số ảnh tham chiếu mỗi prompt” hoặc bỏ bớt ảnh. '}</>}
+          {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>{video ? `Quá nhiều ảnh: mỗi video dùng ${endFrame ? 'hai ảnh' : 'một ảnh'}, bỏ bớt ảnh hoặc chọn “Mỗi prompt ${endFrame ? 'hai ảnh' : 'một ảnh'} theo thứ tự”. ` : 'Quá nhiều ảnh: tăng “Số ảnh tham chiếu mỗi prompt” hoặc bỏ bớt ảnh. '}</>}
           Sửa cách gán ảnh hoặc chọn “Không dùng” để tạo lô.
         </p>
       )}

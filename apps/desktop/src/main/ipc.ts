@@ -106,7 +106,7 @@ export function createHandlers(d: Deps) {
       if (new Set(ids).size !== ids.length) bad();
       const names = ids.map((id) => (d.db.prepare('select name from asset where id=?').get(id) as { name: string } | undefined)?.name ?? bad());
       const { refs, errors } = mapRefs(parsed.items.length, ids, rmode, perItem);
-      if (kind === 'video' && refs.some((r) => r.length > 1)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // a video takes one image: its start frame (end frame and several ingredients are not built)
+      if (kind === 'video' && refs.some((r) => r.length > 2)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // a video takes its start frame and, optionally, its end frame (several ingredients are not built)
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
       const rows = parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i].map((id) => names[ids.indexOf(id)]), error: errors.find((e) => e.index === i)?.code ?? null }));
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)

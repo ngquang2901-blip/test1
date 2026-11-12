@@ -736,6 +736,22 @@ test('video from a start frame: one image per prompt in Tạo lô, each video is
   expect([l.uploads.length, l.refs.map((r) => r.length), new Set(l.refs.flat()).size]).toEqual([2, [1, 1], 2])
 })
 
+test('video from a start and an end frame: the box in Tạo lô gives each prompt two images in order, the first opens the video and the second ends it', async () => {
+  const { list } = pngs(['a.png', 'b.png', 'c.png', 'd.png'])
+  const { app, page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await page.getByLabel('Có khung hình cuối (ảnh thứ hai của mỗi prompt)').check()
+  await page.getByLabel('Mỗi prompt hai ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png'); await expect(row(page, 0)).toContainText('b.png')
+  await expect(row(page, 1)).toContainText('c.png'); await expect(row(page, 1)).toContainText('d.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  expect((await ledger(app)).refs.map((r) => r.length)).toEqual([2, 2])
+})
+
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
 const outputs = (page: Page) => page.locator('[data-testid=output]')
 

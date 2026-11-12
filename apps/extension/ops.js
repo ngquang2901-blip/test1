@@ -29,7 +29,7 @@ export function validate(msg) {
   if (op === 'probe' && !(args.selectors && typeof args.selectors === 'object' && !Array.isArray(args.selectors) && Object.values(args.selectors).every((v) => typeof v === 'string' && v.length < 300))) return 'probe needs a selectors map of strings';
   if (op === 'settings' && !(['mode', 'aspect', 'count', 'model'].every((k) => typeof args[k] === 'string' && args[k]) && (args.quality === null || (typeof args.quality === 'string' && args.quality)) && (args.input === undefined || (typeof args.input === 'string' && args.input)))) return 'settings needs mode, aspect, count, model, a quality (null for a model without one) and, for video, the input type';
   if (op === 'attach' && !(typeof args.name === 'string' && args.name.length >= 1 && args.name.length <= 200)) return 'attach needs a name of 1..200 chars';
-  if (op === 'attach' && args.slot !== undefined && args.slot !== 'start') return 'attach: the only slot is start';
+  if (op === 'attach' && args.slot !== undefined && args.slot !== 'start' && args.slot !== 'end') return 'attach: slot is start or end';
   if (op === 'locate' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId))) return 'locate needs integer tabId and a media uuid';
   if (op === 'fetchMedia' && !(Number.isInteger(args.tabId) && UUID.test(args.mediaId) && validTmpName(args.filename))) return 'fetchMedia needs integer tabId, a media uuid and a flat filename';
   if (op === 'downloads' && !(Number.isInteger(args.id) || validTmpName(args.filenamePrefix))) return 'downloads needs an integer id or a filenamePrefix';

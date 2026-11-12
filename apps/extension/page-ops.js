@@ -93,7 +93,7 @@
       const pickModel = async (label) => {
         const open = buttons().find((b) => b.role == null); if (!open) return;
         open.el.click();
-        const hit = ((await until(() => (items().length ? items() : null), 3000)) || []).filter((el) => TFSettings.modelLabel(el.innerText) === label);
+        const hit = ((await until(() => (items().length ? items() : null), 3000)) || []).filter((el) => TFSettings.itemModel(el.innerText) === label);
         if (hit.length === 1) hit[0].click();
         else { const b = document.querySelectorAll('.cdk-overlay-backdrop'); if (b.length) b[b.length - 1].click(); }
         await until(() => !items().length, 3000);
@@ -105,7 +105,7 @@
     // Library -> chip by upload name (ref-logic.js). Opens/closes the '+' popover, never touches submit; returns codes only.
     async attach(a) {
       const pop = () => $('flow-add-menu-popover-content');
-      const plus = () => { const bs = [...document.querySelectorAll('flow-prompt-box button')].filter((b) => !b.closest('flow-add-menu-popover-content')); const d = bs.map((b) => ({ text: b.innerText, label: b.getAttribute('aria-label') })); const i = a.slot === 'start' ? TFRef.startIndex(d) : TFRef.plusIndex(d); return i < 0 ? null : bs[i]; }; // a.slot 'start': the Start slot of the Frames composer opens the library
+      const plus = () => { const bs = [...document.querySelectorAll('flow-prompt-box button')].filter((b) => !b.closest('flow-add-menu-popover-content')); const d = bs.map((b) => ({ text: b.innerText, label: b.getAttribute('aria-label') })); const i = a.slot === 'start' ? TFRef.startIndex(d) : a.slot === 'end' ? TFRef.endIndex(d) : TFRef.plusIndex(d); return i < 0 ? null : bs[i]; }; // a.slot 'start': the Start slot of the Frames composer opens the library
       const env = {
         chips: () => OPS.state().chips,
         isOpen: () => !!pop(),

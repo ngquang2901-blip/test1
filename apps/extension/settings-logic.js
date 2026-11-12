@@ -59,5 +59,7 @@
     return { ok: mismatches(r.current, want).length === 0, current: r.current, mismatches: mismatches(r.current, want) };
   }
 
-  globalThis.TFSettings = { GROUPS, label, modelLabel, read, mismatches, converge };
+  // a model menu item: the model's name is its first line; a line under it is a note (measured: "Sẽ ngừng hoạt động vào ngày 5 thg 12")
+  const itemModel = (t) => modelLabel(String(t || '').split('\n').map((l) => l.trim()).find(Boolean));
+  globalThis.TFSettings = { GROUPS, label, modelLabel, itemModel, read, mismatches, converge };
 })();

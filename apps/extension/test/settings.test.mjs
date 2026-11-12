@@ -249,3 +249,11 @@ test('prep: empty composer is not cleared (no clear button exists)', async () =>
   const r = (await p.call('prep', { prompt: 'abc' })).result;
   assert.deepEqual([r.ok, r.textMatches], [true, true]);
 });
+
+test('itemModel: a model menu item is known by its first line; a note under it (seen: "Sẽ ngừng hoạt động vào ngày 5 thg 12" on Veo 3.1 - Fast) does not hide it', () => {
+  assert.equal(T.itemModel('Veo 3.1 - Fast\nSẽ ngừng hoạt động vào ngày 5 thg 12'), 'Veo 3.1 - Fast');
+  assert.equal(T.itemModel('Veo 3.1 - Lite'), 'Veo 3.1 - Lite');
+  assert.equal(T.itemModel('🍌 Nano Banana 2.1'), 'Nano Banana 2.1');
+  assert.equal(T.itemModel('\n  Omni 1.2 Flash \n'), 'Omni 1.2 Flash');
+});
+
