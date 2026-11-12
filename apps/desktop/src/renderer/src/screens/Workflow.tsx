@@ -13,14 +13,19 @@ import { TEMPLATES } from '../wf-templates'
 
 type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks (absent = 'all')
-type Data = { text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond }
+type Site = 'chatgpt' | 'gemini' // a Tạo ảnh node that goes to a chat site instead of Flow
+type Data = { text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string }
+/** A Tạo ảnh node says where it sends: Flow unless a site is chosen. */
+const genTitle = (site?: Site): string => (site === 'gemini' ? 'Tạo ảnh Gemini' : site === 'chatgpt' ? 'Tạo ảnh ChatGPT' : 'Tạo ảnh Flow')
+const SITE_LABEL: Record<Site, string> = { chatgpt: 'ChatGPT · Create image', gemini: 'Gemini · Tạo hình ảnh' }
+const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9'], GEM_MODELS = ['Flash-Lite', 'Flash', 'Pro']
 type WNode = Node<Data, Kind>
 type Var = { name: string; value: string }
 type NodeRun = { state: string; code: string | null; total: number; done: number; thumb: { attemptId: string; mediaId: string } | null }
 type RunView = { status: 'running' | 'done' | 'failed' | 'stopped'; nodes: Record<string, NodeRun> }
-type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
+type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
 type Saved = Canvas & { id: string; name: string }
-type Plan = { steps: { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: { node: string; port: string; cond?: Cond }[]; save: boolean; feeds: boolean; combo?: Combo }[]; errors: { node?: string; code: string }[] }
+type Plan = { steps: { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: { node: string; port: string; cond?: Cond }[]; save: boolean; feeds: boolean; combo?: Combo; site?: Site }[]; errors: { node?: string; code: string }[] }
 
 const KINDS: Kind[] = ['text', 'image', 'generate', 'branch', 'download', 'note']
 const TITLE: Record<Kind, string> = { text: 'Text', image: 'Ảnh tham chiếu', generate: 'Tạo ảnh Flow', download: 'Tự tải về', note: 'Ghi chú', branch: 'Điều kiện' }
@@ -81,7 +86,7 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
     <div className="wf-node" data-testid={`wf-${type}`} data-state={err && !r ? 'failed' : r?.state}>
       {(type === 'generate' || type === 'download' || type === 'branch') && <Handle type="target" position={Position.Left} />}
       <header>
-        <Icon name={ICON[type]} /><b>{TITLE[type]}</b><span className="spacer" />
+        <Icon name={ICON[type]} /><b>{type === 'generate' ? genTitle(data.site) : TITLE[type]}</b><span className="spacer" />
         {r && <Chip tone={STATE[r.state]?.[0] ?? 'idle'}>{STATE[r.state]?.[1] ?? r.state}{r.total ? ` ${r.done}/${r.total}` : ''}</Chip>}
         <button className="x nodrag" aria-label={`Xoá node ${TITLE[type]}`} onClick={() => del(id)}>×</button>
       </header>
@@ -95,7 +100,7 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
           <button className="small nodrag" onClick={() => pick(id)}>{data.assets?.length ? 'Chọn lại ảnh' : 'Chọn ảnh'}</button>
         </>
       )}
-      {type === 'generate' && <p className="wf-combo" data-testid="wf-combo">{data.combo?.kind === 'video' ? 'Video · ' : ''}{comboLabel(data.combo ?? DEFAULT)}</p>}
+      {type === 'generate' && <p className="wf-combo" data-testid="wf-combo">{data.site ? `${SITE_LABEL[data.site]}${data.model ? ` · ${data.model}` : ''}${data.aspect ? ` · ${data.aspect}` : ''}` : `${data.combo?.kind === 'video' ? 'Video · ' : ''}${comboLabel(data.combo ?? DEFAULT)}`}</p>}
       {type === 'generate' && (r?.thumb ? <Thumb attemptId={r.thumb.attemptId} media={r.thumb.mediaId} saved /> : <p className="hint">Mỗi prompt nối vào tạo một lượt ảnh. Nối chấm bên phải sang node Tạo ảnh khác để dùng ảnh vừa tạo làm ảnh tham chiếu.</p>)}
       {type === 'download' && <p className="hint">Lưu kết quả của node nối vào đây về thư mục Downloads/ToolFlow.</p>}
       {type === 'branch' && (
@@ -183,9 +188,9 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const typeOf = (id: string | null): string => nodes.find((n) => n.id === id)?.type ?? ''
   const table = Object.fromEntries(vars.filter((v) => v.name.trim()).map((v) => [v.name.trim(), v.value]))
   /** What is saved, exported and undone: texts as written, with their {biến}. */
-  const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond }[]; edges: object[]; vars: Record<string, string> } => ({
+  const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string }[]; edges: object[]; vars: Record<string, string> } => ({
     nodes: nodes.map((n) => ({ id: n.id, type: n.type!, x: n.position.x, y: n.position.y, ...(n.data.text !== undefined ? { text: n.data.text } : {}), ...(n.data.assets ? { assetIds: n.data.assets.map((a) => a.id) } : {}),
-      ...(n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}) })),
+      ...(n.type === 'generate' && n.data.site ? { site: n.data.site, ...(n.data.site === 'gemini' && n.data.aspect ? { aspect: n.data.aspect } : {}), ...(n.data.site === 'gemini' && n.data.model ? { model: n.data.model } : {}) } : n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}) })),
     edges: edges.map((e) => ({ from: e.source, to: e.target, ...(e.sourceHandle ? { port: e.sourceHandle } : {}) })),
     vars: table,
   })
@@ -205,7 +210,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     reset()
     setName(w?.name ?? '')
     setVars(Object.entries(w?.vars ?? {}).map(([n, value]) => ({ name: n, value })))
-    setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}), ...(n.combo ? { combo: n.combo } : {}), ...(n.cond ? { cond: n.cond } : {}) } })))
+    setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}), ...(n.combo ? { combo: n.combo } : {}), ...(n.cond ? { cond: n.cond } : {}), ...(n.site ? { site: n.site } : {}), ...(n.aspect ? { aspect: n.aspect } : {}), ...(n.model ? { model: n.model } : {}) } })))
     setEdges((w?.edges ?? []).map((e) => ({ id: `${e.from}>${e.to}`, source: e.from, target: e.to, ...(e.port ? { sourceHandle: e.port } : {}) })))
     setTimeout(() => void rf.current?.fitView(FIT), 50)
   }
@@ -289,7 +294,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     const bad = t === 'generate' ? filled().errs : {}, wired = edges.filter((e) => e.target === sel.id).map((e) => bad[e.source]).filter(Boolean) // a wired Text whose variable has no value
     return (
       <>
-        <h3><Icon name={ICON[t]} /> {TITLE[t]}</h3>
+        <h3><Icon name={ICON[t]} /> {t === 'generate' ? genTitle(sel.data.site) : TITLE[t]}</h3>
         {r && <Chip tone={STATE[r.state]?.[0] ?? 'idle'}>{STATE[r.state]?.[1] ?? r.state}{r.total ? ` ${r.done}/${r.total}` : ''}</Chip>}
         {(t === 'text' || t === 'note') && <textarea aria-label={t === 'text' ? 'Prompt (bảng cấu hình)' : 'Ghi chú (bảng cấu hình)'} rows={10} value={sel.data.text ?? ''} onChange={(e) => tools.patch(sel.id, { text: e.target.value })} />}
         {fill && ('error' in fill ? <p className="wf-err" role="alert">{varErr(fill.error)}</p> : <p className="hint" data-testid="wf-count">{fill.prompts.length} prompt sau khi thay biến</p>)}
@@ -303,7 +308,15 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
             <p className="hint">Tối đa 10 ảnh. Mọi prompt của node Tạo ảnh nối vào đều dùng các ảnh này.</p>
           </>
         )}
-        {t === 'generate' && (() => {
+        {t === 'generate' && (
+          <div className="wf-set" data-testid="wf-site">
+            <Opt label="Nền tảng" value={sel.data.site ?? 'flow'} options={['flow', 'chatgpt', 'gemini']} show={(v) => (v === 'flow' ? 'Google Flow' : v === 'chatgpt' ? 'ChatGPT' : 'Gemini')} onChange={(v) => tools.patch(sel.id, { site: v === 'flow' ? undefined : (v as Site), combo: undefined, aspect: undefined, model: undefined })} />
+            {sel.data.site === 'gemini' && <Opt label="Mô hình" value={sel.data.model ?? ''} options={['', ...GEM_MODELS]} show={(v) => v || 'Theo Gemini'} onChange={(v) => tools.patch(sel.id, { model: v || undefined })} />}
+            {sel.data.site === 'gemini' && <Opt label="Tỉ lệ khung hình" value={sel.data.aspect ?? ''} options={['', ...GEM_ASPECTS]} show={(v) => v || 'Theo Gemini'} onChange={(v) => tools.patch(sel.id, { aspect: v || undefined })} />}
+            {sel.data.site && <p className="hint">Node này gửi vào tab {sel.data.site === 'gemini' ? 'gemini.google.com' : 'chatgpt.com'} đang mở: mỗi prompt một ảnh, app tự gửi và tự lưu. Ảnh nối vào được dùng làm ảnh tham chiếu.</p>}
+          </div>
+        )}
+        {t === 'generate' && !sel.data.site && (() => {
           const cur = sel.data.combo ?? DEFAULT
           return (
             <div className="wf-set" data-testid="wf-settings">
@@ -320,7 +333,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
             <h4>Sẽ gửi {prompts.length} prompt</h4>
             <ol className="wf-prompts">{prompts.slice(0, 20).map((p, i) => <li key={i}>{p}</li>)}</ol>
             {prompts.length > 20 && <p className="hint">… và {prompts.length - 20} prompt nữa</p>}
-            {step && <p className="hint">Mỗi prompt tạo {(step.combo ?? DEFAULT).count} {step.kind === 'video' ? 'video' : 'ảnh'}, tổng cộng {prompts.length * (step.combo ?? DEFAULT).count} {step.kind === 'video' ? 'video' : 'ảnh'}.{step.feeds && (step.combo ?? DEFAULT).count > 1 ? ' Node phía sau chỉ lấy ảnh đầu tiên của mỗi prompt làm tham chiếu.' : ''}</p>}
+            {step && <p className="hint">Mỗi prompt tạo {step.site ? 1 : (step.combo ?? DEFAULT).count} {step.kind === 'video' ? 'video' : 'ảnh'}, tổng cộng {prompts.length * (step.site ? 1 : (step.combo ?? DEFAULT).count)} {step.kind === 'video' ? 'video' : 'ảnh'}.{step.feeds && !step.site && (step.combo ?? DEFAULT).count > 1 ? ' Node phía sau chỉ lấy ảnh đầu tiên của mỗi prompt làm tham chiếu.' : ''}</p>}
             {step?.kind === 'video' && <p className="hint">Video bắt đầu từ ảnh nối vào (khung hình đầu): một ảnh thì dùng chung, nhiều ảnh thì mỗi prompt một ảnh theo thứ tự. Không nối ảnh thì tạo video từ chữ.</p>}
             {step && step.kind !== 'video' && <p className="hint">Ảnh tham chiếu cho mỗi prompt: {step.images.length} ảnh chọn sẵn{step.deps.some(carries) ? `, cộng ảnh kết quả của ${step.deps.filter(carries).length} node phía trước` : ''}.</p>}
             {step?.deps.filter((x) => x.port !== 'direct').map((x) => <p key={x.node + x.port} className="hint">{COND[x.cond ?? 'all'].when[x.port === 'ok' ? 0 : 1]}</p>)}

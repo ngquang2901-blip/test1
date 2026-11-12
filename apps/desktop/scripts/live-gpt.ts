@@ -27,6 +27,11 @@ if (tab) {
   // a string value "@b64:<path>" in STEPS becomes that file's bytes in base64 (reference images are too big for an env var)
   const steps = process.env.STEPS ? (JSON.parse(process.env.STEPS, (_k, v) => (typeof v === 'string' && v.startsWith('@b64:') ? readFileSync(v.slice(5)).toString('base64') : v)) as [string, object][]) : (process.env.OPS ?? `${SITE}Look`).split(',').map((op): [string, object] => [op, JSON.parse(process.env.ARGS ?? '{}')])
   for (const [op, args] of steps) {
+    if (op === 'until') { // ["until",{"op":"gptState","key":"editor"}]: polls that op until the key is truthy, like the runner's own wait (max 15 s)
+      const w = args as { op: string; key: string }; let ok = false
+      for (const t0 = Date.now(); !ok && Date.now() - t0 < 15000; await sleep(250)) ok = !!((await server.send(w.op, a).catch(() => null)) as Record<string, unknown> | null)?.[w.key]
+      console.log(`until ${w.op}.${w.key}:`, ok); continue
+    }
     try { console.log(`${op}:`, JSON.stringify(await server.send(op, { ...a, ...args }), null, process.env.FLAT ? undefined : 1)) }
     catch (e) { console.log(`${op}: ERROR ${(e as Error).message}`) }
   }

@@ -62,7 +62,19 @@
         hit[0].click();
         return (await until(() => { const x = aspectBtn(); return x && iconsOf(x).includes(want); }, 4000)) ? { ok: true } : { ok: false, code: 'ASPECT_NOT_SET' };
       };
-      if (modeOf() === G.IMAGE_MODE) return aspect();
+      const model = async () => { // the model the batch asked for; without one, the user's choice stays. Chosen before the ratio.
+        if (!a?.model) return { ok: true };
+        const b = await until(() => document.querySelector('[data-test-id="bard-mode-menu-button"]'), 3000);
+        if (!b) return { ok: false, code: 'MODEL_NOT_FOUND' };
+        if (G.flat(b.innerText) === a.model) return { ok: true };
+        b.click();
+        const hit = ((await until(() => { const f = [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemradio"][data-test-id^="bard-mode-option-"]')]; return f.length ? f : null; })) || []).filter((x) => G.isModelItem(x.innerText, a.model) && !iconsOf(x).includes('lock'));
+        if (hit.length !== 1) { esc(); return { ok: false, code: 'MODEL_NOT_FOUND' }; }
+        hit[0].click();
+        return (await until(() => G.flat(b.innerText) === a.model, 4000)) ? { ok: true } : { ok: false, code: 'MODEL_NOT_SET' };
+      };
+      const rest = async () => { const m = await model(); return m.ok ? aspect() : m; };
+      if (modeOf() === G.IMAGE_MODE) return rest();
       if (modeOf()) return { ok: false, code: 'OTHER_MODE' }; // the user chose another tool for this message
       const plus = btn('plus'); if (!plus) return { ok: false, code: 'NO_PLUS' };
       const before = new Set(menuItems());
@@ -70,7 +82,7 @@
       const hit = ((await until(() => { const f = menuItems().filter((x) => !before.has(x)); return f.length ? f : null; })) || []).filter((b) => iconsOf(b).includes(G.IMAGE_ICON));
       if (hit.length !== 1) { esc(); return { ok: false, code: 'MODE_NOT_FOUND' }; } // nothing is clicked on a menu we cannot read
       hit[0].click();
-      return (await until(() => modeOf() === G.IMAGE_MODE, 4000)) ? aspect() : { ok: false, code: 'MODE_NOT_SET' };
+      return (await until(() => modeOf() === G.IMAGE_MODE, 4000)) ? rest() : { ok: false, code: 'MODE_NOT_SET' };
     },
     // Types the prompt. Never sends, never replaces something that is in the editor already (Gemini brings an unsent draft back after a reload).
     // One reference image into the composer, as a pasted file (measured: the page takes a paste event carrying a File). clear: what is

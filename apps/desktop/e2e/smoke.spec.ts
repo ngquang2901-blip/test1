@@ -991,9 +991,9 @@ test('ChatGPT batch: chosen in Tạo lô, sent one prompt after another, each im
   await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
   await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: ChatGPT · Create image · tự động')
   await expect(page.getByTestId('gpt-note')).toContainText('cuộc trò chuyện mới')
-  await expect(page.getByRole('radio', { name: 'Video', exact: true })).toHaveCount(0) // ChatGPT: images only, no Flow settings, no refs
+  await expect(page.getByRole('radio', { name: 'Video', exact: true })).toHaveCount(0) // ChatGPT: images only, no Flow settings
   await expect(page.getByTestId('batch-settings')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toHaveCount(1) // reference images: yes
   await create(page, ['một con mèo', 'một con chó', 'một con chim'])
   await expect(page.getByRole('heading', { name: /ChatGPT · Ảnh/ })).toBeVisible()
   await expect(page.getByTestId('pause-reason')).toContainText('Tab ChatGPT đã chuyển sang cuộc trò chuyện khác')
@@ -1057,13 +1057,14 @@ test('Gemini batch without a Gemini tab: it pauses and names gemini.google.com',
   await expect(page.getByTestId('pause-reason')).toContainText('Chưa thấy tab Gemini nào. Mở gemini.google.com')
 })
 
-test('Gemini batch with an aspect ratio and reference images: both chosen in Tạo lô, each prompt sent with its own image and the ratio', async () => {
+test('Gemini batch with an aspect ratio and reference images: both chosen in Tạo lô, each prompt sent with its own image and the ratio; a ChatGPT batch takes the images too', async () => {
   const { list } = pngs(['a.png', 'b.png'])
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
   await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
   await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
   await page.getByTestId('gem-aspect').selectOption('9:16')
-  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: Gemini · Tạo hình ảnh · 9:16 · tự động')
+  await page.getByTestId('gem-model').selectOption('Pro')
+  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: Gemini · Tạo hình ảnh · Pro · 9:16 · tự động')
   await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
   await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
   await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
@@ -1073,15 +1074,58 @@ test('Gemini batch with an aspect ratio and reference images: both chosen in T�
   await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await expect(outputs(page).filter({ hasText: 'Gemini · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(2, { timeout: 30_000 })
-  const l = await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGem: { ledger: { aspects: (string | null)[]; refs: string[][]; attached: { bytes: number; clear: boolean }[] } } }).__toolflowFakeGem.ledger)
+  const l = await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGem: { ledger: { aspects: (string | null)[]; models: (string | null)[]; refs: string[][]; attached: { bytes: number; clear: boolean }[] } } }).__toolflowFakeGem.ledger)
   expect(l.aspects).toEqual(['9:16', '9:16'])
+  expect(l.models).toEqual(['Pro', 'Pro'])
   expect(l.refs).toEqual([['ref-1.png'], ['ref-1.png']]) // one image each, the second prompt's own
   expect(l.attached.map((x) => x.clear)).toEqual([true, true])
   expect(l.attached.every((x) => x.bytes > 0)).toBe(true)
-  // ChatGPT still shows neither
+  // ChatGPT: the same images, no ratio menu
   await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
   await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
   await expect(page.getByTestId('gem-aspect')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toHaveCount(0)
+  await page.getByLabel('Danh sách prompt').fill('một con chim')
+  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
+  await page.getByLabel('Số ảnh tham chiếu mỗi prompt').fill('2')
+  await expect(row(page, 0)).toContainText('a.png, b.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 })
+  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGpt: { ledger: { refs: string[][] } } }).__toolflowFakeGpt.ledger.refs)).toEqual([['ref-1.png', 'ref-2.png']])
+})
+
+test('Workflow: a Tạo ảnh node sent to Gemini (with a ratio) feeds one sent to ChatGPT; each site gets its prompt once, the second with the first one\'s image', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  const node = (t: string) => page.getByTestId(`wf-${t}`), site = page.getByTestId('wf-site')
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('nhân vật A')
+  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await page.getByRole('button', { name: '+ Text' }).click()
+  await node('text').nth(1).getByLabel('Prompt của node Text').fill('nhân vật A đứng trên cầu')
+  await wire(node('generate').nth(0), node('generate').nth(1))
+  await wire(node('text').nth(1), node('generate').nth(1))
+  await wire(node('generate').nth(1), node('download'))
+  await node('generate').nth(0).locator('header b').click()
+  await site.getByLabel('Nền tảng').selectOption('gemini')
+  await site.getByLabel('Tỉ lệ khung hình').selectOption('9:16')
+  await site.getByLabel('Mô hình').selectOption('Flash')
+  await expect(node('generate').nth(0).getByTestId('wf-combo')).toHaveText('Gemini · Tạo hình ảnh · Flash · 9:16')
+  await expect(page.getByTestId('wf-settings')).toHaveCount(0) // no Flow settings on a site node
+  await expect(page.getByTestId('wf-preview')).toContainText('Mỗi prompt tạo 1 ảnh, tổng cộng 1 ảnh')
+  await node('generate').nth(1).locator('header b').click()
+  await site.getByLabel('Nền tảng').selectOption('chatgpt')
+  await expect(node('generate').nth(1).getByTestId('wf-combo')).toHaveText('ChatGPT · Create image')
+  await expect(node('generate').nth(1).locator('header b')).toHaveText('Tạo ảnh ChatGPT') // the node says where it sends
+  await expect(node('generate').nth(0).locator('header b')).toHaveText('Tạo ảnh Gemini')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  const l = await app.evaluate(() => { const g = globalThis as unknown as Record<string, { ledger: { sends: string[]; refs: string[][]; aspects: (string | null)[]; models: (string | null)[] } }>; return { gem: g.__toolflowFakeGem.ledger, gpt: g.__toolflowFakeGpt.ledger, flow: (g.__toolflowFake as unknown as { clicks: number }).clicks } })
+  expect([l.gem.sends, l.gem.aspects, l.gem.models, l.gem.refs]).toEqual([['nhân vật A'], ['9:16'], ['Flash'], [[]]])
+  expect([l.gpt.sends, l.gpt.refs]).toEqual([['nhân vật A đứng trên cầu'], [['ref-1.png']]])
+  expect(l.flow).toBe(0) // nothing went to Flow
+  expect((readdirSync(root, { recursive: true }) as string[]).filter((f) => String(f).endsWith('.png'))).toHaveLength(2)
 })
 

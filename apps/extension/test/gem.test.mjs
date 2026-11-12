@@ -94,6 +94,20 @@ test('aspect ratios are known by the icon of their menu entry, the same in every
   assert.equal(G.MAX_REFS, 10);
 });
 
+test('a model is known by its family name, which the menu entry ends with and the button shows once chosen; versions and descriptions around it change', () => {
+  assert.deepEqual(G.MODELS, ['Flash-Lite', 'Flash', 'Pro']);
+  assert.equal(G.isModelItem('Trợ giúp toàn diện\n3.8 Flash', 'Flash'), true);
+  assert.equal(G.isModelItem('Fast answers 3.5 Flash-Lite', 'Flash-Lite'), true);
+  assert.equal(G.isModelItem('Fast answers 3.5 Flash-Lite', 'Flash'), false); // not the shorter name inside the longer one
+  assert.equal(G.isModelItem('Nghiên cứu chi tiết 3.1 Pro', 'Pro'), true);
+  assert.equal(G.isModelItem('Pro', 'Pro'), true);
+  for (const t of ['4 Argon', 'Pro tips for you', '3.1 Pro (preview)', 'NotPro', '']) assert.equal(G.isModelItem(t, 'Pro'), false, t);
+  const m = (args) => validate({ id: 1, epoch: 1, op: 'gemMode', args });
+  for (const model of G.MODELS) assert.equal(m({ tabId: 3, model }), null);
+  assert.equal(m({ tabId: 3, model: 'Pro', aspect: '16:9' }), null);
+  for (const model of ['Ultra', '', 'pro', 7]) assert.match(m({ tabId: 3, model }), /model/, String(model));
+});
+
 // a Chrome whose page click starts a download a moment later
 // A stand-in for chrome.*: the tab answers the press with `reply`. Like the browser, it asks the filename listeners about every download a
 // little after it began, and (measured) forgets download()'s own filename once such a listener exists: the server's name stays unless one suggests.

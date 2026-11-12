@@ -13,11 +13,13 @@ let kept: Asset[] = [] // shortcut: the picked pool outlives screen switches but
 let keptTpl: TemplateState = EMPTY_TEMPLATE // same lifetime as the pool
 type Provider = 'flow' | 'chatgpt' | 'gemini'
 const SITE: Record<Exclude<Provider, 'flow'>, { name: string; tool: string; note: string }> = {
-  chatgpt: { name: 'ChatGPT', tool: 'Create image', note: 'Mỗi lô mở một cuộc trò chuyện mới trong tab chatgpt.com đang mở, app tự gửi lần lượt từng prompt ở chế độ “Create image” và lưu ảnh về máy. Cần tab ChatGPT đã đăng nhập, giao diện tiếng Anh. Chưa dùng được ảnh tham chiếu; muốn tỉ lệ khung hình nào thì ghi ngay trong prompt.' },
-  gemini: { name: 'Gemini', tool: 'Tạo hình ảnh', note: 'Mỗi lô mở một cuộc trò chuyện mới trong tab gemini.google.com đang mở, app tự bật công cụ tạo hình ảnh, gửi lần lượt từng prompt và lưu ảnh cỡ đầy đủ về máy. Cần tab Gemini đã đăng nhập. Mô hình là cái đang chọn trong Gemini.' },
+  chatgpt: { name: 'ChatGPT', tool: 'Create image', note: 'Mỗi lô mở một cuộc trò chuyện mới trong tab chatgpt.com đang mở, app tự gửi lần lượt từng prompt ở chế độ “Create image” và lưu ảnh về máy. Cần tab ChatGPT đã đăng nhập, giao diện tiếng Anh. Muốn tỉ lệ khung hình nào thì ghi ngay trong prompt.' },
+  gemini: { name: 'Gemini', tool: 'Tạo hình ảnh', note: 'Mỗi lô mở một cuộc trò chuyện mới trong tab gemini.google.com đang mở, app tự bật công cụ tạo hình ảnh, gửi lần lượt từng prompt và lưu ảnh cỡ đầy đủ về máy. Cần tab Gemini đã đăng nhập. Chọn mô hình ở đây thì tab Gemini cũng đổi sang mô hình đó.' },
 }
 const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9']
 let keptAspect = '' // Gemini's aspect ratio for this batch; '' = whatever is chosen in Gemini
+const GEM_MODELS = ['Flash-Lite', 'Flash', 'Pro']
+let keptModel = '' // …and its model, the same way
 let keptProvider: Provider = 'flow' // the site this batch goes to; same lifetime as the pool
 let keptCombo: Partial<Record<Draft['kind'], Combo>> = {} // the settings chosen per kind (absent = the app default); same lifetime as the pool
 
@@ -32,11 +34,13 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const [combos, setCombos] = useState(keptCombo)
   const [provider, setProv] = useState(keptProvider)
   const setProvider = (p: Provider): void => { keptProvider = p; setProv(p) }
-  const gpt = provider !== 'flow' // a chat site (ChatGPT, Gemini): images only, always sent by the app, no settings and no reference images
+  const gpt = provider !== 'flow' // a chat site (ChatGPT, Gemini): images only, always sent by the app, no Flow settings
   const site = provider !== 'flow' ? SITE[provider] : null
   const gem = provider === 'gemini' // Gemini also takes reference images and an aspect ratio
   const [aspect, setAsp] = useState(keptAspect)
   const setAspect = (a: string): void => { keptAspect = a; setAsp(a) }
+  const [model, setMod] = useState(keptModel)
+  const setModel = (m: string): void => { keptModel = m; setMod(m) }
   const putCombo = (kind: Draft['kind'], c: Combo | undefined): void => { keptCombo = { ...keptCombo, [kind]: c }; setCombos(keptCombo) }
   const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
@@ -68,14 +72,14 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const refs = { assetIds: pool.map((a) => a.id), mode: refMode, perItem: video ? 1 : perItem } // a video takes one image: its start frame
   const refsKey = JSON.stringify(refs), comboKey = JSON.stringify(chosen ?? null)
   /** What goes to main for this batch (preview and create alike). */
-  const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd, ...(gem ? { refs: r, ...(aspect ? { aspect } : {}) } : {}) } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
+  const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd, refs: r, ...(gem && aspect ? { aspect } : {}), ...(gem && model ? { model } : {}) } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
   useEffect(() => {
     let live = true
     window.api.enqueueBatch({ ...args(JSON.parse(refsKey)), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)) } }, () => { if (live) { setRows([]); setErrs([]) } })
     onDraft?.(d) // the app's copy follows at once: coming back to Tạo lô shows this text, not the last one read from main
     const t = setTimeout(() => void window.api.saveDraft(d), 400)
     return () => { live = false; clearTimeout(t) }
-  }, [d, cmd, refsKey, comboKey, provider, aspect]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
+  }, [d, cmd, refsKey, comboKey, provider, aspect, model]) // eslint-disable-line react-hooks/exhaustive-deps -- onDraft is a fresh closure each render
 
   const latest = useRef(d)
   latest.current = d
@@ -163,13 +167,20 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </fieldset>
         )}
         {gem && <fieldset>
+          <legend>Mô hình</legend>
+          <select aria-label="Mô hình Gemini" data-testid="gem-model" value={model} onChange={(e) => setModel(e.target.value)}>
+            <option value="">Theo Gemini (cái đang chọn trong tab)</option>
+            {GEM_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </fieldset>}
+        {gem && <fieldset>
           <legend>Tỉ lệ khung hình</legend>
           <select aria-label="Tỉ lệ khung hình" data-testid="gem-aspect" value={aspect} onChange={(e) => setAspect(e.target.value)}>
             <option value="">Theo Gemini (cái đang chọn trong tab)</option>
             {GEM_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </fieldset>}
-        {(!gpt || gem) && <fieldset aria-label={video ? 'Khung hình đầu' : 'Ảnh tham chiếu'} className="wide">
+        <fieldset aria-label={video ? 'Khung hình đầu' : 'Ảnh tham chiếu'} className="wide">
           <legend>{video ? 'Khung hình đầu (video bắt đầu từ ảnh này)' : 'Ảnh tham chiếu'}</legend>
           <div className="status">
               <div className="toolbar">
@@ -185,9 +196,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
                 {!video && <label>Số ảnh tham chiếu mỗi prompt <input type="number" min={1} max={10} value={perItem} onChange={(e) => setPerItem(Math.min(10, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))} /></label>}
               </div>
           </div>
-        </fieldset>}
+        </fieldset>
       </div>
-      {(!gpt || gem) && errs.length > 0 && (
+      {errs.length > 0 && (
         <p role="alert" className="notice" data-testid="map-errors">
           {errs.some((e) => e.code === 'NOT_ENOUGH_REFS') && <>Thiếu ảnh cho prompt nào: {errs.filter((e) => e.code === 'NOT_ENOUGH_REFS').map((e) => `#${e.index + 1}`).join(', ')}. </>}
           {errs.some((e) => e.code === 'TOO_MANY_REFS') && <>{video ? 'Quá nhiều ảnh: mỗi video chỉ dùng một ảnh, bỏ bớt ảnh hoặc chọn “Mỗi prompt một ảnh theo thứ tự”. ' : 'Quá nhiều ảnh: tăng “Số ảnh tham chiếu mỗi prompt” hoặc bỏ bớt ảnh. '}</>}
@@ -204,9 +215,9 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
       )}
       {msg && <p role="alert" className="notice">{msg}</p>}
       <div className="actionbar">
-        <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
+        <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && model ? ` · ${model}` : ''}${gem && aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
-        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || ((!gpt || gem) && errs.length > 0)}>Tạo lô và chạy</button>
+        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0}>Tạo lô và chạy</button>
       </div>
     </section>
   )

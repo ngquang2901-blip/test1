@@ -363,11 +363,12 @@ test('a Gemini batch with an aspect ratio and reference images: the ratio goes w
   const fake = createFakeGpt([], { site: 'gemini' });
   const gem = createGptRunner({ db, provider: 'gemini', driver: fake.driver, assets: createAssetStore(db), clock, pollMs: 0, sleep: async () => undefined });
   const add = (id: string, prompts: string[], refs: string[][], settings: object): string => enqueueBatch(db, { commandId: id, kind: 'image', provider: 'gemini', projectId: null, settings, prompts, refs, mode: 'auto' }).batchId;
-  const b = add('g', ['a red kite', 'a blue door'], [[ids[0], ids[1]], [ids[1]]], { provider: 'gemini', aspect: '9:16' });
+  const b = add('g', ['a red kite', 'a blue door'], [[ids[0], ids[1]], [ids[1]]], { provider: 'gemini', aspect: '9:16', model: 'Pro' });
   db.prepare("update batch set status='running' where id=?").run(b);
   for (let i = 0; i < 8; i++) await gem.tick();
   expect(fake.ledger.sends).toEqual(['a red kite', 'a blue door']);
   expect(fake.ledger.aspects).toEqual(['9:16', '9:16']);
+  expect(fake.ledger.models).toEqual(['Pro', 'Pro']);
   expect(fake.ledger.refs).toEqual([['ref-1.png', 'ref-2.png'], ['ref-1.png']]); // the second prompt did not inherit the first one's images
   expect(fake.ledger.attached[0]).toEqual({ name: 'ref-1.png', mime: 'image/png', bytes: png.length, clear: true });
   expect(fake.ledger.attached[1].clear).toBe(false);
@@ -376,6 +377,7 @@ test('a Gemini batch with an aspect ratio and reference images: the ratio goes w
   db.prepare("update batch set status='running' where id=?").run(plain);
   for (let i = 0; i < 4; i++) await gem.tick();
   expect(fake.ledger.aspects[2]).toBeNull();
+  expect(fake.ledger.models[2]).toBeNull();
   expect(fake.ledger.refs[2]).toEqual([]);
   // an image whose file is gone
   unlinkSync(join(dir, 'a.png'));
@@ -385,3 +387,20 @@ test('a Gemini batch with an aspect ratio and reference images: the ratio goes w
   expect(gem.lastError(gone)).toBe('GPT_REF_ASSET_MISSING');
   expect(fake.ledger.sends).toHaveLength(3);
 });
+
+test('a ChatGPT batch with reference images: each prompt goes out with exactly its own, after the image mode is on', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tf-gptref-'));
+  const db = openDb(join(dir, 't.db'));
+  const clock = { t: 1_800_000_000_000, now() { return this.t; } };
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const ids = ['a.png', 'b.png'].map((n) => { writeFileSync(join(dir, n), png); return registerAsset(db, join(dir, n), clock.now()).id; });
+  const fake = createFakeGpt([]);
+  const gpt = createGptRunner({ db, driver: fake.driver, assets: createAssetStore(db), clock, pollMs: 0, sleep: async () => undefined });
+  const b = enqueueBatch(db, { commandId: 'c', kind: 'image', provider: 'chatgpt', projectId: null, settings: { provider: 'chatgpt' }, prompts: ['a red kite', 'a blue door', 'a tin cup'], refs: [[ids[0]], [ids[0], ids[1]], []], mode: 'auto' }).batchId;
+  db.prepare("update batch set status='running' where id=?").run(b);
+  for (let i = 0; i < 12; i++) await gpt.tick();
+  expect(fake.ledger.sends).toEqual(['a red kite', 'a blue door', 'a tin cup']);
+  expect(fake.ledger.refs).toEqual([['ref-1.png'], ['ref-1.png', 'ref-2.png'], []]);
+  expect(fake.ledger.attached.map((x) => x.clear)).toEqual([true, true, false]);
+});
+

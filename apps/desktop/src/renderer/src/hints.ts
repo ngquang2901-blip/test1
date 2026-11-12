@@ -61,12 +61,14 @@ export const HINTS: Record<string, string> = {
   DOWNLOAD_NO_FULL_SIZE: 'Đã bấm nút tải ảnh cỡ đầy đủ của Gemini nhưng trang không lấy được file. Mở tab Gemini xem ảnh còn đó không, tải lại tab (F5) rồi bấm Thử lại',
   DOWNLOAD_BUSY: 'Nút tải ảnh của Gemini đang bận (đang tải ảnh này). Đợi một lúc rồi bấm Thử lại',
   // Gemini: aspect ratio and reference images
+  GPT_MODEL_NOT_FOUND: 'Không thấy mô hình đã chọn trong menu mô hình của Gemini (tài khoản không có, hoặc Gemini đã đổi tên). Tạo lại lô với mô hình khác hoặc “Theo Gemini”',
+  GPT_MODEL_NOT_SET: 'Đã chọn mô hình nhưng Gemini không nhận. Tải lại tab Gemini (F5) rồi bấm Tiếp tục',
   GPT_ASPECT_NOT_FOUND: 'Không thấy tỉ lệ khung hình đã chọn trong menu của Gemini. Tải lại tab Gemini (F5) rồi bấm Tiếp tục; nếu vẫn vậy, tạo lô với “Theo Gemini”',
   GPT_ASPECT_NOT_SET: 'Đã chọn tỉ lệ khung hình nhưng Gemini không nhận. Tải lại tab Gemini (F5) rồi bấm Tiếp tục',
-  GPT_ATTACH_NOT_CLEARED: 'Ô nhập của Gemini đang có ảnh đính kèm mà app không gỡ được. Gỡ ảnh đó trong Gemini rồi bấm Tiếp tục',
-  GPT_ATTACH_REFUSED: 'Gemini không nhận ảnh tham chiếu (có thể quá số ảnh cho phép hoặc loại file không hợp). Bỏ bớt ảnh rồi tạo lại lô, hoặc tải lại tab Gemini (F5) rồi bấm Tiếp tục',
-  GPT_ATTACH_NOT_READY: 'Ảnh tham chiếu tải lên Gemini chưa xong sau 40 giây. Kiểm tra mạng rồi bấm Tiếp tục',
-  GPT_REF_MISMATCH: 'Ảnh đính kèm trong ô nhập của Gemini không khớp với lô. Gỡ ảnh lạ trong ô nhập (nếu có) rồi bấm Tiếp tục; app sẽ gắn lại ảnh của lô',
+  GPT_ATTACH_NOT_CLEARED: 'Ô nhập của ChatGPT đang có ảnh đính kèm mà app không gỡ được. Gỡ ảnh đó trong ChatGPT rồi bấm Tiếp tục',
+  GPT_ATTACH_REFUSED: 'ChatGPT không nhận ảnh tham chiếu (có thể hết lượt tải ảnh lên, quá số ảnh cho phép hoặc loại file không hợp). Bỏ bớt ảnh rồi tạo lại lô, hoặc tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
+  GPT_ATTACH_NOT_READY: 'Ảnh tham chiếu tải lên ChatGPT chưa xong sau 40 giây. Kiểm tra mạng rồi bấm Tiếp tục',
+  GPT_REF_MISMATCH: 'Ảnh đính kèm trong ô nhập của ChatGPT không khớp với lô. Gỡ ảnh lạ trong ô nhập (nếu có) rồi bấm Tiếp tục; app sẽ gắn lại ảnh của lô',
   GPT_REF_ASSET_MISSING: 'Ảnh tham chiếu của lô không còn đọc được trên máy (file bị xoá, đổi hoặc chuyển chỗ). Tạo lại lô với ảnh còn đó',
   // ChatGPT
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',

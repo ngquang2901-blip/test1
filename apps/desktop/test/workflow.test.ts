@@ -279,3 +279,19 @@ test('video node, run: the batch is a video batch; prompt i starts from the save
   expect((one.enq[0] as unknown as { kind: string }).kind).toBe('video')
   expect([one.enq[0].refs.mode, one.enq[0].refs.assetIds]).toEqual(['all', ['a1']])
 })
+
+test('site node: a Tạo ảnh node may go to ChatGPT or Gemini instead of Flow; its batch names the site and is always sent by the app, Gemini with its ratio; a site and Flow settings do not mix', async () => {
+  const SITE = (g: object, h: object = {}) => ({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300, g), N('t2', 'text', 300, { text: 'y' }), N('h', 'generate', 600, h), N('dl', 'download', 900)], edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'h' }, { from: 't2', to: 'h' }, { from: 'h', to: 'dl' }] })
+  const g = parseGraph(SITE({ site: 'gemini', aspect: '9:16', model: 'Pro' }, { site: 'chatgpt' }))
+  expect(plan(g).steps.map((s) => [s.node, s.kind, s.site, s.aspect, s.model])).toEqual([['g', 'image', 'gemini', '9:16', 'Pro'], ['h', 'image', 'chatgpt', undefined, undefined]])
+  expect(plan(g).errors).toEqual([])
+  const r = rig()
+  const { runId } = await r.wf.runWorkflow({ graph: g, mode: 'manual' }) as { runId: string }
+  expect(await r.wait(runId)).toBe('done')
+  expect((r.enq as unknown as { text: string; provider?: string; aspect?: string; model?: string; mode: string; combo?: object; refs: { assetIds: string[] } }[]).map((e) => [e.text, e.provider, e.aspect, e.model, e.mode, 'combo' in e, e.refs.assetIds]))
+    .toEqual([['x', 'gemini', '9:16', 'Pro', 'auto', false, []], ['y', 'chatgpt', undefined, undefined, 'auto', false, ['asset:/dl/A.png', 'asset:/dl/B.png']]]) // the first node's results are the second one's reference images
+  const bad = (v: unknown) => expect(() => parseGraph(v), JSON.stringify(v)).toThrow(/INVALID_ARGS/)
+  for (const x of [{ site: 'grok' }, { site: 'flow' }, { site: 5 }, { aspect: '9:16' }, { site: 'chatgpt', aspect: '9:16' }, { site: 'gemini', aspect: '21:9' }, { site: 'gemini', combo: PRO }, { model: 'Pro' }, { site: 'chatgpt', model: 'Pro' }, { site: 'gemini', model: 'Ultra' }]) bad(SITE(x))
+  bad({ nodes: [N('t', 'text', 0, { text: 'x', site: 'gemini' })], edges: [] }) // only a Tạo ảnh node goes somewhere
+})
+

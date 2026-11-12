@@ -222,7 +222,7 @@ test('enableAuto / disableAuto cover every account of the granted tabs; without 
   expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
 })
 
-test('enqueueBatch for ChatGPT: an image batch with no project, no Flow settings and no refs; anything else creates nothing', async () => {
+test('enqueueBatch for ChatGPT: an image batch with no project and no Flow settings; anything else creates nothing', async () => {
   const { h, db } = rig('a@b.c', [], () => null); // no Flow tab at all: a ChatGPT batch does not need one
   const gpt = { commandId: 'g1', text: 'a red kite\n\na blue door', kind: 'image', mode: 'auto', provider: 'chatgpt' };
   expect(await h.enqueueBatch({ ...gpt, dryRun: true })).toMatchObject({ rows: [{ n: 1, prompt: 'a red kite' }, { n: 2, prompt: 'a blue door' }], errors: [] });
@@ -234,13 +234,13 @@ test('enqueueBatch for ChatGPT: an image batch with no project, no Flow settings
   expect(b.items.map((i) => [i.prompt, i.sourceLine])).toEqual([['a red kite', 1], ['a blue door', 3]]);
   for (const bad of [{ ...gpt, kind: 'video' }, { ...gpt, mode: 'manual' }, { ...gpt, provider: 'grok' }])
     await expect(h.enqueueBatch({ ...bad, commandId: 'g2' }), JSON.stringify(bad)).rejects.toThrow(/INVALID_ARGS/);
-  await expect(h.enqueueBatch({ ...gpt, commandId: 'g3', refs: { assetIds: ['x'], mode: 'all', perItem: 1 } })).rejects.toMatchObject({ code: 'REF_KIND_UNSUPPORTED' });
+  await expect(h.enqueueBatch({ ...gpt, commandId: 'g3', refs: { assetIds: ['x'], mode: 'all', perItem: 1 } })).rejects.toThrow(/INVALID_ARGS/); // an image the app does not know
   expect(db.prepare('select count(*) n from batch').get()).toEqual({ n: 1 });
   const flow = (await rig().h.enqueueBatch(good)) as { batchId: string };
   expect(flow.batchId).toBeTruthy(); // a batch without a provider is a Flow batch, as before
 });
 
-test('enqueueBatch for Gemini: an image batch kept apart by its provider, with an optional aspect ratio and reference images mapped like Flow\'s; ChatGPT takes neither', async () => {
+test('enqueueBatch for Gemini: an image batch kept apart by its provider, with an optional aspect ratio and reference images mapped like Flow\'s; ChatGPT takes the images but no ratio', async () => {
   const { h, db } = rig('a@b.c', [], () => null);
   const r = (await h.enqueueBatch({ commandId: 'm1', text: 'a red kite', kind: 'image', mode: 'auto', provider: 'gemini' })) as { batchId: string };
   expect(db.prepare('select provider, kind, target_project p, settings_json s from batch where id=?').get(r.batchId)).toEqual({ provider: 'gemini', kind: 'image', p: null, s: JSON.stringify({ provider: 'gemini', mode: 'auto' }) });
@@ -251,11 +251,14 @@ test('enqueueBatch for Gemini: an image batch kept apart by its provider, with a
   const refs = { assetIds: ids, mode: 'all', perItem: 2 };
   const dry = (await h.enqueueBatch({ commandId: 'm3', text: 'one\ntwo', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '16:9', refs, dryRun: true })) as { rows: { refs: string[] }[] };
   expect(dry.rows.map((x) => x.refs)).toEqual([['a.png', 'b.png'], ['a.png', 'b.png']]);
-  const g = (await h.enqueueBatch({ commandId: 'm3', text: 'one\ntwo', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '16:9', refs })) as { batchId: string };
-  expect(JSON.parse((db.prepare('select settings_json s from batch where id=?').get(g.batchId) as { s: string }).s)).toMatchObject({ provider: 'gemini', aspect: '16:9' });
+  const g = (await h.enqueueBatch({ commandId: 'm3', text: 'one\ntwo', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '16:9', model: 'Pro', refs })) as { batchId: string };
+  expect(JSON.parse((db.prepare('select settings_json s from batch where id=?').get(g.batchId) as { s: string }).s)).toMatchObject({ provider: 'gemini', aspect: '16:9', model: 'Pro' });
+  await expect(h.enqueueBatch({ commandId: 'm8', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', model: 'Ultra' })).rejects.toThrow(/INVALID_ARGS/);
+  await expect(h.enqueueBatch({ commandId: 'm9', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', model: 'Pro' })).rejects.toThrow(/INVALID_ARGS/);
   expect((db.prepare('select refs_json r from item where batch_id=? order by ord').all(g.batchId) as { r: string }[]).map((x) => JSON.parse(x.r))).toEqual([ids, ids]);
   await expect(h.enqueueBatch({ commandId: 'm4', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '21:9' })).rejects.toThrow(/INVALID_ARGS/);
   await expect(h.enqueueBatch({ commandId: 'm5', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', refs: { assetIds: ['nope'], mode: 'all', perItem: 1 } })).rejects.toThrow(/INVALID_ARGS/);
   await expect(h.enqueueBatch({ commandId: 'm6', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '16:9' })).rejects.toThrow(/INVALID_ARGS/);
-  await expect(h.enqueueBatch({ commandId: 'm7', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', refs })).rejects.toMatchObject({ code: 'REF_KIND_UNSUPPORTED' });
+  const c = (await h.enqueueBatch({ commandId: 'm7', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', refs })) as { batchId: string }; // ChatGPT takes reference images too
+  expect(JSON.parse((db.prepare('select refs_json r from item where batch_id=?').get(c.batchId) as { r: string }).r)).toEqual(ids);
 });

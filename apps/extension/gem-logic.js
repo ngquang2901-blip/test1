@@ -11,6 +11,9 @@
 
   // The aspect ratio menu (shown while the image tool is on): each entry, and the button once one is chosen, carries one of these icons.
   const ASPECT_ICONS = { '1:1': 'crop_square', '9:16': 'crop_9_16', '3:4': 'crop_portrait', '4:3': 'crop_landscape', '16:9': 'crop_16_9' };
+  // The model menu: an entry reads "<description> <version> <family>", the button shows the family once chosen (measured: Flash-Lite, Flash, Pro).
+  const MODELS = ['Flash-Lite', 'Flash', 'Pro'];
+  const isModelItem = (text, family) => { const t = flat(text); return t === family || t.endsWith(' ' + family); };
   const MAX_REFS = 10; // reference images per prompt: as many as were sent live
   const isRefFile = (a) => typeof a?.name === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(a.name) && !a.name.includes('..') && /^image\/(png|jpeg|webp)$/.test(String(a.mime))
     && typeof a.b64 === 'string' && a.b64.length >= 4 && a.b64.length <= 28_000_000 && /^[A-Za-z0-9+/]+={0,2}$/.test(a.b64.slice(0, 64).replace(/=+$/, '') + a.b64.slice(-2).replace(/[^=]/g, ''));
@@ -39,5 +42,5 @@
   const isGeminiDownload = (item) => String(item?.url ?? '').startsWith('blob:') && /^image\/(png|jpeg|webp)$/.test(String(item?.mime ?? ''))
     && /^Gemini_Generated_Image_[A-Za-z0-9]+\.[a-z]{3,4}$/.test(String(item?.filename ?? '').split(/[\\/]/).pop());
 
-  globalThis.TFGem = { flat, isId, IMAGE_ICON, IMAGE_MODE, ASPECT_ICONS, MAX_REFS, isRefFile, ownsQuery, turnDone, mediaId, parseMediaId, convOf, isFullSizeUrl, isFullSize, isGeminiDownload };
+  globalThis.TFGem = { flat, isId, IMAGE_ICON, IMAGE_MODE, ASPECT_ICONS, MODELS, isModelItem, MAX_REFS, isRefFile, ownsQuery, turnDone, mediaId, parseMediaId, convOf, isFullSizeUrl, isFullSize, isGeminiDownload };
 })();

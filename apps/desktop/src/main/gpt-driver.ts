@@ -16,10 +16,10 @@ export interface GptDriver {
   open(tab: string, conv: string): Promise<boolean> // the tab goes back to one of our conversations
   front(tab: string, raise?: boolean): Promise<boolean> // the tab becomes the active one of its window; raise: the window itself comes forward too (only when the page is still hidden)
   state(tab: string): Promise<GptState>
-  mode(tab: string, aspect?: string): Promise<GptStep> // image mode on (postcondition read from the composer); aspect: Gemini's ratio menu
-  attach?(tab: string, file: RefFile, clear: boolean): Promise<GptStep> // Gemini: one reference image into the composer; clear = remove what is attached first
+  mode(tab: string, o?: ModeOpts): Promise<GptStep> // image mode on (postcondition read from the composer); o: Gemini's model and ratio menus
+  attach(tab: string, file: RefFile, clear: boolean): Promise<GptStep> // one reference image into the composer; clear = remove what is attached first
   prep(tab: string, prompt: string): Promise<GptStep> // types; never sends
-  send(tab: string, prompt: string, refs?: number): Promise<GptStep> // ok:false = nothing was clicked; refs: how many images must be attached (Gemini)
+  send(tab: string, prompt: string, refs: number): Promise<GptStep> // ok:false = nothing was clicked; refs: how many images must be attached
   turns(tab: string, prompt: string): Promise<{ conv: string | null; turns: GptTurn[] }> // the conversation and its turns in one look, so a turn is never paired with another chat's id
   fetchMedia(tab: string, p: { mediaId: string; filename: string }): Promise<FetchMediaResult>
 }
@@ -31,15 +31,18 @@ export const isGemMedia = (id: string): boolean => /^[0-9a-f]{8,32}-[1-9][0-9]?$
 /** The two sites the runner can drive: the prefix of the site's extension ops and where a conversation's id sits in the tab's path. */
 const SITES = { chatgpt: { ops: 'gpt', conv: new RegExp(`^/c/(${UUID})$`) }, gemini: { ops: 'gem', conv: /^\/app\/([0-9a-f]{8,32})$/ } } as const
 export type Site = keyof typeof SITES
+export const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9'] as const // the ratios Gemini's menu offers (measured)
+export const GEM_MODELS = ['Flash-Lite', 'Flash', 'Pro'] as const // model families of Gemini's menu (measured)
+export type ModeOpts = { aspect?: string; model?: string } // what a Gemini batch may choose next to the image tool
 
 export function createExtGpt(server: Pick<ConnectorServer, 'send'>, site: Site = 'chatgpt'): GptDriver {
   const x = SITES[site].ops, convOf = (path: string): string | null => SITES[site].conv.exec(path)?.[1] ?? null
   const op = <T>(name: string, tabId: string, args: Record<string, unknown> = {}): Promise<T> => server.send(name, { tabId, ...args }) as Promise<T>
   return {
     async tabs() { return ((await server.send(`${x}Tabs`, {})) as { tabId: string; path: string; active: boolean }[]).map((t) => ({ tabId: t.tabId, conv: convOf(t.path), active: t.active })) },
-    newChat: (t) => op(`${x}New`, t), open: (t, conv) => op(`${x}Open`, t, { conv }), front: (t, raise) => op('gptFront', t, raise ? { raise: true } : {}), state: (t) => op(`${x}State`, t), mode: (t, aspect) => op(`${x}Mode`, t, aspect ? { aspect } : {}), // gptFront: any tab
-    ...(site === 'gemini' ? { attach: (t: string, file: RefFile, clear: boolean) => op<GptStep>('gemAttach', t, { ...file, clear }) } : {}),
-    prep: (t, prompt) => op(`${x}Prep`, t, { prompt }), send: (t, prompt, refs) => op(`${x}Send`, t, { prompt, ...(refs === undefined ? {} : { refs }) }), turns: (t, prompt) => op(`${x}Turns`, t, { prompt }),
+    newChat: (t) => op(`${x}New`, t), open: (t, conv) => op(`${x}Open`, t, { conv }), front: (t, raise) => op('gptFront', t, raise ? { raise: true } : {}), state: (t) => op(`${x}State`, t), mode: (t, o) => op(`${x}Mode`, t, { ...(o?.aspect ? { aspect: o.aspect } : {}), ...(o?.model ? { model: o.model } : {}) }), // gptFront: any tab
+    attach: (t, file, clear) => op(`${x}Attach`, t, { ...file, clear }),
+    prep: (t, prompt) => op(`${x}Prep`, t, { prompt }), send: (t, prompt, refs) => op(`${x}Send`, t, { prompt, refs }), turns: (t, prompt) => op(`${x}Turns`, t, { prompt }),
     fetchMedia: (t, p) => op(`${x}Fetch`, t, p),
   }
 }
@@ -60,7 +63,7 @@ export function createFakeGpt(script: GptScript[] = [], o: { site?: Site; tabs?:
   const convs = new Map<string, FakeTurn[]>()
   const page = { open: (o.tabs ?? 1) > 0, front: false, hidden: false, minimised: false, conv: null as string | null, start: false, mode: null as string | null, text: '' }
   const files: string[] = [] // what is attached in the composer
-  const ledger = { aspects: [] as (string | null)[], attached: [] as { name: string; mime: string; bytes: number; clear: boolean }[], refs: [] as string[][], sends: [] as string[], fronts: 0, raises: 0, newChats: 0, opens: [] as string[], fetched: [] as string[] }
+  const ledger = { aspects: [] as (string | null)[], models: [] as (string | null)[], attached: [] as { name: string; mime: string; bytes: number; clear: boolean }[], refs: [] as string[][], sends: [] as string[], fronts: 0, raises: 0, newChats: 0, opens: [] as string[], fetched: [] as string[] }
   const here = (): FakeTurn[] => (page.conv ? convs.get(page.conv) ?? [] : [])
   const need = (): void => { if (!page.open) throw Object.assign(new Error('no such tab'), { code: 'CONNECTOR_LOST' }) }
   let leaving = false
@@ -74,8 +77,8 @@ export function createFakeGpt(script: GptScript[] = [], o: { site?: Site; tabs?:
     async newChat() { need(); ledger.newChats++; page.conv = null; page.start = true; page.mode = null; page.text = ''; return true },
     async open(_t, conv) { need(); ledger.opens.push(conv); if (!convs.has(conv)) return false; page.conv = conv; page.start = false; page.mode = null; page.text = ''; return true },
     async state() { need(); if (leaving) { leaving = false; leave() } return { conv: page.conv, start: page.start, visible: page.front && !page.hidden && !page.minimised, editor: true, mode: page.mode, textLen: page.text.length, canSend: page.text.length > 0, generating: here().some((t) => !done(t) && t.kind !== 'slow'), turns: here().length } },
-    async mode(_t, aspect) { need(); const c = step(fail.mode); if (c) return { ok: false, code: c }; if (!page.front || page.hidden || page.minimised) return { ok: false, code: 'MODE_NOT_FOUND' }; page.mode = IMAGE_MODE; ledger.aspects.push(aspect ?? null); return { ok: true } },
-    ...(o.site === 'gemini' ? { async attach(_t: string, f: RefFile, clear: boolean): Promise<GptStep> { need(); if (clear) files.length = 0; files.push(f.name); ledger.attached.push({ name: f.name, mime: f.mime, bytes: Buffer.from(f.b64, 'base64').length, clear }); return { ok: true } } } : {}), // the menu does not open in a tab that is not shown
+    async mode(_t, mo) { need(); const c = step(fail.mode); if (c) return { ok: false, code: c }; if (!page.front || page.hidden || page.minimised) return { ok: false, code: 'MODE_NOT_FOUND' }; page.mode = IMAGE_MODE; ledger.aspects.push(mo?.aspect ?? null); ledger.models.push(mo?.model ?? null); return { ok: true } },
+    async attach(_t, f, clear) { need(); if (clear) files.length = 0; files.push(f.name); ledger.attached.push({ name: f.name, mime: f.mime, bytes: Buffer.from(f.b64, 'base64').length, clear }); return { ok: true } }, // the menu does not open in a tab that is not shown
     async prep(_t, prompt) {
       need(); const c = step(fail.prep); if (c) return { ok: false, code: c }
       if (page.mode !== IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' }
@@ -86,7 +89,7 @@ export function createFakeGpt(script: GptScript[] = [], o: { site?: Site; tabs?:
       need(); const c = step(fail.send); if (c) return { ok: false, code: c }
       if (page.mode !== IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' }
       if (page.text !== prompt) return { ok: false, code: 'PROMPT_MISMATCH' }
-      if (refs !== undefined && files.length !== refs) return { ok: false, code: 'REF_MISMATCH' }
+      if (files.length !== refs) return { ok: false, code: 'REF_MISMATCH' }
       const kind = steps.shift() ?? 'ok'
       ledger.refs.push(files.splice(0)); ledger.sends.push(prompt); page.text = ''; page.mode = null // the pill is gone after every send (measured)
       if (kind === 'lost') return { ok: true }

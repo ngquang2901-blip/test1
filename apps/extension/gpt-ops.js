@@ -17,6 +17,12 @@
   // the prompt as typed: the editor's text without the mode pill's label
   const promptText = (ed) => { const c = ed.cloneNode(true); c.querySelectorAll('[data-system-hint-type]').forEach((p) => p.remove()); return G.flat(c.innerText); };
   const idsOf = (e) => String(e.getAttribute('data-chatgpt-search-message-ids') || '').split(/[\s,]+/).filter(G.isUuid);
+  // an attached file shows as a tile with a "Remove <name>" button; a progressbar is there while it uploads (measured, English UI)
+  const tiles = () => [...document.querySelectorAll('form button[aria-label^="Remove "]')];
+  const uploading = () => !!document.querySelector('form [role="progressbar"]');
+  // measured: for some seconds after a page load the editor is there but the app is not (the sidebar reads "Loading profile"): the "+" menu
+  // stays empty and a pasted file is dropped without a trace. The composer counts as there only after that.
+  const shellLoading = () => [...document.querySelectorAll('button')].some((b) => G.flat(b.innerText) === 'Loading profile');
   const imgsOf = (holder) => [...holder.querySelectorAll('[data-testid="generated-image-gallery"] [data-testid="generated-image-preview"] img')];
   const shown = (i) => i.complete && i.naturalWidth > 0;
 
@@ -36,7 +42,7 @@
     gptState() {
       const ed = editor(), send = sendBtn();
       return {
-        conv: G.convOf(location.pathname), start: location.pathname === '/', visible: document.visibilityState === 'visible', editor: !!ed, mode: modeOf(ed), textLen: ed ? promptText(ed).length : 0,
+        conv: G.convOf(location.pathname), start: location.pathname === '/', visible: document.visibilityState === 'visible', editor: !!ed && !shellLoading(), mode: modeOf(ed), textLen: ed ? promptText(ed).length : 0,
         canSend: !!send && !send.disabled, generating: !!document.querySelector('form button[data-testid="stop-button"], form button[aria-label*="Stop" i]'),
         turns: document.querySelectorAll('[data-turn-key]').length,
       };
@@ -50,7 +56,8 @@
       const before = new Set(document.querySelectorAll('button'));
       const fresh = () => [...document.querySelectorAll('button')].filter((b) => !before.has(b));
       press(plus);
-      const hit = ((await until(() => (fresh().length ? fresh() : null), 3000)) || []).filter((b) => G.isModeLabel(b.innerText));
+      // measured: other buttons appear while the page finishes loading and the menu fills in steps, so wait for the entry itself
+      const hit = (await until(() => { const h = fresh().filter((b) => G.isModeLabel(b.innerText)); return h.length ? h : null; }, 8000)) || [];
       if (hit.length !== 1) { // nothing is clicked on a menu we cannot read; close it again
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(300);
         if (fresh().length) press(plus);
@@ -60,6 +67,30 @@
       return (await until(() => modeOf(editor()) === G.IMAGE_MODE, 3000)) ? { ok: true } : { ok: false, code: 'MODE_NOT_SET' };
     },
     // Types the prompt after the mode pill. Never sends, never replaces something the user typed.
+    // One reference image into the composer, as a pasted file (measured: the page takes a paste event carrying a File; 4 s for a small PNG).
+    // clear: what is attached already (an earlier try, or the user's) is removed first, so a prompt goes out with exactly its own images.
+    async gptAttach(a) {
+      const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
+      if (a.clear) {
+        tiles().forEach((b) => press(b));
+        if (!(await until(() => tiles().length === 0, 4000))) return { ok: false, code: 'ATTACH_NOT_CLEARED' };
+      }
+      const n = tiles().length;
+      const bin = atob(a.b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      // measured: the tile is there 0.2 s after a paste the page took (6 MB too), and a paste soon after the page opened can be ignored
+      // without a trace: no tile after 3 s = paste again, three times at most
+      let took = false;
+      for (let k = 0; k < 3 && !took; k++) {
+        const dt = new DataTransfer(); dt.items.add(new File([bytes], a.name, { type: a.mime }));
+        const e = editor(); if (!e) return { ok: false, code: 'NO_EDITOR' };
+        e.focus();
+        e.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+        took = !!(await until(() => tiles().length > n, 3000));
+      }
+      if (!took) return { ok: false, code: 'ATTACH_REFUSED' };
+      return (await until(() => tiles().length === n + 1 && !uploading(), 40000)) ? { ok: true, count: n + 1 } : { ok: false, code: 'ATTACH_NOT_READY' };
+    },
     async gptPrep(a) {
       const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
       if (modeOf(ed) !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
@@ -76,6 +107,7 @@
       const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
       if (modeOf(ed) !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
       if (promptText(ed) !== G.flat(a.prompt)) return { ok: false, code: 'PROMPT_MISMATCH' };
+      if (a.refs !== undefined && (tiles().length !== a.refs || uploading())) return { ok: false, code: 'REF_MISMATCH' }; // exactly the batch's images go out, fully uploaded
       // measured: right after the previous answer ends the button stays locked for a moment although the text is in
       const send = await until(() => { const b = sendBtn(); return b && !b.disabled ? b : null; }, 10000);
       if (!send) return { ok: false, code: sendBtn() ? 'SEND_DISABLED' : 'NO_SEND' };
