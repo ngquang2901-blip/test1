@@ -30,6 +30,7 @@ export function createGptRunner(o: {
   sleep?(ms: number): Promise<void>
   assets?: Pick<AssetStore, 'get'> // reference images of a batch
   download?(batchId: string): Promise<void> // saves the batch's finished images; called while they are still on the page
+  hands?: { busy: boolean } // shared by the site runners of one Chrome: working one site's tab brings it forward, which hides the other's (measured: its menu then does not open)
 }): GptRunner {
   const { db, driver, clock } = o
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
@@ -41,7 +42,7 @@ export function createGptRunner(o: {
   const started = new Set<string>() // attempts whose answer was seen in progress or with an image coming
   let lastTab: string | null = null
   let lastPoll = -Infinity
-  let busy = false // a prompt is being typed/sent, or the tab is being taken to a conversation for a download
+  const hands = o.hands ?? { busy: false } // busy: a prompt is being typed/sent, or the tab is being taken to a conversation for a download
 
   const put = (id: string, type: string, s: AttemptState): AttemptState => {
     db.transaction(() => {
@@ -53,6 +54,7 @@ export function createGptRunner(o: {
   const rows = (where: string, ...args: unknown[]): Row[] => (db.prepare(
     `select a.id, i.batch_id batch, a.state_json j from item i join attempt a on a.id=i.attempt_id join batch b on b.id=i.batch_id
      where b.provider=? and ${where} order by b.created_at, b.rowid, i.ord`).all(provider, ...args) as { id: string; batch: string; j: string }[]).map((r) => ({ id: r.id, batch: r.batch, s: JSON.parse(r.j) as AttemptState }))
+  const otherSiteFlying = (): boolean => !!db.prepare("select 1 from item i join attempt a on a.id=i.attempt_id join batch b on b.id=i.batch_id where b.provider not in ('flow', ?) and b.archived=0 and json_extract(a.state_json,'$.item') in ('submitting','generating') limit 1").get(provider)
   const flying = (): Row[] => rows("json_extract(a.state_json,'$.item') in ('submitting','generating')")
   const review = (s: AttemptState, code: string, why: string): AttemptState => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, why }, admission: 'pause', creditSpent: true })
   const hold = (batch: string, code: string): void => {
@@ -95,7 +97,8 @@ export function createGptRunner(o: {
     if (t && t.state === 'complete' && t.images.length && !t.pending) {
       noImage.delete(a.id); started.delete(a.id)
       put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null })
-      await o.download?.(a.batch).catch(() => undefined) // a failed save shows on the output itself
+      hands.busy = true // the save works the tab too (measured: Gemini's full-size file does not come while its tab is hidden)
+      try { await o.download?.(a.batch).catch(() => undefined) } finally { hands.busy = false } // a failed save shows on the output itself
       return
     }
     if (t && moving(t)) started.add(a.id)
@@ -170,7 +173,7 @@ export function createGptRunner(o: {
     const fly = flying()
     const batches = fly.length ? [] : db.prepare("select id from batch where provider=? and status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all(provider) as { id: string }[]
     if (!fly.length && !batches.length) return // nothing of ours: the extension is not asked anything
-    if (clock.now() - lastPoll < pollMs || busy) return
+    if (clock.now() - lastPoll < pollMs || hands.busy) return
     lastPoll = clock.now()
     if (fly.length) { for (const a of fly) await watch(a); return } // one prompt at a time: the next goes out on a later tick
     for (const b of batches) {
@@ -180,8 +183,9 @@ export function createGptRunner(o: {
       if (!c) continue
       const tab = await theTab()
       if (!tab) { hold(b.id, 'NO_CHATGPT_TAB'); continue }
-      busy = true
-      try { await dispatch(tab, b.id, c, list) } finally { busy = false }
+      if (hands.busy || otherSiteFlying()) return // the other chat site is at work (typing, answering or saving): its prompt first, then ours
+      hands.busy = true
+      try { await dispatch(tab, b.id, c, list) } finally { hands.busy = false }
       return
     }
   }
@@ -197,16 +201,16 @@ export function createGptRunner(o: {
     /** The image is only on the page of its own conversation: when the tab is elsewhere and no prompt is in flight, take it back there. */
     async fetchMedia(tab, p) {
       let r = await driver.fetchMedia(tab, p)
-      if (r.ok || r.code !== 'NOT_FOUND' || busy || flying().length) return r
+      if (r.ok || r.code !== 'NOT_FOUND' || hands.busy || flying().length) return r
       const owner = (db.prepare('select state_json j from attempt where state_json like ?').all(`%"mediaId":"${p.mediaId}"%`) as { j: string }[])[0]
       const conv = owner ? (JSON.parse(owner.j).request as Req | null)?.conv : null
       if (!conv) return r
-      busy = true
+      hands.busy = true
       try {
         if ((await driver.state(tab)).conv !== conv && !(await driver.open(tab, conv))) return r
         for (let i = 0; i < 20; i++) { await sleep(1000); r = await driver.fetchMedia(tab, p); if (r.ok || r.code !== 'NOT_FOUND') break }
         return r
-      } catch { return r } finally { busy = false }
+      } catch { return r } finally { hands.busy = false }
     },
   }
 }

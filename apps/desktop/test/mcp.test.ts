@@ -47,18 +47,18 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
   const t = toolsOf({
     enqueue: async (a) => { calls.push(a); return (a as { text: string }).text === 'bad' ? { errors: [{ code: 'EMPTY' }] } : { batchIds: ['b1', 'b2'] } },
     start: async (id) => void calls.push(`start ${id}`), download: async (id) => void calls.push(`download ${id}`),
-    list: async () => ({ batches: [batch], session: { connected: true, tabs: [{ granted: true }, { granted: false }], autoEnabled: true, selfCheck: { ok: true }, email: 'someone@gmail.com' } }),
+    list: async () => ({ batches: [batch], session: { connected: true, tabs: [{ granted: true }, { granted: false }], gptTabs: 1, autoEnabled: true, selfCheck: { ok: true }, email: 'someone@gmail.com' } }),
     file: (a, m) => { if (m === 'm2') throw new Error('not saved'); return `/dl/${a}-${m}.mp4` },
   })
   expect(Object.keys(t)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download'])
-  expect(await t.toolflow_status.run({})).toEqual({ connected: true, tabsInUse: 1, selfCheckOk: true, autoSend: true, account: 'so***@gmail.com' })
+  expect(await t.toolflow_status.run({})).toEqual({ connected: true, tabsInUse: 1, chatgptTabs: 1, geminiTabs: 0, selfCheckOk: true, autoSend: true, account: 'so***@gmail.com' })
   expect(await t.toolflow_create_batch.run({ prompts: ['một con mèo', ' một con chó '], kind: 'video' })).toEqual({ batchIds: ['b1', 'b2'] })
   expect(calls[0]).toMatchObject({ kind: 'video', mode: 'auto', text: 'một con mèo\nmột con chó' })
   expect(Object.keys(calls[0] as object).sort()).toEqual(['commandId', 'kind', 'mode', 'text'])
   expect(calls.slice(1)).toEqual(['start b1', 'start b2'])
   expect(await t.toolflow_create_batch.run({ prompts: ['bad'] })).toEqual({ errors: [{ code: 'EMPTY' }] }) // nothing started
   expect(calls).toHaveLength(4)
-  for (const bad of [{}, { prompts: [] }, { prompts: 'x' }, { prompts: ['a\nb'] }, { prompts: [''] }, { prompts: Array(101).fill('x') }, { prompts: ['x'], kind: 'audio' }, { prompts: ['x'.repeat(5001)] }])
+  for (const bad of [{}, { prompts: [] }, { prompts: 'x' }, { prompts: ['a\nb'] }, { prompts: [''] }, { prompts: Array(101).fill('x') }, { prompts: ['x'], kind: 'audio' }, { prompts: ['x'.repeat(5001)] }, { prompts: ['x'], site: 'grok' }, { prompts: ['x'], site: 7 }])
     await expect(t.toolflow_create_batch.run(bad), JSON.stringify(bad).slice(0, 60)).rejects.toMatchObject({ code: 'INVALID_ARGS' })
   const brief = { id: 'b1', kind: 'video', status: 'completed', pauseReason: null, items: [{ n: 1, prompt: 'p1', state: 'ready', error: null, files: ['/dl/a1-m1.mp4'] }, { n: 2, prompt: 'p2', state: 'failed', error: 'CONTENT_BLOCKED', files: [] }] }
   expect(await t.toolflow_list_batches.run({})).toEqual({ batches: [brief] })
@@ -66,6 +66,14 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
   expect(await t.toolflow_download.run({ batchId: 'b1' })).toEqual({ batches: [brief] })
   expect(calls.at(-1)).toBe('download b1')
   await expect(t.toolflow_download.run({})).rejects.toMatchObject({ code: 'INVALID_ARGS' })
+  // a chat site: named with its Gemini choices and handed to the same enqueue, which is the one that refuses a wrong mix
+  const n = calls.length
+  expect(await t.toolflow_create_batch.run({ prompts: ['x'], site: 'gemini', aspect: '9:16', model: 'Pro' })).toEqual({ batchIds: ['b1', 'b2'] })
+  expect(calls[n]).toMatchObject({ kind: 'image', mode: 'auto', text: 'x', provider: 'gemini', aspect: '9:16', model: 'Pro' })
+  await t.toolflow_create_batch.run({ prompts: ['x'], site: 'chatgpt' })
+  expect(Object.keys(calls[n + 3] as object).sort()).toEqual(['commandId', 'kind', 'mode', 'provider', 'text'])
+  await t.toolflow_create_batch.run({ prompts: ['x'], site: 'flow' })
+  expect(Object.keys(calls[n + 6] as object).sort()).toEqual(['commandId', 'kind', 'mode', 'text'])
 })
 
 test('switch: off by default; on writes address + token to a 0600 file and answers there; off closes it; the token and the choice survive a restart', async () => {
