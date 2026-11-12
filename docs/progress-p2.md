@@ -272,3 +272,19 @@ Not checked: the Windows installer on a real Windows machine; the packaged app a
 
 Open after 0.11.0: ChatGPT aspect ratio; last frame and video x2–x4 (waiting for credit on the test account); the rest of the TobyFlow table.
 
+## Correction of the 0.11.0 record; Gemini menu, downloads named by id, fair turns, 0.11.1 (2026-11-12)
+
+**The 0.11.0 section above names the wrong cause.** It says the two site runners hid each other's tab and that this produced `GPT_MODE_NOT_FOUND`, `DOWNLOAD_NO_FULL_SIZE` and `DOWNLOAD_BAD_PATH`. The same was written in the 0.11.0 release notes. Measured afterwards, each symptom alone:
+- `GPT_MODE_NOT_FOUND` (Gemini): the "+" menu fills in steps and the app looked at the first items only. 1 failure in 6 on a fresh page with nothing else running, so a lone Gemini batch was exposed too, since 0.8.0. Fixed (the entry itself is waited for, in all three Gemini menus): 12 of 12.
+- `DOWNLOAD_BAD_PATH` (ChatGPT): while a Gemini save listens for filenames, the browser drops the name of every other download of the extension; the image landed in Downloads as `download.png`. Reproduced on purpose, fixed (every download named again by its id), the reproduction then saved into `ToolFlow-tmp` twice. Flow saves share the fix; not tried live.
+- `DOWNLOAD_NO_FULL_SIZE` (Gemini): not explained. Not the hidden tab (a hidden tab saved two images). Twice so far, on an image finished a moment before; Thử lại later works.
+The turn-taking of 0.11.0 stays, as caution: its only measured reason is that ChatGPT's menu needs its tab in front. Details: `2026-11-12-gemini.md`, last section.
+
+Asked by the owner ("làm cả 2 đi"): (1) Tải on an old batch no longer pulls its tab forward while the other site answers (unit test only). (2) Two batches with two prompts each, live over MCP: the first run saved all four but one site sent both prompts before the other started, so turns are now fair (`hands.last`); the final run went ChatGPT 1, Gemini 1, ChatGPT 2, Gemini 2 and saved all four in 112 s.
+
+Two stray files from these tests (`download.png`, `download (1).png` in the owner's Downloads) were removed.
+
+Release `v0.11.1` (id 442735459): gate on the branch before the merge: typecheck 0, unit 385, extension 104, flow-protocol 55, e2e 50. Packaged smoke on the fakes as 0.11.0. Assets equal to `dist/`: Setup.exe 127 421 714, AppImage 134 374 757 (sha `4ab5791f6215`), deb 107 452 200. Self-update 0.11.0 → 0.11.1: ready after 22 s, file equals the published AppImage, runs 0.11.1, "Bạn đang dùng bản mới nhất".
+
+Not checked: the Windows installer on a real Windows machine; the packaged app against the real tabs; Flow live in this round, although its save now goes through `startDownload`; the Tải gate live. Open: `DOWNLOAD_NO_FULL_SIZE` unexplained; whether the sites could run side by side again now that the two real causes are fixed (faster, needs its own live proof); ChatGPT aspect ratio; last frame and video x2–x4 (waiting for credit).
+
