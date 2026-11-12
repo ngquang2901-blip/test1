@@ -1,9 +1,10 @@
 import { test, expect } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import { openDb } from '../src/main/db';
+import { createAssetStore, registerAsset } from '../src/main/assets';
 import { enqueueBatch } from '../src/main/batch';
 import { createFakeGpt, isGemMedia, isGptMedia, type GptScript } from '../src/main/gpt-driver';
 import { createGptRunner, routeRunner, GPT_TURNS_PER_CONV } from '../src/main/gpt-runner';
@@ -351,4 +352,36 @@ test('a Gemini batch runs in the Gemini tab through its own runner; the ChatGPT 
   runner.start(g2);
   for (let i = 0; i < 2; i++) await runner.tick();
   expect(runner.lastError(g2)).toBe('NO_CHATGPT_TAB'); // one code for "this site's tab is not open"; the hint names the site
+});
+
+test('a Gemini batch with an aspect ratio and reference images: the ratio goes with the image tool, each prompt gets exactly its own images (the first one clears the composer), and the send names how many; a missing image pauses before anything is sent', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tf-gem-'));
+  const db = openDb(join(dir, 't.db'));
+  const clock = { t: 1_800_000_000_000, now() { return this.t; } };
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const ids = ['a.png', 'b.png'].map((n) => { writeFileSync(join(dir, n), png); return registerAsset(db, join(dir, n), clock.now()).id; });
+  const fake = createFakeGpt([], { site: 'gemini' });
+  const gem = createGptRunner({ db, provider: 'gemini', driver: fake.driver, assets: createAssetStore(db), clock, pollMs: 0, sleep: async () => undefined });
+  const add = (id: string, prompts: string[], refs: string[][], settings: object): string => enqueueBatch(db, { commandId: id, kind: 'image', provider: 'gemini', projectId: null, settings, prompts, refs, mode: 'auto' }).batchId;
+  const b = add('g', ['a red kite', 'a blue door'], [[ids[0], ids[1]], [ids[1]]], { provider: 'gemini', aspect: '9:16' });
+  db.prepare("update batch set status='running' where id=?").run(b);
+  for (let i = 0; i < 8; i++) await gem.tick();
+  expect(fake.ledger.sends).toEqual(['a red kite', 'a blue door']);
+  expect(fake.ledger.aspects).toEqual(['9:16', '9:16']);
+  expect(fake.ledger.refs).toEqual([['ref-1.png', 'ref-2.png'], ['ref-1.png']]); // the second prompt did not inherit the first one's images
+  expect(fake.ledger.attached[0]).toEqual({ name: 'ref-1.png', mime: 'image/png', bytes: png.length, clear: true });
+  expect(fake.ledger.attached[1].clear).toBe(false);
+  // no ratio, no images: nothing is asked of the page beyond the tool
+  const plain = add('p', ['a green hill'], [[]], { provider: 'gemini' });
+  db.prepare("update batch set status='running' where id=?").run(plain);
+  for (let i = 0; i < 4; i++) await gem.tick();
+  expect(fake.ledger.aspects[2]).toBeNull();
+  expect(fake.ledger.refs[2]).toEqual([]);
+  // an image whose file is gone
+  unlinkSync(join(dir, 'a.png'));
+  const gone = add('x', ['a grey cat'], [[ids[0]]], { provider: 'gemini' });
+  db.prepare("update batch set status='running' where id=?").run(gone);
+  for (let i = 0; i < 3; i++) await gem.tick();
+  expect(gem.lastError(gone)).toBe('GPT_REF_ASSET_MISSING');
+  expect(fake.ledger.sends).toHaveLength(3);
 });

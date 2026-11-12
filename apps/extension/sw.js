@@ -2,7 +2,7 @@ import { validate, forwardEvent, fetchMediaOp, gptFetchOp, gemFetchOp, downloads
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
-const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gemLook','gemState','gemMode','gemPrep','gemSend','gemTurns']);
+const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gemLook','gemState','gemMode','gemPrep','gemSend','gemTurns','gemAttach']);
 
 // One id per Chrome profile (this extension's storage is per profile): the app keeps one connection per profile, so several accounts can work at once.
 async function instance() {

@@ -24,7 +24,7 @@ function emitted(): string[] {
   const refLogic = [...src('apps/extension/ref-logic.js').matchAll(/code: '([A-Z_]+)'/g)].map((m) => `REF_${m[1]}`) // ext-driver prefixes the page's attach codes
   return [...new Set([
     ...lits(src('apps/desktop/src/main/connector/ext-driver.ts')), ...lits(src('apps/desktop/src/main/downloads.ts')), ...extDownloadCodes(), ...lits(src('apps/desktop/src/main/runner.ts')), ...lits(src('packages/flow-protocol/src/attempt.mjs')),
-    ...lits(src('apps/desktop/src/main/gpt-runner.ts')), ...[...(src('apps/extension/gpt-ops.js') + src('apps/extension/gem-ops.js')).matchAll(/code: '([A-Z_]+)'/g)].map((m) => m[1]).flatMap((c) => [`GPT_${c}`, `DOWNLOAD_${c}`]).filter((c) => !['DOWNLOAD_NO_EDITOR', 'DOWNLOAD_NO_PLUS', 'DOWNLOAD_OTHER_MODE', 'DOWNLOAD_MODE_NOT_FOUND', 'DOWNLOAD_MODE_NOT_SET', 'DOWNLOAD_COMPOSER_NOT_EMPTY', 'DOWNLOAD_PROMPT_MISMATCH', 'DOWNLOAD_NO_SEND', 'DOWNLOAD_SEND_DISABLED', 'GPT_NOT_FOUND', 'GPT_NOT_IMAGE', 'GPT_FETCH_FAILED', 'GPT_BUSY', 'GPT_NO_FULL_SIZE'].includes(c)), // the page's composer codes pause a batch as GPT_<code>; its image codes fail a download as DOWNLOAD_<code>
+    ...lits(src('apps/desktop/src/main/gpt-runner.ts')), ...[...(src('apps/extension/gpt-ops.js') + src('apps/extension/gem-ops.js')).matchAll(/code: '([A-Z_]+)'/g)].map((m) => m[1]).flatMap((c) => [`GPT_${c}`, `DOWNLOAD_${c}`]).filter((c) => !['DOWNLOAD_NO_EDITOR', 'DOWNLOAD_NO_PLUS', 'DOWNLOAD_OTHER_MODE', 'DOWNLOAD_MODE_NOT_FOUND', 'DOWNLOAD_MODE_NOT_SET', 'DOWNLOAD_COMPOSER_NOT_EMPTY', 'DOWNLOAD_PROMPT_MISMATCH', 'DOWNLOAD_NO_SEND', 'DOWNLOAD_SEND_DISABLED', 'GPT_NOT_FOUND', 'GPT_NOT_IMAGE', 'GPT_FETCH_FAILED', 'GPT_BUSY', 'GPT_NO_FULL_SIZE', 'DOWNLOAD_ASPECT_NOT_FOUND', 'DOWNLOAD_ASPECT_NOT_SET', 'DOWNLOAD_ATTACH_NOT_CLEARED', 'DOWNLOAD_ATTACH_REFUSED', 'DOWNLOAD_ATTACH_NOT_READY', 'DOWNLOAD_REF_MISMATCH'].includes(c)), // the page's composer codes pause a batch as GPT_<code>; its image codes fail a download as DOWNLOAD_<code>
     ...refLogic, ...Object.values(PUBLIC_ERRORS).map((r) => r.code), ...Object.values(CLIENT_SIGNALS).map((r) => r.code), 'NO_PROJECT_TAB', 'UNUSUAL_ACTIVITY',
   ])].filter((c) => !IPC_ONLY.includes(c) && !NOT_CODES.includes(c)).sort()
 }
@@ -58,5 +58,6 @@ test('a Gemini batch reads its hints with Gemini in them: no Flow, no ChatGPT, n
   for (const c of Object.keys(HINTS)) expect(hintOf(c, 'gemini'), c).not.toMatch(/(?<![A-Za-z])Flow|ChatGPT|chatgpt|tiếng Anh|English|Create image/)
   expect(hintOf('DOWNLOAD_ACK_LOST', 'gemini')).toContain('Downloads/ToolFlow')
   for (const c of ['DOWNLOAD_NO_FULL_SIZE', 'DOWNLOAD_NOT_GEMINI_TAB', 'DOWNLOAD_BUSY']) expect(hintOf(c), c).toMatch(/Gemini/)
+  expect(hintOf('GPT_NO_IMAGE', 'gemini')).toContain('để trống câu trả lời')
   expect(hintOf('GPT_NO_IMAGE', 'chatgpt')).toContain('ChatGPT') // the ChatGPT wording is untouched
 })

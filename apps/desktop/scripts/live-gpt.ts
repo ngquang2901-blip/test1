@@ -1,6 +1,7 @@
 // Live look at the ChatGPT tab (spike for the ChatGPT driver): pairs with the real Chrome extension, lists chatgpt.com tabs and prints
 // the masked outline of the page (structure only: no conversation text, no URLs). LOOK=1 (default) only reads.
 // Run: npm run live-gpt -w apps/desktop   (stop the app first: only one process may own the pairing port)
+import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { startConnectorServer } from '../src/main/connector/server'
@@ -23,7 +24,8 @@ const tab = tabs[0]
 if (tab) {
   const a = { tabId: tab.tabId }
   // STEPS='[["gptNew",{}],["gptPrep",{"prompt":"…"}]]' runs ops in order (default: one read-only gptLook); WATCH=<seconds> then prints gptState whenever it changes
-  const steps = process.env.STEPS ? (JSON.parse(process.env.STEPS) as [string, object][]) : (process.env.OPS ?? `${SITE}Look`).split(',').map((op): [string, object] => [op, JSON.parse(process.env.ARGS ?? '{}')])
+  // a string value "@b64:<path>" in STEPS becomes that file's bytes in base64 (reference images are too big for an env var)
+  const steps = process.env.STEPS ? (JSON.parse(process.env.STEPS, (_k, v) => (typeof v === 'string' && v.startsWith('@b64:') ? readFileSync(v.slice(5)).toString('base64') : v)) as [string, object][]) : (process.env.OPS ?? `${SITE}Look`).split(',').map((op): [string, object] => [op, JSON.parse(process.env.ARGS ?? '{}')])
   for (const [op, args] of steps) {
     try { console.log(`${op}:`, JSON.stringify(await server.send(op, { ...a, ...args }), null, process.env.FLAT ? undefined : 1)) }
     catch (e) { console.log(`${op}: ERROR ${(e as Error).message}`) }

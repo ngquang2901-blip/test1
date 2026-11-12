@@ -60,6 +60,14 @@ export const HINTS: Record<string, string> = {
   DOWNLOAD_NOT_GEMINI_TAB: 'Tab dùng để tải không còn là Gemini. Mở lại gemini.google.com rồi bấm Thử lại',
   DOWNLOAD_NO_FULL_SIZE: 'Đã bấm nút tải ảnh cỡ đầy đủ của Gemini nhưng trang không lấy được file. Mở tab Gemini xem ảnh còn đó không, tải lại tab (F5) rồi bấm Thử lại',
   DOWNLOAD_BUSY: 'Nút tải ảnh của Gemini đang bận (đang tải ảnh này). Đợi một lúc rồi bấm Thử lại',
+  // Gemini: aspect ratio and reference images
+  GPT_ASPECT_NOT_FOUND: 'Không thấy tỉ lệ khung hình đã chọn trong menu của Gemini. Tải lại tab Gemini (F5) rồi bấm Tiếp tục; nếu vẫn vậy, tạo lô với “Theo Gemini”',
+  GPT_ASPECT_NOT_SET: 'Đã chọn tỉ lệ khung hình nhưng Gemini không nhận. Tải lại tab Gemini (F5) rồi bấm Tiếp tục',
+  GPT_ATTACH_NOT_CLEARED: 'Ô nhập của Gemini đang có ảnh đính kèm mà app không gỡ được. Gỡ ảnh đó trong Gemini rồi bấm Tiếp tục',
+  GPT_ATTACH_REFUSED: 'Gemini không nhận ảnh tham chiếu (có thể quá số ảnh cho phép hoặc loại file không hợp). Bỏ bớt ảnh rồi tạo lại lô, hoặc tải lại tab Gemini (F5) rồi bấm Tiếp tục',
+  GPT_ATTACH_NOT_READY: 'Ảnh tham chiếu tải lên Gemini chưa xong sau 40 giây. Kiểm tra mạng rồi bấm Tiếp tục',
+  GPT_REF_MISMATCH: 'Ảnh đính kèm trong ô nhập của Gemini không khớp với lô. Gỡ ảnh lạ trong ô nhập (nếu có) rồi bấm Tiếp tục; app sẽ gắn lại ảnh của lô',
+  GPT_REF_ASSET_MISSING: 'Ảnh tham chiếu của lô không còn đọc được trên máy (file bị xoá, đổi hoặc chuyển chỗ). Tạo lại lô với ảnh còn đó',
   // ChatGPT
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
   GPT_CONVERSATION_CHANGED: 'Tab ChatGPT đã chuyển sang cuộc trò chuyện khác nên app không gõ vào đó. Bấm Tiếp tục: app mở lại cuộc trò chuyện của lô rồi gửi tiếp',
@@ -92,5 +100,6 @@ export const hintOf = (code: string | undefined | null, provider?: string): stri
 // Gemini is driven by icon names, not labels: the lines that give ChatGPT's English-UI advice read differently for it.
 const GEMINI: Record<string, string> = {
   GPT_NO_PLUS: 'Không thấy nút “+” trong ô nhập của Gemini. Tải lại tab Gemini (F5), kiểm tra đã đăng nhập rồi bấm Tiếp tục',
+  GPT_NO_IMAGE: 'Gemini trả lời mà không có ảnh, hoặc để trống câu trả lời (thường do hết lượt tạo ảnh, prompt bị từ chối hoặc Gemini lỗi tạm thời). Mở tab Gemini xem; bấm Tiếp tục để gửi các prompt còn lại',
   GPT_MODE_NOT_FOUND: 'Không thấy mục tạo hình ảnh trong menu “+” của Gemini. Kiểm tra tài khoản Gemini có tính năng tạo ảnh, tải lại tab (F5) rồi bấm Tiếp tục',
 }

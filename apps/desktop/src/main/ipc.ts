@@ -30,6 +30,7 @@ const str = (v: unknown): string => (typeof v === 'string' && v.length > 0 && v.
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : bad());
 const oneOf = <T extends string>(v: unknown, ...ok: T[]): T => (ok.includes(v as T) ? (v as T) : bad());
 const MODES = ['none', 'all', 'sequential', 'start'] as const;
+const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9'] as const; // the ratios Gemini's menu offers (measured)
 const text = (v: unknown): string => (typeof v === 'string' && v.length <= MAX_TEXT ? v : bad());
 
 /** Monotonic revision stamped in main; the renderer drops older ones. */
@@ -91,18 +92,12 @@ export function createHandlers(d: Deps) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
       const provider = o.provider === undefined ? 'flow' : oneOf(o.provider, 'flow', 'chatgpt', 'gemini');
-      if (provider !== 'flow') { // ChatGPT / Gemini: images only, always sent by the app, no Flow project / settings / refs
-        if (kind !== 'image' || mode !== 'auto') bad();
-        if (o.refs !== undefined && (!Array.isArray(obj(o.refs).assetIds) || (obj(o.refs).assetIds as unknown[]).length)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' });
-        const items = parsePrompts(src).items;
-        if (!items.length) return { rows: [], errors: [{ code: 'EMPTY' }] };
-        if (o.dryRun === true) return { rows: items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: [], error: null })), errors: [] };
-        const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider }, prompts: items.map((it) => it.prompt), refs: items.map(() => []), sourceLines: items.map((it) => it.sourceLine) });
-        d.emit('batch', r.batchId);
-        return { ...r, batchIds: [r.batchId] };
-      }
-      const combo = o.combo === undefined ? defaultCombo(kind) : findCombo(kind, o.combo); // Tạo lô and a workflow node may pick their own model / aspect / count
-      if (!combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
+      const site = provider !== 'flow'; // ChatGPT / Gemini: images only, always sent by the app, no Flow project / settings
+      if (site && (kind !== 'image' || mode !== 'auto')) bad();
+      if (provider === 'chatgpt' && o.refs !== undefined && (!Array.isArray(obj(o.refs).assetIds) || (obj(o.refs).assetIds as unknown[]).length)) throw Object.assign(new Error('REF_KIND_UNSUPPORTED'), { code: 'REF_KIND_UNSUPPORTED' }); // ChatGPT: no reference images
+      const aspect = o.aspect === undefined ? undefined : provider === 'gemini' ? oneOf(o.aspect, ...GEM_ASPECTS) : bad(); // Gemini's own ratio menu
+      const combo = site ? null : o.combo === undefined ? defaultCombo(kind) : findCombo(kind, o.combo); // Tạo lô and a workflow node may pick their own model / aspect / count
+      if (!site && !combo) throw Object.assign(new Error('COMBO_NOT_QUALIFIED'), { code: 'COMBO_NOT_QUALIFIED' }); // AC-03 at the door: nothing is created, no other combo is used instead
       const parsed = parsePrompts(src);
       const ra = o.refs === undefined ? { assetIds: [], mode: 'none', perItem: 1 } : obj(o.refs);
       const ids = Array.isArray(ra.assetIds) ? ra.assetIds.map(str) : bad();
@@ -114,6 +109,11 @@ export function createHandlers(d: Deps) {
       if (parsed.items.length === 0) return { rows: [], errors: [{ code: 'EMPTY' }] };
       const rows = parsed.items.map((it, i) => ({ n: i + 1, sourceLine: it.sourceLine, prompt: it.prompt, refs: refs[i].map((id) => names[ids.indexOf(id)]), error: errors.find((e) => e.index === i)?.code ?? null }));
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
+      if (site) {
+        const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider, ...(aspect ? { aspect } : {}) }, prompts: parsed.items.map((it) => it.prompt), refs, sourceLines: parsed.items.map((it) => it.sourceLine) });
+        d.emit('batch', r.batchId);
+        return { ...r, batchIds: [r.batchId] };
+      }
       const projects = await d.projects(); // read at call time: the granted tabs can change
       if (!projects.length) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' });
       // several projects (tabs/accounts): one batch per project, line i goes to project i mod n; each batch keeps every per-project guarantee

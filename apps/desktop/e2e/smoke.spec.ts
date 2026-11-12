@@ -1057,3 +1057,31 @@ test('Gemini batch without a Gemini tab: it pauses and names gemini.google.com',
   await expect(page.getByTestId('pause-reason')).toContainText('Chưa thấy tab Gemini nào. Mở gemini.google.com')
 })
 
+test('Gemini batch with an aspect ratio and reference images: both chosen in Tạo lô, each prompt sent with its own image and the ratio', async () => {
+  const { list } = pngs(['a.png', 'b.png'])
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
+  await page.getByTestId('gem-aspect').selectOption('9:16')
+  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: Gemini · Tạo hình ảnh · 9:16 · tự động')
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
+  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png')
+  await expect(row(page, 1)).toContainText('b.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).filter({ hasText: 'Gemini · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(2, { timeout: 30_000 })
+  const l = await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGem: { ledger: { aspects: (string | null)[]; refs: string[][]; attached: { bytes: number; clear: boolean }[] } } }).__toolflowFakeGem.ledger)
+  expect(l.aspects).toEqual(['9:16', '9:16'])
+  expect(l.refs).toEqual([['ref-1.png'], ['ref-1.png']]) // one image each, the second prompt's own
+  expect(l.attached.map((x) => x.clear)).toEqual([true, true])
+  expect(l.attached.every((x) => x.bytes > 0)).toBe(true)
+  // ChatGPT still shows neither
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
+  await expect(page.getByTestId('gem-aspect')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toHaveCount(0)
+})
+

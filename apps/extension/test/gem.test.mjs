@@ -22,6 +22,15 @@ test('media id: turn id + image number, and back; anything else is refused', () 
   for (const bad of [TURN, `${TURN}-0`, `${TURN}-100`, `${TURN}-1/..`, `r_${TURN}-1`, '6af47c4e-cf14-83ec-9fd1-7ccae249b4ef-1', '', null]) assert.equal(G.parseMediaId(bad), null);
 });
 
+test('a turn is finished when the page is idle and it shows its action row; a turn with no image at all is finished as soon as the page is idle (seen live: an answer that stayed empty)', () => {
+  const idle = { waiting: false, busy: false, generating: false };
+  assert.equal(G.turnDone({ ...idle, actions: true, imageEls: 1 }), true);
+  assert.equal(G.turnDone({ ...idle, actions: false, imageEls: 1 }), false); // an image is there but the page has not closed the answer: more may come
+  assert.equal(G.turnDone({ ...idle, actions: false, imageEls: 0 }), true); // empty answer, nothing running: the runner's own waits decide what it means
+  assert.equal(G.turnDone({ ...idle, actions: true, imageEls: 0 }), true); // a text answer
+  for (const k of ['waiting', 'busy', 'generating']) for (const actions of [true, false]) assert.equal(G.turnDone({ ...idle, [k]: true, actions, imageEls: 0 }), false, k);
+});
+
 test('conversation id from the path: /app/<hex> only', () => {
   assert.equal(G.convOf(`/app/${CONV}`), CONV);
   for (const p of ['/app', '/app/', `/app/${CONV}/x`, `/gem/${CONV}`, '/app/../x', '']) assert.equal(G.convOf(p), null);
@@ -67,6 +76,22 @@ test('validate: the Gemini ops take a tab, and a prompt / conversation / media i
   assert.equal(m('gemFetch', { tabId: 3, mediaId: `${TURN}-1`, filename: 'a_b.bin' }), null);
   assert.match(m('gemFetch', { tabId: 3, mediaId: TURN, filename: 'a_b.bin' }), /gemFetch/);
   assert.match(m('gemFetch', { tabId: 3, mediaId: `${TURN}-1`, filename: '../a.bin' }), /gemFetch/);
+  // aspect ratio: the five the page offers; reference image: a small set of image types under a flat name
+  assert.equal(m('gemMode', { tabId: 3 }), null);
+  for (const a of ['1:1', '9:16', '3:4', '4:3', '16:9']) assert.equal(m('gemMode', { tabId: 3, aspect: a }), null, a);
+  for (const a of ['21:9', '', 'crop_16_9', 5, null]) assert.match(m('gemMode', { tabId: 3, aspect: a }), /aspect/, String(a));
+  const f = { tabId: 3, name: 'ref-1.png', mime: 'image/png', b64: 'iVBORw0KGgo=' };
+  assert.ok(OPS.includes('gemAttach'));
+  assert.equal(m('gemAttach', f), null);
+  assert.equal(m('gemAttach', { ...f, clear: true }), null);
+  for (const bad of [{ name: '../x.png' }, { name: '' }, { mime: 'image/svg+xml' }, { mime: 'text/html' }, { b64: '' }, { b64: 'not base64 !' }, { b64: 5 }, { clear: 'yes' }]) assert.match(m('gemAttach', { ...f, ...bad }), /gemAttach/, JSON.stringify(bad));
+  assert.equal(m('gemSend', { tabId: 3, prompt: 'a cat', refs: 2 }), null);
+  for (const refs of [-1, 11, 1.5, '2']) assert.match(m('gemSend', { tabId: 3, prompt: 'a cat', refs }), /refs/, String(refs));
+});
+
+test('aspect ratios are known by the icon of their menu entry, the same in every UI language', () => {
+  assert.deepEqual(G.ASPECT_ICONS, { '1:1': 'crop_square', '9:16': 'crop_9_16', '3:4': 'crop_portrait', '4:3': 'crop_landscape', '16:9': 'crop_16_9' });
+  assert.equal(G.MAX_REFS, 10);
 });
 
 // a Chrome whose page click starts a download a moment later

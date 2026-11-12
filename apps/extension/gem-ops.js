@@ -6,6 +6,7 @@
   if (window.__tfGemOps) return; window.__tfGemOps = true;
   const G = globalThis.TFGem;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ATTACH_WAIT_MS = 40000;
   const FULL_SIZE_WAIT_MS = 45000; // measured: 1 s (the page had it) to 15 s
   const until = async (fn, ms = 4000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = fn(); if (v) return v; await sleep(120); } return null; };
   const iconsOf = (e) => [...e.querySelectorAll('mat-icon, gem-icon')].map((i) => i.getAttribute('fonticon') || i.getAttribute('data-mat-icon-name') || i.getAttribute('name') || i.textContent.trim()).filter(Boolean);
@@ -19,6 +20,10 @@
   const chip = () => area()?.querySelector('[data-test-id="deselect-drawer-item-gem-button"]') ?? null;
   const modeOf = () => { const c = chip(); return !c ? null : iconsOf(c).includes(G.IMAGE_ICON) ? G.IMAGE_MODE : 'other'; };
   const promptText = () => G.flat(editor()?.innerText);
+  // the aspect ratio button: its icon is `aspect_ratio` until a ratio is chosen, then that ratio's icon
+  const aspectBtn = () => [...(area()?.querySelectorAll('button') ?? [])].find((b) => iconsOf(b).some((i) => i === 'aspect_ratio' || Object.values(G.ASPECT_ICONS).includes(i))) ?? null;
+  const previews = () => [...(area()?.querySelectorAll('uploader-file-preview') ?? [])]; // one per attached file
+  const loaded = (p) => shown(p.querySelector('img')) && !p.querySelector('mat-spinner, .loading, .gem-attachment-loading-container'); // measured: all three are there while the file uploads (2 s for 8 MB)
   const menuItems = () => [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemcheckbox"], .cdk-overlay-pane [role="menuitem"]')];
   const turnEls = () => [...document.querySelectorAll('.conversation-container')].filter((t) => G.isId(t.id));
   const singles = (t) => [...t.querySelectorAll('generated-image single-image')];
@@ -44,9 +49,20 @@
       };
     },
     // Turns on the image tool ("+" → the entry with the image icon) unless it is on already. The postcondition is the chip in the input area.
-    async gemMode() {
+    async gemMode(a) {
       if (!editor()) return { ok: false, code: 'NO_EDITOR' };
-      if (modeOf() === G.IMAGE_MODE) return { ok: true };
+      const aspect = async () => { // the ratio the batch asked for; without one, whatever the user has chosen stays
+        if (!a?.aspect) return { ok: true };
+        const want = G.ASPECT_ICONS[a.aspect], b = await until(aspectBtn, 3000);
+        if (!b) return { ok: false, code: 'ASPECT_NOT_FOUND' };
+        if (iconsOf(b).includes(want)) return { ok: true };
+        b.click();
+        const hit = ((await until(() => { const f = [...document.querySelectorAll('.cdk-overlay-pane [role="menuitemradio"]')]; return f.length ? f : null; })) || []).filter((x) => iconsOf(x).includes(want));
+        if (hit.length !== 1) { esc(); return { ok: false, code: 'ASPECT_NOT_FOUND' }; }
+        hit[0].click();
+        return (await until(() => { const x = aspectBtn(); return x && iconsOf(x).includes(want); }, 4000)) ? { ok: true } : { ok: false, code: 'ASPECT_NOT_SET' };
+      };
+      if (modeOf() === G.IMAGE_MODE) return aspect();
       if (modeOf()) return { ok: false, code: 'OTHER_MODE' }; // the user chose another tool for this message
       const plus = btn('plus'); if (!plus) return { ok: false, code: 'NO_PLUS' };
       const before = new Set(menuItems());
@@ -54,9 +70,26 @@
       const hit = ((await until(() => { const f = menuItems().filter((x) => !before.has(x)); return f.length ? f : null; })) || []).filter((b) => iconsOf(b).includes(G.IMAGE_ICON));
       if (hit.length !== 1) { esc(); return { ok: false, code: 'MODE_NOT_FOUND' }; } // nothing is clicked on a menu we cannot read
       hit[0].click();
-      return (await until(() => modeOf() === G.IMAGE_MODE, 4000)) ? { ok: true } : { ok: false, code: 'MODE_NOT_SET' };
+      return (await until(() => modeOf() === G.IMAGE_MODE, 4000)) ? aspect() : { ok: false, code: 'MODE_NOT_SET' };
     },
     // Types the prompt. Never sends, never replaces something that is in the editor already (Gemini brings an unsent draft back after a reload).
+    // One reference image into the composer, as a pasted file (measured: the page takes a paste event carrying a File). clear: what is
+    // attached already (an earlier try, or the user's) is removed first, so a prompt goes out with exactly its own images.
+    async gemAttach(a) {
+      const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
+      if (a.clear) {
+        for (const p of previews()) [...p.querySelectorAll('button')].find((b) => iconsOf(b).includes('close'))?.click();
+        if (!(await until(() => previews().length === 0, 4000))) return { ok: false, code: 'ATTACH_NOT_CLEARED' };
+      }
+      const n = previews().length;
+      const bin = atob(a.b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const dt = new DataTransfer(); dt.items.add(new File([bytes], a.name, { type: a.mime }));
+      ed.focus();
+      ed.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+      const ok = await until(() => previews().length === n + 1 && previews().every(loaded), ATTACH_WAIT_MS);
+      return ok ? { ok: true, count: n + 1 } : { ok: false, code: previews().length === n ? 'ATTACH_REFUSED' : 'ATTACH_NOT_READY' };
+    },
     async gemPrep(a) {
       const ed = editor(); if (!ed) return { ok: false, code: 'NO_EDITOR' };
       if (modeOf() !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
@@ -73,6 +106,7 @@
       if (!editor()) return { ok: false, code: 'NO_EDITOR' };
       const ready = () => modeOf() === G.IMAGE_MODE && promptText() === G.flat(a.prompt);
       if (modeOf() !== G.IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' };
+      if (a.refs !== undefined && !(previews().length === a.refs && previews().every(loaded))) return { ok: false, code: 'REF_MISMATCH' }; // exactly the batch's images go out, fully loaded
       if (!ready()) return { ok: false, code: 'PROMPT_MISMATCH' };
       const send = await until(() => { const b = btn('arrow_upward'); return b && !locked(b) ? b : null; }, 10000);
       if (!send) return { ok: false, code: btn('arrow_upward') ? 'SEND_DISABLED' : 'NO_SEND' };
@@ -88,7 +122,7 @@
         const query = [...t.querySelectorAll('user-query .query-text-line')].map((l) => l.innerText).join(' ');
         const images = []; let pending = 0;
         singles(t).forEach((s, k) => { if (shown(s.querySelector('img'))) images.push(G.mediaId(t.id, k + 1)); else pending++; });
-        const done = !!t.querySelector('message-actions') && !t.querySelector('pending-response, pending-request') && ![...t.querySelectorAll('[aria-busy]')].some((e) => e.getAttribute('aria-busy') === 'true') && !(t === last && btn('stop'));
+        const done = G.turnDone({ actions: !!t.querySelector('message-actions'), waiting: !!t.querySelector('pending-response, pending-request'), busy: [...t.querySelectorAll('[aria-busy]')].some((e) => e.getAttribute('aria-busy') === 'true'), generating: t === last && !!btn('stop'), imageEls: singles(t).length });
         return { key: t.id, state: done ? 'complete' : 'in_progress', mine: G.ownsQuery(query, a.prompt), images, pending };
       }) };
     },
