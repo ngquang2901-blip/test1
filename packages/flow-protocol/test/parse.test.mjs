@@ -59,6 +59,19 @@ test('video from a start frame (eb1hJf): the request names the frame media, the 
   assert.equal(correlate(q, r).owned, true);
 });
 
+test('video from a start and an end frame (nprQif): the request names both frame media, start first; the receipt reads like any video receipt', () => {
+  const recs = fx('video-frames-end.json');
+  const q = parseGenerateRequest(fReq(sent(recs)[0]));
+  const r = parseVideoReceipt(payload(done(recs)[0]));
+  assert.deepEqual([q.rpc, q.items.length, q.items[0].model], ['nprQif', 1, 'veo_3_1_interpolation_lite']);
+  assert.equal(q.items[0].refIds.length, 2);
+  assert.match(q.items[0].refIds[0], /^fa4e0000-/);
+  assert.notEqual(q.items[0].refIds[0], q.items[0].refIds[1]);
+  assert.deepEqual([r.operations.length, r.operations[0].status, r.operations[0].prompt], [1, 'accepted', q.items[0].prompt]);
+  assert.equal(correlate(q, r).owned, true);
+  assert.throws(() => parseGenerateRequest(fReq(sent(fx('video-frame.json'))[0]).replace('\\"eb1hJf\\"', '\\"nprQif\\"').replace('"eb1hJf"', '"nprQif"')), ProtocolDrift); // a start-frame request under the end-frame name: no second frame where one must be
+});
+
 test('video text-to-video: receipt is accepted, not finished, and carries credits', () => {
   const recs = fx('video-t2v.json');
   const q = parseGenerateRequest(fReq(sent(recs)[0]));

@@ -16,7 +16,7 @@ function rig(picked: string[] = []) {
   const db = openDb(join(dir, 't.db'))
   const clock = { now: () => 1_000_000 }
   const runner = createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
-  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' }
+  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true }
   const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => null, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), pickPaths: async () => picked, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
   const png = (name: string, buf = PNG) => { writeFileSync(join(dir, name), buf); return registerAsset(db, join(dir, name), 1) }
   return { dir, db, h, png }
@@ -38,11 +38,12 @@ test('enqueueBatch refs: every malformed refs argument is INVALID_ARGS and creat
   expect(count(db, 'batch')).toBe(0)
 })
 
-test('video: one image per prompt is its start frame; more than one image for a prompt is refused with REF_KIND_UNSUPPORTED', async () => {
+test('video: one image per prompt is its start frame, a second one its end frame; more than two images for a prompt is refused with REF_KIND_UNSUPPORTED', async () => {
   const { h, db, png } = rig()
-  const a = png('a.png'), b = png('b.png')
-  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x', refs: { assetIds: [a.id, b.id], mode: 'all', perItem: 2 } })).rejects.toThrow(/REF_KIND_UNSUPPORTED/)
-  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x\ny', refs: { assetIds: [a.id, b.id], mode: 'sequential', perItem: 2 }, dryRun: true })).rejects.toThrow(/REF_KIND_UNSUPPORTED/)
+  const a = png('a.png'), b = png('b.png'), c = png('c.png')
+  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x', refs: { assetIds: [a.id, b.id, c.id], mode: 'all', perItem: 3 } })).rejects.toThrow(/REF_KIND_UNSUPPORTED/)
+  await expect(h.enqueueBatch({ ...base, kind: 'video', text: 'x\ny', refs: { assetIds: [a.id, b.id, c.id, a.id], mode: 'sequential', perItem: 3 }, dryRun: true })).rejects.toThrow(/REF_KIND_UNSUPPORTED|INVALID_ARGS/)
+  expect((await h.enqueueBatch({ ...base, commandId: 'v2', kind: 'video', text: 'x', refs: { assetIds: [a.id, b.id], mode: 'all', perItem: 2 }, dryRun: true }) as { rows: { refs: string[] }[] }).rows[0].refs).toEqual(['a.png', 'b.png'])
   expect(count(db, 'batch')).toBe(0)
   await h.enqueueBatch({ ...base, kind: 'video', text: 'x\ny', refs: { assetIds: [a.id, b.id], mode: 'sequential', perItem: 1 } })
   expect((db.prepare('select refs_json r from item order by ord').all() as { r: string }[]).map((x) => JSON.parse(x.r))).toEqual([[a.id], [b.id]])

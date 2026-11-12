@@ -73,12 +73,13 @@ export function readFReq(body) {
   return v;
 }
 
-// Request layouts per generate RPC. The end-frame RPC (nprQif) has no fixture yet: unsupported.
+// Request layouts per generate RPC.
 const REQUEST = {
   ogiZ0b: { items: [1], batch: [4, 0], prompt: [8, 0, 0, 0], model: [5], seed: [3], aspect: [4], imageRefs: [2] },
   YhhmEf: { items: [0], batch: [2, 0], prompt: [0, 2, 0, 0, 0], model: [1] },
   MZZa6b: { items: [0], batch: [2, 0], prompt: [0, 2, 0, 0, 0], model: [2], refs: [1] },
   eb1hJf: { items: [0], batch: [2, 0], prompt: [0, 2, 0, 0, 0], model: [1], frame: [4, 1] }, // start frame = one uploaded image's media id
+  nprQif: { items: [0], batch: [2, 0], prompt: [0, 2, 0, 0, 0], model: [1], frame: [4, 1], endFrame: [5, 1] }, // start and end frame
 };
 
 /** Parses the decoded `f.req` value of a generate request (product code: new URLSearchParams(body).get('f.req')). */
@@ -94,7 +95,7 @@ export function parseGenerateRequest(fReq) {
     const item = { prompt: at(it, L.prompt, isStr, w), model: at(it, L.model, isStr, w) };
     if (L.seed) item.seed = at(it, L.seed, isInt, w);
     if (L.aspect) item.aspectCode = at(it, L.aspect, isInt, w); // 1 = 1:1, 2 = 9:16 (lượt 16/33)
-    if (L.frame) item.refIds = [at(it, L.frame, isUuid, `${w} start frame`)];
+    if (L.frame) item.refIds = [at(it, L.frame, isUuid, `${w} start frame`), ...(L.endFrame ? [at(it, L.endFrame, isUuid, `${w} end frame`)] : [])];
     if (L.refs) item.refIds = at(it, L.refs, isArr, w).map((r, j) => at(r, [1], isUuid, `${w} ref ${j}`));
     // image refs: null without refs, else [[refId, null, null, null, 1], ...] (lượt 34)
     if (L.imageRefs) item.refIds = (at(it, L.imageRefs, (v) => v === null || isArr(v), w) || []).map((r, j) => at(r, [0], isUuid, `${w} ref ${j}`));

@@ -92,7 +92,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       const here = ((await server.send('tabs', {})) as Array<{ tabId: string; path: string }>).find((x) => String(x.tabId) === tabId)
       if (!project || !here || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
       // A video names its input type: Frames when it has a start frame, else Ingredients (without refs that is text-to-video; Flow has no separate text mode). An image panel has no such group.
-      const slot = p.kind === 'video' ? { slot: 'start' } : {} // a video's one image goes into the Start slot of the Frames composer
+      const slotOf = (k: number) => (p.kind === 'video' ? { slot: k === 0 ? 'start' : 'end' } : {}) // a video's first image goes into the Start slot of the Frames composer, a second one into End
       const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, ...(p.kind === 'video' ? { input: refs.length ? 'Frames' : 'Ingredients' } : {}), aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
       if ('fail' in s) return { ok: false, code: s.fail }
       if (s?.ok !== true) return { ok: false, code: 'SETTINGS_MISMATCH' }
@@ -113,7 +113,8 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
         if (!st || st.chips.length) return { ok: false, code: 'COMPOSER_NOT_CLEAR' }
       }
       let have = st.chips
-      for (const id of refs) {
+      for (const [k, id] of refs.entries()) {
+        const slot = slotOf(k)
         const asset = o.assets!.get(id)
         if (!asset) return { ok: false, code: 'REF_ASSET_MISSING' }
         let b = o.assets!.binding(id, project!)

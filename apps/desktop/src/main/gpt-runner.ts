@@ -12,6 +12,9 @@ import { EXT, type AssetStore } from './assets'
 export const GPT_TURNS_PER_CONV = 15
 const SEND_DEADLINE_MS = 30_000 // a click must show its turn within this
 const GEN_DEADLINE_MS = 600_000 // an answer still unfinished after this is for the user to look at
+const AUTO_RESUME_MS = 30_000 // a page that was not ready for a prompt gets one more go after this
+// stopped before the click by the page itself (a menu that did not fill, an upload that did not finish): worth one more go. Not here: what needs the user (a hidden or closed tab, another conversation, a foreign file, a setting the site does not offer).
+const NOT_READY = new Set(['GPT_PAGE_NOT_READY', 'GPT_NO_EDITOR', 'GPT_NO_PLUS', 'GPT_MODE_NOT_FOUND', 'GPT_MODE_NOT_SET', 'GPT_ASPECT_NOT_SET', 'GPT_MODEL_NOT_SET', 'GPT_ATTACH_REFUSED', 'GPT_ATTACH_NOT_READY', 'GPT_SEND_DISABLED'])
 const NO_IMAGE_GRACE_MS = 20_000 // "finished without an image" is believed only after this: the image can render after the answer ends
 const NOT_STARTED_GRACE_MS = 90_000 // …and only after this when the answer was never seen in progress: a turn reads "complete" for some seconds right after the click (measured: 2–5 s)
 const PAGE_WAIT_TRIES = 30 // x 500 ms: a navigated tab must show its composer within this
@@ -59,9 +62,10 @@ export function createGptRunner(o: {
   const otherSiteWaiting = (): boolean => otherSite("'queued','preparing'", "and b.status='running' and b.stop_requested=0")
   const flying = (): Row[] => rows("json_extract(a.state_json,'$.item') in ('submitting','generating')")
   const review = (s: AttemptState, code: string, why: string): AttemptState => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, why }, admission: 'pause', creditSpent: true })
+  const heldAt = new Map<string, number>(), lifted = new Set<string>() // when a batch was paused here; prompts whose pause was lifted once already
   const hold = (batch: string, code: string): void => {
     db.prepare("update batch set status='paused', revision=revision+1 where id=? and status='running'").run(batch)
-    reasons.set(batch, code)
+    reasons.set(batch, code); heldAt.set(batch, clock.now())
   }
   const theTab = async (conv?: string | null): Promise<string | null> => {
     try {
@@ -169,6 +173,14 @@ export function createGptRunner(o: {
   }
 
   async function run(): Promise<void> {
+    for (const [b, code] of reasons) { // a pause before the click for a page that was not ready lifts by itself, once per prompt: nothing was sent
+      const at = heldAt.get(b)
+      if (!NOT_READY.has(code) || at === undefined || clock.now() - at < AUTO_RESUME_MS) continue
+      heldAt.delete(b)
+      const cur = rows('i.batch_id=?', b).find((a) => a.s.item === 'queued' || a.s.item === 'preparing')
+      if (!cur || lifted.has(cur.id)) continue
+      if (db.prepare("update batch set status='running', revision=revision+1 where id=? and status='paused' and stop_requested=0 and archived=0").run(b).changes) lifted.add(cur.id)
+    }
     for (const b of [...reasons.keys()]) { // the user resumed a batch this runner paused
       if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status === 'running') { reasons.delete(b); reopen.add(b) }
     }

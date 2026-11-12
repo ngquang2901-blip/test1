@@ -9,7 +9,7 @@ const desktop = resolve(__dirname, '..')
 const apps: ElectronApplication[] = []
 
 async function launch(userData: string, script = '', extra: Record<string, string> = {}): Promise<{ app: ElectronApplication; page: Page }> {
-  const env = { ...process.env, TOOLFLOW_FAKE_DRIVER: '1', TOOLFLOW_E2E: '1', TOOLFLOW_CLOCK_X: '30', TOOLFLOW_USER_DATA: userData, TOOLFLOW_FAKE_SCRIPT: script, ...extra } as Record<string, string>
+  const env = { ...process.env, TOOLFLOW_FAKE_DRIVER: '1', TOOLFLOW_E2E: '1', TOOLFLOW_CLOCK_X: '30', TOOLFLOW_AUTOSAVE: '0', TOOLFLOW_USER_DATA: userData, TOOLFLOW_FAKE_SCRIPT: script, ...extra } as Record<string, string>
   delete env.ELECTRON_RUN_AS_NODE
   const app = await _electron.launch({ args: ['--no-sandbox', '.'], cwd: desktop, env })
   apps.push(app)
@@ -736,6 +736,22 @@ test('video from a start frame: one image per prompt in Tạo lô, each video is
   expect([l.uploads.length, l.refs.map((r) => r.length), new Set(l.refs.flat()).size]).toEqual([2, [1, 1], 2])
 })
 
+test('video from a start and an end frame: the box in Tạo lô gives each prompt two images in order, the first opens the video and the second ends it', async () => {
+  const { list } = pngs(['a.png', 'b.png', 'c.png', 'd.png'])
+  const { app, page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_PICK_REFS: list })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
+  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
+  await page.getByLabel('Có khung hình cuối (ảnh thứ hai của mỗi prompt)').check()
+  await page.getByLabel('Mỗi prompt hai ảnh theo thứ tự').check()
+  await expect(row(page, 0)).toContainText('a.png'); await expect(row(page, 0)).toContainText('b.png')
+  await expect(row(page, 1)).toContainText('c.png'); await expect(row(page, 1)).toContainText('d.png')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  expect((await ledger(app)).refs.map((r) => r.length)).toEqual([2, 2])
+})
+
 const pngFiles = (root: string): string[] => (existsSync(root) ? (readdirSync(root, { recursive: true }) as string[]) : []).map((f) => f.replace(/\\/g, '/')).filter((f) => f.endsWith('.png')).sort()
 const outputs = (page: Page) => page.locator('[data-testid=output]')
 
@@ -813,6 +829,24 @@ test('Ghép prompt từ mẫu: variables fill the prompt list, every combination
   await page.getByRole('button', { name: 'Thay danh sách bằng 2 prompt' }).click()
   await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(2)
   await expect(page.getByLabel('Danh sách prompt')).toHaveValue('phở ở Hà Nội, ảnh đời thường\nbún chả ở Huế, ảnh đời thường')
+})
+
+test('Flow results save themselves as they get ready, and a save that failed is tried again by itself; with the box in Cài đặt unticked they wait for Tải', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_DOWNLOADS: 'download-html', TOOLFLOW_AUTOSAVE: '1' })
+  await create(page, ['một con mèo'])
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).first()).toContainText('Đã lưu', { timeout: 30_000 }) // nobody pressed Tải or Thử lại
+  expect(pngFiles(root)).toHaveLength(1)
+  expect((await ledger(app)).fetches).toBe(2) // the first transfer was bad, the app's own second one was good
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await page.getByLabel('Tự lưu kết quả của lô Flow về máy khi tạo xong').uncheck()
+  await create(page, ['một con chó'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await page.waitForTimeout(5000)
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).filter({ hasText: 'Chưa tải' })).toHaveCount(1)
+  expect(pngFiles(root)).toHaveLength(1)
 })
 
 test('a bad download is Lỗi tải with no completed file; Thử lại completes it under the same name without generating again', async () => {

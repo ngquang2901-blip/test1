@@ -27,12 +27,13 @@
   }
 
   // The empty Start slot of the Frames composer (video from a first frame) is a button showing only its label; it opens the same library popover as '+'.
-  const START = ['Start', 'Bắt đầu'];
-  function startIndex(buttons) {
+  const START = ['Start', 'Bắt đầu'], END = ['End', 'Kết thúc']; // the End slot reads "Kết\nthúc": flat() joins the lines
+  const slotIndex = (labels) => (buttons) => {
     const hits = [];
-    buttons.forEach((b, i) => { if (START.includes(flat(b.text).trim())) hits.push(i); });
+    buttons.forEach((b, i) => { if (labels.includes(flat(b.text).trim())) hits.push(i); });
     return hits.length === 1 ? hits[0] : -1;
-  }
+  };
+  const startIndex = slotIndex(START), endIndex = slotIndex(END);
 
   // env: chips() isOpen() open()->bool close() setSearch(q) items()->[{text,click}] addButton()->{click}|null. o.until(fn, ms) polls fn until truthy (null on timeout).
   async function attach(env, name, o) {
@@ -69,5 +70,5 @@
   // The library's confirm button, per Flow UI language (Vietnamese seen live 2026-11-10 on a vi account).
   const ADD_LABELS = ['Add to prompt', 'Thêm vào câu lệnh'];
   const isAddLabel = (t) => ADD_LABELS.includes(String(t || '').replace(/\s+/g, ' ').trim());
-  globalThis.TFRef = { prefix, matchByName, newChip, plusIndex, startIndex, attach, isAddLabel };
+  globalThis.TFRef = { prefix, matchByName, newChip, plusIndex, startIndex, endIndex, attach, isAddLabel };
 })();

@@ -124,8 +124,10 @@
       const send = await until(() => { const b = btn('arrow_upward'); return b && !locked(b) ? b : null; }, 10000);
       if (!send) return { ok: false, code: btn('arrow_upward') ? 'SEND_DISABLED' : 'NO_SEND' };
       if (!ready()) return { ok: false, code: 'PROMPT_MISMATCH' }; // the composer changed while waiting
+      const turnsBefore = turnEls().length;
       send.click();
       const cleared = !!(await until(() => promptText().length === 0, 5000));
+      if (!cleared && ready() && turnEls().length === turnsBefore) return { ok: false, code: 'SEND_NO_EFFECT' }; // as on ChatGPT: the prompt is still there, no new turn, so nothing was sent
       return { ok: true, cleared };
     },
     // The conversation and its last turns in one look: id, state, whether the query is exactly this prompt, the ids of its shown images.

@@ -3,13 +3,13 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.11.1-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.12.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
 ## Linux
-- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.11.1-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.11.1-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.11.1-x86_64.AppImage --appimage-extract-and-run`.
-- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.11.1-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
+- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.12.0-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.12.0-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.12.0-x86_64.AppImage --appimage-extract-and-run`.
+- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.12.0-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:
@@ -23,7 +23,10 @@ Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên tro
 ## Tạo video (từ bản 0.6.0)
 - Màn **Tạo lô**: chọn **Video**, mỗi dòng một prompt. Mô hình Veo 3.1 - Lite, tỉ lệ 16:9 hoặc 9:16, mỗi prompt một video (10 credit Flow mỗi video, khoảng 1 phút).
 - Muốn video bắt đầu từ một ảnh: ở mục **Khung hình đầu** bấm **Chọn ảnh…**, rồi chọn dùng chung một ảnh hoặc mỗi prompt một ảnh theo thứ tự.
-- Màn **Kết quả**: bấm **Tải tất cả kết quả** để lưu MP4, bấm **Xem video** để xem ngay trong app.
+- **Khung hình cuối** (từ bản 0.12.0): tích **Có khung hình cuối**. Mỗi prompt dùng hai ảnh: ảnh thứ nhất mở đầu video, ảnh thứ hai là cảnh kết thúc.
+- Từ bản 0.12.0: **2 video mỗi prompt** với Veo 3.1 - Lite (20 credit), và mô hình **Veo 3.1 - Fast** (9:16, 20 credit mỗi video). Lưu ý: Google ghi Veo 3.1 - Fast sẽ ngừng hoạt động ngày 5/12; sau ngày đó lô dùng mô hình này sẽ dừng với lỗi cài đặt.
+- Màn **Kết quả**: từ bản 0.12.0 kết quả tự lưu về máy khi tạo xong (tắt được trong **Cài đặt → Lưu kết quả**); bấm **Tải tất cả kết quả** nếu đã tắt. Bấm **Xem video** để xem ngay trong app.
+- Lượt lưu bị lỗi được app tự thử lại 2 lần, cách nhau 30 giây. Lô ChatGPT / Gemini bị dừng vì trang chưa sẵn sàng (menu chưa hiện, ảnh tải lên chưa xong) được app tự cho chạy lại một lần sau 30 giây; chưa có gì được gửi đi trong trường hợp đó.
 - Màn **Workflow**: bấm vào node Tạo ảnh Flow, đổi **Loại kết quả** sang Video; ảnh nối vào node đó là khung hình đầu.
 - Màn **Workflow** có sẵn 5 mẫu trong ô **Mẫu có sẵn…** (từ bản 0.6.2): chọn một mẫu, sửa prompt trong các ô Text rồi bấm **Chạy workflow**.
 - Mỗi prompt ảnh dùng được tối đa 10 ảnh tham chiếu (từ bản 0.6.2).

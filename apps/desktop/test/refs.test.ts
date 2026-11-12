@@ -107,6 +107,10 @@ test('video from a start frame: the composer goes to Frames and the image is att
   const attaches = seen.filter(([op]) => op === 'attach')
   expect([attaches.length > 0, attaches.every(([, x]) => x.slot === 'start')]).toEqual([true, true])
   expect(t.flow.chips()).toEqual([t.m.store.binding(a, P)!.mediaId])
+  const e = rig(), s1 = e.m.add(), s2 = e.m.add(), ends = spy(e) // a second image: the end frame, through the End slot
+  expect(await e.driver.prepare('7', { prompt: 'a prompt', kind: 'video', settings: { combo }, refIds: [s1, s2], projectId: P })).toEqual({ ok: true })
+  expect(ends.filter(([op]) => op === 'attach').map(([, x]) => x.slot).filter((v, k, l) => l.indexOf(v) === k)).toEqual(['start', 'end'])
+  expect(e.flow.chips()).toEqual([e.m.store.binding(s1, P)!.mediaId, e.m.store.binding(s2, P)!.mediaId])
   const i = rig(), b = i.m.add(), plain = spy(i)
   expect(await i.prepare([b])).toEqual({ ok: true })
   expect(plain.filter(([op]) => op === 'attach').some(([, x]) => 'slot' in x)).toBe(false)

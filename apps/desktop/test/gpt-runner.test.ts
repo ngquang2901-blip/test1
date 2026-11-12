@@ -460,3 +460,36 @@ test('a download of an older image whose tab left its conversation: the tab is n
   expect(gemFake.ledger.opens).toEqual([conv]);
 });
 
+test('a pause before the click for a page that was not ready lifts by itself after 30 s, once per prompt; the same prompt stopped again waits for the user; a pause after the send (no image) never lifts by itself', async () => {
+  const a = rig([], ['a red kite', 'a blue door'], { fake: { mode: ['MODE_NOT_FOUND', '', 'MODE_NOT_FOUND', 'MODE_NOT_FOUND'] } });
+  let modes = 0; const mode = a.fake.driver.mode;
+  a.fake.driver.mode = async (...x) => { modes++; return mode(...x); }; // how often the image tool was asked for
+  await a.ticks(2);
+  expect([a.status(), a.runner.lastError(a.batch)]).toEqual(['paused', 'GPT_MODE_NOT_FOUND']);
+  await a.ticks(3, 5_000);
+  expect(a.status()).toBe('paused'); // 15 s: not yet
+  await a.ticks(4, 5_000);
+  expect([a.status(), a.fake.ledger.sends]).toEqual(['running', ['a red kite']]); // lifted, the prompt went out once
+  await a.ticks(6);
+  expect(items(a.states())).toBe('ready,preparing'); // the second prompt was stopped the same way
+  expect(a.status()).toBe('paused');
+  expect(modes).toBe(3);
+  await a.ticks(8, 5_000);
+  expect(modes).toBe(4); // its own one lift, and the page stopped it again
+  expect([a.status(), a.runner.lastError(a.batch)]).toEqual(['paused', 'GPT_MODE_NOT_FOUND']);
+  await a.ticks(20, 5_000);
+  expect([a.status(), a.fake.ledger.sends, modes]).toEqual(['paused', ['a red kite'], 4]); // now it is the user's
+
+  const b = rig(['text'], ['a red kite', 'a blue door']);
+  await b.ticks(3); await b.ticks(3, 25_000);
+  expect([b.status(), b.runner.lastError(b.batch)]).toEqual(['paused', 'GPT_NO_IMAGE']);
+  await b.ticks(20, 5_000);
+  expect([b.status(), b.fake.ledger.sends]).toEqual(['paused', ['a red kite']]);
+
+  const c = rig([], ['a red kite'], { fake: { mode: ['MODE_NOT_FOUND'] } });
+  await c.ticks(2);
+  c.runner.stop(c.batch);
+  await c.ticks(10, 5_000);
+  expect(c.status()).not.toBe('running'); // a stopped batch is left alone
+});
+

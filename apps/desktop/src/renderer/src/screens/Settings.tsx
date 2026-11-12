@@ -48,6 +48,11 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
         <label><input type="radio" name="speed" checked={s.draft.speed === 'fast'} onChange={() => speed('fast')} /> Nhanh</label>
         <p className="hint">Nhanh: tối đa 4 tab Flow cùng lúc (Mặc định: 1). Áp dụng từ lần mở app sau. Đang dùng: <span className="num">{s.speedInUse.tabs}</span> tab, ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
       </fieldset>
+      <fieldset>
+        <legend>Lưu kết quả</legend>
+        <label><input type="checkbox" checked={s.draft.autoSave} onChange={(e) => act(() => window.api.saveDraft({ autoSave: e.target.checked }))} /> Tự lưu kết quả của lô Flow về máy khi tạo xong</label>
+        <p className="hint">Bỏ tích thì lô Flow chờ bạn bấm Tải. Lô ChatGPT và Gemini luôn tự lưu. Lượt lưu bị lỗi được app tự thử lại 2 lần, cách nhau 30 giây.</p>
+      </fieldset>
       <fieldset aria-label="Trợ lý AI">
         <legend>Trợ lý AI (MCP)</legend>
         <label><input type="checkbox" checked={!!mcp?.enabled} disabled={!mcp} onChange={(e) => toggleMcp(e.target.checked)} /> Cho trợ lý AI trên máy này điều khiển ToolFlow</label>

@@ -84,6 +84,7 @@ export const HINTS: Record<string, string> = {
   GPT_COMPOSER_NOT_EMPTY: 'Ô nhập của ChatGPT đang có chữ nên app không ghi đè. Xoá chữ trong ô nhập rồi bấm Tiếp tục',
   GPT_PROMPT_MISMATCH: 'Chữ trong ô nhập của ChatGPT không khớp prompt của lô. Xoá ô nhập, đừng gõ vào ChatGPT khi app đang chạy, rồi bấm Tiếp tục',
   GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
+  GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang không gửi: prompt vẫn nằm trong ô nhập, chưa có gì được gửi đi. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi có lượt, bấm Tiếp tục',
   GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
