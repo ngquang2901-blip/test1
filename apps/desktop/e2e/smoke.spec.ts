@@ -1026,3 +1026,34 @@ test('ChatGPT batch without a ChatGPT tab: it pauses and says what to open; a Fl
   await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1)
 })
 
+test('Gemini batch: chosen in Tạo lô, runs in the Gemini tab next to a ChatGPT batch; each image is saved by itself and shown under its own site', async () => {
+  const root = join(tmp(), 'dl')
+  const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('gem-tabs')).toContainText('Đã thấy 1 tab gemini.google.com')
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
+  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: Gemini · Tạo hình ảnh · tự động')
+  await expect(page.getByTestId('gpt-note')).toContainText('gemini.google.com')
+  await expect(page.getByTestId('batch-settings')).toHaveCount(0)
+  await create(page, ['một con mèo', 'một con chó'])
+  await expect(page.getByRole('heading', { name: /Gemini · Ảnh/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
+  await create(page, ['một con chim'])
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).filter({ hasText: 'Gemini · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(2, { timeout: 30_000 })
+  await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 })
+  const sends = await app.evaluate(() => { const g = globalThis as unknown as Record<string, { ledger: { sends: string[] } }>; return { gem: g.__toolflowFakeGem.ledger.sends, gpt: g.__toolflowFakeGpt.ledger.sends } })
+  expect(sends).toEqual({ gem: ['một con mèo', 'một con chó'], gpt: ['một con chim'] }) // each site got its own prompts, once
+  expect((readdirSync(root, { recursive: true }) as string[]).filter((f) => f.endsWith('.png'))).toHaveLength(3)
+})
+
+test('Gemini batch without a Gemini tab: it pauses and names gemini.google.com', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GEM_TABS: '0' })
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
+  await create(page, ['một con mèo'])
+  await expect(page.getByTestId('pause-reason')).toContainText('Chưa thấy tab Gemini nào. Mở gemini.google.com')
+})
+

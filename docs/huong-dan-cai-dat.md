@@ -3,13 +3,13 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.7.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.8.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
 ## Linux
-- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.7.0-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.7.0-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.7.0-x86_64.AppImage --appimage-extract-and-run`.
-- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.7.0-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
+- **AppImage** (máy nào cũng chạy, không cần cài): `chmod +x ToolFlow-0.8.0-x86_64.AppImage` rồi bấm đúp hoặc chạy `./ToolFlow-0.8.0-x86_64.AppImage`. Nếu máy báo thiếu FUSE: `./ToolFlow-0.8.0-x86_64.AppImage --appimage-extract-and-run`.
+- **Debian/Ubuntu**: `sudo apt install ./ToolFlow-0.8.0-amd64.deb`, rồi mở ToolFlow trong menu ứng dụng.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:
@@ -37,6 +37,16 @@ Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên tro
 - Nếu bạn chuyển tab ChatGPT sang cuộc trò chuyện khác, lô tạm dừng; bấm **Tiếp tục** thì app mở lại đúng cuộc trò chuyện của lô.
 - ChatGPT trả lời mà không có ảnh (hết lượt tạo ảnh, hoặc prompt bị từ chối): dòng đó báo lỗi, lô tạm dừng để bạn đọc câu trả lời trong ChatGPT.
 - Chưa có: ảnh tham chiếu, chọn tỉ lệ khung hình (ghi thẳng trong prompt), dùng trong Workflow.
+
+## Tạo ảnh bằng Gemini (từ bản 0.8.0)
+1. Trong Chrome đã cài extension ToolFlow, mở https://gemini.google.com/app và đăng nhập. Gemini để ngôn ngữ nào cũng được.
+2. Sau khi cập nhật app: vào `chrome://extensions`, bấm mũi tên tải lại ở thẻ **ToolFlow Connector**, rồi F5 tab Gemini. Màn **Kết nối** của app sẽ ghi "Đã thấy 1 tab gemini.google.com".
+3. Màn **Tạo lô** → **Nền tảng** chọn **Gemini (tạo ảnh)** → dán danh sách prompt → **Tạo lô và chạy**.
+- Mỗi lô mở một cuộc trò chuyện mới trong tab Gemini, app tự bật công cụ tạo hình ảnh, gửi lần lượt từng prompt và tự lưu ảnh **cỡ đầy đủ** vào `Downloads/ToolFlow` (không cần bấm Tải). Mỗi ảnh mất khoảng 25–40 giây.
+- Mô hình và tỉ lệ khung hình là cái bạn đang chọn trong Gemini; muốn đổi thì chọn trong Gemini trước khi chạy lô.
+- Khi lô chạy, app đưa tab Gemini lên trước. Đừng thu nhỏ cửa sổ Chrome đó, đừng gõ vào Gemini và đừng để sẵn chữ trong ô nhập của Gemini (app không gõ đè lên chữ có sẵn, lô sẽ tạm dừng).
+- Lúc lấy ảnh cỡ đầy đủ, app bấm nút tải của Gemini; bản tải riêng của Gemini (tên `Gemini_Generated_Image_…`) nếu có sẽ bị app huỷ để không lưu trùng. Trong lúc lô chạy, đừng tự bấm tải ảnh trong Gemini.
+- Chưa có: ảnh tham chiếu, chọn tỉ lệ khung hình / mô hình từ app, dùng trong Workflow.
 
 ## Cho trợ lý AI điều khiển ToolFlow (MCP, từ bản 0.6.1)
 MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, Hermes…) tạo lô, xem tiến độ và tải kết quả thay bạn. Mặc định tắt.

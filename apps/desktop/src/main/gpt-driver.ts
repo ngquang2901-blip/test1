@@ -1,6 +1,6 @@
 // ChatGPT image driver: what the runner may ask of a chatgpt.com tab. The real one talks to the extension's gpt ops;
 // the fake plays a conversation for unit tests and e2e. No call returns conversation text or an address.
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import type { FetchMediaResult } from './driver'
 import type { ConnectorServer } from './connector/server'
 
@@ -25,15 +25,19 @@ export interface GptDriver {
 export const IMAGE_MODE = 'picture_v2'
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 export const isGptMedia = (id: string): boolean => new RegExp(`^${UUID}-[1-9][0-9]?$`).test(id)
-const convOf = (path: string): string | null => new RegExp(`^/c/(${UUID})$`).exec(path)?.[1] ?? null
+export const isGemMedia = (id: string): boolean => /^[0-9a-f]{8,32}-[1-9][0-9]?$/.test(id) // Gemini: turn id (hex) + image number
+/** The two sites the runner can drive: the prefix of the site's extension ops and where a conversation's id sits in the tab's path. */
+const SITES = { chatgpt: { ops: 'gpt', conv: new RegExp(`^/c/(${UUID})$`) }, gemini: { ops: 'gem', conv: /^\/app\/([0-9a-f]{8,32})$/ } } as const
+export type Site = keyof typeof SITES
 
-export function createExtGpt(server: Pick<ConnectorServer, 'send'>): GptDriver {
+export function createExtGpt(server: Pick<ConnectorServer, 'send'>, site: Site = 'chatgpt'): GptDriver {
+  const x = SITES[site].ops, convOf = (path: string): string | null => SITES[site].conv.exec(path)?.[1] ?? null
   const op = <T>(name: string, tabId: string, args: Record<string, unknown> = {}): Promise<T> => server.send(name, { tabId, ...args }) as Promise<T>
   return {
-    async tabs() { return ((await server.send('gptTabs', {})) as { tabId: string; path: string; active: boolean }[]).map((t) => ({ tabId: t.tabId, conv: convOf(t.path), active: t.active })) },
-    newChat: (t) => op('gptNew', t), open: (t, conv) => op('gptOpen', t, { conv }), front: (t, raise) => op('gptFront', t, raise ? { raise: true } : {}), state: (t) => op('gptState', t), mode: (t) => op('gptMode', t),
-    prep: (t, prompt) => op('gptPrep', t, { prompt }), send: (t, prompt) => op('gptSend', t, { prompt }), turns: (t, prompt) => op('gptTurns', t, { prompt }),
-    fetchMedia: (t, p) => op('gptFetch', t, p),
+    async tabs() { return ((await server.send(`${x}Tabs`, {})) as { tabId: string; path: string; active: boolean }[]).map((t) => ({ tabId: t.tabId, conv: convOf(t.path), active: t.active })) },
+    newChat: (t) => op(`${x}New`, t), open: (t, conv) => op(`${x}Open`, t, { conv }), front: (t, raise) => op('gptFront', t, raise ? { raise: true } : {}), state: (t) => op(`${x}State`, t), mode: (t) => op(`${x}Mode`, t), // gptFront: any tab
+    prep: (t, prompt) => op(`${x}Prep`, t, { prompt }), send: (t, prompt) => op(`${x}Send`, t, { prompt }), turns: (t, prompt) => op(`${x}Turns`, t, { prompt }),
+    fetchMedia: (t, p) => op(`${x}Fetch`, t, p),
   }
 }
 
@@ -46,8 +50,9 @@ export function createExtGpt(server: Pick<ConnectorServer, 'send'>): GptDriver {
 export type GptScript = 'ok' | 'two' | 'text' | 'lost' | 'slow' | 'foreign' | 'leave' | 'early' | 'mute'
 type FakeTurn = { key: string; prompt: string; kind: GptScript; polls: number; msg: string }
 
-export function createFakeGpt(script: GptScript[] = [], o: { tabs?: number; fetchMedia?: GptDriver['fetchMedia']; mode?: string[]; prep?: string[]; send?: string[] } = {}) {
+export function createFakeGpt(script: GptScript[] = [], o: { site?: Site; tabs?: number; fetchMedia?: GptDriver['fetchMedia']; mode?: string[]; prep?: string[]; send?: string[] } = {}) {
   const steps = [...script]
+  const newId = (): string => (o.site === 'gemini' ? randomBytes(8).toString('hex') : randomUUID()) // ids shaped like the site's own
   const fail = { mode: [...(o.mode ?? [])], prep: [...(o.prep ?? [])], send: [...(o.send ?? [])] } // per call, in order: '' = ok, anything else = that code
   const convs = new Map<string, FakeTurn[]>()
   const page = { open: (o.tabs ?? 1) > 0, front: false, hidden: false, minimised: false, conv: null as string | null, start: false, mode: null as string | null, text: '' }
@@ -55,12 +60,12 @@ export function createFakeGpt(script: GptScript[] = [], o: { tabs?: number; fetc
   const here = (): FakeTurn[] => (page.conv ? convs.get(page.conv) ?? [] : [])
   const need = (): void => { if (!page.open) throw Object.assign(new Error('no such tab'), { code: 'CONNECTOR_LOST' }) }
   let leaving = false
-  const leave = (): void => { page.conv = randomUUID(); convs.set(page.conv, []); page.start = false; page.mode = null; page.text = '' }
+  const leave = (): void => { page.conv = newId(); convs.set(page.conv, []); page.start = false; page.mode = null; page.text = '' }
   const imagesOf = (t: FakeTurn): string[] => (t.kind === 'ok' || t.kind === 'leave' || t.kind === 'early' ? [`${t.msg}-1`] : t.kind === 'two' ? [`${t.msg}-1`, `${t.msg}-2`] : [])
   const done = (t: FakeTurn): boolean => t.kind !== 'slow' && t.polls >= (t.kind === 'early' ? 5 : 2)
   const step = (list: string[]): string => list.shift() ?? ''
   const driver: GptDriver = {
-    async tabs() { return page.open ? [{ tabId: 'g1', conv: page.conv, active: true }] : [] },
+    async tabs() { return page.open ? [{ tabId: o.site === 'gemini' ? 'm1' : 'g1', conv: page.conv, active: true }] : [] },
     async front(_t, raise) { need(); if (raise) { ledger.raises++; page.minimised = false } else ledger.fronts++; page.front = true; return true },
     async newChat() { need(); ledger.newChats++; page.conv = null; page.start = true; page.mode = null; page.text = ''; return true },
     async open(_t, conv) { need(); ledger.opens.push(conv); if (!convs.has(conv)) return false; page.conv = conv; page.start = false; page.mode = null; page.text = ''; return true },
@@ -79,8 +84,8 @@ export function createFakeGpt(script: GptScript[] = [], o: { tabs?: number; fetc
       const kind = steps.shift() ?? 'ok'
       ledger.sends.push(prompt); page.text = ''; page.mode = null // the pill is gone after every send (measured)
       if (kind === 'lost') return { ok: true }
-      if (!page.conv) { page.conv = randomUUID(); page.start = false; convs.set(page.conv, []) }
-      convs.get(page.conv)!.push({ key: randomUUID(), prompt: kind === 'foreign' ? 'something the user typed' : prompt, kind, polls: 0, msg: randomUUID() })
+      if (!page.conv) { page.conv = newId(); page.start = false; convs.set(page.conv, []) }
+      convs.get(page.conv)!.push({ key: newId(), prompt: kind === 'foreign' ? 'something the user typed' : prompt, kind, polls: 0, msg: newId() })
       return { ok: true }
     },
     async turns(_t, prompt) {

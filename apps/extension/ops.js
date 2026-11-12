@@ -1,7 +1,8 @@
 // Pure: the only commands the desktop may send. No eval / debugger / raw CDP.
 import './gpt-logic.js';
-const G = globalThis.TFGpt;
-export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate','gptTabs','gptNew','gptOpen','gptFront','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gptFetch'];
+import './gem-logic.js';
+const G = globalThis.TFGpt, M = globalThis.TFGem;
+export const OPS = ['ping','state','prep','radios','click','fill','hit','trusted','net','file','open','reloadTab','fetchMedia','downloads','account','arm','tabs','focus','probe','settings','listeners','attach','locate','gptTabs','gptNew','gptOpen','gptFront','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gptFetch','gemTabs','gemNew','gemOpen','gemLook','gemState','gemMode','gemPrep','gemSend','gemTurns','gemFetch'];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Flat names only (no path, no leading dot, no '..'): the desktop picks the name, the extension adds the ToolFlow-tmp/ folder.
@@ -34,6 +35,10 @@ export function validate(msg) {
   if (op === 'downloads' && !(Number.isInteger(args.id) || validTmpName(args.filenamePrefix))) return 'downloads needs an integer id or a filenamePrefix';
   if (['gptNew', 'gptOpen', 'gptFront', 'gptLook', 'gptState', 'gptMode', 'gptPrep', 'gptSend', 'gptTurns', 'gptFetch'].includes(op) && !Number.isInteger(args.tabId)) return `${op} needs integer tabId`;
   if (['gptPrep', 'gptSend', 'gptTurns'].includes(op) && !(typeof args.prompt === 'string' && args.prompt.length >= 1 && args.prompt.length <= 20000)) return `${op} needs a prompt of 1..20000 chars`;
+  if (['gemNew', 'gemOpen', 'gemLook', 'gemState', 'gemMode', 'gemPrep', 'gemSend', 'gemTurns', 'gemFetch'].includes(op) && !Number.isInteger(args.tabId)) return `${op} needs integer tabId`;
+  if (['gemPrep', 'gemSend', 'gemTurns'].includes(op) && !(typeof args.prompt === 'string' && args.prompt.length >= 1 && args.prompt.length <= 20000)) return `${op} needs a prompt of 1..20000 chars`;
+  if (op === 'gemOpen' && !M.isId(args.conv)) return 'gemOpen needs a conversation id';
+  if (op === 'gemFetch' && !(M.parseMediaId(args.mediaId) && validTmpName(args.filename))) return 'gemFetch needs a Gemini media id and a flat filename';
   if (op === 'gptFront' && args.raise !== undefined && typeof args.raise !== 'boolean') return 'gptFront: raise is a boolean';
   if (op === 'gptOpen' && !G.isUuid(args.conv)) return 'gptOpen needs a conversation uuid';
   if (op === 'gptFetch' && !(G.parseMediaId(args.mediaId) && validTmpName(args.filename))) return 'gptFetch needs a ChatGPT media id and a flat filename';
@@ -76,6 +81,44 @@ export async function gptFetchOp(c, a) {
     const downloadId = await c.downloads.download({ url: r.src, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
     return Number.isInteger(downloadId) ? { ok: true, downloadId } : { ok: false, code: 'DOWNLOAD_REFUSED' };
   } catch { return { ok: false, code: 'DOWNLOAD_REFUSED' }; }
+}
+
+/** Gemini: the image on the page is a preview. The content script presses the page's own "download full size" (INTERNAL message) and answers
+ *  with the address the page fetched the real file from; that address, checked, is downloaded here like any other output. The copy the page
+ *  may start by itself is cancelled while this runs and a moment after. One at a time: one press at a time on the page.
+ *  Measured: once an extension listens for filenames, the browser drops download()'s own filename, so ours is suggested when it asks. */
+let gemQueue = Promise.resolve();
+const gemNames = new Map(); // address we asked the browser to download -> the name it must get; in memory, until the browser asks
+let gemLinger = null; // the listener of the request before, still up for its moment after
+export function gemFetchOp(c, a, lingerMs = 15000) {
+  const run = async () => {
+    let tabUrl = ''; try { tabUrl = (await c.tabs.get(a.tabId)).url || ''; } catch { /* no such tab */ }
+    if (!tabUrl.startsWith('https://gemini.google.com/')) return { ok: false, code: 'NOT_GEMINI_TAB' };
+    if (gemLinger) { clearTimeout(gemLinger.timer); gemLinger.off(); gemLinger = null; }
+    const asked = (item, suggest) => {
+      const name = gemNames.get(item?.url);
+      if (name) { gemNames.delete(item.url); suggest({ filename: 'ToolFlow-tmp/' + name, conflictAction: 'uniquify' }); return; }
+      if (M.isGeminiDownload(item)) Promise.resolve().then(() => c.downloads.cancel(item.id)).then(() => c.downloads.erase({ id: item.id })).catch(() => undefined);
+    };
+    const off = () => c.downloads.onDeterminingFilename.removeListener(asked);
+    c.downloads.onDeterminingFilename.addListener(asked);
+    try {
+      let r;
+      try { r = await c.tabs.sendMessage(a.tabId, { tf: 'gemDownload', mediaId: a.mediaId }); } catch { return { ok: false, code: 'NO_CONTENT_SCRIPT' }; }
+      if (!r || typeof r.url !== 'string') return { ok: false, code: codeOf(r?.code) };
+      if (!M.isFullSizeUrl(r.url)) { let host = '?'; try { host = new URL(r.url).hostname; } catch { /* keep ? */ } return { ok: false, code: 'SRC_NOT_ALLOWED', host }; } // host only: never the url
+      gemNames.set(r.url, a.filename);
+      try {
+        const downloadId = await c.downloads.download({ url: r.url, filename: 'ToolFlow-tmp/' + a.filename, conflictAction: 'uniquify' });
+        if (Number.isInteger(downloadId)) return { ok: true, downloadId };
+      } catch { /* the browser's message can echo the url: never forward it */ }
+      gemNames.delete(r.url);
+      return { ok: false, code: 'DOWNLOAD_REFUSED' };
+    } finally { const me = { off, timer: setTimeout(() => { off(); if (gemLinger === me) gemLinger = null; }, lingerMs) }; gemLinger = me; }
+  };
+  const p = gemQueue.then(run, run);
+  gemQueue = p.catch(() => undefined);
+  return p;
 }
 
 export async function downloadsOp(c, a) {

@@ -57,6 +57,9 @@ export const HINTS: Record<string, string> = {
   PATH_TOO_LONG: 'Đường dẫn thư mục đích quá dài. Chọn thư mục ngắn hơn',
   DOWNLOAD_NOT_CHATGPT_TAB: 'Tab dùng để tải không còn là ChatGPT. Mở lại chatgpt.com rồi bấm Thử lại',
   DOWNLOAD_FETCH_FAILED: 'Không đọc được ảnh trên trang ChatGPT. Tải lại tab ChatGPT (F5), đợi ảnh hiện rồi bấm Thử lại',
+  DOWNLOAD_NOT_GEMINI_TAB: 'Tab dùng để tải không còn là Gemini. Mở lại gemini.google.com rồi bấm Thử lại',
+  DOWNLOAD_NO_FULL_SIZE: 'Đã bấm nút tải ảnh cỡ đầy đủ của Gemini nhưng trang không lấy được file. Mở tab Gemini xem ảnh còn đó không, tải lại tab (F5) rồi bấm Thử lại',
+  DOWNLOAD_BUSY: 'Nút tải ảnh của Gemini đang bận (đang tải ảnh này). Đợi một lúc rồi bấm Thử lại',
   // ChatGPT
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
   GPT_CONVERSATION_CHANGED: 'Tab ChatGPT đã chuyển sang cuộc trò chuyện khác nên app không gõ vào đó. Bấm Tiếp tục: app mở lại cuộc trò chuyện của lô rồi gửi tiếp',
@@ -82,5 +85,12 @@ export const HINTS: Record<string, string> = {
 /** The line for a code; for a ChatGPT batch the site named in it is ChatGPT (the shared lines were written for Flow). */
 export const hintOf = (code: string | undefined | null, provider?: string): string | undefined => {
   const h = code && Object.hasOwn(HINTS, code) ? HINTS[code] : undefined
-  return h && provider === 'chatgpt' ? h.replace(/(?<![A-Za-z])Flow/g, 'ChatGPT') : h
+  if (!h || !provider || provider === 'flow') return h
+  if (provider === 'gemini') return (Object.hasOwn(GEMINI, code!) ? GEMINI[code!] : h).replace(/chatgpt\.com/g, 'gemini.google.com').replace(/ChatGPT|(?<![A-Za-z])Flow/g, 'Gemini')
+  return h.replace(/(?<![A-Za-z])Flow/g, 'ChatGPT')
+}
+// Gemini is driven by icon names, not labels: the lines that give ChatGPT's English-UI advice read differently for it.
+const GEMINI: Record<string, string> = {
+  GPT_NO_PLUS: 'Không thấy nút “+” trong ô nhập của Gemini. Tải lại tab Gemini (F5), kiểm tra đã đăng nhập rồi bấm Tiếp tục',
+  GPT_MODE_NOT_FOUND: 'Không thấy mục tạo hình ảnh trong menu “+” của Gemini. Kiểm tra tài khoản Gemini có tính năng tạo ảnh, tải lại tab (F5) rồi bấm Tiếp tục',
 }

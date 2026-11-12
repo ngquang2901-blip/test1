@@ -239,3 +239,11 @@ test('enqueueBatch for ChatGPT: an image batch with no project, no Flow settings
   const flow = (await rig().h.enqueueBatch(good)) as { batchId: string };
   expect(flow.batchId).toBeTruthy(); // a batch without a provider is a Flow batch, as before
 });
+
+test('enqueueBatch for Gemini: the same kind of batch as ChatGPT, kept apart by its provider', async () => {
+  const { h, db } = rig('a@b.c', [], () => null);
+  const r = (await h.enqueueBatch({ commandId: 'm1', text: 'a red kite', kind: 'image', mode: 'auto', provider: 'gemini' })) as { batchId: string };
+  expect(db.prepare('select provider, kind, target_project p, settings_json s from batch where id=?').get(r.batchId)).toEqual({ provider: 'gemini', kind: 'image', p: null, s: JSON.stringify({ provider: 'gemini', mode: 'auto' }) });
+  await expect(h.enqueueBatch({ commandId: 'm2', text: 'x', kind: 'video', mode: 'auto', provider: 'gemini' })).rejects.toThrow(/INVALID_ARGS/);
+  await expect(h.enqueueBatch({ commandId: 'm3', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', refs: { assetIds: ['x'], mode: 'all', perItem: 1 } })).rejects.toMatchObject({ code: 'REF_KIND_UNSUPPORTED' });
+});

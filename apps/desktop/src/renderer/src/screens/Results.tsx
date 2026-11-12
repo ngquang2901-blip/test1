@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { hintOf } from '../hints'
-import { KIND_LABEL, current, type Batch, type Download } from '../types'
+import { KIND_LABEL, current, type Batch, type Download, siteLabel } from '../types'
 import { Chip, Icon, type Tone } from '../ui'
 
 // AC-07: "Đã lưu" exists only for a completed row; every other state (and no row at all) says what it really is.
@@ -52,7 +52,7 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
                 <Thumb attemptId={r.attemptId} media={r.media} saved={r.dl?.state === 'completed'} />
                 <div className="what">
                   <span className="prompt-line" title={r.prompt}>{r.prompt}</span>
-                  <span className="file">{r.provider === 'chatgpt' ? 'ChatGPT · ' : ''}{KIND_LABEL[r.kind]} · lô {r.batchId.slice(0, 8)} · dòng {r.n}</span>
+                  <span className="file">{siteLabel(r.provider)}{KIND_LABEL[r.kind]} · lô {r.batchId.slice(0, 8)} · dòng {r.n}</span>
                   {r.dl?.state === 'completed' && r.dl.actualName && <span className="file name" title={r.dl.actualName}>{r.dl.actualName}</span>}
                   {bad && hintOf(r.dl?.errorCode, r.provider) && <div className="hint" data-testid="hint">{hintOf(r.dl?.errorCode, r.provider)}</div>}
                 </div>

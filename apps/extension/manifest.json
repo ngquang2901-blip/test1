@@ -6,10 +6,11 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl4wRVYEcr1WCHXFaqob6MuuqErx4V+B98yZ98ziCxlFFmKQnl9HNxEJSRuZA36ywzEj5xXsuYAMk42J44mBm+iCe2zO/QV60lfltBX6w6xCgVsdtE1LtVK+crcI3Wg9FJMD2bbBeMbWJbrbkTFM8foERPe3UaUynjwdhFXnBi/ftupHeDPpGqfM/AkBFCAjeeIr8xhN4wQOHRhHa0HlnUrqCrBv7XOd4uE5dzB81QcfTdpMylk1crOav275JnRtqMRILkNcrFJoYzhw9dwDMXzSkotpuVkEDxH+SVyoB8YEz3X5FJlYuBV0vojt933i761E8Dlb51dQeEAx6G1ZmDQIDAQAB",
   "background": { "service_worker": "sw.js", "type": "module" },
   "permissions": ["tabs", "scripting", "downloads", "alarms", "storage"],
-  "host_permissions": ["https://flow.google.com/*", "https://chatgpt.com/*"],
+  "host_permissions": ["https://flow.google.com/*", "https://chatgpt.com/*", "https://gemini.google.com/*"],
   "content_scripts": [
     { "matches": ["https://flow.google.com/*"], "js": ["epoch.js", "media-logic.js", "main-world.js"], "world": "MAIN", "run_at": "document_start" },
     { "matches": ["https://flow.google.com/*"], "js": ["settings-logic.js", "ref-logic.js", "page-ops.js"], "run_at": "document_start" },
-    { "matches": ["https://chatgpt.com/*"], "js": ["gpt-logic.js", "gpt-ops.js"], "run_at": "document_idle" }
+    { "matches": ["https://chatgpt.com/*"], "js": ["gpt-logic.js", "gpt-ops.js"], "run_at": "document_idle" },
+    { "matches": ["https://gemini.google.com/*"], "js": ["gem-logic.js", "gem-ops.js"], "run_at": "document_idle" }
   ]
 }
