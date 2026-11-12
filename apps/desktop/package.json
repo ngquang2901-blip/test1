@@ -1,7 +1,7 @@
 {
   "name": "@toolflow/desktop",
   "productName": "ToolFlow",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "ToolFlow: tự động tạo ảnh hàng loạt trên Google Flow",
   "main": "./out/main/index.js",
   "author": {
