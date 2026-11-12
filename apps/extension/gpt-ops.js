@@ -20,9 +20,6 @@
   // an attached file shows as a tile with a "Remove <name>" button; a progressbar is there while it uploads (measured, English UI)
   const tiles = () => [...document.querySelectorAll('form button[aria-label^="Remove "]')];
   const uploading = () => !!document.querySelector('form [role="progressbar"]');
-  // measured: for some seconds after a page load the editor is there but the app is not (the sidebar reads "Loading profile"): the "+" menu
-  // stays empty and a pasted file is dropped without a trace. The composer counts as there only after that.
-  const shellLoading = () => [...document.querySelectorAll('button')].some((b) => G.flat(b.innerText) === 'Loading profile');
   const imgsOf = (holder) => [...holder.querySelectorAll('[data-testid="generated-image-gallery"] [data-testid="generated-image-preview"] img')];
   const shown = (i) => i.complete && i.naturalWidth > 0;
 
@@ -42,7 +39,7 @@
     gptState() {
       const ed = editor(), send = sendBtn();
       return {
-        conv: G.convOf(location.pathname), start: location.pathname === '/', visible: document.visibilityState === 'visible', editor: !!ed && !shellLoading(), mode: modeOf(ed), textLen: ed ? promptText(ed).length : 0,
+        conv: G.convOf(location.pathname), start: location.pathname === '/', visible: document.visibilityState === 'visible', editor: !!ed, mode: modeOf(ed), textLen: ed ? promptText(ed).length : 0,
         canSend: !!send && !send.disabled, generating: !!document.querySelector('form button[data-testid="stop-button"], form button[aria-label*="Stop" i]'),
         turns: document.querySelectorAll('[data-turn-key]').length,
       };
