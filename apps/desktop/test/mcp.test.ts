@@ -86,7 +86,7 @@ test('switch: off by default; on writes address + token to a 0600 file and answe
   expect(a.state()).toEqual({ enabled: false, url: null, file })
   expect((await a.set(true)).enabled).toBe(true)
   const on = read()
-  expect([on.enabled, on.url, statSync(file).mode & 0o777, on.token.length >= 32]).toEqual([true, a.state().url, 0o600, true])
+  expect([on.enabled, on.url, process.platform === 'win32' ? 0o600 : statSync(file).mode & 0o777, on.token.length >= 32]).toEqual([true, a.state().url, 0o600, true]) // Windows has no Unix modes: the file lives in the user's own profile folder
   expect(await ping(on.url, on.token)).toBe(200)
   expect((await a.set(false)).url).toBeNull()
   await expect(ping(on.url, on.token)).rejects.toThrow()

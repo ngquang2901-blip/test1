@@ -34,12 +34,17 @@ export function batchStatus(db: Db, id: string): BatchStatus {
   const b = db.prepare('select status, stop_requested s from batch where id=?').get(id) as { status: string; s: number };
   const items = (db.prepare('select a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?').all(id) as { j: string }[])
     .map((r) => (JSON.parse(r.j) as AttemptState).item);
+  return statusOf(b.status, b.s, items);
+}
+
+/** A batch's status from its row (status, stop_requested) and the state of each item's current attempt. */
+export function statusOf(status: string, stop: number, items: ItemState[]): BatchStatus {
   const has = (...k: ItemState[]) => items.some((i) => k.includes(i));
-  const live = b.status === 'paused' ? 'paused' : 'running';
+  const live = status === 'paused' ? 'paused' : 'running';
   if (has('needs_review')) return 'needs_review';
   if (has('submitting', 'awaiting_user', 'generating')) return live;
-  if (b.s) return 'stopped';
-  if (has('queued', 'preparing')) return b.status === 'queued' ? 'queued' : live;
+  if (stop) return 'stopped';
+  if (has('queued', 'preparing')) return status === 'queued' ? 'queued' : live;
   if (items.every((i) => i === 'ready')) return 'completed';
   return has('ready') ? 'partial_failed' : 'failed';
 }
@@ -125,8 +130,9 @@ export function createRunner(o: {
 
   const inFlight = () => {
     const n = { image: 0, video: 0 };
-    const rows = db.prepare("select b.kind, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where b.provider='flow'").all() as { kind: Kind; j: string }[];
-    for (const r of rows) if (['submitting', 'awaiting_user', 'generating'].includes((JSON.parse(r.j) as AttemptState).item)) n[r.kind]++;
+    // the state is filtered in SQL (index attempt_state): only the few attempts in flight are read, not the whole history
+    const rows = db.prepare("select b.kind from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where b.provider='flow' and json_extract(a.state_json, '$.item') in ('submitting', 'awaiting_user', 'generating')").all() as { kind: Kind }[];
+    for (const r of rows) n[r.kind]++;
     return n;
   };
 

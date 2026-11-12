@@ -30,6 +30,14 @@ const MIGRATIONS = [
   `create table workflow(id text primary key, name text not null unique, json text not null, updated_at integer not null);`,
   // which site a batch is sent to: 'flow' (Google Flow, target_project = its project) or 'chatgpt' (no project; its own runner)
   `alter table batch add column provider text not null default 'flow';`,
+  // indexes: without them every loop (runner 5x a second, auto save, the change scan, the batch list) read every row of the history
+  // (measured: 300 batches of 10 prompts, the batch list took 13 s on the main process)
+  `create index item_batch on item(batch_id, ord);
+   create index item_attempt on item(attempt_id);
+   create index attempt_item on attempt(item_id, ordinal);
+   create index attempt_state on attempt(json_extract(state_json, '$.item'));
+   create index attempt_reconcile on attempt(reconcile_at) where reconcile_at is not null;
+   create index journal_attempt on journal_event(attempt_id, id);`,
 ];
 
 export function openDb(file: string): Db {

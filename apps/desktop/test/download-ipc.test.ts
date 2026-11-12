@@ -91,3 +91,21 @@ test('previewOutput / revealOutput: only a completed file that is really inside 
   await expect(r.h.previewOutput(one)).rejects.toThrow(/PATH_ESCAPE/)
   expect(r.revealed).toHaveLength(1)
 })
+
+test('previewOutput: a thumbnail is made once per file and kept; the same file asked again is not decoded again, a file that changed on disk is', async () => {
+  let made = 0
+  const r = rig([], (b) => { made++; return b.subarray(0, 4).toString('hex') === '89504e47' ? Buffer.from([0xff, 0xd8, 0xff, 0xe0]) : null })
+  const { batchId, atts } = await withBatch(r)
+  await r.h.downloadBatch(batchId)
+  const one = { attemptId: atts[0].id, mediaId: M[0] }, two = { attemptId: atts[1].id, mediaId: M[1] }
+  const first = (await r.h.previewOutput(one)) as { url: string }
+  for (let i = 0; i < 5; i++) expect(await r.h.previewOutput(one)).toEqual(first) // the screen opened again and again: decoded once (measured 20-50 ms each on the main process)
+  await r.h.previewOutput(two)
+  expect(made).toBe(2)
+  const rel = (r.db.prepare('select actual_name n from download where attempt_id=?').get(atts[0].id) as { n: string }).n
+  const file = join(r.root, rel), png = readFileSync(file)
+  writeFileSync(file, Buffer.concat([png, Buffer.alloc(16)])) // the user edited the file: a new thumbnail
+  await r.h.previewOutput(one)
+  expect(made).toBe(3)
+})
+

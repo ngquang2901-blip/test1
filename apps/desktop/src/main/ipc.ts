@@ -1,16 +1,16 @@
-import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { IpcMain } from 'electron';
 import type { Db } from './db';
 import { MAX_REFS } from './workflow';
 import { GEM_ASPECTS, GEM_MODELS } from './gpt-driver';
 import { defaultCombo, findCombo } from './profile';
 import { enqueueBatch, mapRefs, parsePrompts } from './batch';
-import { batchStatus, type Runner } from './runner';
+import type { Runner } from './runner';
+import { viewBatches } from './batch-view';
 import { disableAuto, enableAuto } from './account';
 import { AssetError, EXT, registerAsset, sniff } from './assets';
 import type { Grants } from './tabs';
 import type { Downloader } from './downloads';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import type { Updates } from './updates';
 import { randomUUID } from 'node:crypto';
 
@@ -56,32 +56,15 @@ export function parseDraft(v: unknown): Draft {
 }
 
 function view(db: Db, id: string) {
-  const profileVersion = (attemptId: string): string | null => {
-    const r = db.prepare("select payload_json p from journal_event where attempt_id=? and type='intent' order by id limit 1").get(attemptId) as { p: string } | undefined;
-    return r ? (JSON.parse(r.p).profileVersion ?? null) : null;
-  };
-  const b = db.prepare('select id, kind, provider, settings_json s, archived, created_at createdAt, target_project project from batch where id=?').get(id) as
-    { id: string; kind: string; provider: string; s: string; archived: number; createdAt: number; project: string | null } | undefined;
+  const [b] = viewBatches(db, [id]);
   if (!b) throw Object.assign(new Error('NOT_FOUND'), { code: 'NOT_FOUND' });
-  const items = (db.prepare('select id, ord, source_line sourceLine, prompt, refs_json refs, attempt_id cur from item where batch_id=? order by ord').all(id) as
-    { id: string; ord: number; sourceLine: number | null; prompt: string; refs: string; cur: string }[]).map((it) => {
-    const attempts = (db.prepare('select id, ordinal, state_json j, click_at clickAt, reconcile_at reconcileAt, source_attempt_id sourceAttemptId from attempt where item_id=? order by ordinal').all(it.id) as
-      { id: string; ordinal: number; j: string; clickAt: number | null; reconcileAt: number | null; sourceAttemptId: string | null }[]).map(({ j, ...a }) => {
-      const s = JSON.parse(j) as AttemptState;
-      return {
-        ...a, profileVersion: profileVersion(a.id), item: s.item, stage: s.stage, error: s.error, creditSpent: s.creditSpent,
-        outputs: ((s.outputs ?? []) as { mediaId: string }[]).map((o) => o.mediaId), // ids only: no signed urls (R54)
-        journal: db.prepare('select type, at from journal_event where attempt_id=? order by id').all(a.id),
-        // per output: state + the name relative to the download folder (no absolute path, no url)
-        downloads: Object.fromEntries((db.prepare('select media_id m, state, actual_name actualName, error_code errorCode from download where attempt_id=?').all(a.id) as { m: string; state: string; actualName: string | null; errorCode: string | null }[]).map(({ m, ...r }) => [m, r])),
-      };
-    });
-    return { id: it.id, ord: it.ord, sourceLine: it.sourceLine, prompt: it.prompt, refs: JSON.parse(it.refs), attemptId: it.cur, attempts };
-  });
-  return { id: b.id, kind: b.kind, provider: b.provider, status: batchStatus(db, id), archived: !!b.archived, createdAt: b.createdAt, settings: JSON.parse(b.s), project: b.project, items };
+  return b;
 }
 
+const PREVIEWS_KEPT = 300; // about 20 MB of 640 px thumbnails
+
 export function createHandlers(d: Deps) {
+  const previews = new Map<string, { url: string }>(); // newest last; key: file path, size, change time
   const mut = (batchId: string, f: () => void) => { f(); d.emit('batch', batchId); };
   const accounts = async (): Promise<string[]> => (d.emails ? d.emails() : [await d.email()].filter((e): e is string => !!e));
   const batchOf = (attemptId: string) => (d.db.prepare('select i.batch_id b from attempt a join item i on i.id=a.item_id where a.id=?').get(attemptId) as { b: string } | undefined)?.b ?? bad();
@@ -198,13 +181,18 @@ export function createHandlers(d: Deps) {
       d.emit('batch', batchOf(attemptId));
     },
     async previewOutput(a: unknown) { // a saved file as a data URL for the S4 thumbnail; nothing is shown before it is on disk
-      const o = obj(a), buf = readFileSync(d.downloader.file(str(o.attemptId), str(o.mediaId)));
+      const o = obj(a), path = d.downloader.file(str(o.attemptId), str(o.mediaId));
+      const st = statSync(path), key = `${path}|${st.size}|${st.mtimeMs}`, hit = previews.get(key);
+      if (hit && o.play !== true) { previews.delete(key); previews.set(key, hit); return hit; } // kept: decoding a full-size image again costs 20-50 ms of the main process each time
+      const buf = readFileSync(path);
       // shortcut: a video goes to the player as one data URL, only on the user's "Xem video" and only up to 64 MB (Flow's 8 s clips are 1-4 MB); serve it through a file protocol when clips get long
       if (buf.subarray(4, 8).toString('latin1') === 'ftyp') return { url: o.play === true && buf.length <= 64_000_000 ? `data:video/mp4;base64,${buf.toString('base64')}` : null, video: true };
       const mime = sniff(buf.subarray(0, 12));
       if (!mime || !(mime in EXT)) throw Object.assign(new Error('DOWNLOAD_NOT_IMAGE'), { code: 'DOWNLOAD_NOT_IMAGE' });
       const small = d.thumb(buf);
-      return { url: small ? `data:image/jpeg;base64,${small.toString('base64')}` : `data:${mime};base64,${buf.toString('base64')}` }; // the full file only when it cannot be shrunk
+      const out = { url: small ? `data:image/jpeg;base64,${small.toString('base64')}` : `data:${mime};base64,${buf.toString('base64')}` }; // the full file only when it cannot be shrunk
+      if (small) { previews.set(key, out); if (previews.size > PREVIEWS_KEPT) previews.delete(previews.keys().next().value!); } // a full file is not kept: too big
+      return out;
     },
     async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
     async getUpdate() { return d.updates?.get() ?? { state: 'off', current: '' }; },
@@ -223,8 +211,7 @@ export function createHandlers(d: Deps) {
     },
     async disableAuto() { for (const e of await accounts()) disableAuto(d.db, e); },
     async listBatches() {
-      const ids = d.db.prepare('select id from batch order by created_at desc, rowid desc').all() as { id: string }[];
-      return { batches: ids.map((r) => ({ ...view(d.db, r.id), pauseReason: d.runner.lastError(r.id) })), session: await d.session() };
+      return { batches: viewBatches(d.db).map((b) => ({ ...b, pauseReason: d.runner.lastError(b.id) })), session: await d.session() };
     },
     async getBatch(a: unknown) { const rev = d.emit.revision(); const id = str(a); return { ...view(d.db, id), pauseReason: d.runner.lastError(id), revision: rev }; }, // rev read first: never newer than the data
   };

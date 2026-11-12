@@ -20,6 +20,7 @@ import { createWorkflows } from './workflow'
 import { createExtGpt, createFakeGpt, isGemMedia, isGptMedia, type GptDriver, type GptScript } from './gpt-driver'
 import { createGptRunner, routeRunner } from './gpt-runner'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
+import { batchSignatures } from './batch-view'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
 import { createExtDriver } from './connector/ext-driver'
@@ -138,7 +139,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     return autoUpdater as unknown as Updater
   })()
   let wfActive = (): boolean => false // set once the workflows exist (below)
-  const inFlight = db.prepare("select a.state_json j from attempt a join item i on i.attempt_id=a.id join batch b on b.id=i.batch_id where b.archived=0")
+  const inFlight = db.prepare("select a.state_json j from attempt a join item i on i.attempt_id=a.id join batch b on b.id=i.batch_id where b.archived=0 and json_extract(a.state_json, '$.item') in ('preparing', 'submitting', 'awaiting_user', 'generating')")
   const updates = createUpdates({
     updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s),
     // only an attempt between prepare and its result is at risk; queued ones simply go on after the restart
@@ -227,7 +228,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   // The runner changes rows on its own: tell the renderer when a batch's rows moved.
   const seen = new Map<string, string>()
   const scan = (): void => {
-    for (const r of db.prepare("select b.id, b.revision || ':' || coalesce((select sum(a.revision) from item i join attempt a on a.item_id=i.id where i.batch_id=b.id),0) sig from batch b").all() as { id: string; sig: string }[]) {
+    for (const r of batchSignatures(db)) {
       if (seen.get(r.id) !== r.sig) { seen.set(r.id, r.sig); emit('batch', r.id) }
     }
   }
