@@ -306,3 +306,22 @@ Release `v0.12.0` (id 442901998): gate on `main`: typecheck 0, unit 389, extensi
 
 Open after 0.12.0: ChatGPT aspect ratio (prompt text; needs the image allowance back, measured to return at 21:52 local); video x3/x4 and Veo Quality (credits); Max Speed in one tab; Auto Muse; Telegram (owner: not now); Humanized mode (left out on purpose).
 
+## Smoother on a long history (after 0.12.0, 2026-11-13, on Windows)
+
+Asked by the owner ("tối ưu lại code đi để chạy mượt hơn"). Measured first, on this Windows machine (the first dev run on Windows: `npm ci --ignore-scripts` + `npm run setup`, Node 22), on a fake history of 150 batches x 10 prompts, 3000 saved 2048 px images, same database for both builds:
+
+| | installed 0.12.0 | this build |
+|---|---|---|
+| a click on Kết quả goes through after | 162 s (the window frozen) | 58 ms |
+| first preview on Kết quả / opened again | not reached | 0.3 s / 0.1 s |
+| window focus (re-reads the batch list) | 1.2 s each | 30 ms |
+| opening the app (adds the indexes to that history) | | 0.7 s |
+
+In the main process (unit-level, 300 batches x 10): the batch list 9.1 s → 0.13 s; the change scan, 5 times a second, 121 → 4.7 ms; runner + auto-save tick 4.2 s → 10 ms.
+
+Causes: no index on `item.batch_id`, `attempt.item_id`, `journal_event.attempt_id`, nor on the attempt state the runners filter by: every loop read every row of the history, and the batch list ran about 4 queries per attempt on top. Kết quả asked for a preview of every saved file at once, each decoded full size on the main process (20-50 ms each, measured), again on every visit.
+
+Changed: migration 7 adds the indexes (item by batch / by attempt, attempt by item / by state / by reconcile time, journal by attempt); `batch-view.ts` builds the list in 5 queries whatever its length (same output; `getBatch` uses it too); the runner counts what is in flight in SQL instead of parsing every Flow attempt; a preview is asked for only when its card nears the view, and a made thumbnail is kept (300, keyed by path, size, change time); Kết quả shows 120 cards and "Xem thêm" for the rest (a search still covers all). Tests: `test/perf.test.ts` (every statement of the loops finds its rows by an index, read from SQLite's own query plan; the list costs the same number of queries for 4 or 40 batches), a cache test, an e2e on a 200-result history. Also fixed: three unit tests that failed on Windows only (path separator in a helper, Unix file modes).
+
+Gate on Windows: typecheck 0, unit 392, extension 107, flow-protocol 56, e2e 53. Not run on Linux in this round (the Linux machine was not reachable from here); not released.
+

@@ -85,7 +85,7 @@ function rig(script: DownloadScript[] = []) {
 }
 type Row = { state: string; planned_name: string; actual_name: string | null; bytes: number | null; error_code: string | null; handle: string | null }
 const rows = (db: Db) => db.prepare('select * from download').all() as Row[]
-const onlyFiles = (dir: string): string[] => (existsSync(dir) ? (readdirSync(dir, { recursive: true }) as string[]).filter((f) => statSync(join(dir, f)).isFile()).sort() : [])
+const onlyFiles = (dir: string): string[] => (existsSync(dir) ? (readdirSync(dir, { recursive: true }) as string[]).filter((f) => statSync(join(dir, f)).isFile()).map((f) => f.split(sep).join('/')).sort() : []) // names as the app stores them: '/' on every OS
 const magic = (p: string) => readFileSync(p).subarray(0, 4).toString('hex')
 const insertRow = (db: Db, state: string, handle: string | null = null, planned = 'day/001_x_3f2b9c1e.png') =>
   db.prepare('insert into download(id,attempt_id,media_id,planned_name,state,handle,created_at,updated_at) values(?,?,?,?,?,?,1,1)').run('d1', A, M, planned, state, handle)
@@ -251,7 +251,7 @@ for (const script of ['download-html', 'download-empty'] as const) test(`${scrip
   expect(retry.state).toBe('completed')
   expect(rows(r.db)).toHaveLength(1)
   expect(rows(r.db)[0].planned_name).toBe(planned)
-  expect(onlyFiles(r.root)).toEqual([planned.replace('/', sep)])
+  expect(onlyFiles(r.root)).toEqual([planned])
   expect(r.fake.ledger.fetches).toBe(2)
 })
 

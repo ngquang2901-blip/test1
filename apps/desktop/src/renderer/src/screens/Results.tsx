@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { hintOf } from '../hints'
 import { KIND_LABEL, current, type Batch, type Download, siteLabel } from '../types'
 import { Chip, Icon, type Tone } from '../ui'
@@ -13,16 +13,27 @@ export function Thumb({ attemptId, media, saved }: { attemptId: string; media: s
   const [url, setUrl] = useState<string | null>(null)
   const [gone, setGone] = useState(false)
   const [video, setVideo] = useState(false)
+  // asked for only once the card is near the visible part of the list: a long history does not decode every saved image at once
+  const box = useRef<HTMLDivElement>(null)
+  const [near, setNear] = useState(typeof IntersectionObserver === 'undefined')
   useEffect(() => {
-    if (!saved) return
+    if (near || !box.current) return
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setNear(true); io.disconnect() } }, { rootMargin: '600px' })
+    io.observe(box.current)
+    return () => io.disconnect()
+  }, [near])
+  useEffect(() => {
+    if (!saved || !near) return
     let live = true
     window.api.previewOutput({ attemptId, mediaId: media }).then((r: { url: string | null; video?: boolean }) => { if (live) { setUrl(r.url); setVideo(!!r.video) } }, () => { if (live) setGone(true) })
     return () => { live = false }
-  }, [attemptId, media, saved])
+  }, [attemptId, media, saved, near])
   const play = (): void => { window.api.previewOutput({ attemptId, mediaId: media, play: true }).then((r: { url: string | null }) => (r.url ? setUrl(r.url) : setGone(true)), () => setGone(true)) }
   if (video && url) return <div className="thumb"><video src={url} controls autoPlay loop /></div>
-  return <div className="thumb">{url ? <img src={url} alt="" /> : <span>{gone ? 'Không thấy tệp trên máy' : video ? <>Video đã lưu <button className="small nodrag" onClick={play}>Xem video</button></> : saved ? '…' : 'Chưa tải về'}</span>}</div>
+  return <div className="thumb" ref={box}>{url ? <img src={url} alt="" /> : <span>{gone ? 'Không thấy tệp trên máy' : video ? <>Video đã lưu <button className="small nodrag" onClick={play}>Xem video</button></> : saved ? '…' : 'Chưa tải về'}</span>}</div>
 }
+
+const PAGE = 120
 
 export default function Results({ batches, q = '' }: { batches: Batch[]; q?: string }): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +45,11 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
   const pending = [...new Set(rows.filter((r) => r.dl?.state !== 'completed').map((r) => r.batchId))]
   const saved = rows.filter((r) => r.dl?.state === 'completed').length
   const needle = q.trim().toLowerCase()
-  const shown = needle ? rows.filter((r) => r.prompt.toLowerCase().includes(needle) || r.batchId.startsWith(needle)) : rows
+  const found = needle ? rows.filter((r) => r.prompt.toLowerCase().includes(needle) || r.batchId.startsWith(needle)) : rows
+  // a long history is shown a page at a time (measured: 3000 cards took one 0.45 s block to draw); a search still looks through all of them
+  const [limit, setLimit] = useState(PAGE)
+  useEffect(() => setLimit(PAGE), [needle])
+  const shown = found.slice(0, limit)
   return (
     <section aria-label="Kết quả">
       <div className="head">
@@ -44,7 +59,7 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
       <p className="muted"><span className="num">{saved}/{rows.length}</span> tệp đã nằm trong thư mục Downloads/ToolFlow</p>
       {error && <p className="notice" role="alert">Không tải được: {error}</p>}
       {rows.length === 0 ? <p className="empty">Chưa có kết quả. Ảnh và video tạo xong cho các lô sẽ hiện ở đây để tải về máy.</p>
-        : shown.length === 0 ? <p className="empty">Không có kết quả nào khớp “{q}”.</p> : (
+        : found.length === 0 ? <p className="empty">Không có kết quả nào khớp “{q}”.</p> : (
           <ul className="gallery">{shown.map((r) => {
             const bad = r.dl?.state === 'failed' || r.dl?.state === 'needs_review'
             return (
@@ -65,6 +80,7 @@ export default function Results({ batches, q = '' }: { batches: Batch[]; q?: str
             )
           })}</ul>
         )}
+      {found.length > shown.length && <button className="more" onClick={() => setLimit((n) => n + PAGE)}>Xem thêm (còn {found.length - shown.length})</button>}
     </section>
   )
 }

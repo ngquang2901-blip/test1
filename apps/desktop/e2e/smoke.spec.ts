@@ -1,5 +1,7 @@
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { openDb } from '../src/main/db'
+import { enqueueBatch } from '../src/main/batch'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -886,6 +888,39 @@ test('ACK lost: the app finds the file the first transfer made instead of downlo
   await expect(outputs(page).first()).toContainText('Đã lưu')
   expect(pngFiles(root)).toHaveLength(1)
   expect((await ledger(app)).fetches).toBe(1)
+})
+
+test('a long history: Kết quả shows the newest 120 results, Xem thêm the next ones; a preview is made only for cards near the view', async () => {
+  const ud = tmp(), root = tmp()
+  const db = openDb(join(ud, 'toolflow.db')) // a history written before the app starts: 50 finished batches of 2 prompts, 2 saved images each
+  for (let b = 0; b < 50; b++) {
+    const { batchId } = enqueueBatch(db, { commandId: `h${b}`, kind: 'image', provider: 'flow', projectId: 'p', settings: { provider: 'flow' }, prompts: [`ảnh ${b} a`, `ảnh ${b} b`], refs: [[], []], mode: 'auto' })
+    for (const { a } of db.prepare('select attempt_id a from item where batch_id=?').all(batchId) as { a: string }[]) {
+      const outputs = [{ mediaId: `${a}-1` }, { mediaId: `${a}-2` }]
+      db.prepare('update attempt set state_json=? where id=?').run(JSON.stringify({ item: 'ready', stage: 'outcome_known', prompt: 'x', clicked: true, baseline: null, outputs }), a)
+      for (const o of outputs) {
+        mkdirSync(join(root, 'x'), { recursive: true }); writeFileSync(join(root, 'x', `${o.mediaId}.png`), PNG1)
+        db.prepare("insert into download(id, attempt_id, media_id, planned_name, state, actual_name, bytes, created_at, updated_at) values(?,?,?,?,'completed',?,?,1,1)").run(`d-${o.mediaId}`, a, o.mediaId, 'n', `x/${o.mediaId}.png`, PNG1.length)
+      }
+    }
+  }
+  db.close()
+  const { page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(page.getByText('200/200')).toBeVisible()
+  await expect(page.getByTestId('output')).toHaveCount(120)
+  await expect(page.locator('.gallery img').first()).toBeVisible()
+  await page.waitForTimeout(1500)
+  const made = await page.locator('.gallery img').count()
+  expect(made).toBeGreaterThan(0)
+  expect(made).toBeLessThan(80) // not all 120: the ones far below wait until they are scrolled to
+  await page.getByRole('button', { name: 'Xem thêm (còn 80)' }).click()
+  await expect(page.getByTestId('output')).toHaveCount(200)
+  await expect(page.getByRole('button', { name: /Xem thêm/ })).toHaveCount(0)
+  await page.getByTestId('output').last().scrollIntoViewIfNeeded()
+  await expect(page.getByTestId('output').last().locator('img')).toBeVisible()
+  await page.getByLabel('Tìm prompt hoặc lô').fill('ảnh 3 a') // a search looks through every result, not only the shown ones
+  await expect(page.getByTestId('output')).toHaveCount(2)
 })
 
 test('m5: a failed download shows an inline alert, never window.alert', async () => {
