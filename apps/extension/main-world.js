@@ -80,8 +80,10 @@
   const gen = (url) => { const m = RPCS.exec(url); return m && GEN.test(m[1]) ? m[1] : null; };
   const poll = (url, text) => { if (/rpcids=jwpduf/.test(url)) out({ type: 'poll', text: String(text || '') }); }; // Flow polls its videos by itself; the desktop only reads the answers
   const xo = XMLHttpRequest.prototype.open, xs = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.open = function (m, u) { this.__tfUrl = String(u); return xo.apply(this, arguments); };
+  let probe = null, reached = false; // heartbeat: a request object that is never opened, to see whether a call still gets to our hooks
+  XMLHttpRequest.prototype.open = function (m, u) { if (this === probe) { reached = true; return; } this.__tfUrl = String(u); return xo.apply(this, arguments); };
   XMLHttpRequest.prototype.send = function (b) {
+    if (this === probe) { reached = true; return; }
     const url = this.__tfUrl || '';
     if (RPCS.test(url)) {
       const rpc = gen(url); const req = String(b || ''); const epoch = rpc ? tracker.send() : undefined;
@@ -120,12 +122,23 @@
     let id; try { id = String(JSON.parse(e.detail).mediaId).toLowerCase(); } catch (_) { return; }
     emit('toolflow:media-result', { src: media.has(id) ? TFMedia.mp4(media.get(id)) : null });
   });
-  // heartbeat: are our hooks still the ones the page calls?
+  // heartbeat: are our hooks still the ones the page calls? Being the installed function is one proof. The other: a page script may put its
+  // own wrapper on top and call the one before (seen 2026-11-12: Flow's bundle redefines send as `function(){…;return d.apply(this,arguments)}`);
+  // then every request still passes ours. So a throwaway, never-opened request is put through whatever is installed: ours stops it and
+  // says so, nothing leaves the page. A replacement that leaves ours out does not reach it: that is the loss this reports.
+  const through = (name, ours) => {
+    const cur = XMLHttpRequest.prototype[name];
+    if (cur === ours) return true;
+    probe = new XMLHttpRequest(); reached = false;
+    try { cur.call(probe, 'GET', 'about:blank'); } catch (_) { /* not ours: an unopened request throws in the browser's own send */ }
+    probe = null;
+    return reached;
+  };
   const ourSend = XMLHttpRequest.prototype.send, ourOpen = XMLHttpRequest.prototype.open, ourFetch = window.fetch;
   nativeAdd.call(document, 'toolflow:ping', () => {
     const meta = document.querySelector('meta[name="toolflow-version"]');
     emit('toolflow:ping-result', {
-      xhrSend: XMLHttpRequest.prototype.send === ourSend, xhrOpen: XMLHttpRequest.prototype.open === ourOpen,
+      xhrSend: through('send', ourSend), xhrOpen: through('open', ourOpen),
       fetch: window.fetch === ourFetch, ...obs, seen: Object.keys(seen), gen: tracker.gen, t: Date.now(), version: meta ? meta.content : '' });
   });
 })();

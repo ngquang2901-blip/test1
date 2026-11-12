@@ -109,8 +109,12 @@
       const send = await until(() => { const b = sendBtn(); return b && !b.disabled ? b : null; }, 10000);
       if (!send) return { ok: false, code: sendBtn() ? 'SEND_DISABLED' : 'NO_SEND' };
       if (modeOf(editor()) !== G.IMAGE_MODE || promptText(editor()) !== G.flat(a.prompt)) return { ok: false, code: 'PROMPT_MISMATCH' }; // the composer changed while waiting
+      const turnsBefore = document.querySelectorAll('[data-turn-key]').length;
       send.click();
       const cleared = !!(await until(() => { const e = editor(); return e && promptText(e).length === 0; }, 5000));
+      // measured: with the account's image allowance used up ("0 images left until …" on hover) the button looks and reads enabled but a click
+      // does nothing. Five seconds on, the whole prompt still in the composer and no new turn: nothing was sent.
+      if (!cleared && promptText(editor()) === G.flat(a.prompt) && document.querySelectorAll('[data-turn-key]').length === turnsBefore) return { ok: false, code: 'SEND_NO_EFFECT' };
       return { ok: true, cleared };
     },
     // The conversation and its last turns in one look: key, state, whether the user bubble is exactly this prompt, the ids of its finished images.
