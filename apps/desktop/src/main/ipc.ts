@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import type { Updates } from './updates';
 import { randomUUID } from 'node:crypto';
 
-export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast' };
+export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
@@ -39,7 +39,7 @@ export function revisioned(send: (e: StateEvent) => void): Emit {
   return Object.assign((entity: 'batch', id: string) => send({ entity, id, revision: ++rev }), { revision: () => rev });
 }
 
-export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' };
+export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true };
 // Validates only the fields present; throws INVALID_ARGS on a bad one.
 const draftPatch = (a: unknown): Partial<Draft> => {
   const o = obj(a), p: Partial<Draft> = {};
@@ -47,6 +47,7 @@ const draftPatch = (a: unknown): Partial<Draft> => {
   if (o.kind !== undefined) p.kind = oneOf(o.kind, 'image', 'video');
   if (o.mode !== undefined) p.mode = oneOf(o.mode, 'auto', 'manual');
   if (o.speed !== undefined) p.speed = oneOf(o.speed, 'default', 'fast');
+  if (o.autoSave !== undefined) p.autoSave = typeof o.autoSave === 'boolean' ? o.autoSave : bad();
   return p;
 };
 /** A draft read from disk goes through the same validator as IPC; anything bad means defaults. */

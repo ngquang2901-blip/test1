@@ -18,7 +18,7 @@ function rig(script: DownloadScript[] = [], thumb: (b: Buffer) => Buffer | null 
   const clock = { now: () => 1_000_000 }
   const runner = createRunner({ db, driver: fake, clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
   const events: string[] = [], revealed: string[] = []
-  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default' }
+  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true }
   const downloader = createDownloader({ db, driver: fake, root, tz: 'UTC', now: clock.now, sleep: async () => {}, tab: () => 't1', onChange: (b) => events.push(b) })
   const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p), thumb })
   return { dir, root, tmp, db, h, fake, events, revealed }

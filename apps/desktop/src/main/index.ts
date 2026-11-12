@@ -12,6 +12,7 @@ import { autoAllowed, autoGate, enableAuto } from './account'
 import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
 import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
 import { createDownloader, recoverDownloads } from './downloads'
+import { createAutoSaver } from './autosave'
 import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
@@ -221,6 +222,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     }
   }
   setInterval(() => { runner.tick().catch((e) => console.error('tick', e)).finally(scan) }, 200)
+  const saver = createAutoSaver({ db, now: () => clock.now(), enabled: () => draft.autoSave, downloader })
+  if (process.env.TOOLFLOW_AUTOSAVE !== '0') setInterval(() => { saver.tick().catch((e) => console.error('autosave', (e as { code?: string }).code ?? 'INTERNAL_ERROR')) }, 3000) // '0': the specs that press Tải themselves
 }
 
 function createWindow(): BrowserWindow {
