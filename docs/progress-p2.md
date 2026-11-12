@@ -222,3 +222,13 @@ Release `v0.6.2` (ready-made workflows, 10 reference images): the packaged Linux
 
 Open after 0.6.2, by the owner's choice on 2026-11-11: end frame and video x2–x4 wait until account `ng***` has credits again (8 left, one Veo Lite video costs 10); ChatGPT, then Gemini, then Grok are to be built, each needs the owner signed in in Chrome profile `ng***` (ChatGPT and Grok were signed out, Gemini showed a consent dialog); Telegram: not now.
 
+## ChatGPT images, 0.7.0 (2026-11-11)
+
+- A batch can go to ChatGPT instead of Flow (Tạo lô → Nền tảng → "ChatGPT (tạo ảnh)"): one new conversation per batch in the open chatgpt.com tab, prompts sent one after another in "Create image" mode, each image saved by the app as soon as it is there. Its own runner (`src/main/gpt-runner.ts`), content script (`apps/extension/gpt-ops.js`, `gpt-logic.js`) and `batch.provider` (migration 6); the Flow runner skips such batches. Plan, measured page facts and the live record: `docs/superpowers/plans/2026-11-11-p5-chatgpt.md`.
+- Live (account `Quang Ng`, Free, Chrome profile `ng***`, English UI): six images generated, five through the product path; a two-prompt batch ended `ready, ready` in one conversation with both PNGs saved; one prompt through the real app window from Tạo lô to "Đã lưu". Three faults showed only on the real page and are fixed with tests: the Send button stays locked for a moment after the previous answer, a new turn reads "complete" before its answer starts, the "+" menu does not open in a hidden tab.
+- Not in this version: reference images, an aspect control, ChatGPT on the Workflow canvas or through MCP, a non-English ChatGPT UI (fails closed). Not exercised live: an answer without an image (limit / refusal), Windows.
+
+Gate on `main`: typecheck 0, desktop unit 377, extension 88, flow-protocol 55, e2e 46. Release `v0.7.0`: the packaged Linux app ran a Flow video, a ChatGPT batch of two (both saved without pressing Tải) and a Flow image batch on the fakes, and answered on its MCP port; app.asar: scrubbed fixtures present, no e-mails, home paths or tokens; six assets, sizes equal to `dist/`, un-drafted. The published 0.6.2 AppImage updated itself to 0.7.0 (sha256 equal to the published file) and reported "Bạn đang dùng bản mới nhất".
+
+Open after 0.7.0: Gemini (signed in, account Pro, Vietnamese UI, no dialog left) is next; a spike branch `gemini` has the read-only look at the Gemini page. Grok: dropped by the owner on 2026-11-11 ("bỏ grok đi"), not to be built or proposed again unless the owner asks; nothing of it was ever in the code, and its cookie banner in the owner's Chrome was left untouched. End frame and video x2–x4 still wait for credits on `ng***`. Telegram: not now.
+
