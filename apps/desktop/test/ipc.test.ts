@@ -1,9 +1,9 @@
 import { test, expect } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
-import { createAssetStore } from '../src/main/assets';
+import { createAssetStore, registerAsset } from '../src/main/assets';
 import { DEFAULT_COMBO } from '../src/main/profile';
 import { FAKE_COMBOS, createFakeDriver } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
@@ -240,10 +240,22 @@ test('enqueueBatch for ChatGPT: an image batch with no project, no Flow settings
   expect(flow.batchId).toBeTruthy(); // a batch without a provider is a Flow batch, as before
 });
 
-test('enqueueBatch for Gemini: the same kind of batch as ChatGPT, kept apart by its provider', async () => {
+test('enqueueBatch for Gemini: an image batch kept apart by its provider, with an optional aspect ratio and reference images mapped like Flow\'s; ChatGPT takes neither', async () => {
   const { h, db } = rig('a@b.c', [], () => null);
   const r = (await h.enqueueBatch({ commandId: 'm1', text: 'a red kite', kind: 'image', mode: 'auto', provider: 'gemini' })) as { batchId: string };
   expect(db.prepare('select provider, kind, target_project p, settings_json s from batch where id=?').get(r.batchId)).toEqual({ provider: 'gemini', kind: 'image', p: null, s: JSON.stringify({ provider: 'gemini', mode: 'auto' }) });
   await expect(h.enqueueBatch({ commandId: 'm2', text: 'x', kind: 'video', mode: 'auto', provider: 'gemini' })).rejects.toThrow(/INVALID_ARGS/);
-  await expect(h.enqueueBatch({ commandId: 'm3', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', refs: { assetIds: ['x'], mode: 'all', perItem: 1 } })).rejects.toMatchObject({ code: 'REF_KIND_UNSUPPORTED' });
+  const dir = mkdtempSync(join(tmpdir(), 'tf-ipc-'));
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const ids = ['a.png', 'b.png'].map((n) => { writeFileSync(join(dir, n), png); return registerAsset(db, join(dir, n), 1).id; });
+  const refs = { assetIds: ids, mode: 'all', perItem: 2 };
+  const dry = (await h.enqueueBatch({ commandId: 'm3', text: 'one\ntwo', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '16:9', refs, dryRun: true })) as { rows: { refs: string[] }[] };
+  expect(dry.rows.map((x) => x.refs)).toEqual([['a.png', 'b.png'], ['a.png', 'b.png']]);
+  const g = (await h.enqueueBatch({ commandId: 'm3', text: 'one\ntwo', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '16:9', refs })) as { batchId: string };
+  expect(JSON.parse((db.prepare('select settings_json s from batch where id=?').get(g.batchId) as { s: string }).s)).toMatchObject({ provider: 'gemini', aspect: '16:9' });
+  expect((db.prepare('select refs_json r from item where batch_id=? order by ord').all(g.batchId) as { r: string }[]).map((x) => JSON.parse(x.r))).toEqual([ids, ids]);
+  await expect(h.enqueueBatch({ commandId: 'm4', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '21:9' })).rejects.toThrow(/INVALID_ARGS/);
+  await expect(h.enqueueBatch({ commandId: 'm5', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', refs: { assetIds: ['nope'], mode: 'all', perItem: 1 } })).rejects.toThrow(/INVALID_ARGS/);
+  await expect(h.enqueueBatch({ commandId: 'm6', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '16:9' })).rejects.toThrow(/INVALID_ARGS/);
+  await expect(h.enqueueBatch({ commandId: 'm7', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', refs })).rejects.toMatchObject({ code: 'REF_KIND_UNSUPPORTED' });
 });

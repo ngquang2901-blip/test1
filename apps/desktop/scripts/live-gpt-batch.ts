@@ -12,6 +12,7 @@ import { installExtension, readOrCreateToken } from '../src/main/connector/pairi
 import { createExtDriver } from '../src/main/connector/ext-driver'
 import { EXT_ID } from '../src/main/connector/ext-id'
 import { openDb } from '../src/main/db'
+import { createAssetStore, registerAsset } from '../src/main/assets'
 import { enqueueBatch } from '../src/main/batch'
 import { createExtGpt, type GptDriver } from '../src/main/gpt-driver'
 import { createGptRunner } from '../src/main/gpt-runner'
@@ -47,10 +48,13 @@ const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-live-gpt-')), 'toolflow.db
 const clock = { now: () => Date.now() }
 const root = process.env.DL_ROOT ?? join(homedir(), 'Downloads', 'ToolFlow')
 const flow = createExtDriver(server, { allow: () => false }) // only its downloads() list is used here
-const runner = createGptRunner({ db, driver: gpt, provider, clock, download: (b) => downloader.batch(b) })
+const runner = createGptRunner({ db, driver: gpt, provider, assets: createAssetStore(db), clock, download: (b) => downloader.batch(b) })
 const downloader = createDownloader({ db, root, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, tab: () => runner.findTab(),
   driver: { fetchMedia: (tab, p) => runner.fetchMedia(tab, p), downloads: (q) => flow.downloads(q) } })
-const batch = enqueueBatch(db, { commandId: randomUUID(), kind: 'image', provider, projectId: null, settings: { provider }, prompts, refs: prompts.map(() => []), mode: 'auto' }).batchId
+// Gemini only: ASPECT=9:16, REF_FILE='a.png|b.png' (every prompt gets all of them)
+const refIds = (process.env.REF_FILE ?? '').split('|').filter(Boolean).map((f) => registerAsset(db, resolve(f), clock.now()).id)
+console.log('aspect:', process.env.ASPECT ?? '-', '| refs per prompt:', refIds.length)
+const batch = enqueueBatch(db, { commandId: randomUUID(), kind: 'image', provider, projectId: null, settings: { provider, ...(process.env.ASPECT ? { aspect: process.env.ASPECT } : {}) }, prompts, refs: prompts.map(() => refIds), mode: 'auto' }).batchId
 db.prepare("update batch set status='running' where id=?").run(batch)
 
 const states = (): AttemptState[] => (db.prepare('select a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batch) as { j: string }[]).map((r) => JSON.parse(r.j))

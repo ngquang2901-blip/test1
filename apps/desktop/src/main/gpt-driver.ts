@@ -9,15 +9,17 @@ export type GptState = { conv: string | null; start: boolean; visible: boolean; 
 /** One exchange: `mine` = its user bubble is exactly the prompt asked about; `images` = media ids of finished images; `pending` = images still loading. */
 export type GptTurn = { key: string; state: string | null; mine: boolean; images: string[]; pending: number } // state: 'complete' | 'in_progress' | null as the page says; right after the click a turn reads 'complete' for a few seconds before its answer starts (measured)
 export type GptStep = { ok: true } | { ok: false; code: string }
+export type RefFile = { name: string; mime: string; b64: string }
 export interface GptDriver {
   tabs(): Promise<GptTab[]>
   newChat(tab: string): Promise<boolean> // the tab goes to an empty conversation
   open(tab: string, conv: string): Promise<boolean> // the tab goes back to one of our conversations
   front(tab: string, raise?: boolean): Promise<boolean> // the tab becomes the active one of its window; raise: the window itself comes forward too (only when the page is still hidden)
   state(tab: string): Promise<GptState>
-  mode(tab: string): Promise<GptStep> // image mode on (postcondition read from the composer)
+  mode(tab: string, aspect?: string): Promise<GptStep> // image mode on (postcondition read from the composer); aspect: Gemini's ratio menu
+  attach?(tab: string, file: RefFile, clear: boolean): Promise<GptStep> // Gemini: one reference image into the composer; clear = remove what is attached first
   prep(tab: string, prompt: string): Promise<GptStep> // types; never sends
-  send(tab: string, prompt: string): Promise<GptStep> // ok:false = nothing was clicked
+  send(tab: string, prompt: string, refs?: number): Promise<GptStep> // ok:false = nothing was clicked; refs: how many images must be attached (Gemini)
   turns(tab: string, prompt: string): Promise<{ conv: string | null; turns: GptTurn[] }> // the conversation and its turns in one look, so a turn is never paired with another chat's id
   fetchMedia(tab: string, p: { mediaId: string; filename: string }): Promise<FetchMediaResult>
 }
@@ -35,8 +37,9 @@ export function createExtGpt(server: Pick<ConnectorServer, 'send'>, site: Site =
   const op = <T>(name: string, tabId: string, args: Record<string, unknown> = {}): Promise<T> => server.send(name, { tabId, ...args }) as Promise<T>
   return {
     async tabs() { return ((await server.send(`${x}Tabs`, {})) as { tabId: string; path: string; active: boolean }[]).map((t) => ({ tabId: t.tabId, conv: convOf(t.path), active: t.active })) },
-    newChat: (t) => op(`${x}New`, t), open: (t, conv) => op(`${x}Open`, t, { conv }), front: (t, raise) => op('gptFront', t, raise ? { raise: true } : {}), state: (t) => op(`${x}State`, t), mode: (t) => op(`${x}Mode`, t), // gptFront: any tab
-    prep: (t, prompt) => op(`${x}Prep`, t, { prompt }), send: (t, prompt) => op(`${x}Send`, t, { prompt }), turns: (t, prompt) => op(`${x}Turns`, t, { prompt }),
+    newChat: (t) => op(`${x}New`, t), open: (t, conv) => op(`${x}Open`, t, { conv }), front: (t, raise) => op('gptFront', t, raise ? { raise: true } : {}), state: (t) => op(`${x}State`, t), mode: (t, aspect) => op(`${x}Mode`, t, aspect ? { aspect } : {}), // gptFront: any tab
+    ...(site === 'gemini' ? { attach: (t: string, file: RefFile, clear: boolean) => op<GptStep>('gemAttach', t, { ...file, clear }) } : {}),
+    prep: (t, prompt) => op(`${x}Prep`, t, { prompt }), send: (t, prompt, refs) => op(`${x}Send`, t, { prompt, ...(refs === undefined ? {} : { refs }) }), turns: (t, prompt) => op(`${x}Turns`, t, { prompt }),
     fetchMedia: (t, p) => op(`${x}Fetch`, t, p),
   }
 }
@@ -56,7 +59,8 @@ export function createFakeGpt(script: GptScript[] = [], o: { site?: Site; tabs?:
   const fail = { mode: [...(o.mode ?? [])], prep: [...(o.prep ?? [])], send: [...(o.send ?? [])] } // per call, in order: '' = ok, anything else = that code
   const convs = new Map<string, FakeTurn[]>()
   const page = { open: (o.tabs ?? 1) > 0, front: false, hidden: false, minimised: false, conv: null as string | null, start: false, mode: null as string | null, text: '' }
-  const ledger = { sends: [] as string[], fronts: 0, raises: 0, newChats: 0, opens: [] as string[], fetched: [] as string[] }
+  const files: string[] = [] // what is attached in the composer
+  const ledger = { aspects: [] as (string | null)[], attached: [] as { name: string; mime: string; bytes: number; clear: boolean }[], refs: [] as string[][], sends: [] as string[], fronts: 0, raises: 0, newChats: 0, opens: [] as string[], fetched: [] as string[] }
   const here = (): FakeTurn[] => (page.conv ? convs.get(page.conv) ?? [] : [])
   const need = (): void => { if (!page.open) throw Object.assign(new Error('no such tab'), { code: 'CONNECTOR_LOST' }) }
   let leaving = false
@@ -70,19 +74,21 @@ export function createFakeGpt(script: GptScript[] = [], o: { site?: Site; tabs?:
     async newChat() { need(); ledger.newChats++; page.conv = null; page.start = true; page.mode = null; page.text = ''; return true },
     async open(_t, conv) { need(); ledger.opens.push(conv); if (!convs.has(conv)) return false; page.conv = conv; page.start = false; page.mode = null; page.text = ''; return true },
     async state() { need(); if (leaving) { leaving = false; leave() } return { conv: page.conv, start: page.start, visible: page.front && !page.hidden && !page.minimised, editor: true, mode: page.mode, textLen: page.text.length, canSend: page.text.length > 0, generating: here().some((t) => !done(t) && t.kind !== 'slow'), turns: here().length } },
-    async mode() { need(); const c = step(fail.mode); if (c) return { ok: false, code: c }; if (!page.front || page.hidden || page.minimised) return { ok: false, code: 'MODE_NOT_FOUND' }; page.mode = IMAGE_MODE; return { ok: true } }, // the menu does not open in a tab that is not shown
+    async mode(_t, aspect) { need(); const c = step(fail.mode); if (c) return { ok: false, code: c }; if (!page.front || page.hidden || page.minimised) return { ok: false, code: 'MODE_NOT_FOUND' }; page.mode = IMAGE_MODE; ledger.aspects.push(aspect ?? null); return { ok: true } },
+    ...(o.site === 'gemini' ? { async attach(_t: string, f: RefFile, clear: boolean): Promise<GptStep> { need(); if (clear) files.length = 0; files.push(f.name); ledger.attached.push({ name: f.name, mime: f.mime, bytes: Buffer.from(f.b64, 'base64').length, clear }); return { ok: true } } } : {}), // the menu does not open in a tab that is not shown
     async prep(_t, prompt) {
       need(); const c = step(fail.prep); if (c) return { ok: false, code: c }
       if (page.mode !== IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' }
       if (page.text && page.text !== prompt) return { ok: false, code: 'COMPOSER_NOT_EMPTY' } // exactly our prompt already there (an earlier try): fine as it is
       page.text = prompt; return { ok: true }
     },
-    async send(_t, prompt) {
+    async send(_t, prompt, refs) {
       need(); const c = step(fail.send); if (c) return { ok: false, code: c }
       if (page.mode !== IMAGE_MODE) return { ok: false, code: 'MODE_NOT_SET' }
       if (page.text !== prompt) return { ok: false, code: 'PROMPT_MISMATCH' }
+      if (refs !== undefined && files.length !== refs) return { ok: false, code: 'REF_MISMATCH' }
       const kind = steps.shift() ?? 'ok'
-      ledger.sends.push(prompt); page.text = ''; page.mode = null // the pill is gone after every send (measured)
+      ledger.refs.push(files.splice(0)); ledger.sends.push(prompt); page.text = ''; page.mode = null // the pill is gone after every send (measured)
       if (kind === 'lost') return { ok: true }
       if (!page.conv) { page.conv = newId(); page.start = false; convs.set(page.conv, []) }
       convs.get(page.conv)!.push({ key: newId(), prompt: kind === 'foreign' ? 'something the user typed' : prompt, kind, polls: 0, msg: newId() })
