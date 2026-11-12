@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, session as electronSession, shell } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
-import { mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
@@ -143,6 +143,16 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s),
     // only an attempt between prepare and its result is at risk; queued ones simply go on after the restart
     busy: () => wfActive() || (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)), // a workflow between two nodes would lose its later nodes
+    // Reported on Windows: after the click the window read "Not responding" until the silent installer had replaced the app and started the
+    // new one (it did, a while later). Not reproduced (on Linux the app quits in about 60 ms), so the window is hidden first: the app
+    // disappears at once and comes back updated. The steps are timed into update.log (times only), to find the cause if it happens again.
+    beforeInstall: () => {
+      const log = (step: string): void => { try { appendFileSync(join(userData, 'update.log'), `${new Date().toISOString()} ${step}\n`) } catch { /* the log must never stop the update */ } }
+      log(`install ${app.getVersion()}`)
+      app.once('before-quit', () => log('before-quit')); app.once('will-quit', () => log('will-quit')); app.once('quit', () => log('quit'))
+      for (const w of BrowserWindow.getAllWindows()) w.hide()
+      setTimeout(() => { log('still running: window shown again'); for (const w of BrowserWindow.getAllWindows()) w.show() }, 60_000).unref() // the installer did not take over: never leave the app invisible
+    },
     ...(FAKE ? { first: 500 } : {}),
   })
   updates.start()
