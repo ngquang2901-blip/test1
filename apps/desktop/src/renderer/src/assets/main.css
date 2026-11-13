@@ -347,3 +347,15 @@ textarea.short { min-height: 64px; }
 .wf-empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; pointer-events: none; }
 .wf-empty p { max-width: 46ch; margin: 0; color: var(--ink-2); }
 .wf-empty button { pointer-events: auto; }
+
+/* ---------- notices (bell in the top bar) ---------- */
+.bell { position: relative; }
+.bell .count { position: absolute; top: 1px; right: -2px; min-width: 16px; padding: 0 4px; border-radius: 8px; font-size: 11px; line-height: 16px; text-align: center; background: var(--blue); color: var(--on-blue); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bell-panel { position: absolute; left: 0; top: 42px; z-index: 20; width: 380px; max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r); box-shadow: var(--shadow); }
+.bell-head { display: flex; align-items: center; gap: 8px; }
+.bell-head button { font: inherit; font-size: 13px; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.bell-head button:disabled { cursor: default; color: var(--ink-3); }
+.bell-panel ul { list-style: none; margin: 0; padding: 0; }
+.bell-panel li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); }
+.bell-panel li[data-read='false'] b::before { content: '● '; color: var(--blue); }
+input[type='password'], input[type='datetime-local'] { font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 8px; }

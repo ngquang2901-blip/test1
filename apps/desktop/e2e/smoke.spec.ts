@@ -6,6 +6,8 @@ import { enqueueBatch } from '../src/main/batch'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import electronPath from 'electron'
 
 const desktop = resolve(__dirname, '..')
@@ -1486,4 +1488,123 @@ test('Kết nối: the setup panel ticks what is done and opens Chrome on the ex
   await page.getByRole('button', { name: 'Mở Google Flow' }).click()
   await expect(page.getByRole('alert')).toContainText('Không tìm thấy Google Chrome')
   expect(await app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual([])
+})
+
+// ---- notices, Hẹn giờ chạy, tray, credit ----
+const TG_TOKEN = '123456789:AAFakeFakeFakeFakeFakeFakeFakeFake_x'
+/** A local stand-in for api.telegram.org (the app reaches it through TOOLFLOW_TELEGRAM_API): one /start waiting, every sendMessage recorded. */
+async function fakeTelegram(): Promise<{ url: string; sent: string[]; close(): void }> {
+  const sent: string[] = []
+  const s = createServer((req, res) => {
+    let raw = ''
+    req.on('data', (c) => { raw += c })
+    req.on('end', () => {
+      const method = (req.url ?? '').split('/').pop()
+      if (method === 'sendMessage') sent.push(JSON.parse(raw).text)
+      res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, result: method === 'getUpdates' ? [{ update_id: 1, message: { message_id: 1, chat: { id: 77, type: 'private' }, text: '/start' } }] : true }))
+    })
+  })
+  await new Promise<void>((r) => s.listen(0, '127.0.0.1', r))
+  return { url: `http://127.0.0.1:${(s.address() as AddressInfo).port}`, sent, close: () => s.close() }
+}
+const bell = (page: Page) => page.getByRole('button', { name: /^Thông báo/ })
+const notices = (page: Page) => page.getByTestId('notice')
+
+test('notices: a finished batch rings the bell and the Telegram bot gets a content-free message (never the prompt); the token never comes back to the screen', async () => {
+  const tg = await fakeTelegram()
+  try {
+    const { page } = await launch(tmp(), '', { TOOLFLOW_TELEGRAM_API: tg.url })
+    await expect(bell(page)).toHaveAccessibleName('Thông báo')
+    await page.getByRole('button', { name: 'Cài đặt' }).click()
+    await expect(page.getByTestId('tg-state')).toHaveText('Telegram: chưa có mã bot')
+    await page.getByLabel('Mã bot Telegram').fill('không phải mã')
+    await page.getByRole('button', { name: 'Lưu mã' }).click()
+    await expect(page.getByRole('alert')).toContainText('Mã bot không đúng')
+    await page.getByLabel('Mã bot Telegram').fill(TG_TOKEN)
+    await page.getByRole('button', { name: 'Lưu mã' }).click()
+    await expect(page.getByTestId('tg-state')).toHaveText('Telegram: đã có mã bot, chưa kết nối')
+    await expect(page.getByLabel('Mã bot Telegram')).toHaveValue('')
+    await page.getByRole('button', { name: 'Kết nối Telegram' }).click()
+    await expect(page.getByTestId('tg-state')).toHaveText('Telegram: đã kết nối')
+    await page.getByRole('button', { name: 'Gửi tin thử' }).click()
+    await expect.poll(() => tg.sent.length).toBe(1)
+    const secret = 'con mèo bí mật 4711'
+    await create(page, [secret])
+    await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+    await expect(bell(page)).toHaveAccessibleName('Thông báo (1 chưa đọc)')
+    await expect.poll(() => tg.sent.length).toBe(2)
+    expect(tg.sent[1]).toMatch(/^Lô [0-9a-f]{8} đã xong\nFlow · Ảnh · 1\/1 có kết quả · 0 lỗi$/)
+    for (const m of tg.sent) expect(m).not.toContain(secret)
+    await bell(page).click()
+    await expect(notices(page)).toHaveCount(1)
+    await expect(notices(page).first()).toContainText('đã xong')
+    await page.getByRole('button', { name: 'Đánh dấu đã đọc' }).click()
+    await expect(bell(page)).toHaveAccessibleName('Thông báo')
+    expect(await page.content()).not.toContain(TG_TOKEN.split(':')[1])
+    expect(JSON.stringify(await page.evaluate(() => (window as unknown as { api: { getTelegram(): Promise<unknown> } }).api.getTelegram()))).toBe('{"configured":true,"linked":true}')
+  } finally { tg.close() }
+})
+
+const pad = (n: number): string => String(n).padStart(2, '0')
+test('Hẹn giờ chạy: the queue shows the time with Huỷ hẹn giờ, then the batch starts by itself at that time and the bell says so', async () => {
+  const { app, page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo hẹn giờ')
+  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(1)
+  await page.getByLabel('Hẹn giờ chạy').check()
+  await expect(page.getByRole('button', { name: 'Tạo lô và hẹn giờ' })).toBeDisabled() // no time picked yet
+  const now = await app.evaluate(() => (globalThis as unknown as { __toolflowClock: { now(): number } }).__toolflowClock.now())
+  const at = new Date(Math.ceil(now / 60_000) * 60_000 + 6 * 60_000) // whole minutes (the field has none smaller); the test clock runs 30x: 12-14 s from now
+  await page.getByLabel('Giờ chạy', { exact: true }).fill(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`)
+  await page.getByRole('button', { name: 'Tạo lô và hẹn giờ' }).click()
+  await expect(page.getByTestId('schedule')).toContainText(`Hẹn chạy lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
+  await expect(page.getByRole('button', { name: 'Huỷ hẹn giờ' })).toBeVisible()
+  await expect(items(page)).toHaveCount(1)
+  await expect(items(page).first()).toContainText('Đang chờ')
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1, { timeout: 40_000 })
+  await expect(page.getByTestId('schedule')).toHaveCount(0)
+  await bell(page).click()
+  await expect(notices(page).filter({ hasText: 'đã bắt đầu theo hẹn giờ' })).toHaveCount(1)
+  await expect(notices(page).filter({ hasText: 'đã bắt đầu theo hẹn giờ' })).toContainText(`hẹn lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
+})
+
+test('tray: closing the window hides it and the app keeps running (a second launch shows it again); Tự mở cùng Windows is recorded, never written to the registry in a test; app.close() still quits', async () => {
+  const dir = tmp()
+  const { app, page } = await launch(dir)
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByLabel('Đóng cửa sổ thì thu xuống khay (lịch vẫn chạy)')).toBeChecked()
+  const login = page.getByLabel('Tự mở cùng Windows')
+  await expect(login).not.toBeChecked()
+  await login.click()
+  await expect(login).toBeChecked()
+  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowLoginItem?: unknown[] }).__toolflowLoginItem)).toEqual([{ openAtLogin: true, args: ['--hidden'] }])
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()))).toEqual([false])
+  expect(app.process().exitCode).toBeNull()
+  const env = { ...process.env, TOOLFLOW_FAKE_DRIVER: '1', TOOLFLOW_E2E: '1', TOOLFLOW_USER_DATA: dir } as Record<string, string>
+  delete env.ELECTRON_RUN_AS_NODE
+  const b = spawn(electronPath as unknown as string, ['--no-sandbox', '.'], { cwd: desktop, env, stdio: 'ignore' })
+  expect(await new Promise((r) => { b.on('exit', r); setTimeout(() => { b.kill(); r('timeout') }, 20_000) })).not.toBe('timeout')
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()))).toEqual([true])
+  const proc = app.process()
+  await app.close()
+  expect(proc.exitCode !== null || proc.signalCode !== null).toBe(true)
+})
+
+test('credit: Flow\'s balance shows in Kết nối with its time; falling under the threshold raises one notice, not one per answer', async () => {
+  const { page } = await launch(tmp(), 'video-ok,video-ok')
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  const th = page.getByLabel('Cảnh báo khi credit dưới')
+  await expect(th).toHaveValue('50')
+  await th.fill('1000') // the fake Flow reports 958 with each video receipt, then 948 in its poll
+  await expect.poll(() => page.evaluate(() => (window as unknown as { api: { listBatches(): Promise<{ session: { draft: { creditWarn: number } } }> } }).api.listBatches().then((r) => r.session.draft.creditWarn))).toBe(1000)
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await create(page, ['video một', 'video hai'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('credits')).toHaveText(/^Credit Flow còn: 9[45]8, đọc lúc \d\d:\d\d$/)
+  await bell(page).click()
+  await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toHaveCount(1)
+  await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toContainText('dưới mức cảnh báo 1000')
 })

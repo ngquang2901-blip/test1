@@ -3,6 +3,7 @@ import type { Draft, Preset } from '../types'
 import TemplateBuilder, { EMPTY_TEMPLATE, type TemplateState } from './TemplateBuilder'
 import { ComboFields, choicesOf, comboLabel, defaultCombo, withChange, type Combo } from '../combo'
 import { csvMsg, fillRows, readCsv } from '../csv'
+import { codeIn, hintOf } from '../hints'
 
 type Row = { n: number; prompt: string; refs: string[]; error: string | null }
 type Asset = { id: string; name: string; bytes: number }
@@ -47,7 +48,10 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
   const pickBtn = useRef<HTMLButtonElement>(null)
+  const msgRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ block: 'center' }) }, [msg]) // it lands right above the sticky action bar, under it when scrolled to the end
   const [cmd, setCmd] = useState(() => crypto.randomUUID()) // same id on a double click = one batch
+  const [when, setWhen] = useState<string | null>(null) // Hẹn giờ chạy: the chosen local date-time; null = run now
   const set = (p: Partial<Draft>): void => setD((x) => ({ ...x, ...p }))
   const [presets, setPresets] = useState<Preset[]>([])
   const [naming, setNaming] = useState<string | null>(null) // the name being typed for "Lưu làm mẫu"
@@ -119,12 +123,12 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   }
   const create = async (): Promise<void> => {
     try {
-      const r = await window.api.enqueueBatch(args(refs))
+      const r = await window.api.enqueueBatch({ ...args(refs), ...(when ? { startAt: new Date(when).getTime() } : {}) })
       if (!('batchId' in r)) return setMsg('Không tạo được lô: ảnh tham chiếu chưa khớp số prompt.')
-      for (const id of (r.batchIds as string[] | undefined) ?? [r.batchId]) await window.api.startBatch(id) // one batch per granted project
+      if (!when) for (const id of (r.batchIds as string[] | undefined) ?? [r.batchId]) await window.api.startBatch(id) // one batch per granted project; a scheduled one waits for its time
       setCmd(crypto.randomUUID())
       onCreated()
-    } catch (e) { setMsg((e as Error).message.includes('NO_PROJECT_TAB') ? 'Chưa có tab Flow nào được cấp quyền — mở một dự án Flow rồi bấm “Dùng tab này”' : `Không tạo được lô: ${(e as Error).message}`) }
+    } catch (e) { const m = (e as Error).message; setMsg(m.includes('NO_PROJECT_TAB') ? 'Chưa có tab Flow nào được cấp quyền — mở một dự án Flow rồi bấm “Dùng tab này”' : `Không tạo được lô: ${(m.includes('SCHEDULE_') && hintOf(codeIn(m))) || m}`) }
   }
 
   return (
@@ -245,11 +249,13 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </table>
         </div>
       )}
-      {msg && <p role="alert" className="notice">{msg}</p>}
+      {msg && <p role="alert" className="notice" ref={msgRef}>{msg}</p>}
       <div className="actionbar">
         <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && model ? ` · ${model}` : ''}${gem && aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
-        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0}>Tạo lô và chạy</button>
+        <label><input type="checkbox" checked={when !== null} onChange={(e) => setWhen(e.target.checked ? '' : null)} /> Hẹn giờ chạy</label>
+        {when !== null && <input type="datetime-local" aria-label="Giờ chạy" value={when} onChange={(e) => setWhen(e.target.value)} />}
+        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0 || when === ''}>{when !== null ? 'Tạo lô và hẹn giờ' : 'Tạo lô và chạy'}</button>
       </div>
     </section>
   )

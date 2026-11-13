@@ -16,8 +16,13 @@ import { copyInto, csv, writeInto } from './export';
 import type { Updates } from './updates';
 import { randomUUID } from 'node:crypto';
 import { CHROME_PAGES } from './chrome';
+import { setStart, startAtOf } from './schedule';
 
-export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean };
+export type Draft = {
+  text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean;
+  notifyApp: boolean; notifyWindows: boolean; notifyTelegram: boolean; // one switch per notice channel
+  tray: boolean; openAtLogin: boolean; creditWarn: number; // closing hides to the tray; start with Windows (in the tray); warn under this many Flow credits
+};
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
@@ -49,7 +54,7 @@ export function revisioned(send: (e: StateEvent) => void): Emit {
   return Object.assign((entity: 'batch', id: string) => send({ entity, id, revision: ++rev }), { revision: () => rev });
 }
 
-export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true };
+export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true, notifyApp: true, notifyWindows: true, notifyTelegram: true, tray: true, openAtLogin: false, creditWarn: 50 };
 // Validates only the fields present; throws INVALID_ARGS on a bad one.
 const draftPatch = (a: unknown): Partial<Draft> => {
   const o = obj(a), p: Partial<Draft> = {};
@@ -57,7 +62,8 @@ const draftPatch = (a: unknown): Partial<Draft> => {
   if (o.kind !== undefined) p.kind = oneOf(o.kind, 'image', 'video');
   if (o.mode !== undefined) p.mode = oneOf(o.mode, 'auto', 'manual');
   if (o.speed !== undefined) p.speed = oneOf(o.speed, 'default', 'fast');
-  if (o.autoSave !== undefined) p.autoSave = typeof o.autoSave === 'boolean' ? o.autoSave : bad();
+  for (const k of ['autoSave', 'notifyApp', 'notifyWindows', 'notifyTelegram', 'tray', 'openAtLogin'] as const) if (o[k] !== undefined) p[k] = typeof o[k] === 'boolean' ? (o[k] as boolean) : bad();
+  if (o.creditWarn !== undefined) p.creditWarn = Number.isInteger(o.creditWarn) && (o.creditWarn as number) >= 0 && (o.creditWarn as number) <= 1_000_000 ? (o.creditWarn as number) : bad();
   return p;
 };
 /** A draft read from disk goes through the same validator as IPC; anything bad means defaults. */
@@ -101,6 +107,7 @@ export function createHandlers(d: Deps) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
       const provider = o.provider === undefined ? 'flow' : oneOf(o.provider, 'flow', 'chatgpt', 'gemini');
+      const startAt = o.startAt === undefined || o.dryRun === true ? null : startAtOf(o.startAt, d.clock.now()); // Hẹn giờ chạy: checked before anything is created
       const site = provider !== 'flow'; // ChatGPT / Gemini: images only, always sent by the app, no Flow project / settings
       if (site && (kind !== 'image' || mode !== 'auto')) bad();
       const aspect = o.aspect === undefined ? undefined : provider === 'gemini' ? oneOf(o.aspect, ...GEM_ASPECTS) : bad(); // Gemini's own ratio menu
@@ -120,6 +127,7 @@ export function createHandlers(d: Deps) {
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
       if (site) {
         const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider, ...(aspect ? { aspect } : {}), ...(model ? { model } : {}) }, prompts: parsed.items.map((it) => it.prompt), refs, sourceLines: parsed.items.map((it) => it.sourceLine) });
+        if (startAt !== null) setStart(d.db, r.batchId, startAt);
         d.emit('batch', r.batchId);
         return { ...r, batchIds: [r.batchId] };
       }
@@ -132,7 +140,7 @@ export function createHandlers(d: Deps) {
         settings: { combo, ...(parts.length > 1 ? { split: { part: k + 1, of: parts.length } } : {}) },
         prompts: p.idx.map((i) => parsed.items[i].prompt), refs: p.idx.map((i) => refs[i]), sourceLines: p.idx.map((i) => parsed.items[i].sourceLine),
       }));
-      made.forEach((r) => d.emit('batch', r.batchId));
+      made.forEach((r) => { if (startAt !== null) setStart(d.db, r.batchId, startAt); d.emit('batch', r.batchId); });
       return { ...made[0], batchIds: made.map((r) => r.batchId) };
     },
     async pickRefs() { // codes only: a path in the result would reach the renderer
@@ -167,7 +175,11 @@ export function createHandlers(d: Deps) {
       return { id };
     },
     async deletePreset(a: unknown) { d.db.prepare('delete from preset where id=?').run(str(a)); },
-    async startBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.start(id)); },
+    async startBatch(a: unknown) { const id = str(a); mut(id, () => { d.db.prepare('update batch set start_at=null where id=?').run(id); d.runner.start(id); }); }, // started: no time left to wait for
+    async scheduleBatch(a: unknown) { // Hẹn giờ / Huỷ hẹn giờ on a batch that has not started
+      const o = obj(a), id = str(o.batchId), at = o.at === null ? null : startAtOf(o.at, d.clock.now());
+      mut(id, () => setStart(d.db, id, at));
+    },
     async pauseBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.pause(id)); },
     async resumeBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.resume(id)); },
     async stopBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.stop(id)); },

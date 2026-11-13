@@ -6,7 +6,7 @@ import { openDb } from '../src/main/db'
 import { createFakeDriver, FAKE_COMBOS, type DownloadScript } from '../src/main/fake-driver'
 import { createRunner } from '../src/main/runner'
 import { createDownloader } from '../src/main/downloads'
-import { createHandlers, revisioned, type Draft } from '../src/main/ipc'
+import { createHandlers, revisioned, DEFAULT_DRAFT, type Draft } from '../src/main/ipc'
 import { createAssetStore } from '../src/main/assets'
 
 const M = ['3f2b9c1e-1111-4222-8333-444455556660', '3f2b9c1e-1111-4222-8333-444455556661']
@@ -18,7 +18,7 @@ function rig(script: DownloadScript[] = [], thumb: (b: Buffer) => Buffer | null 
   const clock = { now: () => 1_000_000 }
   const runner = createRunner({ db, driver: fake, clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
   const events: string[] = [], revealed: string[] = []
-  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true }
+  let draft: Draft = { ...DEFAULT_DRAFT, text: '' }
   const downloader = createDownloader({ db, driver: fake, root, tz: 'UTC', now: clock.now, sleep: async () => {}, tab: () => 't1', onChange: (b) => events.push(b) })
   const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), downloader, reveal: (p) => revealed.push(p), thumb })
   return { dir, root, tmp, db, h, fake, events, revealed }

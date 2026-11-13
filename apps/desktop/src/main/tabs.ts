@@ -47,6 +47,7 @@ export function createGrants(driver: Pick<FlowDriver, 'listTabs'>, runner: Pick<
     remembered: (): number => pairs.size,
     isAuto: (id: string): boolean => auto.has(id),
     projectOf: (id: string): string | null => last.find((t) => t.tabId === id)?.projectId ?? null, // per the last listing
+    emailOf: (id: string): string | null => last.find((t) => t.tabId === id)?.email ?? null,
     /** Distinct projects of the granted tabs, in grant order: a new batch is split across them. */
     projects: (): string[] => [...new Set(granted.map((id) => last.find((t) => t.tabId === id)?.projectId).filter((p): p is string => !!p))],
     has: (id: string): boolean => granted.includes(id),

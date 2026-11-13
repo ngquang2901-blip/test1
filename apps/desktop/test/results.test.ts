@@ -7,7 +7,7 @@ import { createFakeDriver, FAKE_COMBOS } from '../src/main/fake-driver'
 import { createRunner } from '../src/main/runner'
 import { createDownloader } from '../src/main/downloads'
 import { createAutoSaver } from '../src/main/autosave'
-import { createHandlers, revisioned, type Draft } from '../src/main/ipc'
+import { createHandlers, DEFAULT_DRAFT, revisioned, type Draft } from '../src/main/ipc'
 import { createAssetStore } from '../src/main/assets'
 
 const M = ['3f2b9c1e-1111-4222-8333-444455556660', '3f2b9c1e-1111-4222-8333-444455556661', '3f2b9c1e-1111-4222-8333-444455556662']
@@ -19,7 +19,7 @@ function rig() {
   const fake = createFakeDriver([], { downloadsDir: join(dir, 'tmp', 'ToolFlow-tmp'), assets: createAssetStore(db) })
   const clock = { now: () => 1_800_000_000_000 }
   const runner = createRunner({ db, driver: fake, clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
-  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true }
+  let draft: Draft = { ...DEFAULT_DRAFT }
   const trashed: string[] = []
   let folder: string | null = out
   const downloader = createDownloader({ db, driver: fake, root, tz: 'UTC', now: clock.now, sleep: async () => {}, tab: () => 't1' })

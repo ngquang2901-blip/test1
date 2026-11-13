@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Session } from '../types'
 import { Chip } from '../ui'
 import { hintOf } from '../hints'
@@ -48,6 +48,7 @@ function Setup({ s, picked }: { s: Session; picked: boolean }): React.JSX.Elemen
 }
 
 export default function SessionScreen({ s, reload }: { s: Session | null; reload?: () => void }): React.JSX.Element {
+  useEffect(() => { reload?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps -- once per visit: the credit balance and tabs as they are now
   if (!s) return <p className="muted">Đang tải…</p>
   const sc = s.selfCheck
   const mine = s.tabs.filter((x) => x.granted).map((x) => x.tabId)
@@ -70,6 +71,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
           <dt>Trình điều khiển</dt><dd>{s.fake ? 'giả lập (kiểm thử)' : 'extension ToolFlow Connector'}</dd>
           {!s.fake && <><dt>Cầu nối</dt><dd>Extension: {s.connected ? 'Đã kết nối' : 'Chưa kết nối'}</dd></>}
           <dt>Tài khoản Google</dt><dd>{(s.accounts?.length ?? 0) > 1 ? s.accounts!.map((a) => a.email).join(', ') : s.email ?? 'chưa đọc được'}</dd>
+          {(s.credits?.length ?? 0) > 0 && <><dt>Credit Flow</dt><dd data-testid="credits">{s.credits!.map((c) => <div key={c.email}>Credit Flow còn: <span className="num">{c.credits}</span>, đọc lúc {new Date(c.at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })}{s.credits!.length > 1 && c.email ? ` (${c.email})` : ''}</div>)}</dd></>}
           <dt>Kiểm tra trang</dt>
           <dd>
             <Chip tone={sc === null ? 'idle' : sc.ok ? 'done' : 'attn'}>
