@@ -325,3 +325,11 @@ Changed: migration 7 adds the indexes (item by batch / by attempt, attempt by it
 
 Gate on Windows: typecheck 0, unit 392, extension 107, flow-protocol 56, e2e 53. Not run on Linux in this round (the Linux machine was not reachable from here); not released.
 
+## 0.12.1 released from Windows; the update restart measured (2026-11-13)
+
+Release `v0.12.1` (id 443803758), the first built and published from the owner's Windows PC, Windows only (Setup.exe, blockmap, latest.yml; all 3 equal to `dist/`). Gate on `main`: typecheck 0, unit 392, extension 107, flow-protocol 56, e2e 53; the packaged app starts and reads 0.12.1. The token came from git's credential manager on this PC (account `ngquang2901-blip`), inside the release process only.
+
+**The "Not responding" on Khởi động lại để cập nhật, reproduced and explained.** The installed 0.12.0 updating from GitHub to 0.12.1: after the click the old window stayed visible and not responding for about 22 s, then the installer ran about 22 s more, the new version opened at 45 s. Cause: starting a new, unsigned executable blocks the calling thread while Windows Defender scans it (a padded 120 MB copy of `whoami.exe`: 19.4 s on its first start even after reading the whole file; started once by a throwaway process first, the next start took 20 ms). electron-updater starts the installer from the main process, so the scan froze the window. My first guess (the window not closing fast enough) was wrong: the app quits in 0.2 s.
+- 0.12.1 hides the window before the installer starts (built earlier on the guess): measured on 0.12.1 against a never-scanned installer, the window is gone at once and never reads "Not responding"; `update.log` shows the 22.8 s between `install` and `before-quit`. This works from the update after 0.12.1 (the old version runs the restart).
+- On `main`, not released: the bar first says "Đang cài bản mới: app sẽ tắt và tự mở lại sau khoảng 1 phút" for 3 s, then the window hides; a Windows notification says the same where notifications are on (they are off on the owner's PC: `ToastEnabled = 0`, Windows answered "Settings prevent the notification type from being delivered"); the app's Windows id is now `com.toolflow.desktop`, the id of the installed shortcut (it was `com.toolflow`, under which Windows would not show any notification).
+
