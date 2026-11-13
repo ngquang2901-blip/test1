@@ -60,7 +60,7 @@
 * { margin: 0; }
 html, body, #root { height: 100%; }
 body {
-  overflow: hidden; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 14px; line-height: 1.5;
+  overflow: hidden; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5;
   color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased;
 }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
