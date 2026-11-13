@@ -24,6 +24,8 @@ const PATHS = {
   image: 'M4 4h16v16H4zM4 16l5-5 4 4 3-3 4 4',
   sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
   layers: 'M3 6h18v12H3zM3 10h18',
+  repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
+  table: 'M3 5h18v14H3zM3 10h18M3 15h18M10 5v14',
   nodes: 'M3 4h7v6H3zM14 14h7v6h-7zM10 7h3a2 2 0 0 1 2 2v5',
   branch: 'M6 6v12M6 12h6a6 6 0 0 0 6-6M6 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM6 18a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM18 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',

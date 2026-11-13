@@ -4,7 +4,7 @@ import Database from 'better-sqlite3'
 import { openDb } from '../src/main/db'
 import { enqueueBatch } from '../src/main/batch'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
 import electronPath from 'electron'
 
@@ -1050,7 +1050,7 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   const root = join(tmp(), 'dl')
   const { page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(6) // the placeholder + 5 templates
+  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(7) // the placeholder + 6 templates
   await page.getByLabel('Mẫu có sẵn').selectOption('Tạo ảnh rồi làm video từ ảnh đó')
   await expect(page.getByLabel('Tên workflow')).toHaveValue('Tạo ảnh rồi làm video từ ảnh đó')
   await expect(page.locator('.react-flow__node')).toHaveCount(6)
@@ -1059,6 +1059,101 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   await page.getByRole('button', { name: 'Chạy workflow' }).click()
   await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
   expect((readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))).toHaveLength(1)
+})
+
+test('Tạo lô: Nạp file CSV fills the prompt list from a column, or from the template box with the columns as {variables}; an empty cell is named, not dropped', async () => {
+  const { page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  const input = page.locator('label.filebtn', { hasText: 'Nạp file CSV' }).locator('input')
+  const list = page.getByLabel('Danh sách prompt')
+  await input.setInputFiles({ name: 'con vật.csv', mimeType: 'text/csv', buffer: Buffer.from('\uFEFFTên;Nơi\r\n"mèo, cam";sân\r\n\r\nchó;"nhà ""gỗ"""\r\n') }) // Excel in Vietnamese: ';', BOM, CRLF
+  await expect(list).toHaveValue('mèo, cam\nchó') // the first column at once
+  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(2)
+  await page.getByLabel('Lấy prompt từ cột').selectOption({ label: 'Cột “Nơi”' })
+  await expect(list).toHaveValue('sân\nnhà "gỗ"')
+  await page.getByLabel('Lấy prompt từ cột').selectOption({ label: 'Ghép nhiều cột bằng mẫu ở trên' })
+  await expect(page.getByTestId('csv-cols')).toContainText('{Tên} {Nơi}')
+  await page.getByLabel(/Mẫu prompt/).fill('{Tên} nằm ở {Nơi}, ảnh đời thường')
+  await page.getByRole('button', { name: 'Thay danh sách bằng 2 prompt' }).click()
+  await expect(list).toHaveValue('mèo, cam nằm ở sân, ảnh đời thường\nchó nằm ở nhà "gỗ", ảnh đời thường')
+  await page.getByLabel(/Mẫu prompt/).fill('{Màu}')
+  await expect(page.getByRole('alert')).toContainText('Cột “Màu”: File CSV không có cột này')
+  await input.setInputFiles({ name: 'thiếu.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,sân\n,nhà\n') })
+  await expect(page.getByTestId('csv-error')).toContainText('Dòng 3, cột “Tên”: Ô này đang trống')
+  await expect(list).toHaveValue('mèo, cam nằm ở sân, ảnh đời thường\nchó nằm ở nhà "gỗ", ảnh đời thường') // the list is left as it was
+  await page.getByRole('button', { name: 'Bỏ file CSV' }).click()
+  await expect(page.getByTestId('csv-error')).toHaveCount(0)
+})
+
+test('Workflow: Text → Tạo ảnh → Vòng lặp (3) → Tự tải về runs three batches in order, each round sent with the image the round before saved; only then saved', async () => {
+  const ud = tmp(), root = join(tmp(), 'dl')
+  const { app, page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  for (const k of ['Text', 'Tạo ảnh Flow', 'Vòng lặp', 'Tự tải về']) await page.getByRole('button', { name: `+ ${k}`, exact: true }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('chân dung ông lão')
+  await wire(node('text'), node('generate'))
+  await wire(node('generate'), node('loop'))
+  await wire(node('loop'), node('download'))
+  await expect(page.locator('.react-flow__edge')).toHaveCount(3)
+  await node('loop').locator('header b').click()
+  await page.getByLabel('Số vòng').fill('3')
+  await expect(node('loop')).toContainText('tổng cộng 3 vòng')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  await expect(node('loop')).toContainText('Xong · vòng 3/3 1/1')
+  type B = { id: string; status: string; items: { prompt: string; refs: string[]; attempts: { downloads: Record<string, { state: string; actualName: string | null }> }[] }[] }
+  const batches = (await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches))) as B[]
+  expect(batches.map((b) => [b.status, b.items.map((i) => [i.prompt, i.refs.length])])).toEqual([1, 2, 3].map(() => ['completed', [['chân dung ông lão', expect.any(Number)]]]))
+  const [r3, r2, r1] = batches // newest first
+  expect([r1.items[0].refs, r2.items[0].refs.length, r3.items[0].refs.length]).toEqual([[], 1, 1])
+  expect((await ledger(app)).refs).toEqual([r2.items[0].refs, r3.items[0].refs]) // rounds 2 and 3 were sent with one image each, not the same one
+  expect(r2.items[0].refs[0]).not.toBe(r3.items[0].refs[0])
+  const saved = (b: B) => b.items.flatMap((i) => i.attempts.flatMap((a) => Object.values(a.downloads))).filter((d) => d.state === 'completed').map((d) => basename(d.actualName!))
+  await app.close()
+  const db = openDb(join(ud, 'toolflow.db'))
+  const path = (id: string) => basename((db.prepare('select path from asset where id=?').get(id) as { path: string }).path)
+  expect([saved(r1).includes(path(r2.items[0].refs[0])), saved(r2).includes(path(r3.items[0].refs[0]))]).toEqual([true, true]) // round n's reference is a file round n-1 saved
+  db.close()
+})
+
+test('Workflow: a Bảng CSV node drives a Tạo ảnh node, one prompt per row from its {Cột} template; a row with an empty used cell is named on the node', async () => {
+  const { page } = await launch(tmp())
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: '+ Bảng CSV' }).click()
+  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await node('csv').locator('.react-flow__handle.source').click(); await node('generate').locator('.react-flow__handle.target').click()
+  await node('csv').locator('label.filebtn input').setInputFiles({ name: 'a.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,sân\n\nchó,nhà\n') })
+  await expect(node('csv').getByLabel('Mẫu prompt của node Bảng CSV')).toHaveValue('{Tên}') // the first column until a template is written
+  await expect(node('csv').getByTestId('wf-csv-info')).toHaveText('2 prompt · cột: {Tên} {Nơi}')
+  await node('csv').getByLabel('Mẫu prompt của node Bảng CSV').fill('{Tên} ở {Nơi}')
+  await node('generate').locator('header b').click()
+  await expect(page.getByTestId('wf-preview')).toContainText('Sẽ gửi 2 prompt')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string }[] }[] }) => r.batches.map((b) => b.items.map((i) => i.prompt))))).toEqual([['mèo ở sân', 'chó ở nhà']])
+  await node('csv').locator('label.filebtn input').setInputFiles({ name: 'b.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,\n') })
+  await expect(node('csv').getByRole('alert')).toContainText('Dòng 2, cột “Nơi”: Ô này đang trống')
+})
+
+test('Workflow: + Tạo video Flow adds a node already set to video, titled so; a Vòng lặp after it is refused with its own reason', async () => {
+  const { page } = await launch(tmp())
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: '+ Text', exact: true }).click()
+  await page.getByRole('button', { name: '+ Tạo video Flow' }).click()
+  await page.getByRole('button', { name: '+ Vòng lặp' }).click()
+  await expect(node('generate').locator('header b')).toHaveText('Tạo video Flow')
+  await expect(node('generate').getByTestId('wf-combo')).toHaveText('Video · Veo 3.1 - Lite · 16:9 · x1')
+  await node('text').getByLabel('Prompt của node Text').fill('ngọn nến cháy')
+  await node('text').locator('.react-flow__handle.source').click(); await node('generate').locator('.react-flow__handle.target').click()
+  await node('generate').locator('.react-flow__handle.source').click(); await node('loop').locator('.react-flow__handle.target').click()
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(node('loop').getByRole('alert')).toContainText('Vòng lặp chỉ dùng được sau node tạo ảnh')
+  expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches.length))).toBe(0)
 })
 
 type FakeGpt = { __toolflowFakeGpt: { ledger: { sends: string[]; newChats: number; opens: string[] } } }

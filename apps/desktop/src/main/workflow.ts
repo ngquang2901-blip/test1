@@ -10,19 +10,19 @@ import { GEM_ASPECTS, GEM_MODELS, type Site } from './gpt-driver'
 
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks about the generate node wired into it: every prompt has a saved result / at least one has / Flow blocked a prompt
 /** combo: a Tạo ảnh node's own model / aspect / thinking level / count (absent = the app's default). cond: a Điều kiện node's question (absent = 'all'). */
-export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string } // site: a Tạo ảnh node that goes to ChatGPT / Gemini instead of Flow (aspect, model: Gemini's menus)
+export type WfNode = { id: string; type: 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch' | 'loop' | 'csv'; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string; rounds?: number; rows?: string[][] } // site: a Tạo ảnh node that goes to ChatGPT / Gemini instead of Flow (aspect, model: Gemini's menus); rounds: a Vòng lặp node's; rows: a Bảng CSV node's table (header first), its text being the {Cột} template, or the filled prompts when the canvas runs it
 type Port = 'ok' | 'fail' // the two outputs of a Điều kiện node: its question is answered yes / no
 export type Graph = { nodes: WfNode[]; edges: { from: string; to: string; port?: Port }[]; vars?: Record<string, string> } // vars: the canvas's reusable {biến}; main only stores them (the renderer fills them in before a run)
 type Dep = { node: string; port: 'direct' | Port; cond?: Cond } // cond: only through a Điều kiện node that asks something other than 'all'
 /** One generate node, ready to run: prompts = one per non-empty line; deps = the generate nodes it waits for (see carries() for which hand their results on as refs). */
-export type Step = { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo; site?: Site; aspect?: string; model?: string } // kind: the node's settings decide (video settings = a video node)
+export type Step = { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: Dep[]; save: boolean; feeds: boolean; combo?: Combo; site?: Site; aspect?: string; model?: string; round?: number } // kind: the node's settings decide (video settings = a video node); round: a repeat of a Vòng lặp (node `<loop>#<round>`), prompt i refined from result i of the round before
 /** assets: per prompt, its first saved result as a reference asset (null = none saved); blocked: Flow refused a prompt of this node for its content. Both only for a node something waits for. */
 export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean }
-export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun> }
+export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun>; loops: Record<string, string[]> } // loops: a Vòng lặp node's steps, round 1 first
 
-const TYPES = ['text', 'image', 'generate', 'download', 'note', 'branch']
+const TYPES = ['text', 'image', 'generate', 'download', 'note', 'branch', 'loop', 'csv']
 const CONDS = ['all', 'any', 'filtered']
-const WIRES: Record<string, string[]> = { text: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch'], branch: ['generate'] } // source type → allowed target types
+const WIRES: Record<string, string[]> = { text: ['generate'], csv: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch', 'loop'], branch: ['generate'], loop: ['generate', 'download', 'branch'] } // source type → allowed target types
 const ID = /^[\w-]{1,64}$/
 export const MAX_REFS = 10 // reference images per prompt: 10 were sent live (2026-11-11); more is not proven
 const ACTIVE = ['queued', 'running', 'paused', 'needs_review']
@@ -52,8 +52,11 @@ export function parseGraph(v: unknown): Graph {
     if (n.site !== undefined && (n.type !== 'generate' || (n.site !== 'chatgpt' && n.site !== 'gemini') || n.combo !== undefined)) bad() // a site node has no Flow settings
     if (n.aspect !== undefined && (n.site !== 'gemini' || !(GEM_ASPECTS as readonly unknown[]).includes(n.aspect))) bad()
     if (n.model !== undefined && (n.site !== 'gemini' || !(GEM_MODELS as readonly unknown[]).includes(n.model))) bad()
+    if ((n.type === 'loop') !== (Number.isInteger(n.rounds) && (n.rounds as number) >= 2 && (n.rounds as number) <= 10)) bad() // a loop node always says how many rounds, nothing else does
+    if (n.rows !== undefined && (n.type !== 'csv' || !Array.isArray(n.rows) || n.rows.length > 2001 || !n.rows.every((r) => Array.isArray(r) && r.length <= 50 && r.every((c) => typeof c === 'string')) || n.rows.flat().join('').length > 1_000_000)) bad() // header + 2000 rows (a batch's prompt cap), the size cap of a text
     return { id: n.id as string, type: n.type as WfNode['type'], x: n.x as number, y: n.y as number, ...(n.text !== undefined ? { text: n.text as string } : {}), ...(n.assetIds ? { assetIds: n.assetIds as string[] } : {}),
-      ...(n.combo !== undefined ? { combo: comboOf(n.combo) } : {}), ...(n.cond !== undefined ? { cond: n.cond as Cond } : {}), ...(n.site !== undefined ? { site: n.site as Site } : {}), ...(n.aspect !== undefined ? { aspect: n.aspect as string } : {}), ...(n.model !== undefined ? { model: n.model as string } : {}) }
+      ...(n.combo !== undefined ? { combo: comboOf(n.combo) } : {}), ...(n.cond !== undefined ? { cond: n.cond as Cond } : {}), ...(n.site !== undefined ? { site: n.site as Site } : {}), ...(n.aspect !== undefined ? { aspect: n.aspect as string } : {}), ...(n.model !== undefined ? { model: n.model as string } : {}),
+      ...(n.rounds !== undefined ? { rounds: n.rounds as number } : {}), ...(n.rows !== undefined ? { rows: n.rows as string[][] } : {}) }
   })
   const byId = new Map(nodes.map((n) => [n.id, n]))
   if (byId.size !== nodes.length) bad()
@@ -74,28 +77,38 @@ export function parseGraph(v: unknown): Graph {
 /** Generate nodes in running order (upstream first, then left to right), and the reasons the graph cannot run. */
 export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: string }[] } {
   const byId = new Map(g.nodes.map((n) => [n.id, n]))
-  const into = (id: string, type: string): WfNode[] => g.edges.filter((e) => e.to === id).map((e) => byId.get(e.from)!).filter((n) => n.type === type)
+  const into = (id: string, ...types: string[]): WfNode[] => g.edges.filter((e) => e.to === id).map((e) => byId.get(e.from)!).filter((n) => types.includes(n.type))
   const gens = g.nodes.filter((n) => n.type === 'generate').sort((a, b) => a.x - b.x || a.y - b.y)
   if (!gens.length) return { steps: [], errors: [{ code: 'WF_NO_GENERATE' }] }
   const errors: { node?: string; code: string }[] = []
+  // a Vòng lặp repeats the one generate node wired into it (unrolled below into steps `<loop>#2`…); what comes out of it is its last round
+  const loopOf = new Map<string, WfNode>()
+  for (const l of g.nodes.filter((n) => n.type === 'loop')) {
+    const ins = into(l.id, 'generate')
+    if (ins.length !== 1) errors.push({ node: l.id, code: 'WF_LOOP_INPUT' })
+    else if (ins[0].combo?.kind === 'video') errors.push({ node: l.id, code: 'WF_LOOP_VIDEO' }) // a video is not a reference image
+    else loopOf.set(l.id, ins[0])
+  }
+  const outOf = (n: WfNode): string | undefined => (n.type === 'generate' ? n.id : loopOf.has(n.id) ? `${n.id}#${n.rounds}` : undefined) // undefined: a loop that cannot run (already an error)
+  const genOf = (step: string): string => (step.includes('#') ? loopOf.get(step.split('#')[0])!.id : step)
   // what a generate node waits for: generate nodes wired straight in, or through a Điều kiện node (which looks at the one generate node wired into it)
   const depsOf = new Map(gens.map((n) => [n.id, g.edges.filter((e) => e.to === n.id).flatMap((e): Dep[] => {
-    const src = byId.get(e.from)!
-    if (src.type === 'generate') return [{ node: src.id, port: 'direct' }]
+    const src = byId.get(e.from)!, up = outOf(src)
+    if (src.type === 'generate' || src.type === 'loop') return up ? [{ node: up, port: 'direct' }] : []
     if (src.type !== 'branch') return []
-    const ins = into(src.id, 'generate')
+    const ins = into(src.id, 'generate', 'loop'), from = ins.length === 1 ? outOf(ins[0]) : undefined
     if (ins.length !== 1) { if (!errors.some((x) => x.node === src.id)) errors.push({ node: src.id, code: 'WF_BRANCH_INPUT' }); return [] }
-    return [{ node: ins[0].id, port: e.port!, ...(src.cond && src.cond !== 'all' ? { cond: src.cond } : {}) }]
+    return from ? [{ node: from, port: e.port!, ...(src.cond && src.cond !== 'all' ? { cond: src.cond } : {}) }] : []
   })]))
   const order: WfNode[] = [], left = new Set(gens.map((n) => n.id))
   for (let moved = true; moved;) { // Kahn: take every node whose upstream is done; what never gets taken sits on a loop
     moved = false
-    for (const n of gens) if (left.has(n.id) && depsOf.get(n.id)!.every((u) => !left.has(u.node))) { left.delete(n.id); order.push(n); moved = true }
+    for (const n of gens) if (left.has(n.id) && depsOf.get(n.id)!.every((u) => !left.has(genOf(u.node)))) { left.delete(n.id); order.push(n); moved = true }
   }
   if (left.size) return { steps: [], errors: [...left].map((node) => ({ node, code: 'WF_CYCLE' })) }
   const count = new Map<string, number>()
-  const steps = order.map((n): Step => {
-    const prompts = into(n.id, 'text').map((t) => t.text ?? '').join('\n')
+  const steps = order.flatMap((n): Step[] => {
+    const prompts = into(n.id, 'text', 'csv').map((t) => t.text ?? '').join('\n')
     const images = [...new Set(into(n.id, 'image').flatMap((i) => i.assetIds ?? []))]
     const deps = depsOf.get(n.id)!, kind = n.combo?.kind ?? 'image'
     const refs = images.length + deps.reduce((s, u) => s + (carries(u) ? count.get(u.node) ?? 0 : 0), 0) // one result image per upstream prompt
@@ -104,8 +117,16 @@ export function plan(g: Graph): { steps: Step[]; errors: { node?: string; code: 
     else if (kind === 'video' ? refs > 1 && refs !== lines(prompts) : refs > MAX_REFS) errors.push({ node: n.id, code: kind === 'video' ? 'WF_VIDEO_FRAMES' : 'TOO_MANY_REFS' }) // a video starts from one image: the same for all prompts, or one each
     if (n.combo && !comboQualified(kind, n.combo)) errors.push({ node: n.id, code: 'COMBO_NOT_QUALIFIED' }) // AC-03: no other combo is used instead
     const outs = g.edges.filter((e) => e.from === n.id).map((e) => byId.get(e.to)!.type)
-    if (kind === 'video' && outs.some((t) => t !== 'download')) errors.push({ node: n.id, code: 'WF_VIDEO_OUTPUT' }) // a video is not a reference image, and a Điều kiện node reads images
-    return { node: n.id, kind, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch'), ...(n.combo ? { combo: n.combo } : {}), ...(n.site ? { site: n.site } : {}), ...(n.aspect ? { aspect: n.aspect } : {}), ...(n.model ? { model: n.model } : {}) }
+    if (kind === 'video' && outs.some((t) => t !== 'download' && t !== 'loop')) errors.push({ node: n.id, code: 'WF_VIDEO_OUTPUT' }) // a video is not a reference image, and a Điều kiện node reads images (a Vòng lặp says so itself)
+    const step: Step = { node: n.id, kind, prompts, images, deps, save: outs.includes('download'), feeds: outs.includes('generate') || outs.includes('branch') || outs.includes('loop'), ...(n.combo ? { combo: n.combo } : {}), ...(n.site ? { site: n.site } : {}), ...(n.aspect ? { aspect: n.aspect } : {}), ...(n.model ? { model: n.model } : {}) }
+    return [step, ...[...loopOf].filter(([, gen]) => gen === n).flatMap(([l]) => { // its rounds follow it at once: whatever waits for a round waits for this node
+      const loop = byId.get(l)!, louts = g.edges.filter((e) => e.from === l).map((e) => byId.get(e.to)!.type)
+      return Array.from({ length: loop.rounds! - 1 }, (_, k): Step => {
+        const r = k + 2, last = r === loop.rounds
+        count.set(`${l}#${r}`, lines(prompts))
+        return { ...step, node: `${l}#${r}`, images: [], deps: [{ node: r === 2 ? n.id : `${l}#${r - 1}`, port: 'direct' }], save: last && louts.includes('download'), feeds: !last || louts.includes('generate') || louts.includes('branch'), round: r }
+      })
+    })]
   })
   return { steps, errors }
 }
@@ -149,7 +170,7 @@ export function createWorkflows(d: WfDeps) {
       try {
         n.state = 'running'
         const refs = [...s.images, ...s.deps.flatMap((dp) => (carries(dp) ? (run.nodes[dp.node].assets ?? []).filter((a): a is string => !!a) : []))]
-        const each = s.kind === 'video' && refs.length > 1 // a video's start frames: prompt i gets image i
+        const each = refs.length > 1 && (s.kind === 'video' || !!s.round) // a video's start frames, a loop round's previous results: prompt i gets image i
         const r = await d.enqueue({ commandId: `wf:${run.id}:${s.node}`, kind: s.kind, mode: s.site ? 'auto' : mode, text: s.prompts, refs: { assetIds: refs, mode: each ? 'sequential' : refs.length ? 'all' : 'none', perItem: each ? 1 : MAX_REFS }, ...(s.combo ? { combo: s.combo } : {}), ...(s.site ? { provider: s.site, ...(s.aspect ? { aspect: s.aspect } : {}), ...(s.model ? { model: s.model } : {}) } : {}) }) // a site's batch is always sent by the app
         if (r.errors?.length) { n.state = 'failed'; n.code = r.errors[0].code; continue }
         n.batchIds = r.batchIds ?? [r.batchId!]
@@ -213,7 +234,9 @@ export function createWorkflows(d: WfDeps) {
         for (const s of steps) if (s.images.some((id) => !assetOf.get(id))) errors.push({ node: s.node, code: 'REF_ASSET_MISSING' })
         if (o!.dryRun === true) return { steps, errors }
         if (errors.length) return { errors }
-        const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries(steps.map((s) => [s.node, { state: 'waiting', batchIds: [] }])) }
+        const loops: Record<string, string[]> = {}
+        for (const s of steps) if (s.round) (loops[s.node.split('#')[0]] ??= [s.deps[0].node]).push(s.node)
+        const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries(steps.map((s) => [s.node, { state: 'waiting', batchIds: [] }])), loops }
         for (const [id, r] of runs) if (r.status !== 'running' && runs.size >= 20) runs.delete(id) // finished runs are only kept for the canvas that started them
         runs.set(run.id, run)
         void exec(run, steps, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) })
@@ -230,10 +253,15 @@ export function createWorkflows(d: WfDeps) {
         if (!run) return null
         const items = d.db.prepare('select a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=?')
         const saved = d.db.prepare("select attempt_id attemptId, media_id mediaId from download where attempt_id=? and state='completed' limit 1")
-        return { status: run.status, nodes: Object.fromEntries(Object.entries(run.nodes).map(([id, n]) => {
+        const nodes: Record<string, { state: string; code: string | null; total: number; done: number; thumb: unknown; round?: number; rounds?: number }> = Object.fromEntries(Object.entries(run.nodes).map(([id, n]) => {
           const its = n.batchIds.flatMap((b) => items.all(b) as { aid: string; j: string }[])
           return [id, { state: n.state, code: n.code ?? null, total: its.length, done: its.filter((x) => JSON.parse(x.j).item === 'ready').length, thumb: its.map((x) => saved.get(x.aid)).find(Boolean) ?? null }]
-        })) }
+        }))
+        for (const [l, ids] of Object.entries(run.loops)) { // a Vòng lặp shows its first round not done yet (all done: the last)
+          const k = ids.findIndex((x) => run.nodes[x].state !== 'done')
+          nodes[l] = { ...nodes[ids[k < 0 ? ids.length - 1 : k]], round: (k < 0 ? ids.length - 1 : k) + 1, rounds: ids.length }
+        }
+        return { status: run.status, nodes }
       },
     },
   }

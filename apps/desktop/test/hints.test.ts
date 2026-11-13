@@ -61,3 +61,11 @@ test('a Gemini batch reads its hints with Gemini in them: no Flow, no ChatGPT, n
   expect(hintOf('GPT_NO_IMAGE', 'gemini')).toContain('để trống câu trả lời')
   expect(hintOf('GPT_NO_IMAGE', 'chatgpt')).toContain('ChatGPT') // the ChatGPT wording is untouched
 })
+
+test('every code the workflow plan and the CSV reader can show on the canvas has a Vietnamese line (hints.ts, or the canvas\'s own table)', () => {
+  const canvas = src('apps/desktop/src/renderer/src/screens/Workflow.tsx')
+  const codes = [...new Set([...lits(src('apps/desktop/src/main/workflow.ts')), ...lits(src('apps/desktop/src/renderer/src/csv.ts'))])].filter((c) => /^(WF|CSV)_/.test(c))
+  for (const c of ['WF_LOOP_INPUT', 'WF_LOOP_VIDEO', 'CSV_EMPTY_CELL', 'CSV_BAD_QUOTE']) expect(codes).toContain(c)
+  expect(codes.filter((c) => !HINTS[c] && !canvas.includes(`  ${c}: '`))).toEqual([])
+  for (const c of codes.filter((x) => HINTS[x])) expect(hintOf(c)).toMatch(/[\u00C0-\u1EF9]/)
+})

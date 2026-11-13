@@ -92,6 +92,16 @@ export const HINTS: Record<string, string> = {
   GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
   GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang không gửi: prompt vẫn nằm trong ô nhập, chưa có gì được gửi đi. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi có lượt, bấm Tiếp tục',
   GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
+  // workflow: Vòng lặp, Bảng CSV (the CSV lines are also read by Tạo lô; the row and column are put in front of them)
+  WF_LOOP_INPUT: 'Node Vòng lặp cần đúng một node Tạo ảnh nối vào chấm bên trái',
+  WF_LOOP_VIDEO: 'Vòng lặp chỉ dùng được sau node tạo ảnh: video không làm ảnh tham chiếu cho vòng sau được. Nối Vòng lặp sau một node Tạo ảnh',
+  CSV_NOT_UTF8: 'File CSV không phải dạng UTF-8 nên chữ có dấu sẽ bị lỗi. Trong Excel bấm Lưu thành, chọn kiểu “CSV UTF-8 (Comma delimited)” rồi nạp lại file đó',
+  CSV_BAD_QUOTE: 'File CSV có dấu ngoặc kép (\") chưa đóng hoặc đặt sai chỗ. Mở file bằng Excel, lưu lại dạng CSV rồi nạp lại',
+  CSV_EMPTY: 'File CSV chưa có dòng nào có chữ. Dòng đầu là tên cột, các dòng sau mỗi dòng một prompt',
+  CSV_TOO_BIG: 'File CSV quá lớn (tối đa 2000 dòng và 50 cột). Chia file nhỏ hơn rồi nạp từng phần',
+  CSV_NO_PLACEHOLDER: 'Mẫu chưa có tên cột nào. Viết tên cột trong ngoặc nhọn, ví dụ {Tên}',
+  CSV_NO_COLUMN: 'File CSV không có cột này. Sửa tên trong ngoặc nhọn cho đúng tên cột ở dòng đầu file',
+  CSV_EMPTY_CELL: 'Ô này đang trống nên dòng đó chưa thành prompt được. Điền ô đó hoặc xoá cả dòng trong file rồi nạp lại',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
   ILLEGAL_TRANSITION: 'Trạng thái lượt này không hợp lệ. Xem lịch sử lượt trong Chi tiết rồi báo người bảo trì',

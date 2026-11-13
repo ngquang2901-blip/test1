@@ -1,7 +1,7 @@
 // Prompt templates: "{món ăn} ở {nơi}" + one list of values per variable -> many prompts. Pure; the UI puts the result in the prompt list.
 export const MAX_PROMPTS = 2000
 
-const VAR = /\{([^{}\n]{1,40})\}/g
+export const VAR = /\{([^{}\n]{1,40})\}/g
 
 /** Variable names in order of first appearance, each once. */
 export function varsOf(template: string): string[] {
