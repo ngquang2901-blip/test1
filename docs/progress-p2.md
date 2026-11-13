@@ -352,3 +352,11 @@ Installed app 0.13.0 (separate test data folder) + ToolFlow Connector 0.13.0 loa
 - Closed the Flow tab and opened the project again: the app picked the tab itself (auto) within 5 s, self-check ok.
 - Closed and restarted the app: extension reconnected and the remembered tab was picked again without a click.
 Not exercised: a tab lost in the middle of a batch (would leave a paid turn uncertain), tray menu, Telegram, Windows toast (notifications are off on this machine).
+
+## 0.14.0 released (2026-11-13)
+
+Google sign-in + plan (Firebase `toolflow-ce107`), Aurora sign-in screen, Tổng quan dashboard and its look on every screen, Inter font. Sign-in values come from `apps/desktop/.env.local` at build time; the public repo holds none (history rewritten before the first push).
+- Gate on Windows: typecheck 0, unit 444, extension 109, flow-protocol 56, build 0 (sign-in config inlined once each), e2e 67.
+- Packaged app (`dist/win-unpacked`, ProductVersion 0.14.0.0) started with the sign-in test data folder: window responding, license checked against the real Firebase → `active` (ngquang2901), opens on Tổng quan, body font Inter. `app.asar`: no e-mail, home path, token shape or Flow project id; scrubbed fixtures present.
+- Release id 444363522: 3 assets, sizes equal to `dist/`, published. `releases/latest/download/latest.yml` = 0.14.0; the installed 0.13.0 reads that feed (`app-update.yml`: github ngquang2901-blip/test1).
+- Not run: the click-through update from the installed 0.13.0 (the owner's own 0.13.0 was running with their data, so the install was left to them), sign-in from a fresh account in the packaged app (done earlier with the dev build), `config/app.buyInfo` not set yet (the pending screen shows no buy text until the admin adds it in Firestore; no new release needed).

@@ -3,11 +3,20 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.13.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.14.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
 ToolFlow chỉ có bản cho Windows (từ bản 0.12.1). Máy Linux đang dùng bản cũ vẫn chạy được nhưng không nhận bản mới nữa.
+
+## Đăng nhập (từ bản 0.14.0)
+
+Từ bản 0.14.0, app chỉ mở được sau khi bạn đăng nhập bằng tài khoản Google:
+1. Bấm "Đăng nhập bằng Google". Trình duyệt mở trang của Google: chọn tài khoản rồi quay lại app.
+2. Lần đầu đăng nhập là đăng ký luôn. Tài khoản mới ở trạng thái "chờ kích hoạt": liên hệ người bán app để mua gói, rồi bấm "Kiểm tra lại".
+3. App cần mạng để kiểm tra gói (khi mở app và 10 phút một lần). Mất mạng thì app tạm khoá cho tới khi có mạng lại.
+
+Lô, kết quả và cài đặt cũ vẫn giữ nguyên. Đăng xuất ở Cài đặt → Tài khoản.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:
