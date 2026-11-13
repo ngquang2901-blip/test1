@@ -1635,7 +1635,6 @@ test('the app opens on Tổng quan, whose numbers follow the batches', async () 
   const ov = page.getByRole('region', { name: 'Tổng quan' })
   await expect(page.getByRole('button', { name: 'Tổng quan', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(ov.getByText('Chưa có lô nào.')).toBeVisible()
-  await expect(ov.getByRole('img', { name: 'Chưa có lượt nào xong' })).toBeVisible()
   await ov.getByRole('button', { name: 'Tạo lô đầu tiên' }).click()
   await expect(async () => { // the form loads its saved draft right after it opens; fill again if that wiped the text
     await page.getByLabel('Danh sách prompt').fill('một\nhai\nba')
@@ -1645,7 +1644,7 @@ test('the app opens on Tổng quan, whose numbers follow the batches', async () 
   await expect(page.getByRole('heading', { name: /Xong một phần/ })).toBeVisible({ timeout: 20_000 }) // 'blocked': Flow refuses row 2, rows 1 and 3 get results
   await page.getByRole('button', { name: 'Tổng quan', exact: true }).click()
   await expect(ov.getByRole('row')).toHaveCount(2) // header + the batch
-  await expect(ov.getByRole('img', { name: '67% lượt thành công' })).toBeVisible()
+  await expect(ov.getByText('Tỉ lệ thành công')).toHaveCount(0)
   await expect(ov.getByText('Cần bạn xem').locator('..').getByText('1', { exact: true })).toBeVisible()
   await expect(ov.getByRole('listitem')).toHaveCount(1)
   await page.getByRole('button', { name: 'Lô mới' }).first().click()

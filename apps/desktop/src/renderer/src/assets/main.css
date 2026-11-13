@@ -430,6 +430,7 @@ input[type='password'], input[type='datetime-local'] { font: inherit; font-size:
 .ov-stat-value { grid-area: value; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; align-self: start; }
 .ov-stat-sub { grid-area: sub; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12px; }
 .ov-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 16px; }
+.ov-recent { grid-column: 1 / -1; }
 .ov-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ov-table th { text-align: left; font-weight: 500; color: var(--ink-2); padding: 0 10px 10px 0; border-bottom: 1px solid var(--line); }
 .ov-table td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -445,16 +446,6 @@ input[type='password'], input[type='datetime-local'] { font: inherit; font-size:
 .ov-ring-bg { fill: none; stroke: var(--track); stroke-width: 4; }
 .ov-ring-fg { fill: none; stroke: #1A932E; stroke-width: 4; stroke-linecap: round; }
 .ov-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--ink-2); }
-.ov-rate { display: flex; flex-direction: column; gap: 6px; }
-.ov-gauge { width: 100%; max-width: 260px; align-self: center; }
-.ov-gauge-bg, .ov-gauge-fg { fill: none; stroke-width: 16; stroke-linecap: round; }
-.ov-gauge-bg { stroke: var(--track); }
-.ov-gauge-num { font: 600 30px 'Be Vietnam Pro', system-ui, sans-serif; fill: var(--ink); }
-.ov-gauge-cap { font: 400 12px 'Be Vietnam Pro', system-ui, sans-serif; fill: var(--ink-2); }
-.ov-figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; text-align: center; }
-.ov-figures dd { font-size: 20px; font-weight: 600; margin: 0; }
-.ov-figures dt { font-size: 12px; color: var(--ink-2); }
-.ov-figures dd[data-tone='done'] { color: #157a26; } .ov-figures dd[data-tone='attn'] { color: #c11a16; } .ov-figures dd[data-tone='run'] { color: #c24e20; }
 .ov-todo ul { display: flex; flex-direction: column; }
 .ov-todo li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .ov-todo li:last-child { border-bottom: 0; }
@@ -469,14 +460,38 @@ input[type='password'], input[type='datetime-local'] { font: inherit; font-size:
 .ov-dotcol:last-child i[data-on='true'] { background: var(--accent); }
 .ov-dotnum { min-height: 18px; font-size: 12px; font-weight: 600; }
 .ov-dotday { margin-top: 4px; font-size: 11px; color: var(--ink-2); }
-:root[data-theme='dark'] .ov-pill[data-tone='done'], :root[data-theme='dark'] .ov-figures dd[data-tone='done'] { color: #6fd685; }
-:root[data-theme='dark'] .ov-pill[data-tone='run'], :root[data-theme='dark'] .ov-figures dd[data-tone='run'] { color: #f59a6f; }
+:root[data-theme='dark'] .ov-pill[data-tone='done'] { color: #6fd685; }
+:root[data-theme='dark'] .ov-pill[data-tone='run'] { color: #f59a6f; }
 :root[data-theme='dark'] .ov-pill[data-tone='wait'] { color: #f1c95a; }
-:root[data-theme='dark'] .ov-pill[data-tone='attn'], :root[data-theme='dark'] .ov-figures dd[data-tone='attn'] { color: #ff8a86; }
+:root[data-theme='dark'] .ov-pill[data-tone='attn'] { color: #ff8a86; }
 @media (prefers-color-scheme: dark) {
-:root[data-theme='system'] .ov-pill[data-tone='done'], :root[data-theme='system'] .ov-figures dd[data-tone='done'] { color: #6fd685; }
-:root[data-theme='system'] .ov-pill[data-tone='run'], :root[data-theme='system'] .ov-figures dd[data-tone='run'] { color: #f59a6f; }
+:root[data-theme='system'] .ov-pill[data-tone='done'] { color: #6fd685; }
+:root[data-theme='system'] .ov-pill[data-tone='run'] { color: #f59a6f; }
 :root[data-theme='system'] .ov-pill[data-tone='wait'] { color: #f1c95a; }
-:root[data-theme='system'] .ov-pill[data-tone='attn'], :root[data-theme='system'] .ov-figures dd[data-tone='attn'] { color: #ff8a86; }
+:root[data-theme='system'] .ov-pill[data-tone='attn'] { color: #ff8a86; }
 }
 @media (max-width: 1100px) { .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ov-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- the Tổng quan look on every screen: title only in the top bar, content on rounded cards, pill controls ---------- */
+.topbar { border-bottom: 0; }
+.topbar-title { font-size: 26px; }
+.page { padding-top: 16px; }
+.page > section > h2, .page .head > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } /* the top bar already shows it; kept for screen readers */
+.head { justify-content: flex-end; }
+.head:not(:has(> :not(h2))) { display: none; }
+.panel, .table-box, fieldset { background: var(--card); border: 0; border-radius: 24px; }
+.panel-head { border-bottom: 1px solid var(--line); padding: 18px 22px; }
+.panel-head h3 { font-size: 17px; font-weight: 600; }
+.panel-body { padding: 18px 22px; }
+fieldset { padding: 18px 22px 20px; }
+legend { float: left; width: 100%; padding: 0; margin: 0 0 10px; font-size: 15px; font-weight: 600; color: var(--ink); }
+legend + * { clear: both; }
+.page button, .page select, .results-bar select, .results-bar input:not([type]), .search, .wf-bar input:not([type]), .wf-bar select { border-radius: 999px; }
+.page button.small { border-radius: 999px; }
+.page .preset button:first-child { border-radius: 999px 0 0 999px; }
+.page .preset button.x { border-radius: 0 999px 999px 0; }
+.search { background: var(--card); border-color: transparent; }
+.gallery li { background: var(--card); border-radius: 20px; padding: 10px 10px 14px; }
+.thumb { border: 0; border-radius: 14px; background: var(--page); }
+.wf-side { background: var(--card); border-left: 0; }
+.notice { border-radius: 16px; }

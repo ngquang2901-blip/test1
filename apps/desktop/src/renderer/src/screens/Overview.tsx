@@ -33,20 +33,6 @@ function Ring({ pct }: { pct: number }): React.JSX.Element {
   )
 }
 
-/** Half-circle gauge for the success rate, coloured from red (left) to green (right). */
-function Gauge({ pct }: { pct: number | null }): React.JSX.Element {
-  const L = Math.PI * 80
-  return (
-    <svg className="ov-gauge" viewBox="0 0 200 116" role="img" aria-label={pct === null ? 'Chưa có lượt nào xong' : `${pct}% lượt thành công`}>
-      <defs><linearGradient id="ov-g" x1="0" x2="1"><stop offset="0" stopColor="#EE201C" /><stop offset=".5" stopColor="#DFA510" /><stop offset="1" stopColor="#1A932E" /></linearGradient></defs>
-      <path d="M20 100a80 80 0 0 1 160 0" className="ov-gauge-bg" />
-      <path d="M20 100a80 80 0 0 1 160 0" stroke="url(#ov-g)" className="ov-gauge-fg" strokeDasharray={`${((pct ?? 0) / 100) * L} ${L}`} />
-      <text x="100" y="92" textAnchor="middle" className="ov-gauge-num">{pct === null ? '—' : `${pct}%`}</text>
-      <text x="100" y="112" textAnchor="middle" className="ov-gauge-cap">thành công</text>
-    </svg>
-  )
-}
-
 export default function Overview({ batches, s, go }: { batches: Batch[]; s: Session | null; go: Go }): React.JSX.Element {
   const live = batches.filter((b) => !b.archived)
   const rows = live.flatMap((b) => b.items.map((it) => ({ b, it, a: current(it) })))
@@ -56,10 +42,6 @@ export default function Overview({ batches, s, go }: { batches: Batch[]; s: Sess
   const outputs30 = rows.filter((r) => r.a.item === 'ready' && r.b.createdAt >= now - 30 * DAY).reduce((n, r) => n + r.a.outputs.length, 0)
   const needYou = rows.filter((r) => ['wait', 'attn'].includes(itemTone(r.a)))
   const credit = [...(s?.credits ?? [])].sort((x, y) => y.at - x.at)[0]
-  const ok = rows.filter((r) => r.a.item === 'ready').length
-  const bad = rows.filter((r) => r.a.item === 'failed').length
-  const working = rows.filter((r) => itemTone(r.a) === 'run').length
-  const rate = ok + bad ? Math.round((ok / (ok + bad)) * 100) : null
   const recent = [...live].sort((x, y) => y.createdAt - x.createdAt).slice(0, 6)
   // last 7 days: prompts that got a result, by the day they were sent (or the batch day before the first send)
   const days = Array.from({ length: 7 }, (_, i) => dayKey(now - (6 - i) * DAY))
@@ -99,17 +81,6 @@ export default function Overview({ batches, s, go }: { batches: Batch[]; s: Sess
               </tbody>
             </table>
           )}
-        </div>
-
-        <div className="ov-card ov-rate">
-          <h3 className="ov-title">Tỉ lệ thành công</h3>
-          <Gauge pct={rate} />
-          <dl className="ov-figures">
-            <div><dt>Tổng lượt</dt><dd className="num">{rows.length}</dd></div>
-            <div><dt>Có kết quả</dt><dd className="num" data-tone="done">{ok}</dd></div>
-            <div><dt>Lỗi</dt><dd className="num" data-tone="attn">{bad}</dd></div>
-            <div><dt>Đang làm</dt><dd className="num" data-tone="run">{working}</dd></div>
-          </dl>
         </div>
 
         <div className="ov-card ov-todo">
