@@ -35,7 +35,7 @@ Tài khoản được lưu trên Firebase của Google. Gói miễn phí của F
    - **Project ID** và **Web API Key**: xem ở Firebase → bánh răng → **Project settings → General**. Hai mã này không phải bí mật, vì chúng nằm sẵn trong mọi bản app.
    - Tệp JSON vừa tải ở bước 5.
 
-   Người làm app dán chúng vào `apps/desktop/src/main/license-config.ts`, rồi đóng gói và phát hành.
+   Người làm app ghi chúng vào file `apps/desktop/.env.local` (3 dòng `MAIN_VITE_FIREBASE_API_KEY=…`, `MAIN_VITE_GOOGLE_CLIENT_ID=…`, `MAIN_VITE_GOOGLE_CLIENT_SECRET=…`), rồi đóng gói và phát hành. File này không bao giờ được đưa lên GitHub; thiếu nó thì bản cài không đăng nhập được.
 
 ## B. Hằng ngày: duyệt, gia hạn, khoá
 
