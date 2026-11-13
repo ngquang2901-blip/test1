@@ -41,6 +41,8 @@ const MIGRATIONS = [
   // what the user did to one output in Kết quả: its tags, and deleted_at once removed from Kết quả (never shown or saved again)
   `create table output_mark(attempt_id text not null, media_id text not null, tags_json text not null default '[]', deleted_at integer,
      primary key(attempt_id, media_id));`,
+  // the Flow tabs the user chose, by account + project (a tab id changes when Chrome restarts): a tab of such a pair is chosen again by itself
+  `create table remembered_tab(email text not null, project_id text not null, primary key(email, project_id));`,
 ];
 /** The schema this app writes; a backup from a newer app is refused. */
 export const SCHEMA_VERSION = MIGRATIONS.length;

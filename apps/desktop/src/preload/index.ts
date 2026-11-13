@@ -28,6 +28,8 @@ const api = {
   restoreBackup: call('restoreBackup'),
   useTabs: call('useTabs'),
   openExtensionFolder: call('openExtensionFolder'),
+  openChrome: call('openChrome'),
+  forgetTabs: call('forgetTabs'),
   listWorkflows: call('listWorkflows'),
   saveWorkflow: call('saveWorkflow'),
   deleteWorkflow: call('deleteWorkflow'),

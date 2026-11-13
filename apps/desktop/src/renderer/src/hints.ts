@@ -104,6 +104,7 @@ export const HINTS: Record<string, string> = {
   CSV_EMPTY_CELL: 'Ô này đang trống nên dòng đó chưa thành prompt được. Điền ô đó hoặc xoá cả dòng trong file rồi nạp lại',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
+  CHROME_NOT_FOUND: 'Không tìm thấy Google Chrome trên máy này. Cài Chrome (google.com/chrome) rồi bấm lại, hoặc tự mở Chrome và làm theo các bước dưới',
   ILLEGAL_TRANSITION: 'Trạng thái lượt này không hợp lệ. Xem lịch sử lượt trong Chi tiết rồi báo người bảo trì',
   STORAGE_UNAVAILABLE: 'Không ghi được dữ liệu của app (đầy ổ đĩa hoặc thiếu quyền). Giải phóng chỗ rồi bấm Tiếp tục',
   INTERNAL_ERROR: 'Lỗi nội bộ của app. Xem nhật ký rồi báo người bảo trì',
