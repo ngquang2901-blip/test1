@@ -7,7 +7,7 @@ const rig = (version: string, busy = false) => {
   const updater = createFakeUpdater(version)
   const b = { busy }, order: string[] = []
   const quit = updater.quitAndInstall.bind(updater); updater.quitAndInstall = (x, y) => { order.push('quitAndInstall'); quit(x, y) }
-  const u = createUpdates({ updater, current: '0.4.1', emit: (s) => seen.push(s), busy: () => b.busy, beforeInstall: () => order.push('windows hidden'), setTimer: (_f, ms) => timers.push(['once', ms]), setRepeat: (_f, ms) => timers.push(['every', ms]) })
+  const u = createUpdates({ updater, current: '0.4.1', emit: (s) => seen.push(s), busy: () => b.busy, beforeInstall: () => order.push('windows hidden'), setTimer: (_f, ms) => timers.push(['once', ms]), setRepeat: (_f, ms) => timers.push(['every', ms]), installAfter: 20 })
   return { u, seen, timers, updater, b, order }
 }
 const settle = () => new Promise((r) => setTimeout(r, 400))
@@ -23,6 +23,8 @@ test('a new version: checking → available → downloading % → ready; install
   await r.u.check() // a ready update is not checked again
   expect(r.seen).toHaveLength(4)
   r.u.install()
+  expect(r.order).toEqual([]) // first the screen says what comes (measured on Windows: about 45 s with no window until the new version opens)
+  await settle()
   expect(r.updater.installs).toEqual([[true, true]])
   expect(r.order).toEqual(['windows hidden', 'quitAndInstall']) // seen on Windows: the window showed "Not responding" until the installer replaced the app
 })
@@ -34,7 +36,7 @@ test('never restarts while a batch is sending: BATCH_RUNNING, nothing installed;
   expect(r.updater.installs).toEqual([])
   expect(r.order).toEqual([]) // refused: the window stays
   r.b.busy = false
-  r.u.install()
+  r.u.install(); await settle()
   expect(r.updater.installs).toHaveLength(1)
 })
 

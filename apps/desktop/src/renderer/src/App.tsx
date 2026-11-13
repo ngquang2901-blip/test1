@@ -46,7 +46,7 @@ function App(): React.JSX.Element {
   useEffect(() => { void window.api.getUpdate().then(setUpd); return window.api.onUpdate((s) => setUpd(s as UpdateState)) }, [])
   const install = (): void => {
     setUpdMsg('')
-    void window.api.installUpdate().catch((e: Error) => setUpdMsg(e.message.includes('BATCH_RUNNING')
+    void window.api.installUpdate().then(() => setUpdMsg('Đang cài bản mới: app sẽ tắt và tự mở lại sau khoảng 1 phút, bạn không cần mở lại.')).catch((e: Error) => setUpdMsg(e.message.includes('BATCH_RUNNING')
       ? 'Đang có lượt đang gửi nên app chưa khởi động lại. Bản mới sẽ tự cài khi bạn tắt app, hoặc bấm lại khi lô xong.'
       : 'Chưa cài được bản mới, thử lại sau.'))
   }

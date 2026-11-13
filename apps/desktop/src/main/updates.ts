@@ -19,7 +19,7 @@ export function createUpdates(o: {
   updater: Updater | null; current: string; emit(s: UpdateState): void
   busy(): boolean // a batch is sending: a restart now could turn an attempt uncertain
   beforeInstall?(): void // right before the installer starts and the app quits
-  every?: number; first?: number; setTimer?: (f: () => void, ms: number) => unknown; setRepeat?: (f: () => void, ms: number) => unknown
+  every?: number; first?: number; installAfter?: number; setTimer?: (f: () => void, ms: number) => unknown; setRepeat?: (f: () => void, ms: number) => unknown
 }) {
   let s: UpdateState = { state: o.updater ? 'idle' : 'off', current: o.current }
   const set = (p: Partial<UpdateState>): void => { s = { current: o.current, ...p } as UpdateState; o.emit(s) }
@@ -52,8 +52,8 @@ export function createUpdates(o: {
     install(): void {
       if (!u || s.state !== 'ready') throw coded('NO_UPDATE_READY')
       if (o.busy()) throw coded('BATCH_RUNNING')
-      o.beforeInstall?.()
-      u.quitAndInstall(true, true) // silent installer, the new version starts by itself
+      // the screen says what comes first: the window then hides and nothing is on screen until the new version opens (measured ~45 s on Windows)
+      setTimeout(() => { o.beforeInstall?.(); u.quitAndInstall(true, true) }, o.installAfter ?? 3000) // silent installer, the new version starts by itself
     },
   }
 }

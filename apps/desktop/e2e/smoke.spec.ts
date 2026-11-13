@@ -429,6 +429,7 @@ test('auto-update: a new version downloads by itself; the bar offers a restart; 
   await page.getByRole('button', { name: 'Dừng', exact: true }).click() // the user stops the batch: nothing in flight any more
   await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(0, { timeout: 10_000 })
   await bar.getByRole('button', { name: 'Khởi động lại để cập nhật' }).click()
+  await expect(bar.getByRole('alert')).toContainText('tự mở lại sau khoảng 1 phút') // read before the window goes
   await expect.poll(() => installs(app)).toBe(1)
   expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()))).toEqual([false]) // gone at once, before the installer runs
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show()) // (the fake installer does not quit the app)

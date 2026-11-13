@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, session as electronSession, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, Notification, session as electronSession, shell } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
@@ -152,6 +152,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       log(`install ${app.getVersion()}`)
       app.once('before-quit', () => log('before-quit')); app.once('will-quit', () => log('will-quit')); app.once('quit', () => log('quit'))
       for (const w of BrowserWindow.getAllWindows()) w.hide()
+      // measured on Windows: Defender scans the new unsigned installer before it starts (about 20 s), then it installs (about 20 s): nothing is on screen meanwhile
+      if (Notification.isSupported()) new Notification({ title: 'ToolFlow đang cập nhật', body: 'Khoảng 1 phút nữa app tự mở lại bản mới, bạn không cần mở lại.' }).show()
       setTimeout(() => { log('still running: window shown again'); for (const w of BrowserWindow.getAllWindows()) w.show() }, 60_000).unref() // the installer did not take over: never leave the app invisible
     },
     ...(FAKE ? { first: 500 } : {}),
@@ -264,7 +266,7 @@ if (!app.requestSingleInstanceLock()) {
     w.focus()
   })
   app.whenReady().then(async () => {
-    electronApp.setAppUserModelId('com.toolflow')
+    electronApp.setAppUserModelId('com.toolflow.desktop') // = appId in electron-builder.yml: Windows shows a notification only for the id of an installed shortcut
     app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
     if (process.env.TOOLFLOW_E2E === '1') {
       electronSession.defaultSession.webRequest.onBeforeRequest((d, cb) => { requests.push(d.url); cb({}) })
