@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Draft, Session, UpdateState } from '../types'
 import type { Theme } from '../theme'
 import { Chip } from '../ui'
+import { hintOf } from '../hints'
 
 const updText = (u?: UpdateState | null): string => !u ? '' :
   u.state === 'off' ? (u.current ? 'Chưa có nơi đặt bản cập nhật, app chưa tự kiểm tra được' : 'Chỉ có ở bản cài đặt')
@@ -20,6 +21,10 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
   const [mcp, setMcp] = useState<{ enabled: boolean; url: string | null; file: string } | null>(null)
   useEffect(() => { void window.api.getMcp().then(setMcp) }, [])
   const MCP_ERR: Record<string, string> = { MCP_PORT_BUSY: 'Cổng 47615 trên máy đang bị chương trình khác dùng (có thể một ToolFlow khác đang mở). Tắt chương trình đó rồi bật lại', MCP_START_FAILED: 'Không mở được cổng cho trợ lý AI. Thử bật lại' }
+  const [bak, setBak] = useState<{ ok: boolean; text: string } | null>(null)
+  const bakErr = (e: Error): void => { const c = e.message.match(/\b[A-Z][A-Z_]{2,}\b/)?.[0]; setBak({ ok: false, text: hintOf(c) ?? e.message }) }
+  const backup = (): void => { setBak(null); void window.api.backupData().then((r: { saved: boolean; name?: string }) => r.saved && setBak({ ok: true, text: `Đã sao lưu vào tệp ${r.name}` }), bakErr) }
+  const restore = (): void => { setBak(null); void window.api.restoreBackup().then((r: { staged: boolean }) => r.staged && setBak({ ok: true, text: 'Bản sao lưu hợp lệ. App đang tự đóng và mở lại để dùng nó…' }), bakErr) }
   const toggleMcp = (on: boolean): void => { setMcp((m) => m && { ...m, enabled: on, url: null }) /* shown at once; main's answer below is what counts */; void window.api.setMcp(on).then((m: typeof mcp) => { setMcp(m); setMsg('') }, (e: Error) => { void window.api.getMcp().then(setMcp); setMsg(Object.entries(MCP_ERR).find(([k]) => e.message.includes(k))?.[1] ?? e.message) }) }
   return (
     <section aria-label="Cài đặt">
@@ -52,6 +57,15 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
         <legend>Lưu kết quả</legend>
         <label><input type="checkbox" checked={s.draft.autoSave} onChange={(e) => act(() => window.api.saveDraft({ autoSave: e.target.checked }))} /> Tự lưu kết quả của lô Flow về máy khi tạo xong</label>
         <p className="hint">Bỏ tích thì lô Flow chờ bạn bấm Tải. Lô ChatGPT và Gemini luôn tự lưu. Lượt lưu bị lỗi được app tự thử lại 2 lần, cách nhau 30 giây.</p>
+      </fieldset>
+      <fieldset aria-label="Sao lưu">
+        <legend>Sao lưu và khôi phục</legend>
+        <div className="toolbar">
+          <button className="small" onClick={backup}>Sao lưu dữ liệu</button>
+          <button className="small" onClick={restore}>Khôi phục từ bản sao lưu</button>
+        </div>
+        {bak && <p role={bak.ok ? 'status' : 'alert'} className={bak.ok ? 'hint' : 'notice'}>{bak.text}</p>}
+        <p className="hint">Bản sao lưu là một tệp chứa lịch sử lô, prompt, trạng thái và thẻ của kết quả, mẫu lô, workflow và cài đặt. Ảnh và video không nằm trong đó (tệp vẫn ở thư mục Downloads/ToolFlow), mã khoá trợ lý AI và mã ghép nối extension cũng không. Khôi phục thay dữ liệu hiện tại bằng bản sao lưu rồi app tự mở lại; dữ liệu cũ được giữ thành một tệp bên cạnh, không bị xoá.</p>
       </fieldset>
       <fieldset aria-label="Trợ lý AI">
         <legend>Trợ lý AI (MCP)</legend>

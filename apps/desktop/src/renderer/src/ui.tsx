@@ -1,4 +1,5 @@
 // Shared visual pieces: state tones, the status dot, a few line icons (inline, no icon library).
+import { useState } from 'react'
 import type { Attempt } from './types'
 
 export type Tone = 'run' | 'wait' | 'attn' | 'done' | 'idle'
@@ -36,5 +37,18 @@ export function Icon({ name, size = 16 }: { name: keyof typeof PATHS; size?: num
     <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={PATHS[name]} />
     </svg>
+  )
+}
+
+/** Inline two-step confirm (no window.confirm): the first button asks, the second does it (a costly one focuses Huỷ, so a stray Enter never pays); both are plain buttons, so the keyboard reaches them. */
+export function TwoStep({ label, ask, yes, go, safeFocus }: { label: string; ask: string; yes: string; go: () => void; safeFocus?: boolean }): React.JSX.Element {
+  const [on, setOn] = useState(false)
+  if (!on) return <button className={safeFocus ? 'small danger' : 'small'} onClick={() => setOn(true)}>{label}</button>
+  return (
+    <span className="confirm" role="group" aria-label={ask}>
+      <span>{ask}</span>
+      <button className="small primary" autoFocus={!safeFocus} onClick={() => { setOn(false); go() }}>{yes}</button>
+      <button className="small" autoFocus={safeFocus} onClick={() => setOn(false)}>Huỷ</button>
+    </span>
   )
 }

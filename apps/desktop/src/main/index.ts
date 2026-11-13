@@ -1,11 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, Notification, session as electronSession, shell } from 'electron'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { homedir } from 'os'
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
-import { openDb } from './db'
+import { openDb, SCHEMA_VERSION } from './db'
+import { applyRestore, backupTo, stageRestore } from './backup'
 import { createAssetStore, registerAsset } from './assets'
 import { batchStatus, createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
@@ -44,6 +45,8 @@ function readDraft(file: string): Draft {
 async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const userData = app.getPath('userData')
   mkdirSync(userData, { recursive: true })
+  const restored = applyRestore(userData, Date.now()) // a backup the user picked last time becomes the DB now, before anything opens it
+  if (restored && !restored.ok) console.error('restore failed', restored.code)
   const db = openDb(join(userData, 'toolflow.db'))
   const draftFile = join(userData, 'draft.json')
   let draft = readDraft(draftFile)
@@ -140,10 +143,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   })()
   let wfActive = (): boolean => false // set once the workflows exist (below)
   const inFlight = db.prepare("select a.state_json j from attempt a join item i on i.attempt_id=a.id join batch b on b.id=i.batch_id where b.archived=0 and json_extract(a.state_json, '$.item') in ('preparing', 'submitting', 'awaiting_user', 'generating')")
+  // only an attempt between prepare and its result is at risk from a restart (update, restore); queued ones simply go on after it
+  const busy = (): boolean => wfActive() || (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)) // a workflow between two nodes would lose its later nodes
   const updates = createUpdates({
-    updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s),
-    // only an attempt between prepare and its result is at risk; queued ones simply go on after the restart
-    busy: () => wfActive() || (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)), // a workflow between two nodes would lose its later nodes
+    updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s), busy,
     // Reported on Windows: after the click the window read "Not responding". Measured: Defender scans the new installer ~22 s while
     // electron-updater starts it from this process, so the window is hidden first (the bar has said what comes); update.log keeps the times.
     beforeInstall: () => {
@@ -175,6 +178,13 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     },
     getDraft: () => draft,
     saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
+    // FAKE: a deleted file goes to <userData>/fake-trash, never into the Recycle Bin of the PC running the tests
+    trash: FAKE ? async (p) => { mkdirSync(join(userData, 'fake-trash'), { recursive: true }); renameSync(p, join(userData, 'fake-trash', basename(p))) } : (p) => shell.trashItem(p),
+    async pickFolder() { // FAKE: e2e names the folder (Playwright cannot drive a native dialog)
+      if (FAKE) return process.env.TOOLFLOW_EXPORT_DIR ?? null
+      const w = win(), o = { title: 'Chọn thư mục để xuất kết quả', properties: ['openDirectory', 'createDirectory'] as ('openDirectory' | 'createDirectory')[] }
+      return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
+    },
     async session() {
       const em = await email()
       const t0 = grants.granted()[0]
@@ -224,7 +234,38 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async setMcp(a: unknown) { try { return await mcp.set(a === true) } catch (e) { throw new Error((e as { code?: string })?.code === 'EADDRINUSE' ? 'MCP_PORT_BUSY' : 'MCP_START_FAILED') } },
     async openMcpFile() { shell.showItemInFolder(mcp.state().file) },
   }
-  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers })
+  // Sao lưu / khôi phục (Cài đặt). FAKE: e2e names the file in TOOLFLOW_BACKUP_FILE, and the restart is only counted
+  const backupDialog = async (save: boolean): Promise<string | null> => {
+    if (FAKE) return process.env.TOOLFLOW_BACKUP_FILE ?? null
+    const w = win(), filters = [{ name: 'Bản sao lưu ToolFlow', extensions: ['db'] }]
+    if (save) { const o = { defaultPath: join(app.getPath('documents'), `toolflow-sao-luu-${new Date().toISOString().slice(0, 10)}.db`), filters }; return (await (w ? dialog.showSaveDialog(w, o) : dialog.showSaveDialog(o))).filePath || null }
+    const o = { properties: ['openFile' as const], filters }
+    return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
+  }
+  const coded = (code: string): Error => Object.assign(new Error(code), { code })
+  const restart = (): void => {
+    if (FAKE) { const g = globalThis as { __toolflowRestarts?: number }; g.__toolflowRestarts = (g.__toolflowRestarts ?? 0) + 1; return }
+    db.close() // checkpointed: no -wal left for the next start to keep beside the old DB
+    app.relaunch(); app.exit(0)
+  }
+  const backupHandlers = {
+    async backupData() { // names only to the renderer, never the path
+      const file = await backupDialog(true)
+      if (!file) return { saved: false }
+      await backupTo(db, file, { draft, version: app.getVersion(), now: Date.now() })
+      return { saved: true, name: basename(file) }
+    },
+    async restoreBackup() { // checked and staged now, applied by the next start (applyRestore above), so the DB is never swapped under a running app
+      if (busy()) throw coded('BATCH_RUNNING')
+      const file = await backupDialog(false)
+      if (!file) return { staged: false }
+      if (busy()) throw coded('BATCH_RUNNING') // a batch may have started while the dialog was open
+      stageRestore(userData, file, SCHEMA_VERSION)
+      setTimeout(restart, 300) // the screen gets its answer first
+      return { staged: true }
+    },
+  }
+  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers, ...backupHandlers })
 
   // The runner changes rows on its own: tell the renderer when a batch's rows moved.
   const seen = new Map<string, string>()

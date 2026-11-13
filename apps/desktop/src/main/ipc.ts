@@ -10,7 +10,9 @@ import { disableAuto, enableAuto } from './account';
 import { AssetError, EXT, registerAsset, sniff } from './assets';
 import type { Grants } from './tabs';
 import type { Downloader } from './downloads';
-import { readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync } from 'node:fs';
+import { basename } from 'node:path';
+import { copyInto, csv, writeInto } from './export';
 import type { Updates } from './updates';
 import { randomUUID } from 'node:crypto';
 
@@ -22,6 +24,8 @@ export type Deps = {
   email(): Promise<string | null>; emails?(): Promise<string[]>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit; // emails: every account of the granted tabs (absent ⇒ just email())
   downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>;
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
+  trash?(path: string): Promise<void>; // Kết quả's Xoá: a saved file goes to the Recycle Bin (shell.trashItem), never deleted for good
+  pickFolder?(): Promise<string | null>; // Kết quả's Xuất file: the folder the user picks, null = cancelled
 };
 
 const MAX_TEXT = 1_000_000;
@@ -32,6 +36,11 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object'
 const oneOf = <T extends string>(v: unknown, ...ok: T[]): T => (ok.includes(v as T) ? (v as T) : bad());
 const MODES = ['none', 'all', 'sequential', 'start'] as const;
 const text = (v: unknown): string => (typeof v === 'string' && v.length <= MAX_TEXT ? v : bad());
+const coded = (code: string): Error => Object.assign(new Error(code), { code });
+const MAX_OUTPUTS = 20_000, MAX_TAGS = 20;
+const tagText = (v: unknown): string => { const t = typeof v === 'string' ? v.trim() : ''; return t && t.length <= 30 && !/[\u0000-\u001f\u007f]/.test(t) ? t : bad(); };
+const SITE: Record<string, string> = { flow: 'Flow', chatgpt: 'ChatGPT', gemini: 'Gemini' };
+type Out = { attemptId: string; mediaId: string; prompt: string; line: number; batchId: string; provider: string; kind: string };
 
 /** Monotonic revision stamped in main; the renderer drops older ones. */
 export function revisioned(send: (e: StateEvent) => void): Emit {
@@ -67,6 +76,21 @@ export function createHandlers(d: Deps) {
   const previews = new Map<string, { url: string }>(); // newest last; key: file path, size, change time
   const mut = (batchId: string, f: () => void) => { f(); d.emit('batch', batchId); };
   const accounts = async (): Promise<string[]> => (d.emails ? d.emails() : [await d.email()].filter((e): e is string => !!e));
+  /** The outputs a Kết quả action names, each proven to be an output of that attempt (once each), with what the export needs. */
+  const outputsArg = (v: unknown): Out[] => {
+    const list = Array.isArray(v) && v.length > 0 && v.length <= MAX_OUTPUTS ? v : bad();
+    const q = d.db.prepare('select a.state_json j, i.prompt, i.ord, b.id batchId, b.provider, b.kind from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where a.id=?');
+    const seen = new Map<string, Out>();
+    for (const x of list) {
+      const o = obj(x), attemptId = str(o.attemptId), mediaId = str(o.mediaId);
+      const r = (q.get(attemptId) as { j: string; prompt: string; ord: number; batchId: string; provider: string; kind: string } | undefined) ?? bad();
+      if (!((JSON.parse(r.j).outputs ?? []) as { mediaId: string }[]).some((m) => m.mediaId === mediaId)) bad();
+      seen.set(`${attemptId}:${mediaId}`, { attemptId, mediaId, prompt: r.prompt, line: r.ord + 1, batchId: r.batchId, provider: r.provider, kind: r.kind });
+    }
+    return [...seen.values()];
+  };
+  const tagsOf = (x: Out): string[] => JSON.parse((d.db.prepare('select tags_json t from output_mark where attempt_id=? and media_id=?').get(x.attemptId, x.mediaId) as { t: string } | undefined)?.t ?? '[]');
+  const touched = (outs: Out[]): void => new Set(outs.map((x) => x.batchId)).forEach((b) => d.emit('batch', b));
   const batchOf = (attemptId: string) => (d.db.prepare('select i.batch_id b from attempt a join item i on i.id=a.item_id where a.id=?').get(attemptId) as { b: string } | undefined)?.b ?? bad();
   return {
     async saveDraft(a: unknown) {
@@ -193,6 +217,53 @@ export function createHandlers(d: Deps) {
       const out = { url: small ? `data:image/jpeg;base64,${small.toString('base64')}` : `data:${mime};base64,${buf.toString('base64')}` }; // the full file only when it cannot be shrunk
       if (small) { previews.set(key, out); if (previews.size > PREVIEWS_KEPT) previews.delete(previews.keys().next().value!); } // a full file is not kept: too big
       return out;
+    },
+    async tagOutputs(a: unknown) { // the user's Gắn thẻ / Gỡ thẻ on the outputs picked in Kết quả
+      const o = obj(a), outs = outputsArg(o.outputs);
+      if ((o.add === undefined) === (o.remove === undefined)) bad();
+      const add = o.add === undefined ? null : tagText(o.add), remove = o.remove === undefined ? null : tagText(o.remove);
+      const put = d.db.prepare('insert into output_mark(attempt_id, media_id, tags_json) values(?,?,?) on conflict(attempt_id, media_id) do update set tags_json=excluded.tags_json');
+      d.db.transaction(() => {
+        for (const x of outs) {
+          const tags = tagsOf(x), next = add ? (tags.includes(add) ? tags : [...tags, add]) : tags.filter((t) => t !== remove);
+          if (next.length > MAX_TAGS) throw coded('TAG_LIMIT'); // nothing is tagged: the whole selection or none
+          put.run(x.attemptId, x.mediaId, JSON.stringify(next));
+        }
+      })();
+      touched(outs);
+    },
+    async deleteOutputs(a: unknown) { // the user's Xoá in Kết quả, asked twice; files go to the Recycle Bin, nothing is sent to Flow or any site
+      const o = obj(a), outs = outputsArg(o.outputs);
+      if (o.confirm !== true || !d.trash) bad();
+      const r = { deleted: 0, trashed: 0, missing: 0, failed: 0 };
+      const saved = d.db.prepare("select 1 from download where attempt_id=? and media_id=? and state='completed'");
+      const hide = d.db.prepare('insert into output_mark(attempt_id, media_id, deleted_at) values(?,?,?) on conflict(attempt_id, media_id) do update set deleted_at=excluded.deleted_at');
+      for (const x of outs) {
+        if (saved.get(x.attemptId, x.mediaId)) {
+          let path: string | null = null;
+          try { path = d.downloader.file(x.attemptId, x.mediaId); } catch (e) { if ((e as { code?: string }).code !== 'NOT_FOUND') { r.failed++; continue; } } // PATH_ESCAPE: not ours to move
+          if (!path) r.missing++;
+          else try { await d.trash!(path); r.trashed++; } catch { r.failed++; continue; } // the file is still there, so the output stays shown
+        }
+        hide.run(x.attemptId, x.mediaId, d.clock.now());
+        r.deleted++;
+      }
+      touched(outs);
+      return r;
+    },
+    async exportOutputs(a: unknown) { // copies of the saved files + toolflow-export.csv in a folder the user picks; the originals stay where they are
+      const outs = outputsArg(obj(a).outputs);
+      const files = outs.flatMap((x) => { try { return [{ x, path: d.downloader.file(x.attemptId, x.mediaId) }]; } catch { return []; } }); // not saved, or the file is gone
+      const skipped = outs.length - files.length;
+      if (!files.length) return { copied: 0, skipped, csv: null };
+      const dir = d.pickFolder ? await d.pickFolder() : bad();
+      if (!dir) return { canceled: true };
+      mkdirSync(dir, { recursive: true });
+      const at = d.db.prepare('select updated_at u from download where attempt_id=? and media_id=?');
+      const rows = files.map(({ x, path }) => [copyInto(path, dir, basename(path)), x.prompt, SITE[x.provider] ?? x.provider, x.kind === 'video' ? 'Video' : 'Ảnh', x.batchId, x.line, tagsOf(x).join('; '),
+        new Date((at.get(x.attemptId, x.mediaId) as { u: number }).u).toLocaleString('sv-SE')]); // sv-SE: 2026-11-13 09:30:00, which Excel reads as a date
+      const name = writeInto(dir, 'toolflow-export.csv', csv([['Tên tệp', 'Prompt', 'Nền tảng', 'Loại', 'Mã lô', 'Dòng', 'Thẻ', 'Lưu lúc'], ...rows]));
+      return { copied: files.length, skipped, csv: name };
     },
     async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
     async getUpdate() { return d.updates?.get() ?? { state: 'off', current: '' }; },

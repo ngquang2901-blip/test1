@@ -10,6 +10,7 @@ import { createFakeDriver, FAKE_COMBOS } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
 import { createAutoSaver } from '../src/main/autosave';
 import { batchSignatures, viewBatches } from '../src/main/batch-view';
+import { createDownloader } from '../src/main/downloads';
 
 // A finished history of `n` batches of `k` prompts each (Flow and ChatGPT), each prompt with its journal and saved files,
 // written straight to the tables the way the runners leave them.
@@ -83,4 +84,15 @@ test('the batch list: the same number of queries for 4 or 40 batches, what one b
   expect(one.items[0].attempts[0]).toMatchObject({ profileVersion: '2026.11.12-1', item: 'ready', clickAt: 1, journal: [{ type: 'intent', at: 100 }, { type: 'click', at: 101 }, { type: 'receipt', at: 102 }, { type: 'ready', at: 103 }] });
   expect(Object.keys(one.items[0].attempts[0].downloads)).toHaveLength(2);
   expect(viewBatches(many.db, ['nope'])).toEqual([]);
+});
+
+test('Kết quả: the list with tags and deleted outputs, and the save path that skips deleted outputs, find their rows by an index', async () => {
+  const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-perf-')), 't.db'));
+  history(db, 6, 3);
+  const seen = recorded(db);
+  viewBatches(db);
+  const dl = createDownloader({ db, driver: createFakeDriver([]), root: mkdtempSync(join(tmpdir(), 'tf-perf-')), tz: 'UTC', now: () => 1, tab: () => 't1' });
+  for (const { id } of db.prepare('select id from batch').all() as { id: string }[]) await dl.batch(id); // Tải tất cả / auto save: one batch after another
+  expect(seen.size).toBeGreaterThan(5);
+  expect([...seen].flatMap((sql) => fullPasses(db, sql)).filter((d) => !/^SCAN json_each/.test(d))).toEqual([]); // json_each is the list of wanted batch ids itself
 });

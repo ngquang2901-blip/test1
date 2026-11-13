@@ -70,6 +70,12 @@ export const HINTS: Record<string, string> = {
   GPT_ATTACH_NOT_READY: 'Ảnh tham chiếu tải lên ChatGPT chưa xong sau 40 giây. Kiểm tra mạng rồi bấm Tiếp tục',
   GPT_REF_MISMATCH: 'Ảnh đính kèm trong ô nhập của ChatGPT không khớp với lô. Gỡ ảnh lạ trong ô nhập (nếu có) rồi bấm Tiếp tục; app sẽ gắn lại ảnh của lô',
   GPT_REF_ASSET_MISSING: 'Ảnh tham chiếu của lô không còn đọc được trên máy (file bị xoá, đổi hoặc chuyển chỗ). Tạo lại lô với ảnh còn đó',
+  // Kết quả and Cài đặt (sao lưu)
+  TAG_LIMIT: 'Mỗi kết quả có tối đa 20 thẻ. Gỡ bớt thẻ cũ rồi gắn lại',
+  EXPORT_NAME_TAKEN: 'Thư mục đã có quá nhiều tệp trùng tên. Chọn thư mục khác rồi xuất lại',
+  BACKUP_INVALID: 'Tệp này không phải bản sao lưu ToolFlow hoặc đã hỏng. Chọn đúng tệp đã tạo bằng nút Sao lưu dữ liệu',
+  BACKUP_TOO_NEW: 'Bản sao lưu này được tạo bằng ToolFlow mới hơn bản đang dùng. Cập nhật app rồi khôi phục lại',
+  BATCH_RUNNING: 'Đang có lượt đang gửi nên app chưa làm việc này. Đợi lô chạy xong rồi bấm lại',
   // ChatGPT
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
   GPT_CONVERSATION_CHANGED: 'Tab ChatGPT đã chuyển sang cuộc trò chuyện khác nên app không gõ vào đó. Bấm Tiếp tục: app mở lại cuộc trò chuyện của lô rồi gửi tiếp',
