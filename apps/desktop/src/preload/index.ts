@@ -41,6 +41,18 @@ const api = {
   disableAuto: call('disableAuto'),
   listBatches: call('listBatches'),
   getBatch: call('getBatch'),
+  scheduleBatch: call('scheduleBatch'),
+  listNotices: call('listNotices'),
+  readNotices: call('readNotices'),
+  getTelegram: call('getTelegram'),
+  setTelegram: call('setTelegram'),
+  connectTelegram: call('connectTelegram'),
+  testTelegram: call('testTelegram'),
+  onNotice(cb: () => void): () => void { // the notice list or the Windows-blocked flag changed
+    const l = (): void => cb()
+    ipcRenderer.on('notice', l)
+    return () => ipcRenderer.removeListener('notice', l)
+  },
   onUpdate(cb: (s: { state: string; current: string; version?: string; percent?: number; code?: string }) => void): () => void {
     const l = (_: unknown, s: Parameters<typeof cb>[0]): void => cb(s)
     ipcRenderer.on('update', l)

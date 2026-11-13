@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, Notification, session as electronSession, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, session as electronSession, shell, Tray } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
@@ -21,6 +21,9 @@ import { createExtGpt, createFakeGpt, isGemMedia, isGptMedia, type GptDriver, ty
 import { createGptRunner, routeRunner } from './gpt-runner'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
 import { batchSignatures } from './batch-view'
+import { createNotifier } from './notify'
+import { createTelegram } from './telegram'
+import { createScheduler } from './schedule'
 import { clockFactor, errorCode } from './boot-util'
 import { readOrCreateToken, installExtension } from './connector/pairing'
 import { createExtDriver } from './connector/ext-driver'
@@ -32,6 +35,15 @@ import { createGrants, tabStatus, type Grants } from './tabs'
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
 const FAKE = process.env.TOOLFLOW_FAKE_DRIVER === '1'
+let prefs = (): Draft => parseDraft(null) // the saved settings once boot has read them (the window's close reads tray)
+let quitting = false // a real quit (tray Thoát, update install, app.quit from a test, OS shutdown): the window closes for good
+app.on('before-quit', () => { quitting = true })
+function showWindow(): void { // from the tray, a notice click, a second launch
+  const w = BrowserWindow.getAllWindows()[0]
+  if (!w) return
+  if (w.isMinimized()) w.restore()
+  w.show(); w.focus()
+}
 
 // Test only: the e2e "no outbound network" check reads every request of the session (AC-32).
 const requests: string[] = []
@@ -47,11 +59,13 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const db = openDb(join(userData, 'toolflow.db'))
   const draftFile = join(userData, 'draft.json')
   let draft = readDraft(draftFile)
+  prefs = () => draft
   const assets = createAssetStore(db)
   // E2E only: a clock that runs X times faster so the 30 s send deadline / 10 min reconcile fit a test (fake mode only).
   const t0 = Date.now()
   const x = FAKE ? clockFactor(process.env.TOOLFLOW_CLOCK_X) : 1
   const clock = { now: () => t0 + (Date.now() - t0) * x }
+  if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowClock?: unknown }).__toolflowClock = clock // test-only: e2e picks a schedule time on the app clock
 
   let driver: FlowDriver
   let gptDriver: GptDriver = { tabs: async () => [] } as unknown as GptDriver // no connector: no ChatGPT tab, so its runner never asks anything else
@@ -98,6 +112,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
 
   const flowRunner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
     projectOf: (t) => grants.projectOf(t), // each tab only takes batches of the project it shows
+    onCredits: (t, n) => notifier.credits(grants.emailOf(t), n),
     selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
   // ChatGPT batches have their own runner (one prompt at a time in the open chatgpt.com tab); each finished image is saved while it is still on the page
   const hands = { busy: false } // ChatGPT and Gemini tabs are worked one at a time
@@ -111,6 +126,24 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
   const emit = revisioned((e) => win()?.webContents.send('state', e))
+  // Notices. Telegram is called from main only (the renderer's no-network check stays true); its base URL is a test fake in e2e.
+  const telegram = createTelegram({ file: join(userData, 'telegram.json'), base: FAKE ? process.env.TOOLFLOW_TELEGRAM_API : undefined })
+  const toasts = new Set<Notification>() // shortcut: kept until closed so a click still reaches us; a toast left in the Action Center past that is not followed
+  const notifier = createNotifier({
+    db, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
+    channels: {
+      windows: (n) => {
+        if (!Notification.isSupported()) return
+        const t = new Notification({ title: n.title, body: n.body })
+        toasts.add(t)
+        t.on('click', () => { toasts.delete(t); showWindow() })
+        t.on('close', () => toasts.delete(t))
+        t.on('failed', () => { toasts.delete(t); notifier.windowsFailed() }) // measured: Windows notifications switched off for the user ⇒ 'failed'
+        t.show()
+      },
+      telegram: async (text) => { if (telegram.state().linked) await telegram.send(text) },
+    },
+  })
   recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
   // The root is not user-configurable yet. The built-in test Flow never writes into the user's Downloads: its files go to
   // TOOLFLOW_DOWNLOAD_ROOT (e2e) or into the test's own user-data folder.
@@ -174,7 +207,14 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       return r.canceled ? [] : r.filePaths
     },
     getDraft: () => draft,
-    saveDraft: (d) => { draft = d; writeFileSync(draftFile, JSON.stringify(d)) },
+    saveDraft: (d) => {
+      const login = d.openAtLogin !== draft.openAtLogin
+      draft = d; writeFileSync(draftFile, JSON.stringify(d))
+      if (!login) return
+      const item = { openAtLogin: d.openAtLogin, args: ['--hidden'] } // starts in the tray, so the schedule runs after a reboot
+      if (FAKE || !app.isPackaged) (((globalThis as { __toolflowLoginItem?: unknown[] }).__toolflowLoginItem ??= []).push(item)) // never the real registry from a test or dev run
+      else app.setLoginItemSettings(item)
+    },
     async session() {
       const em = await email()
       const t0 = grants.granted()[0]
@@ -189,6 +229,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
         gptTabs: await gptDriver.tabs().then((t) => t.length, () => 0), // how many chatgpt.com tabs the extension sees (a ChatGPT batch uses one)
         gemTabs: await gemDriver.tabs().then((t) => t.length, () => 0), // the same for gemini.google.com
         autoEnabled: accts.length ? accts.every((e) => autoAllowed(db, e)) : autoAllowed(db, em),
+        credits: notifier.creditList(), // the last Flow balance read per account, with its time
         selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
@@ -224,13 +265,26 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async setMcp(a: unknown) { try { return await mcp.set(a === true) } catch (e) { throw new Error((e as { code?: string })?.code === 'EADDRINUSE' ? 'MCP_PORT_BUSY' : 'MCP_START_FAILED') } },
     async openMcpFile() { shell.showItemInFolder(mcp.state().file) },
   }
-  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers })
+  const noticeHandlers = { // the token goes in, never out: the renderer sees configured / linked only
+    async listNotices() { return notifier.list() },
+    async readNotices() { notifier.markRead() },
+    async getTelegram() { return telegram.state() },
+    async setTelegram(a: unknown) { return telegram.setToken(a) },
+    async connectTelegram() { return telegram.connect() },
+    async testTelegram() { await telegram.send('ToolFlow: tin thử. Bạn sẽ nhận tin ở đây khi một lô xong, cần bạn xem, bắt đầu theo hẹn giờ hoặc khi credit Flow sắp hết.') },
+  }
+  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers, ...noticeHandlers })
+  // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
+  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late) })
+  const schedTick = (): void => void sched.tick().catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
+  schedTick()
+  setInterval(schedTick, 5000)
 
   // The runner changes rows on its own: tell the renderer when a batch's rows moved.
   const seen = new Map<string, string>()
   const scan = (): void => {
     for (const r of batchSignatures(db)) {
-      if (seen.get(r.id) !== r.sig) { seen.set(r.id, r.sig); emit('batch', r.id) }
+      if (seen.get(r.id) !== r.sig) { seen.set(r.id, r.sig); emit('batch', r.id); notifier.batchChanged(r.id) }
     }
   }
   setInterval(() => { runner.tick().catch((e) => console.error('tick', e)).finally(scan) }, 200)
@@ -247,22 +301,24 @@ function createWindow(): BrowserWindow {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
-  mainWindow.on('ready-to-show', () => mainWindow.show())
+  mainWindow.on('ready-to-show', () => { if (!process.argv.includes('--hidden')) mainWindow.show() }) // --hidden: started with Windows, stays in the tray
+  // Closing hides to the tray so scheduled batches still run; a real quit (before-quit) or the OS ending the session closes it
+  mainWindow.on('close', (e) => { if (!quitting && prefs().tray) { e.preventDefault(); mainWindow.hide() } })
+  mainWindow.on('query-session-end', () => { quitting = true })
+  mainWindow.on('session-end', () => { quitting = true })
   // AC-32: nothing leaves the app window
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   else mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   return mainWindow
 }
 
+let tray: Tray | null = null // kept here: a collected Tray disappears from the taskbar
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {
     if (process.env.TOOLFLOW_E2E === '1') (globalThis as { __secondInstance?: number }).__secondInstance = ((globalThis as { __secondInstance?: number }).__secondInstance ?? 0) + 1 // test-only flag (AC-06)
-    const w = BrowserWindow.getAllWindows()[0]
-    if (!w) return
-    if (w.isMinimized()) w.restore()
-    w.focus()
+    showWindow() // also when it sits hidden in the tray
   })
   app.whenReady().then(async () => {
     electronApp.setAppUserModelId('com.toolflow.desktop') // = appId in electron-builder.yml: Windows shows a notification only for the id of an installed shortcut
@@ -271,6 +327,10 @@ if (!app.requestSingleInstanceLock()) {
       electronSession.defaultSession.webRequest.onBeforeRequest((d, cb) => { requests.push(d.url); cb({}) })
     }
     let win: BrowserWindow | undefined
+    tray = new Tray(nativeImage.createFromPath(icon).resize({ width: 16, height: 16 }))
+    tray.setToolTip('ToolFlow')
+    tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Mở ToolFlow', click: showWindow }, { label: 'Thoát', click: () => app.quit() }]))
+    tray.on('click', showWindow)
     try { await boot(() => win) } catch (e) { console.error('boot failed', errorCode(e)) } // the window must still appear
     win = createWindow()
   })

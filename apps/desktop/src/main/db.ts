@@ -38,6 +38,12 @@ const MIGRATIONS = [
    create index attempt_state on attempt(json_extract(state_json, '$.item'));
    create index attempt_reconcile on attempt(reconcile_at) where reconcile_at is not null;
    create index journal_attempt on journal_event(attempt_id, id);`,
+  // scheduled start (Hẹn giờ chạy), the in-app notices (last 50 kept) and the last Flow credit balance read per account
+  `alter table batch add column start_at integer;
+   create index batch_start on batch(start_at) where start_at is not null;
+   create table notice(id integer primary key autoincrement, at integer not null, kind text not null, batch_id text, title text not null, body text not null, read integer not null default 0);
+   create index notice_unread on notice(read, id);
+   create table credit(email text primary key, credits integer not null, at integer not null);`,
 ];
 
 export function openDb(file: string): Db {

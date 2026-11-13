@@ -92,7 +92,21 @@ export const HINTS: Record<string, string> = {
   STORAGE_UNAVAILABLE: 'Không ghi được dữ liệu của app (đầy ổ đĩa hoặc thiếu quyền). Giải phóng chỗ rồi bấm Tiếp tục',
   INTERNAL_ERROR: 'Lỗi nội bộ của app. Xem nhật ký rồi báo người bảo trì',
   INTENT_REFUSED: 'Chưa ghi được ý định gửi nên app không bấm Gửi. Kiểm tra kết nối ở màn Kết nối rồi bấm Tiếp tục',
+  // Hẹn giờ chạy
+  SCHEDULE_PAST: 'Giờ hẹn đã qua. Chọn một giờ sau bây giờ',
+  SCHEDULE_TOO_FAR: 'Chỉ hẹn được trong vòng 30 ngày tới. Chọn giờ gần hơn',
+  NOT_SCHEDULABLE: 'Lô này đã chạy hoặc đã dừng nên không hẹn giờ được nữa',
+  // Telegram
+  TG_BAD_TOKEN: 'Mã bot không đúng. Mở @BotFather trong Telegram, chép lại mã của bot (dạng 123456:ABC…) rồi dán vào đây',
+  TG_NOT_CONFIGURED: 'Chưa có mã bot. Dán mã bot rồi bấm Lưu mã',
+  TG_NO_START: 'Bot chưa nhận được /start. Mở bot của bạn trong Telegram, bấm Start (hoặc gửi /start) rồi bấm Kết nối Telegram lại',
+  TG_NOT_LINKED: 'Chưa kết nối với Telegram của bạn. Gửi /start cho bot rồi bấm Kết nối Telegram',
+  TG_BLOCKED: 'Bạn đã chặn bot hoặc chưa bấm Start. Mở bot trong Telegram, bỏ chặn, gửi /start rồi bấm Kết nối Telegram lại',
+  TG_NETWORK: 'Không gọi được Telegram (mất mạng hoặc mạng chặn Telegram). Kiểm tra mạng rồi thử lại',
+  TG_FAILED: 'Telegram từ chối yêu cầu. Thử lại sau; nếu vẫn vậy, tạo lại mã bot và dán lại',
 }
+/** The last error code in an IPC error message ("Error invoking remote method 'x': Error: TG_BAD_TOKEN"). */
+export const codeIn = (msg: string): string | undefined => msg.match(/[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+/g)?.pop()
 /** The line for a code; for a ChatGPT batch the site named in it is ChatGPT (the shared lines were written for Flow). */
 export const hintOf = (code: string | undefined | null, provider?: string): string | undefined => {
   const h = code && Object.hasOwn(HINTS, code) ? HINTS[code] : undefined

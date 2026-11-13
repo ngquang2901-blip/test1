@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Draft, Session, UpdateState } from '../types'
+import type { Draft, Session, TelegramState, UpdateState } from '../types'
+import { codeIn, hintOf } from '../hints'
 import type { Theme } from '../theme'
 import { Chip } from '../ui'
 
@@ -17,6 +18,19 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
   const [msg, setMsg] = useState('')
   const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(e.message))
   const speed = (v: Draft['speed']): void => act(() => window.api.saveDraft({ speed: v }))
+  const box = (k: 'notifyApp' | 'notifyWindows' | 'notifyTelegram' | 'tray' | 'openAtLogin', label: string): React.JSX.Element => (
+    <label><input type="checkbox" checked={s.draft[k]} onChange={(e) => act(() => window.api.saveDraft({ [k]: e.target.checked }))} /> {label}</label>
+  )
+  const [blocked, setBlocked] = useState(false) // a Windows notification failed: Windows has them switched off
+  useEffect(() => { const f = (): void => void window.api.listNotices().then((n: { windowsBlocked: boolean }) => setBlocked(n.windowsBlocked)); f(); return window.api.onNotice(f) }, [])
+  const [tg, setTg] = useState<TelegramState | null>(null)
+  const [token, setToken] = useState('') // goes to main once; never read back
+  const [tgMsg, setTgMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  useEffect(() => { void window.api.getTelegram().then(setTg) }, [])
+  const tgAct = (f: () => Promise<TelegramState | void>, ok: string): void => {
+    setTgMsg(null)
+    void f().then((st) => { if (st) setTg(st); setTgMsg({ ok: true, text: ok }) }, (e: Error) => setTgMsg({ ok: false, text: hintOf(codeIn(e.message)) ?? 'Không làm được, thử lại.' }))
+  }
   const [mcp, setMcp] = useState<{ enabled: boolean; url: string | null; file: string } | null>(null)
   useEffect(() => { void window.api.getMcp().then(setMcp) }, [])
   const MCP_ERR: Record<string, string> = { MCP_PORT_BUSY: 'Cổng 47615 trên máy đang bị chương trình khác dùng (có thể một ToolFlow khác đang mở). Tắt chương trình đó rồi bật lại', MCP_START_FAILED: 'Không mở được cổng cho trợ lý AI. Thử bật lại' }
@@ -47,6 +61,36 @@ export default function Settings({ s, reload, theme = 'system', onTheme, upd, on
         <label><input type="radio" name="speed" checked={s.draft.speed === 'default'} onChange={() => speed('default')} /> Mặc định</label>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'fast'} onChange={() => speed('fast')} /> Nhanh</label>
         <p className="hint">Nhanh: tối đa 4 tab Flow cùng lúc (Mặc định: 1). Áp dụng từ lần mở app sau. Đang dùng: <span className="num">{s.speedInUse.tabs}</span> tab, ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
+      </fieldset>
+      <fieldset aria-label="Thông báo">
+        <legend>Thông báo</legend>
+        <p className="hint">Báo khi một lô xong, khi lô dừng lại và cần bạn, khi lô hẹn giờ bắt đầu và khi credit Flow sắp hết.</p>
+        {box('notifyApp', 'Trong app (chuông ở thanh trên cùng)')}
+        {box('notifyWindows', 'Thông báo của Windows (góc màn hình)')}
+        {blocked && <p className="notice warn" role="status" data-testid="windows-blocked">Windows đang tắt thông báo của app. Muốn bật: mở Cài đặt Windows → Hệ thống → Thông báo, bật “Thông báo” rồi bật mục ToolFlow. Trong lúc đó tin vẫn có ở chuông trong app.</p>}
+        {box('notifyTelegram', 'Telegram (qua bot của riêng bạn)')}
+        <div className="status">
+          <span data-testid="tg-state">{!tg ? '…' : tg.linked ? 'Telegram: đã kết nối' : tg.configured ? 'Telegram: đã có mã bot, chưa kết nối' : 'Telegram: chưa có mã bot'}</span>
+          <div className="toolbar">
+            <input type="password" aria-label="Mã bot Telegram" placeholder="Dán mã bot (123456:ABC…)" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} />
+            <button className="small" disabled={!token.trim()} onClick={() => tgAct(() => window.api.setTelegram(token).then((st: TelegramState) => { setToken(''); return st }), 'Đã lưu mã bot. Gửi /start cho bot rồi bấm Kết nối Telegram.')}>Lưu mã</button>
+            <button className="small" disabled={!tg?.configured} onClick={() => tgAct(() => window.api.connectTelegram(), 'Đã kết nối Telegram.')}>Kết nối Telegram</button>
+            <button className="small" disabled={!tg?.linked} onClick={() => tgAct(() => window.api.testTelegram(), 'Đã gửi tin thử, xem trong Telegram.')}>Gửi tin thử</button>
+          </div>
+          {tgMsg && <p role={tgMsg.ok ? 'status' : 'alert'} className={tgMsg.ok ? 'hint' : 'notice'}>{tgMsg.text}</p>}
+          <p className="hint">Cách làm: trong Telegram mở <b>@BotFather</b>, gửi <code>/newbot</code>, đặt tên, chép mã bot nó đưa rồi dán vào đây và bấm Lưu mã. Mở bot vừa tạo, bấm <b>Start</b> (gửi <code>/start</code>), quay lại bấm <b>Kết nối Telegram</b>. Tin Telegram chỉ có mã lô, nền tảng, số kết quả, mã lỗi và giờ: không có prompt, tên file hay tài khoản.</p>
+        </div>
+      </fieldset>
+      <fieldset aria-label="Khi đóng cửa sổ">
+        <legend>Khi đóng cửa sổ</legend>
+        {box('tray', 'Đóng cửa sổ thì thu xuống khay (lịch vẫn chạy)')}
+        {box('openAtLogin', 'Tự mở cùng Windows')}
+        <p className="hint">Khay là góc phải thanh taskbar: bấm biểu tượng ToolFlow ở đó để mở lại, chuột phải → Thoát để tắt hẳn. Tự mở cùng Windows thì app mở sẵn trong khay để lô hẹn giờ vẫn chạy.</p>
+      </fieldset>
+      <fieldset aria-label="Credit Flow">
+        <legend>Credit Flow</legend>
+        <label>Cảnh báo khi credit dưới <input type="number" min={0} max={1000000} defaultValue={s.draft.creditWarn} onChange={(e) => { const n = Number(e.target.value); if (e.target.value !== '' && Number.isInteger(n) && n >= 0 && n <= 1_000_000) act(() => window.api.saveDraft({ creditWarn: n })) }} /></label>
+        <p className="hint">App đọc số credit Flow còn lại mỗi khi Flow trả lời một lượt video, và báo một lần mỗi khi số đó xuống dưới mức này. Số mới nhất hiện ở màn Kết nối.</p>
       </fieldset>
       <fieldset>
         <legend>Lưu kết quả</legend>

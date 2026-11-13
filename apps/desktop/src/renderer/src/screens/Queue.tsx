@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { hintOf } from '../hints'
+import { codeIn, hintOf } from '../hints'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, siteLabel, time, type Attempt, type Batch, type Draft, type Preset } from '../types'
 import { Chip, Icon, itemTone } from '../ui'
 
@@ -38,6 +38,31 @@ const savedAll = (a: Attempt): boolean => a.item === 'ready' && a.outputs.length
 
 /** Asset ids of the items that stopped on REF_UPLOAD_UNCERTAIN, each once. */
 const stuckRefs = (b: Batch): string[] => [...new Set(b.items.filter((it) => current(it).error?.code === 'REF_UPLOAD_UNCERTAIN').flatMap((it) => it.refs))]
+
+/** A batch that has not started: its start time with Huỷ hẹn giờ, or Chạy ngay / Hẹn giờ. */
+function Schedule({ b }: { b: Batch }): React.JSX.Element {
+  const [editing, setEditing] = useState(false)
+  const [v, setV] = useState('')
+  const [err, setErr] = useState('')
+  const go = (f: () => Promise<unknown>): void => { setErr(''); void f().then(() => setEditing(false), (e: Error) => setErr(hintOf(codeIn(e.message)) ?? e.message)) }
+  return (
+    <div className="toolbar" data-testid="schedule">
+      {b.startAt ? <>
+        <span>Hẹn chạy lúc <b>{new Date(b.startAt).toLocaleString('vi-VN')}</b></span>
+        <button className="small" onClick={() => go(() => window.api.scheduleBatch({ batchId: b.id, at: null }))}>Huỷ hẹn giờ</button>
+      </> : <>
+        <span className="muted">Chưa chạy</span>
+        <button className="small" onClick={() => go(() => window.api.startBatch(b.id))}>Chạy ngay</button>
+        {editing ? <>
+          <input type="datetime-local" aria-label="Giờ chạy" value={v} onChange={(e) => setV(e.target.value)} />
+          <button className="small primary" disabled={!v} onClick={() => go(() => window.api.scheduleBatch({ batchId: b.id, at: new Date(v).getTime() }))}>Lưu hẹn giờ</button>
+          <button className="small" onClick={() => setEditing(false)}>Thôi</button>
+        </> : <button className="small" onClick={() => setEditing(true)}>Hẹn giờ</button>}
+      </>}
+      {err && <span role="alert" className="notice">{err}</span>}
+    </div>
+  )
+}
 
 /** One band for the single next thing the human has to do (wayfinding: only the decision ahead). */
 function NextStep({ batches }: { batches: Batch[] }): React.JSX.Element | null {
@@ -119,6 +144,7 @@ export default function Queue({ batches, q = '', onNew, onStart, onPreset }: { b
               </div>
               <button onClick={() => setOpen(open === b.id ? null : b.id)} aria-expanded={open === b.id}>Chi tiết</button>
             </div>
+            {b.status === 'queued' && !b.archived && <Schedule b={b} />}
             {b.status === 'paused' && (hintOf(b.pauseReason, b.provider) || b.pauseReason === 'REF_UPLOAD_UNCERTAIN') && (
               <div className="status">
                 {hintOf(b.pauseReason, b.provider) && <p className="notice warn" role="status" data-testid="pause-reason">Lô tạm dừng: {hintOf(b.pauseReason, b.provider)}</p>}

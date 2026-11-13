@@ -2,7 +2,7 @@ import type { AttemptState } from '@toolflow/flow-protocol/attempt';
 import type { Db } from './db';
 import { statusOf } from './runner';
 
-type BatchRow = { id: string; kind: string; provider: string; s: string; archived: number; createdAt: number; project: string | null; status: string; stop: number };
+type BatchRow = { id: string; kind: string; provider: string; s: string; archived: number; createdAt: number; project: string | null; status: string; stop: number; startAt: number | null };
 type ItemRow = { id: string; b: string; ord: number; sourceLine: number | null; prompt: string; refs: string; cur: string };
 type AttemptRow = { id: string; it: string; ordinal: number; j: string; clickAt: number | null; reconcileAt: number | null; sourceAttemptId: string | null };
 type EventRow = { a: string; type: string; at: number; p: string | null };
@@ -22,7 +22,7 @@ export function viewBatches(db: Db, ids?: string[]) {
   const list = ids ?? (db.prepare('select id from batch order by created_at desc, rowid desc').all() as { id: string }[]).map((r) => r.id);
   const want = JSON.stringify(list);
   const IN = 'in (select value from json_each(?))';
-  const batches = new Map((db.prepare(`select id, kind, provider, settings_json s, archived, created_at createdAt, target_project project, status, stop_requested stop from batch where id ${IN}`).all(want) as BatchRow[]).map((b) => [b.id, b]));
+  const batches = new Map((db.prepare(`select id, kind, provider, settings_json s, archived, created_at createdAt, target_project project, status, stop_requested stop, start_at startAt from batch where id ${IN}`).all(want) as BatchRow[]).map((b) => [b.id, b]));
   const items = group(db.prepare(`select id, batch_id b, ord, source_line sourceLine, prompt, refs_json refs, attempt_id cur from item where batch_id ${IN} order by batch_id, ord`).all(want) as ItemRow[], 'b');
   const attempts = group(db.prepare(`select a.id, a.item_id it, a.ordinal, a.state_json j, a.click_at clickAt, a.reconcile_at reconcileAt, a.source_attempt_id sourceAttemptId
     from item i join attempt a on a.item_id=i.id where i.batch_id ${IN} order by a.item_id, a.ordinal`).all(want) as AttemptRow[], 'it');
@@ -50,7 +50,7 @@ export function viewBatches(db: Db, ids?: string[]) {
       return { id: it.id, ord: it.ord, sourceLine: it.sourceLine, prompt: it.prompt, refs: JSON.parse(it.refs), attemptId: it.cur, attempts: as, state: as.find((a) => a.id === it.cur)?.item };
     });
     const status = statusOf(b.status, b.stop, its.map((it) => it.state).filter((s): s is AttemptState['item'] => !!s));
-    return [{ id: b.id, kind: b.kind, provider: b.provider, status, archived: !!b.archived, createdAt: b.createdAt, settings: JSON.parse(b.s), project: b.project, items: its.map(({ state: _s, ...it }) => it) }];
+    return [{ id: b.id, kind: b.kind, provider: b.provider, status, archived: !!b.archived, createdAt: b.createdAt, startAt: b.startAt, settings: JSON.parse(b.s), project: b.project, items: its.map(({ state: _s, ...it }) => it) }];
   });
 }
 

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { openDb } from '../src/main/db'
 import { createFakeDriver, FAKE_COMBOS } from '../src/main/fake-driver'
 import { createRunner } from '../src/main/runner'
-import { createHandlers, revisioned, type Draft } from '../src/main/ipc'
+import { createHandlers, revisioned, DEFAULT_DRAFT, type Draft } from '../src/main/ipc'
 import { registerAsset } from '../src/main/assets'
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('tiny-png-bytes')])
@@ -16,7 +16,7 @@ function rig(picked: string[] = []) {
   const db = openDb(join(dir, 't.db'))
   const clock = { now: () => 1_000_000 }
   const runner = createRunner({ db, driver: createFakeDriver([]), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true })
-  let draft: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true }
+  let draft: Draft = { ...DEFAULT_DRAFT, text: '' }
   const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => null, session: async () => ({}), getDraft: () => draft, saveDraft: (d) => { draft = d }, emit: revisioned(() => {}), pickPaths: async () => picked, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
   const png = (name: string, buf = PNG) => { writeFileSync(join(dir, name), buf); return registerAsset(db, join(dir, name), 1) }
   return { dir, db, h, png }

@@ -10,6 +10,8 @@ import { createFakeDriver, FAKE_COMBOS } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
 import { createAutoSaver } from '../src/main/autosave';
 import { batchSignatures, viewBatches } from '../src/main/batch-view';
+import { createNotifier } from '../src/main/notify';
+import { createScheduler, setStart } from '../src/main/schedule';
 
 // A finished history of `n` batches of `k` prompts each (Flow and ChatGPT), each prompt with its journal and saved files,
 // written straight to the tables the way the runners leave them.
@@ -45,7 +47,7 @@ function fullPasses(db: Db, sql: string): string[] {
   return rows.filter((d) => /^SCAN /.test(d) && !/^SCAN (b|batch)\b/.test(d)).map((d) => `${d}  ←  ${sql.replace(/\s+/g, ' ').slice(0, 140)}`);
 }
 
-test('the loops that run several times a second (runners, auto save, change scan) never read the whole history: every statement finds its rows by an index', async () => {
+test('the loops that run several times a second (runners, auto save, change scan, notices, schedule) never read the whole history: every statement finds its rows by an index', async () => {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-perf-')), 't.db'));
   const seen = recorded(db);
   history(db, 6, 3);
@@ -56,9 +58,14 @@ test('the loops that run several times a second (runners, auto save, change scan
   for (const provider of ['flow', 'chatgpt'] as const)
     runner.start(enqueueBatch(db, { commandId: `run-${provider}`, kind: 'image', provider, projectId: provider === 'flow' ? 'p' : null, settings: { provider }, prompts: ['a', 'b'], refs: [[], []], mode: 'auto' }).batchId);
   const saver = createAutoSaver({ db, now: () => clock.now(), enabled: () => true, downloader: { batch: async () => undefined } });
-  for (let i = 0; i < 40; i++) { await runner.tick(); await saver.tick(); batchSignatures(db); clock.t += 5_000; }
+  const notes = createNotifier({ db, now: () => clock.now(), prefs: () => ({ notifyApp: true, notifyWindows: false, notifyTelegram: false, creditWarn: 50 }), lastError: (b) => runner.lastError(b), channels: {}, changed: () => {} });
+  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => runner.start(b), notify: (b, at, late) => notes.scheduled(b, at, late) });
+  setStart(db, enqueueBatch(db, { commandId: 'later', kind: 'image', projectId: 'p', settings: {}, prompts: ['s'], refs: [[]], mode: 'auto' }).batchId, clock.t + 150_000);
+  const round = async () => { await runner.tick(); await saver.tick(); for (const r of batchSignatures(db)) notes.batchChanged(r.id); await sched.tick(); notes.credits('a@b.c', 40 + (clock.t % 20)); clock.t += 5_000; };
+  for (let i = 0; i < 40; i++) await round();
+  expect(notes.list().items.map((n) => n.kind)).toEqual(expect.arrayContaining(['done', 'scheduled', 'credit']));
   seen.clear(); // what one more round of the loops prepares, with the batches mid-run and done
-  for (let i = 0; i < 5; i++) { await runner.tick(); await saver.tick(); batchSignatures(db); clock.t += 5_000; }
+  for (let i = 0; i < 5; i++) await round();
   expect(seen.size).toBeGreaterThan(5);
   expect([...seen].flatMap((sql) => fullPasses(db, sql))).toEqual([]);
 });
