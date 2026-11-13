@@ -7,12 +7,13 @@ import Results from './screens/Results'
 import Workflow from './screens/Workflow'
 import Settings from './screens/Settings'
 import Account from './screens/Account'
+import Overview from './screens/Overview'
 import { newer } from './revision'
 import { Chip, Icon, batchTone, itemTone } from './ui'
 import { getTheme, isDark, setTheme, type Theme } from './theme'
 
-const SCREENS = ['Kết nối', 'Tạo lô', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
-const ICON = { 'Kết nối': 'plug', 'Tạo lô': 'plus', Workflow: 'nodes', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
+const SCREENS = ['Tổng quan', 'Kết nối', 'Tạo lô', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
+const ICON = { 'Tổng quan': 'grid', 'Kết nối': 'plug', 'Tạo lô': 'plus', Workflow: 'nodes', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
 
 /** Session facts in the top bar. Wording differs from S1 on purpose (tests and pair-check read S1's exact phrases). */
@@ -59,7 +60,7 @@ function Bell(): React.JSX.Element {
 }
 
 function Main({ lic }: { lic: License }): React.JSX.Element {
-  const [screen, setScreen] = useState<(typeof SCREENS)[number]>('Kết nối')
+  const [screen, setScreen] = useState<(typeof SCREENS)[number]>('Tổng quan')
   const [batches, setBatches] = useState<Batch[]>([])
   const [session, setSession] = useState<Session | null>(null)
   const rev = useRef(0)
@@ -129,8 +130,9 @@ function Main({ lic }: { lic: License }): React.JSX.Element {
     <div className="shell">
       <aside className="rail">
         <div className="brand"><h1>ToolFlow</h1></div>
+        <button className="rail-new" onClick={() => setScreen('Tạo lô')}><Icon name="plus" />Lô mới</button>
         <nav aria-label="Màn hình">
-          {SCREENS.slice(0, 5).map(navItem)}
+          {SCREENS.slice(0, 6).map(navItem)}
         </nav>
         {active.length > 0 && (
           <section aria-label="Đang chạy" className="running">
@@ -177,6 +179,7 @@ function Main({ lic }: { lic: License }): React.JSX.Element {
           </div>
         )}
         <main className={screen === 'Workflow' ? 'page flush' : 'page'} key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
+          {screen === 'Tổng quan' && <Overview batches={batches} s={session} go={setScreen} />}
           {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
           {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onDraft={(dr) => setSession((x) => x && { ...x, draft: dr })} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
           {screen === 'Workflow' && session && <Workflow s={session} />}

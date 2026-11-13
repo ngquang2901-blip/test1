@@ -20,6 +20,7 @@ async function launch(userData: string, script = '', extra: Record<string, strin
   apps.push(app)
   const page = await app.firstWindow()
   await expect(page.getByRole('heading', { name: 'ToolFlow' })).toBeVisible({ timeout: 20_000 })
+  if (!extra.TOOLFLOW_FAKE_LICENSE) await page.getByRole('button', { name: 'Kết nối', exact: true }).click() // the specs below start where the app opened before Tổng quan existed
   return { app, page }
 }
 test.afterEach(async () => { await Promise.all(apps.splice(0).map((a) => a.close().catch(() => {}))) })
@@ -394,7 +395,7 @@ test('Giao diện: the top-bar button switches dark/light, Cài đặt offers S�
   let { app, page } = await launch(ud)
   await page.emulateMedia({ colorScheme: 'light' })
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('system')
-  expect(await bg(page)).toBe('rgb(255, 255, 255)')
+  expect(await bg(page)).toBe('rgb(251, 248, 245)')
   await page.emulateMedia({ colorScheme: 'dark' }) // system follows the OS
   expect(await bg(page)).toBe('rgb(20, 20, 20)')
   await page.emulateMedia({ colorScheme: 'light' })
@@ -403,7 +404,7 @@ test('Giao diện: the top-bar button switches dark/light, Cài đặt offers S�
   await page.getByRole('button', { name: 'Cài đặt' }).click()
   await expect(page.getByLabel('Tối', { exact: true })).toBeChecked()
   await page.getByLabel('Sáng', { exact: true }).check()
-  expect(await bg(page)).toBe('rgb(255, 255, 255)')
+  expect(await bg(page)).toBe('rgb(251, 248, 245)')
   await page.getByLabel('Tối', { exact: true }).check()
   await app.close()
   ;({ app, page } = await launch(ud))
@@ -1627,4 +1628,26 @@ test('Google sign-in: nothing of the app opens before an active plan; a new acco
   await b.page.getByRole('button', { name: 'Đăng xuất' }).click()
   await expect(b.page.getByRole('button', { name: 'Đăng nhập bằng Google' })).toBeVisible()
   await expect(b.page.getByRole('button', { name: 'Cài đặt', exact: true })).toHaveCount(0)
+})
+
+test('the app opens on Tổng quan, whose numbers follow the batches', async () => {
+  const { page } = await launch(tmp(), 'image-ok,blocked,image-ok', { TOOLFLOW_FAKE_LICENSE: 'active' }) // FAKE_LICENSE: launch() leaves the first screen as it opened
+  const ov = page.getByRole('region', { name: 'Tổng quan' })
+  await expect(page.getByRole('button', { name: 'Tổng quan', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(ov.getByText('Chưa có lô nào.')).toBeVisible()
+  await expect(ov.getByRole('img', { name: 'Chưa có lượt nào xong' })).toBeVisible()
+  await ov.getByRole('button', { name: 'Tạo lô đầu tiên' }).click()
+  await expect(async () => { // the form loads its saved draft right after it opens; fill again if that wiped the text
+    await page.getByLabel('Danh sách prompt').fill('một\nhai\nba')
+    await expect(page.getByText('3 prompt')).toBeVisible({ timeout: 1000 })
+  }).toPass({ timeout: 10_000 })
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(page.getByRole('heading', { name: /Xong một phần/ })).toBeVisible({ timeout: 20_000 }) // 'blocked': Flow refuses row 2, rows 1 and 3 get results
+  await page.getByRole('button', { name: 'Tổng quan', exact: true }).click()
+  await expect(ov.getByRole('row')).toHaveCount(2) // header + the batch
+  await expect(ov.getByRole('img', { name: '67% lượt thành công' })).toBeVisible()
+  await expect(ov.getByText('Cần bạn xem').locator('..').getByText('1', { exact: true })).toBeVisible()
+  await expect(ov.getByRole('listitem')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Lô mới' }).first().click()
+  await expect(page.getByLabel('Danh sách prompt')).toBeVisible()
 })
