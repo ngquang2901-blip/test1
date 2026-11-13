@@ -38,7 +38,12 @@ const MIGRATIONS = [
    create index attempt_state on attempt(json_extract(state_json, '$.item'));
    create index attempt_reconcile on attempt(reconcile_at) where reconcile_at is not null;
    create index journal_attempt on journal_event(attempt_id, id);`,
+  // what the user did to one output in Kết quả: its tags, and deleted_at once removed from Kết quả (never shown or saved again)
+  `create table output_mark(attempt_id text not null, media_id text not null, tags_json text not null default '[]', deleted_at integer,
+     primary key(attempt_id, media_id));`,
 ];
+/** The schema this app writes; a backup from a newer app is refused. */
+export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function openDb(file: string): Db {
   const db = new Database(file);

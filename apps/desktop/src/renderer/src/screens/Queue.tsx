@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { hintOf } from '../hints'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, siteLabel, time, type Attempt, type Batch, type Draft, type Preset } from '../types'
-import { Chip, Icon, itemTone } from '../ui'
+import { Chip, Icon, TwoStep, itemTone } from '../ui'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
 const Hint = ({ a, provider }: { a: Attempt; provider?: string }): React.JSX.Element | null => { const h = hintOf(a.error?.code, provider); return h ? <div className="hint" data-testid="hint">{h}</div> : null } // what to do, next to the raw code
@@ -17,19 +17,6 @@ function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
         <button className="small" onClick={() => run(() => window.api.confirmUncertain({ attemptId: a.id, to: 'not_sent' }))}>Chưa gửi</button>
       </div>
     </div>
-  )
-}
-
-/** Inline two-step confirm (no window.confirm): the first button asks, the second does it (a costly one focuses Huỷ, so a stray Enter never pays); both are plain buttons, so the keyboard reaches them. */
-function TwoStep({ label, ask, yes, go, safeFocus }: { label: string; ask: string; yes: string; go: () => void; safeFocus?: boolean }): React.JSX.Element {
-  const [on, setOn] = useState(false)
-  if (!on) return <button className={safeFocus ? 'small danger' : 'small'} onClick={() => setOn(true)}>{label}</button>
-  return (
-    <span className="confirm" role="group" aria-label={ask}>
-      <span>{ask}</span>
-      <button className="small primary" autoFocus={!safeFocus} onClick={() => { setOn(false); go() }}>{yes}</button>
-      <button className="small" autoFocus={safeFocus} onClick={() => setOn(false)}>Huỷ</button>
-    </span>
   )
 }
 

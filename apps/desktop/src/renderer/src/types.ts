@@ -3,6 +3,7 @@ export type Attempt = {
   error: { code?: string; why?: string; reasons?: string[]; resolution?: string } | null
   profileVersion: string | null; outputs: string[]; journal: { type: string; at: number }[]
   downloads: Record<string, Download> // by output (media) id; absent = not requested yet
+  tags?: Record<string, string[]> // by output id: the user's tags in Kết quả
 }
 export type Download = { state: 'intent' | 'started' | 'completed' | 'failed' | 'needs_review'; actualName: string | null; errorCode: string | null }
 export type Item = { id: string; ord: number; prompt: string; refs: string[]; attemptId: string; attempts: Attempt[] } // refs: asset ids
