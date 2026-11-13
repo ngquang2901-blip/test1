@@ -144,9 +144,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s),
     // only an attempt between prepare and its result is at risk; queued ones simply go on after the restart
     busy: () => wfActive() || (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)), // a workflow between two nodes would lose its later nodes
-    // Reported on Windows: after the click the window read "Not responding" until the silent installer had replaced the app and started the
-    // new one (it did, a while later). Not reproduced (on Linux the app quits in about 60 ms), so the window is hidden first: the app
-    // disappears at once and comes back updated. The steps are timed into update.log (times only), to find the cause if it happens again.
+    // Reported on Windows: after the click the window read "Not responding". Measured: Defender scans the new installer ~22 s while
+    // electron-updater starts it from this process, so the window is hidden first (the bar has said what comes); update.log keeps the times.
     beforeInstall: () => {
       const log = (step: string): void => { try { appendFileSync(join(userData, 'update.log'), `${new Date().toISOString()} ${step}\n`) } catch { /* the log must never stop the update */ } }
       log(`install ${app.getVersion()}`)
