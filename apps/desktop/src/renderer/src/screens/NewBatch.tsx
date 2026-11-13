@@ -47,6 +47,8 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
   const pickBtn = useRef<HTMLButtonElement>(null)
+  const msgRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ block: 'center' }) }, [msg]) // it lands right above the sticky action bar, under it when scrolled to the end
   const [cmd, setCmd] = useState(() => crypto.randomUUID()) // same id on a double click = one batch
   const [when, setWhen] = useState<string | null>(null) // Hẹn giờ chạy: the chosen local date-time; null = run now
   const set = (p: Partial<Draft>): void => setD((x) => ({ ...x, ...p }))
@@ -217,7 +219,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </table>
         </div>
       )}
-      {msg && <p role="alert" className="notice">{msg}</p>}
+      {msg && <p role="alert" className="notice" ref={msgRef}>{msg}</p>}
       <div className="actionbar">
         <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && model ? ` · ${model}` : ''}${gem && aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
