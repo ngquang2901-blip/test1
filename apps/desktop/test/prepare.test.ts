@@ -84,13 +84,21 @@ test('prepare: no combo in settings ⇒ SETTINGS_MISMATCH without touching the p
 test.each([
   ['the tab is on another project', () => here('/fx/tools/flow/project/11111111-2222-4333-8444-555555555555')],
   ['the tab is on the home page', () => here('/fx/tools/flow')],
-  ['the tab is gone', () => []],
-  ['another tab only', () => [{ tabId: 8, path: `/fx/tools/flow/project/${P}`, active: true }]],
 ])('I2: prepare checks the tab project BEFORE any page-affecting op: %s => TARGET_CHANGED, only `tabs` was sent', async (_n, tabs) => {
   const { server, seen } = stub((op) => (op === 'tabs' ? tabs() : new Error(`must not be sent: ${op}`)))
   expect(await createExtDriver(server, OPEN).prepare('7', prep)).toEqual({ ok: false, code: 'TARGET_CHANGED' })
   expect(seen.map((s) => s[0])).toEqual(['tabs'])
   expect(await createExtDriver(stub((op) => (op === 'tabs' ? here() : new Error(`must not be sent: ${op}`))).server, OPEN).prepare('7', { ...prep, projectId: undefined })).toEqual({ ok: false, code: 'TARGET_CHANGED' }) // no batch project: nothing to compare with, fail closed
+})
+
+test.each([
+  ['the tab is gone', () => []],
+  ['another tab only', () => [{ tabId: 8, path: `/fx/tools/flow/project/${P}`, active: true }]],
+])('a tab missing from the listing is a lost connection, not a changed target: %s => ConnectorError (the runner pauses and goes on when the tab is back), only `tabs` was sent', async (_n, tabs) => {
+  const { server, seen } = stub((op) => (op === 'tabs' ? tabs() : new Error(`must not be sent: ${op}`)))
+  await expect(createExtDriver(server, OPEN).prepare('7', prep)).rejects.toBeInstanceOf(ConnectorError)
+  await expect(createExtDriver(server, OPEN).checkBeforeClick('7', P)).rejects.toBeInstanceOf(ConnectorError)
+  expect(seen.map((s) => s[0])).toEqual(['tabs', 'tabs'])
 })
 
 test('prepare: ungranted tab never reaches the page', async () => {
@@ -137,7 +145,7 @@ test('decideCheck: table', () => {
   for (const [name, c, code] of rows) expect(decideCheck(c), name).toEqual(code ? { ok: false, code } : { ok: true })
 })
 
-test('checkBeforeClick: ops flow into the decision; any thrown op error ⇒ TARGET_CHANGED', async () => {
+test('checkBeforeClick: ops flow into the decision; any thrown op error but a lost connection ⇒ TARGET_CHANGED', async () => {
   const world = (over: Partial<Record<string, unknown>> = {}): Handler => (op) => (op in over ? over[op] : ({
     tabs: [{ tabId: '7', path: `/fx/tools/flow/project/${P}`, active: true }],
     ping: { xhrSend: true, xhrOpen: true, fetch: true }, probe: { present: { editor: true, submit: true } },
@@ -146,7 +154,8 @@ test('checkBeforeClick: ops flow into the decision; any thrown op error ⇒ TARG
   const d = (h: Handler) => createExtDriver(stub(h).server, OPEN)
   expect(await d(world()).checkBeforeClick('7', P)).toEqual({ ok: true })
   expect(await d(world()).checkBeforeClick('7', 'other')).toEqual({ ok: false, code: 'TARGET_CHANGED' })
-  expect(await d(world({ tabs: [] })).checkBeforeClick('7', P)).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+  await expect(d(world({ tabs: [] })).checkBeforeClick('7', P)).rejects.toBeInstanceOf(ConnectorError) // the tab is gone: a lost connection, the runner pauses on CONNECTOR_LOST
+  await expect(d(world({ ping: new ConnectorError('gone') })).checkBeforeClick('7', P)).rejects.toBeInstanceOf(ConnectorError)
   expect(await d(world({ hit: { covered: true } })).checkBeforeClick('7', P)).toEqual({ ok: false, code: 'COVERED' })
   const bound = { get: () => null, binding: () => ({ assetId: 'r1', projectId: P, uploadName: 'n', mediaId: 'c', state: 'bound' as const, intentAt: 1 }), writeBinding: () => {} }
   const dr = (h: Handler) => createExtDriver(stub(h).server, { allow: () => true, assets: bound })

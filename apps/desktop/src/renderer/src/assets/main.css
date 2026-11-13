@@ -273,6 +273,11 @@ textarea.short { min-height: 64px; }
 .steps li { padding-left: 4px; }
 .steps code, .path code { font-family: var(--mono); font-size: 12px; background: var(--side); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
 .path { margin-top: 8px; }
+.checks { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; padding: 0; font-size: 13px; }
+.checks li { display: inline-flex; gap: 6px; color: var(--ink-2); }
+.checks li[data-done='true'] { color: var(--ink); }
+.checks li [role=img] { width: 1.2em; text-align: center; color: var(--ink-3); }
+.checks li[data-done='true'] [role=img] { color: var(--blue); }
 .path code { overflow-wrap: anywhere; }
 
 .icon-btn { all: unset; cursor: pointer; display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r); color: var(--ink-2); }

@@ -25,7 +25,7 @@ const parse = (id: string | number): [string, number] => {
   return i < 0 ? ['', Number(s)] : [s.slice(0, i), Number(s.slice(i + 1))]
 }
 
-export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number> }) {
+export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number>; onConnect?: () => void }) {
   const budgets = { ...OP_TIMEOUT_MS, ...o.budgets } // injectable so tests need no real 20 s waits
   // the token rides in a subprotocol (`tf.<token>`), not the URL: Chrome prints failed WebSocket URLs in the extension's Errors page
   const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0, handleProtocols: (ps) => (ps.has(PROTO) ? PROTO : false) })
@@ -72,6 +72,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
     }
     ws.on('close', () => drop(conn))
     ws.on('error', () => {})
+    o.onConnect?.() // a Chrome profile is (back) here: the app lists its tabs at once
     ws.on('message', (data) => {
       if (conns.get(inst) !== conn) return // socket identity, not the epoch field, decides who is heard
       let m: Record<string, unknown>

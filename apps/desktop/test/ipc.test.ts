@@ -265,3 +265,17 @@ test('enqueueBatch for Gemini: an image batch kept apart by its provider, with a
   const c = (await h.enqueueBatch({ commandId: 'm7', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', refs })) as { batchId: string }; // ChatGPT takes reference images too
   expect(JSON.parse((db.prepare('select refs_json r from item where batch_id=?').get(c.batchId) as { r: string }).r)).toEqual(ids);
 });
+
+test('openChrome: the renderer names a page, main picks the address; anything else is refused; no Chrome found is CHROME_NOT_FOUND; forgetTabs reaches the grants', async () => {
+  const opened: string[] = []; let found = true, forgot = 0;
+  const h = createHandlers({ db: openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db')), runner: {} as never, grants: { use: () => {} }, projects: () => [], email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => parseDraft(null), saveDraft: () => {}, emit: revisioned(() => {}), clock: { now: () => 1 }, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null,
+    openChrome: (url) => (found && opened.push(url), found), forgetTabs: () => { forgot++; } });
+  await h.openChrome('extensions'); await h.openChrome('flow');
+  expect(opened).toEqual(['chrome://extensions', 'https://labs.google/fx/tools/flow']);
+  for (const bad of ['https://evil.example', 'chrome://settings', null, { url: 'x' }]) await expect(h.openChrome(bad)).rejects.toThrow(/INVALID_ARGS/);
+  found = false;
+  await expect(h.openChrome('flow')).rejects.toThrow(/CHROME_NOT_FOUND/);
+  expect(opened).toHaveLength(2);
+  await h.forgetTabs();
+  expect(forgot).toBe(1);
+});

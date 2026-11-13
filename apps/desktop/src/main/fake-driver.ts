@@ -170,21 +170,24 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
       return { ...x, state: 'in_progress' as const, fileSize: -1 };
     });
 
-  const driver: FlowDriver & { ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[]; videoPolls: typeof videoPolls; foreignPoll(): string } = {
-    ledger, emit, focusLog, fetchMedia, downloads, videoPolls,
+  const hidden = new Set<string>(); // tests: tabs that are gone (closed, or their Chrome quit); put back by deleting
+  const gone = (tabId: string) => { if (hidden.has(tabId)) throw new ConnectorError('fake: tab gone'); };
+  const driver: FlowDriver & { hidden: Set<string>; ledger: typeof ledger; focusLog: string[]; emit: typeof emit; userSends(tabId: string, kind: 'image' | 'video', deliver?: boolean): DriverEvent[]; videoPolls: typeof videoPolls; foreignPoll(): string } = {
+    hidden, ledger, emit, focusLog, fetchMedia, downloads, videoPolls,
     foreignPoll: () => fx('poll-succeeded-2')[0].res!, // the capture as it is: two finished videos that belong to nobody here
     async ping(tabId): Promise<Ping> {
+      gone(tabId);
       return { xhrSend: true, xhrOpen: true, fetch: true, id: 'fake', seq: 0, dropped: 0, gen: gens.get(tabId) ?? 0, t: Date.now(), version: fail.version ?? '0.0.0-fake', email: 'fake@example.invalid' };
     },
     async probeTab() { return { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true }; },
-    async prepare(tabId, p) { ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code };
+    async prepare(tabId, p) { gone(tabId); ledger.prepares++; const code = fail.prepare?.shift(); if (code) return { ok: false, code };
       for (const id of p.refIds) { // like the real driver: an asset is uploaded once, then only attached
         if (fail.assets && !fail.assets.get(id)) return { ok: false, code: 'REF_ASSET_MISSING' };
         if (!ledger.uploads.includes(id)) ledger.uploads.push(id);
       }
       if (p.refIds.length) ledger.refs.push([...p.refIds]);
       prompts.set(tabId, p.prompt); kinds.set(tabId, p.kind); return { ok: true }; },
-    async checkBeforeClick() { ledger.checks++; const code = fail.check?.shift(); return code ? { ok: false, code: code as 'COVERED' } : { ok: true }; },
+    async checkBeforeClick(tabId) { gone(tabId); ledger.checks++; const code = fail.check?.shift(); return code ? { ok: false, code: code as 'COVERED' } : { ok: true }; },
     async click(tabId, epoch): Promise<ClickResult> {
       ledger.clicks++;
       const step = script.shift();
@@ -207,7 +210,7 @@ export function createFakeDriver(input: FakeScript, fail: { prepare?: string[]; 
       return fx('project-Zzl0ze').find((r) => r.phase === 'done')!.res!;
     },
     async listTabs() { // tab tN shows its own project and account (e2e of several tabs)
-      return Array.from({ length: fail.tabs ?? 1 }, (_, i) => ({ tabId: `t${i + 1}`, projectId: i ? `${i}b4d3c1e-1111-4222-8333-44445555666${i + 6}` : '0b4d3c1e-1111-4222-8333-444455556666', email: i ? `fake${i + 1}@example.invalid` : 'fake@example.invalid', active: i === 0 }));
+      return Array.from({ length: fail.tabs ?? 1 }, (_, i) => ({ tabId: `t${i + 1}`, projectId: i ? `${i}b4d3c1e-1111-4222-8333-44445555666${i + 6}` : '0b4d3c1e-1111-4222-8333-444455556666', email: i ? `fake${i + 1}@example.invalid` : 'fake@example.invalid', active: i === 0 })).filter((t) => !hidden.has(t.tabId));
     },
     async focusTab(tabId) { focusLog.push(tabId); },
     async arm(tabId, epoch) { ledger.arms++; ledger.armLog.push([tabId, epoch]); if (epoch === null) armed.delete(tabId); else armed.set(tabId, armed.has(tabId) ? undefined : epoch); }, // arming while pending is ambiguous

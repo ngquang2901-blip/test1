@@ -28,6 +28,7 @@ import { startConnectorServer } from './connector/server'
 import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
+import { findChrome, launchChrome } from './chrome'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -81,7 +82,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     driver = { onEvent: () => () => {} } as unknown as FlowDriver // connector failed: no tabs, so the runner never calls it
     try {
       const token = readOrCreateToken(userData)
-      const server = await startConnectorServer({ token, extensionId: EXT_ID })
+      const server = await startConnectorServer({ token, extensionId: EXT_ID, onConnect: () => void grants?.list().catch(() => {}) }) // a Chrome profile came (back): pick its remembered tabs at once
       // packaged: electron-builder copies apps/extension to resources/extension (extraResources)
       const ext = installExtension(process.env.TOOLFLOW_EXT_DIR ?? (app.isPackaged ? join(process.resourcesPath, 'extension') : join(app.getAppPath(), '../extension')), userData, server.port, app.getVersion())
       extVersion = ext.version || extVersion // what the page must report; a mismatch means Chrome still runs an older copy
@@ -105,9 +106,22 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const gemRunner = createGptRunner({ db, driver: gemDriver, provider: 'gemini', assets, clock, hands, download: (b) => downloader.batch(b) }) // Gemini: the same kind of runner on the gemini.google.com tab
   const runner = routeRunner(flowRunner, gptRunner, gemRunner)
   const siteOf = (b: string): typeof gptRunner | null => { const p = (db.prepare('select provider p from batch where id=?').get(b) as { p: string } | undefined)?.p; return p === 'chatgpt' ? gptRunner : p === 'gemini' ? gemRunner : null }
-  grants = createGrants(driver, runner)
+  grants = createGrants(driver, runner, { db, cap: () => runner.caps().tabs })
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
   runner.recover()
+  // Main, not the renderer: the remembered tabs are chosen again (and their batches go on) while the window is hidden too
+  const relist = (): void => void grants.list().catch(() => {}) // no extension yet: the next round
+  relist(); setInterval(relist, 5000)
+  // 'Mở trang tiện ích' / 'Mở Google Flow'. FAKE: never starts a program, records the address for e2e; TOOLFLOW_FAKE_CHROME=0 plays a PC without Chrome
+  let chromeExe = FAKE ? (process.env.TOOLFLOW_FAKE_CHROME === '0' ? null : 'chrome.exe') : findChrome()
+  const chromeOpened: string[] = []
+  if (FAKE && process.env.TOOLFLOW_E2E === '1') (globalThis as { __toolflowChrome?: string[] }).__toolflowChrome = chromeOpened
+  const openChrome = (url: string): boolean => {
+    if (!FAKE) chromeExe = findChrome() // installed since the start, or moved
+    if (!chromeExe) return false
+    if (FAKE) chromeOpened.push(url); else launchChrome(chromeExe, url)
+    return true
+  }
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
   const emit = revisioned((e) => win()?.webContents.send('state', e))
@@ -160,7 +174,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   updates.start()
   const h = createHandlers({
     updates,
-    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), reveal: (p) => shell.showItemInFolder(p),
+    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), openChrome, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
       const im = nativeImage.createFromBuffer(file)
       return im.isEmpty() || im.getSize().width <= 640 ? null : im.resize({ width: 640, quality: 'good' }).toJPEG(82)
@@ -180,11 +194,12 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const t0 = grants.granted()[0]
       const ping = t0 ? await rawPing(t0) : null
       const list = await grants.list().catch(() => []) // extension absent ⇒ empty list
-      const tabs = list.map((t) => ({ ...t, status: tabStatus(t), granted: grants.has(t.tabId) }))
+      const tabs = list.map((t) => ({ ...t, status: tabStatus(t), granted: grants.has(t.tabId), auto: grants.isAuto(t.tabId) })) // auto: chosen again from memory
       const accts = [...new Set(tabs.filter((t) => t.granted).map((t) => t.email).filter((e): e is string => !!e))]
       return {
         extDir: FAKE ? null : join(userData, 'extension'), // shown in S1 so the user can paste it into Chrome's folder dialog (not secret: pair.json inside is)
-        fake: FAKE, connected: connected ? connected() : null, connectorError, tabs, email: em, draft, speedInUse: runner.caps(),
+        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : connected ? connected() : null, connectorError, // '0': e2e of the setup panel
+        chromeFound: chromeExe !== null, remembered: grants.remembered(), tabs, email: em, draft, speedInUse: runner.caps(),
         accounts: accts.map((e) => ({ email: e, auto: autoAllowed(db, e) })), // auto is per account; the runner checks each tab's own
         gptTabs: await gptDriver.tabs().then((t) => t.length, () => 0), // how many chatgpt.com tabs the extension sees (a ChatGPT batch uses one)
         gemTabs: await gemDriver.tabs().then((t) => t.length, () => 0), // the same for gemini.google.com

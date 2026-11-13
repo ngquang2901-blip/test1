@@ -13,6 +13,7 @@ import type { Downloader } from './downloads';
 import { readFileSync, statSync } from 'node:fs';
 import type { Updates } from './updates';
 import { randomUUID } from 'node:crypto';
+import { CHROME_PAGES } from './chrome';
 
 export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean };
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
@@ -20,7 +21,7 @@ export type Emit = ((entity: 'batch', id: string) => void) & { revision(): numbe
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projects(): string[] | Promise<string[]>; clock: { now(): number }; // projects: distinct projects of the granted tabs
   email(): Promise<string | null>; emails?(): Promise<string[]>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit; // emails: every account of the granted tabs (absent ⇒ just email())
-  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>;
+  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; openChrome?(url: string): boolean; forgetTabs?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>; // openChrome: false = no Chrome found
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
 };
 
@@ -199,7 +200,12 @@ export function createHandlers(d: Deps) {
     async checkUpdate() { return d.updates ? d.updates.check() : { state: 'off', current: '' }; }, // the user's "Kiểm tra bản mới"
     async installUpdate() { if (!d.updates) bad(); d.updates!.install(); }, // BATCH_RUNNING while a batch is sending
     async openExtensionFolder() { d.openExtensionFolder?.(); }, // the folder the user picks in Chrome's Load unpacked
-    async useTabs(a: unknown) { // validates against the last listing; session-only
+    async openChrome(a: unknown) { // the renderer names the page; main holds the address and the program
+      const url = CHROME_PAGES[oneOf(a, 'extensions', 'flow')];
+      if (!d.openChrome?.(url)) throw Object.assign(new Error('CHROME_NOT_FOUND'), { code: 'CHROME_NOT_FOUND' });
+    },
+    async forgetTabs() { d.forgetTabs?.(); }, // 'Quên các tab đã nhớ': no tab is chosen again by itself after this
+    async useTabs(a: unknown) { // validates against the last listing; remembered by account + project
       if (Array.isArray(a) && a.length > d.runner.caps().tabs) throw Object.assign(new Error('TOO_MANY_TABS'), { code: 'TOO_MANY_TABS' }); // a tab over the speed cap would never run, and its project's part of a batch would wait forever
       d.grants.use(a);
     },

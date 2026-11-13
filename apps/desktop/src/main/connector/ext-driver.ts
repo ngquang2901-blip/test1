@@ -90,7 +90,8 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       if (refs.length && !(project && o.assets)) return { ok: false, code: 'REF_ASSET_MISSING' }
       // I2: the page is touched only when the tab is on the batch's project (settings, upload and typing would otherwise land in another project)
       const here = ((await server.send('tabs', {})) as Array<{ tabId: string; path: string }>).find((x) => String(x.tabId) === tabId)
-      if (!project || !here || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
+      if (!here) throw new ConnectorError('tab gone') // closed, or its Chrome went away: the runner pauses and goes on when the tab is back (not a changed target, which fails the prompt)
+      if (!project || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
       // A video names its input type: Frames when it has a start frame, else Ingredients (without refs that is text-to-video; Flow has no separate text mode). An image panel has no such group.
       const slotOf = (k: number) => (p.kind === 'video' ? { slot: k === 0 ? 'start' : 'end' } : {}) // a video's first image goes into the Start slot of the Frames composer, a second one into End
       const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, ...(p.kind === 'video' ? { input: refs.length ? 'Frames' : 'Ingredients' } : {}), aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
@@ -166,10 +167,11 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
         const refMedia = refIds.map((id) => mediaOf(id, projectId))
         const tabs = (await server.send('tabs', {})) as Array<{ tabId: string; path: string }>
         const here = tabs.find((x) => String(x.tabId) === t.tabId)
+        if (!here) throw new ConnectorError('tab gone')
         const selectors = selfSelectors()
         const [ping, probe, state, hit] = await Promise.all([server.send('ping', t), server.send('probe', { ...t, selectors }), server.send('state', t), server.send('hit', t)]) as never[]
-        return decideCheck({ tabProject: here ? projectIdOf(here.path) : null, projectId, ping, probe, state, hit, refMedia })
-      } catch { return { ok: false, code: 'TARGET_CHANGED' } }
+        return decideCheck({ tabProject: projectIdOf(here.path), projectId, ping, probe, state, hit, refMedia })
+      } catch (e) { if (e instanceof ConnectorError) throw e; return { ok: false, code: 'TARGET_CHANGED' } } // either way nothing is clicked
     },
     // the runner's tab epoch rides in msg.epoch (sw.js copies it into args.epoch for 'trusted')
     click: async (tabId, epoch) => (granted(tabId), (await server.send('trusted', tab(tabId), epoch)) as ClickResult),

@@ -38,6 +38,8 @@ const MIGRATIONS = [
    create index attempt_state on attempt(json_extract(state_json, '$.item'));
    create index attempt_reconcile on attempt(reconcile_at) where reconcile_at is not null;
    create index journal_attempt on journal_event(attempt_id, id);`,
+  // the Flow tabs the user chose, by account + project (a tab id changes when Chrome restarts): a tab of such a pair is chosen again by itself
+  `create table remembered_tab(email text not null, project_id text not null, primary key(email, project_id));`,
 ];
 
 export function openDb(file: string): Db {

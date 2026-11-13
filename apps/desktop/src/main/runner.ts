@@ -347,6 +347,15 @@ export function createRunner(o: {
       const next = ids.slice(0, max.tabs);
       for (const t of tabs) if (!next.includes(t)) fence(t);
       tabs = next;
+      // A batch paused only because its tab was lost (nothing sent since: its attempt is still preparing) goes on once a tab of its project
+      // is granted again. One with an attempt that is uncertain or waits for the user's send stays paused for the user.
+      for (const [b, why] of paused) {
+        if (why !== 'CONNECTOR_LOST') continue;
+        const p = (db.prepare('select target_project p from batch where id=?').get(b) as { p: string }).p;
+        if (!next.some((t) => !o.projectOf || o.projectOf(t) === p)) continue;
+        if (db.prepare("select 1 from item i join attempt a on a.id=i.attempt_id where i.batch_id=? and json_extract(a.state_json,'$.item') in ('needs_review','awaiting_user')").get(b)) continue;
+        paused.delete(b); setStatus(b, 'paused', 'running');
+      }
     },
     tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p; },
     start(b) { paused.delete(b); unc.delete(b); setStatus(b, 'queued', 'running'); },
