@@ -38,3 +38,6 @@ export function itemLabel(a: Attempt): string {
 }
 export const time = (ms: number): string => new Date(ms).toLocaleTimeString('vi-VN')
 export const current = (it: Item): Attempt => it.attempts.find((a) => a.id === it.attemptId) ?? it.attempts[it.attempts.length - 1]
+
+/** Đăng nhập Google + gói (main's license.ts). Only 'active' opens the app. */
+export type License = { status: 'checking' | 'signed_out' | 'signing_in' | 'offline' | 'pending' | 'blocked' | 'expired' | 'active'; email?: string; plan?: string; until?: number; buyInfo?: string; code?: string }

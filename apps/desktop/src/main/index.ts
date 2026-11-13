@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, session as electronSession, shell, Tray } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, session as electronSession, shell, Tray } from 'electron'
 import { basename, join } from 'path'
 import { homedir } from 'os'
 import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
@@ -33,6 +33,8 @@ import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
 import { findChrome, launchChrome } from './chrome'
+import { createFakeLicense, createLicense } from './license'
+import { LICENSE_CONFIG } from './license-config'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -143,6 +145,17 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
   const emit = revisioned((e) => win()?.webContents.send('state', e))
+  // Đăng nhập Google + gói: nothing below runs for a user without an active plan (the gate wraps every handler, the runner and the schedule).
+  // The fake one exists only in unpackaged test runs, so an env variable cannot open a packaged app.
+  const onLicense = (s: unknown): void => win()?.webContents.send('license', s)
+  const lic = !app.isPackaged && (FAKE || process.env.TOOLFLOW_E2E === '1')
+    ? createFakeLicense(process.env.TOOLFLOW_FAKE_LICENSE, process.env.TOOLFLOW_FAKE_LICENSE_AFTER, onLicense)
+    : createLicense({ config: LICENSE_CONFIG, file: join(userData, 'license.bin'), now: Date.now, onChange: onLicense, openBrowser: (u) => void shell.openExternal(u),
+      seal: { encrypt: (t) => safeStorage.encryptString(t), decrypt: (b) => safeStorage.decryptString(b) } })
+  const checkLicense = (): Promise<void> => lic.check().catch(() => {})
+  void checkLicense(); setInterval(checkLicense, 10 * 60_000)
+  const gated = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === 'function'
+    ? (...a: unknown[]) => { if (!lic.ok()) throw Object.assign(new Error('LICENSE_REQUIRED'), { code: 'LICENSE_REQUIRED' }); return f(...a) } : f])) as T
   // Notices. Telegram is called from main only (the renderer's no-network check stays true); its base URL is a test fake in e2e.
   const telegram = createTelegram({ file: join(userData, 'telegram.json'), base: FAKE ? process.env.TOOLFLOW_TELEGRAM_API : undefined })
   const toasts = new Set<Notification>() // shortcut: kept until closed so a click still reaches us; a toast left in the Action Center past that is not followed
@@ -208,7 +221,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     ...(FAKE ? { first: 500 } : {}),
   })
   updates.start()
-  const h = createHandlers({
+  const h = gated(createHandlers({
     updates,
     db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), openChrome, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
@@ -258,7 +271,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
         selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
-  })
+  }))
   // Node workflows run through the very handlers the screens call; a result becomes a ref by registering its saved file.
   // FAKE only: e2e names the file because Playwright cannot drive a native dialog (same idea as TOOLFLOW_PICK_REFS)
   const wfDialog = async (save: string | null): Promise<string | null> => {
@@ -329,10 +342,16 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async connectTelegram() { return telegram.connect() },
     async testTelegram() { await telegram.send('ToolFlow: tin thử. Bạn sẽ nhận tin ở đây khi một lô xong, cần bạn xem, bắt đầu theo hẹn giờ hoặc khi credit Flow sắp hết.') },
   }
-  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers })
+  const licenseHandlers = { // the only calls open without a plan
+    async getLicense() { return lic.state() },
+    async signIn() { await lic.signIn() },
+    async checkLicense() { await lic.check() },
+    async signOut() { lic.signOut() },
+  }
+  registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers })
   // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
   const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late) })
-  const schedTick = (): void => void sched.tick().catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
+  const schedTick = (): void => void (lic.ok() ? sched.tick() : Promise.resolve()).catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
   schedTick()
   setInterval(schedTick, 5000)
 
@@ -343,7 +362,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       if (seen.get(r.id) !== r.sig) { seen.set(r.id, r.sig); emit('batch', r.id); notifier.batchChanged(r.id) }
     }
   }
-  setInterval(() => { runner.tick().catch((e) => console.error('tick', e)).finally(scan) }, 200)
+  setInterval(() => { (lic.ok() ? runner.tick() : Promise.resolve()).catch((e) => console.error('tick', e)).finally(scan) }, 200)
   const saver = createAutoSaver({ db, now: () => clock.now(), enabled: () => draft.autoSave, downloader })
   if (process.env.TOOLFLOW_AUTOSAVE !== '0') setInterval(() => { saver.tick().catch((e) => console.error('autosave', (e as { code?: string }).code ?? 'INTERNAL_ERROR')) }, 3000) // '0': the specs that press Tải themselves
 }

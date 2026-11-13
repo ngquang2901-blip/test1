@@ -55,6 +55,15 @@ const api = {
   setTelegram: call('setTelegram'),
   connectTelegram: call('connectTelegram'),
   testTelegram: call('testTelegram'),
+  getLicense: call('getLicense'),
+  signIn: call('signIn'),
+  checkLicense: call('checkLicense'),
+  signOut: call('signOut'),
+  onLicense(cb: (s: unknown) => void): () => void { // signed in / out, plan changed after a check
+    const l = (_: unknown, s: unknown): void => cb(s)
+    ipcRenderer.on('license', l)
+    return () => ipcRenderer.removeListener('license', l)
+  },
   onNotice(cb: () => void): () => void { // the notice list or the Windows-blocked flag changed
     const l = (): void => cb()
     ipcRenderer.on('notice', l)
