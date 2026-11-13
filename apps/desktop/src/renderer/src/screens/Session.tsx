@@ -92,7 +92,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
                   <span>Tab {i + 1}{t.projectId ? ` · dự án ${t.projectId.slice(0, 8)}` : ''}</span>
                   {t.email && <span className="muted small-text">{t.email}</span>}
                 </span>
-                {t.granted ? <><Chip tone="done">Đang dùng</Chip>{t.auto && <Chip tone="idle">Tự chọn lại</Chip>}{mine.length > 1 && <button className="small" onClick={() => use(mine.filter((x) => x !== t.tabId))}>Thôi dùng</button>}</>
+                {t.granted ? <><Chip tone="done">Đang dùng</Chip>{t.auto && <Chip tone="done">Tự chọn lại</Chip>}{mine.length > 1 && <button className="small" onClick={() => use(mine.filter((x) => x !== t.tabId))}>Thôi dùng</button>}</>
                   : t.status !== 'ok' ? <Chip tone="wait">{WHY[t.status]}</Chip>
                   : full ? <span className="hint">{s.speedInUse.tabs === 1 ? 'Tốc độ Mặc định chỉ dùng 1 tab — chọn Nhanh trong Cài đặt để chạy tới 4 tab' : `Đã đủ ${s.speedInUse.tabs} tab`}</span>
                   : <button className="primary" onClick={() => use([...mine, t.tabId])}>Dùng tab này</button>}
@@ -101,9 +101,9 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
           </ul>
         )}
         {(s.remembered ?? 0) > 0 && (
-          <div className="panel-body toolbar">
-            <span className="muted small-text">App nhớ tab bạn chọn theo tài khoản và dự án: khi tab của dự án đó mở lại (kể cả sau khi tắt Chrome hay app), app tự chọn lại và chạy tiếp các lô đang dở.</span>
-            <button className="small" onClick={() => void window.api.forgetTabs().then(() => reload?.())}>Quên các tab đã nhớ</button>
+          <div className="panel-body">
+            <p className="muted small-text">App nhớ tab bạn chọn theo tài khoản và dự án: khi tab của dự án đó mở lại (kể cả sau khi tắt Chrome hay app), app tự chọn lại và chạy tiếp các lô đang dở.</p>
+            <div><button className="small" onClick={() => void window.api.forgetTabs().then(() => reload?.())}>Quên các tab đã nhớ</button></div>
           </div>
         )}
       </div>

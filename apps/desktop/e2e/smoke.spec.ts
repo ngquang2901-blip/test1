@@ -930,7 +930,7 @@ test('m5: a failed download shows an inline alert, never window.alert', async ()
   await create(first.page, ['một con mèo'])
   await expect(items(first.page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
   await first.app.close()
-  const { page } = await launch(dir, '', { TOOLFLOW_FAKE_GRANT: '0' }) // no granted tab: downloadBatch rejects with NO_PROJECT_TAB
+  const { page } = await launch(dir, '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '0' }) // no Flow tab (the remembered one is not open): downloadBatch rejects with NO_PROJECT_TAB
   const dialogs: string[] = []
   page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
@@ -1209,3 +1209,56 @@ test('Workflow: a Tạo ảnh node sent to Gemini (with a ratio) feeds one sent 
   expect((readdirSync(root, { recursive: true }) as string[]).filter((f) => String(f).endsWith('.png'))).toHaveLength(2)
 })
 
+test('Kết nối: the chosen tab is remembered by account + project; after a restart it is chosen again by itself (Tự chọn lại) and an unfinished batch goes on; Quên các tab đã nhớ stops that', async () => {
+  const ud = tmp()
+  let { app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await page.getByRole('button', { name: 'Dùng tab này' }).click()
+  await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
+  await expect(page.getByText('Tự chọn lại', { exact: true })).toHaveCount(0) // the user's own click
+  await expect(page.getByRole('button', { name: 'Quên các tab đã nhớ' })).toBeVisible()
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await app.close()
+  const db = openDb(join(ud, 'toolflow.db')) // the app was closed with a batch still running: two prompts not sent yet
+  const done = db.prepare('select target_project p, settings_json s from batch').get() as { p: string; s: string }
+  const { batchId } = enqueueBatch(db, { commandId: 'left', kind: 'image', projectId: done.p, settings: JSON.parse(done.s), prompts: ['dở một', 'dở hai'], refs: [[], []], mode: 'auto' })
+  db.prepare("update batch set status='running' where id=?").run(batchId)
+  db.close()
+  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' })) // Chrome and the app restarted: nobody clicks anything
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3, { timeout: 20_000 })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
+  await expect(page.getByText('Tự chọn lại', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Quên các tab đã nhớ' }).click()
+  await expect(page.getByRole('button', { name: 'Quên các tab đã nhớ' })).toHaveCount(0)
+  await app.close()
+  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' }))
+  await page.waitForTimeout(6000) // longer than one round of the main-process loop
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByRole('button', { name: 'Dùng tab này' })).toBeVisible()
+  await expect(page.getByText('Đang dùng', { exact: true })).toHaveCount(0)
+})
+
+test('Kết nối: the setup panel ticks what is done and opens Chrome on the extensions page or Flow (the app starts Chrome, not the page); without Chrome it says so inline', async () => {
+  let { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  const step = (name: string) => page.getByRole('list', { name: 'Các bước kết nối' }).locator('li').filter({ hasText: name })
+  await expect(step('Chrome tìm thấy')).toHaveAttribute('data-done', 'true')
+  await expect(step('Extension đã nối')).toHaveAttribute('data-done', 'false')
+  await expect(step('Có tab Flow')).toHaveAttribute('data-done', 'true')
+  await expect(step('Đã mở dự án')).toHaveAttribute('data-done', 'true')
+  await expect(step('Đã chọn tab')).toHaveAttribute('data-done', 'true')
+  await page.getByRole('button', { name: 'Mở trang tiện ích trong Chrome' }).click()
+  await page.getByRole('button', { name: 'Mở Google Flow' }).click()
+  await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual(['chrome://extensions', 'https://labs.google/fx/tools/flow'])
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await app.close()
+  ;({ app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0', TOOLFLOW_FAKE_CHROME: '0' }))
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(step('Chrome tìm thấy')).toHaveAttribute('data-done', 'false')
+  await page.getByRole('button', { name: 'Mở Google Flow' }).click()
+  await expect(page.getByRole('alert')).toContainText('Không tìm thấy Google Chrome')
+  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual([])
+})
