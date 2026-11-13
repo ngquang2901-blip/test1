@@ -2,6 +2,7 @@ import { validate, forwardEvent, fetchMediaOp, gptFetchOp, gemFetchOp, downloads
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
+let retryMs = 1000; let retry; // the app restarts on a new port: look for it again soon (1 s, doubling to 30 s), not only at the 30 s alarm
 const PAGE_OPS = new Set(['ping','state','prep','radios','click','fill','hit','trusted','net','file','account','arm','probe','settings','listeners','attach','locate','gptLook','gptState','gptMode','gptPrep','gptSend','gptTurns','gptAttach','gemLook','gemState','gemMode','gemPrep','gemSend','gemTurns','gemAttach']);
 
 // One id per Chrome profile (this extension's storage is per profile): the app keeps one connection per profile, so several accounts can work at once.
@@ -13,6 +14,12 @@ async function instance() {
   return id;
 }
 
+function later() {
+  clearTimeout(retry);
+  retry = setTimeout(connect, retryMs);
+  retryMs = Math.min(retryMs * 2, 30000);
+}
+
 async function connect() {
   if (connecting || (ws && ws.readyState <= 1)) return;
   connecting = true;
@@ -20,10 +27,11 @@ async function connect() {
     const { port, token } = await (await fetch(chrome.runtime.getURL('pair.json'))).json();
     const s = new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`, `tfi.${await instance()}`]); // token never in the URL: Chrome logs failed URLs
     s.onmessage = (m) => onCommand(s, m.data);
-    s.onclose = () => { if (ws === s) ws = undefined; };
+    s.onopen = () => { retryMs = 1000; };
+    s.onclose = () => { if (ws === s) { ws = undefined; later(); } };
     s.onerror = () => {};
     ws = s;
-  } catch (_) { /* not paired yet / desktop down: the alarm retries */ } finally { connecting = false; }
+  } catch (_) { later(); /* not paired yet: the alarm retries too */ } finally { connecting = false; }
 }
 
 async function onCommand(s, data) {

@@ -11,7 +11,7 @@ import { createRunner, batchStatus, type Runner } from '../src/main/runner';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; afterPing?: (runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean }) {
+function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed?: 'default' | 'fast'; tabs?: string[]; mode?: 'auto' | 'manual'; auto?: boolean; hold?: boolean; check?: FlowDriver['checkBeforeClick']; afterPrepare?: (db: Db, runner: Runner) => void; afterPing?: (runner: Runner) => void; corruptSent?: boolean; noListener?: boolean; deadObserver?: boolean; slowClick?: boolean; armThrows?: boolean | 'dead'; slowArm?: boolean; selfCheckOk?: boolean; projectOf?: (tab: string) => string | null }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
   const clock = { t: Date.now(), now() { return this.t; } };
   const fake = createFakeDriver(script);
@@ -46,7 +46,7 @@ function rig(script: FakeScript, o: { kind?: 'image' | 'video'; n: number; speed
     commandId: 'c', kind, projectId: 'p', settings: { combo: fakeCombo(kind) }, mode: o.mode ?? 'auto',
     prompts: Array.from({ length: o.n }, (_, i) => `prompt ${i}`), refs: Array.from({ length: o.n }, () => []),
   });
-  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', combos: FAKE_COMBOS, autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }) });
+  const runner = createRunner({ db, driver, clock, tabs: o.tabs ?? ['t1'], speed: o.speed ?? 'default', combos: FAKE_COMBOS, autoAllowed: () => o.auto ?? true, ...(o.selfCheckOk === undefined ? {} : { selfCheckOk: async () => o.selfCheckOk! }), ...(o.projectOf ? { projectOf: o.projectOf } : {}) });
   const step = async (n = 1) => { for (let i = 0; i < n; i++) { await runner.tick(); await flush(); } };
   const release = () => { gate.hold = false; held.splice(0).forEach((e) => cbs.forEach((cb) => cb(e))); };
   const states = () => (db.prepare('select a.id, a.state_json j from item i join attempt a on a.id=i.attempt_id order by i.ord').all() as { id: string; j: string }[])
@@ -978,4 +978,58 @@ test('several tabs: each tab only prepares batches of the project it shows; a pr
   expect(new Set(seen)).toEqual(new Set(['t1:A', 't2:B'])); // both tabs worked
   expect(seen.some((s) => s.endsWith(':C'))).toBe(false); // C has no tab: it waits instead of failing
   expect(batchStatus(db, ids[2])).not.toBe('failed');
+});
+
+// ---- a tab that goes away and comes back (Chrome restart, tab closed and opened again, extension reconnect) ----
+test('tab gone: the batch pauses on CONNECTOR_LOST with the prompt unsent; another project\'s tab or a user pause changes nothing; the same project\'s tab back lets the queued prompts go on by themselves', async () => {
+  const t = rig(['image-ok', 'image-ok', 'image-ok'], { n: 3, projectOf: (tab) => (tab === 't1' ? 'p' : 'q') });
+  t.runner.start(t.batchId);
+  await t.step(); // the first prompt is clicked
+  t.driver.hidden.add('t1'); // then the tab is gone, the grant not yet dropped
+  await t.step(2);
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  expect(t.states().map((a) => a.item)).toEqual(['ready', 'preparing', 'queued']); // nothing was sent: no intent, no click
+  expect(t.driver.ledger.clicks).toBe(1);
+  t.runner.setTabs([]); // the listing dropped it
+  t.runner.setTabs(['t2']); // a tab of another project
+  await t.step(2);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  t.driver.hidden.delete('t1');
+  t.runner.setTabs(['t1']); // re-granted from memory
+  expect(batchRow(t.db, t.batchId).status).toBe('running');
+  await t.step(6);
+  expect(t.states().map((a) => a.item)).toEqual(['ready', 'ready', 'ready']);
+  expect(t.driver.ledger.clicks).toBe(3); // each prompt once
+  t.runner.pause(t.batchId); // the user's own pause is never lifted by a tab coming back
+  t.runner.setTabs(['t1']);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+});
+
+test('tab gone while a prompt waits for its answer: uncertain, never sent again when the tab comes back; the next prompts wait for the user\'s word', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2, hold: true });
+  t.runner.start(t.batchId);
+  await t.step();
+  expect(t.states()[0].item).toBe('submitting');
+  t.driver.hidden.add('t1');
+  t.runner.setTabs([]);
+  uncertainNoCancel(t.states()[0]);
+  t.driver.hidden.delete('t1');
+  t.runner.setTabs(['t1']);
+  await t.step(4);
+  expect(t.driver.ledger.clicks).toBe(1);
+  expect(t.states().map((a) => a.item)).toEqual(['needs_review', 'queued']);
+});
+
+test('CONNECTOR_LOST with an attempt the user may still send (arm failed): the tab back does not resume the batch', async () => {
+  const t = rig([], { n: 2, mode: 'manual', armThrows: true });
+  t.runner.start(t.batchId);
+  await t.step(2);
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  const arms = t.driver.ledger.arms, prepares = t.driver.ledger.prepares;
+  t.runner.setTabs(['t1']);
+  await t.step(3);
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  uncertainNoCancel(t.states()[0]);
+  expect([t.driver.ledger.arms, t.driver.ledger.prepares]).toEqual([arms, prepares]);
 });

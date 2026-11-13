@@ -3,7 +3,7 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.12.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.13.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
@@ -17,6 +17,31 @@ Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục
 4. Mở `flow.google.com`, vào một dự án. Trong vòng 30 giây app báo **Đã kết nối** → bấm **Dùng tab này**.
 
 Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên trong từng hồ sơ Chrome, rồi chọn tốc độ **Nhanh** trong Cài đặt.
+
+Từ bản 0.13.0:
+- Màn Kết nối có danh sách các bước, bước nào xong thì được đánh dấu. Nút **Mở trang tiện ích trong Chrome** và **Mở Google Flow** mở thẳng Chrome đúng trang cần dùng.
+- App nhớ tab bạn đã chọn theo tài khoản + dự án. Lần sau mở lại app hoặc Chrome, tab của đúng dự án đó được chọn lại tự động (hiện chữ **Tự chọn lại**) và lô đang dở chạy tiếp. Lượt nào chưa rõ đã gửi hay chưa vẫn chờ bạn xem. Bấm **Quên các tab đã nhớ** để tắt.
+
+## Hẹn giờ, thông báo, khay hệ thống (từ bản 0.13.0)
+- **Hẹn giờ chạy**: ở Tạo lô, tích **Hẹn giờ chạy**, chọn ngày giờ, bấm **Tạo lô và hẹn giờ**. Hàng đợi hiện giờ chạy, có nút **Huỷ hẹn giờ**. Nếu app tắt đúng lúc đó, lô chạy ngay khi bạn mở app lại.
+- Đóng cửa sổ thì app thu xuống khay (biểu tượng góc phải thanh taskbar) để lịch vẫn chạy. Thoát hẳn: chuột phải vào biểu tượng → **Thoát**. **Cài đặt** có tuỳ chọn **Tự mở cùng Windows**.
+- **Thông báo**: chuông ở thanh trên cùng báo khi lô xong, khi lô cần bạn xem, khi lô chạy theo hẹn giờ và khi credit Flow sắp hết. Mất nối với tab quá 2 phút mới báo.
+  - Muốn có thông báo ở góc màn hình: mở Cài đặt Windows → Hệ thống → Thông báo, bật thông báo.
+  - Telegram: tạo bot với @BotFather, dán mã bot vào **Cài đặt → Thông báo** rồi bấm **Lưu mã**. Nhắn `/start` cho bot, bấm **Kết nối Telegram**, rồi **Gửi tin thử**. Tin nhắn chỉ có mã lô, số lượng và mã lỗi, không có prompt hay ảnh.
+- **Credit**: màn Kết nối hiện số credit Flow còn lại. App đọc được số này khi bạn tạo video. Mức cảnh báo đặt trong Cài đặt.
+
+## Workflow: video, vòng lặp, CSV (từ bản 0.13.0)
+- **+ Tạo video Flow** thêm một node tạo video.
+- Node **Vòng lặp** (2–10 vòng): chạy lại node tạo ảnh nối vào nó, vòng sau lấy ảnh của vòng trước làm ảnh tham chiếu. Có mẫu **Ảnh tinh chỉnh 3 vòng**.
+- Node **Bảng CSV** và nút **Nạp file CSV** ở Tạo lô: mỗi dòng của file thành một prompt; chọn một cột, hoặc ghép nhiều cột bằng mẫu có `{Tên cột}`. Trong Excel, lưu file bằng kiểu **CSV UTF-8** để giữ dấu tiếng Việt.
+
+## Kết quả: lọc, thẻ, xoá, xuất file (từ bản 0.13.0)
+- Lọc theo trạng thái, nền tảng, loại và thẻ; kết hợp được với ô tìm kiếm.
+- Tích chọn từng kết quả, hoặc bấm **Chọn tất cả** để chọn mọi kết quả đang lọc. Sau đó có thể **Gắn thẻ** / **Gỡ thẻ**, **Xoá** (tệp vào Thùng rác của Windows, lấy lại được) hoặc **Xuất file** (chép tệp vào thư mục bạn chọn, kèm `toolflow-export.csv` mở được bằng Excel).
+
+## Sao lưu và khôi phục (từ bản 0.13.0)
+- **Cài đặt → Sao lưu dữ liệu**: lưu lô, mẫu, workflow và cài đặt vào một tệp. Ảnh và video không nằm trong tệp này (chúng ở `Downloads/ToolFlow`). Mã khoá MCP, mã bot Telegram và khoá ghép nối extension cũng không nằm trong tệp.
+- **Khôi phục từ bản sao lưu**: chọn tệp, app tự đóng rồi mở lại với dữ liệu đó. Dữ liệu trước khi khôi phục vẫn được giữ trong `%APPDATA%\ToolFlow` (tệp `toolflow.db.before-restore-…`). Đang có lượt gửi thì app không cho khôi phục.
 
 ## Tạo video (từ bản 0.6.0)
 - Màn **Tạo lô**: chọn **Video**, mỗi dòng một prompt. Mô hình Veo 3.1 - Lite, tỉ lệ 16:9 hoặc 9:16, mỗi prompt một video (10 credit Flow mỗi video, khoảng 1 phút).

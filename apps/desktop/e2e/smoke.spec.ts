@@ -1,10 +1,13 @@
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import Database from 'better-sqlite3'
 import { openDb } from '../src/main/db'
 import { enqueueBatch } from '../src/main/batch'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import electronPath from 'electron'
 
 const desktop = resolve(__dirname, '..')
@@ -602,6 +605,7 @@ test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar l
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await expect(boxes).toHaveCount(3)
+  await page.waitForTimeout(400) // an edit becomes its own undo step once the canvas stayed still for 300 ms (measured: the steps below took 0.34 s, a race)
   await expect(page.locator('.react-flow__minimap')).toBeVisible()
   await page.getByRole('button', { name: 'Căn giữa' }).click()
   await expect.poll(scale).toBeLessThanOrEqual(1)
@@ -930,7 +934,7 @@ test('m5: a failed download shows an inline alert, never window.alert', async ()
   await create(first.page, ['một con mèo'])
   await expect(items(first.page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
   await first.app.close()
-  const { page } = await launch(dir, '', { TOOLFLOW_FAKE_GRANT: '0' }) // no granted tab: downloadBatch rejects with NO_PROJECT_TAB
+  const { page } = await launch(dir, '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '0' }) // no Flow tab (the remembered one is not open): downloadBatch rejects with NO_PROJECT_TAB
   const dialogs: string[] = []
   page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
@@ -1049,7 +1053,7 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   const root = join(tmp(), 'dl')
   const { page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(6) // the placeholder + 5 templates
+  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(7) // the placeholder + 6 templates
   await page.getByLabel('Mẫu có sẵn').selectOption('Tạo ảnh rồi làm video từ ảnh đó')
   await expect(page.getByLabel('Tên workflow')).toHaveValue('Tạo ảnh rồi làm video từ ảnh đó')
   await expect(page.locator('.react-flow__node')).toHaveCount(6)
@@ -1058,6 +1062,101 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   await page.getByRole('button', { name: 'Chạy workflow' }).click()
   await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
   expect((readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))).toHaveLength(1)
+})
+
+test('Tạo lô: Nạp file CSV fills the prompt list from a column, or from the template box with the columns as {variables}; an empty cell is named, not dropped', async () => {
+  const { page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  const input = page.locator('label.filebtn', { hasText: 'Nạp file CSV' }).locator('input')
+  const list = page.getByLabel('Danh sách prompt')
+  await input.setInputFiles({ name: 'con vật.csv', mimeType: 'text/csv', buffer: Buffer.from('\uFEFFTên;Nơi\r\n"mèo, cam";sân\r\n\r\nchó;"nhà ""gỗ"""\r\n') }) // Excel in Vietnamese: ';', BOM, CRLF
+  await expect(list).toHaveValue('mèo, cam\nchó') // the first column at once
+  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(2)
+  await page.getByLabel('Lấy prompt từ cột').selectOption({ label: 'Cột “Nơi”' })
+  await expect(list).toHaveValue('sân\nnhà "gỗ"')
+  await page.getByLabel('Lấy prompt từ cột').selectOption({ label: 'Ghép nhiều cột bằng mẫu ở trên' })
+  await expect(page.getByTestId('csv-cols')).toContainText('{Tên} {Nơi}')
+  await page.getByLabel(/Mẫu prompt/).fill('{Tên} nằm ở {Nơi}, ảnh đời thường')
+  await page.getByRole('button', { name: 'Thay danh sách bằng 2 prompt' }).click()
+  await expect(list).toHaveValue('mèo, cam nằm ở sân, ảnh đời thường\nchó nằm ở nhà "gỗ", ảnh đời thường')
+  await page.getByLabel(/Mẫu prompt/).fill('{Màu}')
+  await expect(page.getByRole('alert')).toContainText('Cột “Màu”: File CSV không có cột này')
+  await input.setInputFiles({ name: 'thiếu.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,sân\n,nhà\n') })
+  await expect(page.getByTestId('csv-error')).toContainText('Dòng 3, cột “Tên”: Ô này đang trống')
+  await expect(list).toHaveValue('mèo, cam nằm ở sân, ảnh đời thường\nchó nằm ở nhà "gỗ", ảnh đời thường') // the list is left as it was
+  await page.getByRole('button', { name: 'Bỏ file CSV' }).click()
+  await expect(page.getByTestId('csv-error')).toHaveCount(0)
+})
+
+test('Workflow: Text → Tạo ảnh → Vòng lặp (3) → Tự tải về runs three batches in order, each round sent with the image the round before saved; only then saved', async () => {
+  const ud = tmp(), root = join(tmp(), 'dl')
+  const { app, page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root })
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  for (const k of ['Text', 'Tạo ảnh Flow', 'Vòng lặp', 'Tự tải về']) await page.getByRole('button', { name: `+ ${k}`, exact: true }).click()
+  await node('text').getByLabel('Prompt của node Text').fill('chân dung ông lão')
+  await wire(node('text'), node('generate'))
+  await wire(node('generate'), node('loop'))
+  await wire(node('loop'), node('download'))
+  await expect(page.locator('.react-flow__edge')).toHaveCount(3)
+  await node('loop').locator('header b').click()
+  await page.getByLabel('Số vòng').fill('3')
+  await expect(node('loop')).toContainText('tổng cộng 3 vòng')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  await expect(node('loop')).toContainText('Xong · vòng 3/3 1/1')
+  type B = { id: string; status: string; items: { prompt: string; refs: string[]; attempts: { downloads: Record<string, { state: string; actualName: string | null }> }[] }[] }
+  const batches = (await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches))) as B[]
+  expect(batches.map((b) => [b.status, b.items.map((i) => [i.prompt, i.refs.length])])).toEqual([1, 2, 3].map(() => ['completed', [['chân dung ông lão', expect.any(Number)]]]))
+  const [r3, r2, r1] = batches // newest first
+  expect([r1.items[0].refs, r2.items[0].refs.length, r3.items[0].refs.length]).toEqual([[], 1, 1])
+  expect((await ledger(app)).refs).toEqual([r2.items[0].refs, r3.items[0].refs]) // rounds 2 and 3 were sent with one image each, not the same one
+  expect(r2.items[0].refs[0]).not.toBe(r3.items[0].refs[0])
+  const saved = (b: B) => b.items.flatMap((i) => i.attempts.flatMap((a) => Object.values(a.downloads))).filter((d) => d.state === 'completed').map((d) => basename(d.actualName!))
+  await app.close()
+  const db = openDb(join(ud, 'toolflow.db'))
+  const path = (id: string) => basename((db.prepare('select path from asset where id=?').get(id) as { path: string }).path)
+  expect([saved(r1).includes(path(r2.items[0].refs[0])), saved(r2).includes(path(r3.items[0].refs[0]))]).toEqual([true, true]) // round n's reference is a file round n-1 saved
+  db.close()
+})
+
+test('Workflow: a Bảng CSV node drives a Tạo ảnh node, one prompt per row from its {Cột} template; a row with an empty used cell is named on the node', async () => {
+  const { page } = await launch(tmp())
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: '+ Bảng CSV' }).click()
+  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await node('csv').locator('.react-flow__handle.source').click(); await node('generate').locator('.react-flow__handle.target').click()
+  await node('csv').locator('label.filebtn input').setInputFiles({ name: 'a.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,sân\n\nchó,nhà\n') })
+  await expect(node('csv').getByLabel('Mẫu prompt của node Bảng CSV')).toHaveValue('{Tên}') // the first column until a template is written
+  await expect(node('csv').getByTestId('wf-csv-info')).toHaveText('2 prompt · cột: {Tên} {Nơi}')
+  await node('csv').getByLabel('Mẫu prompt của node Bảng CSV').fill('{Tên} ở {Nơi}')
+  await node('generate').locator('header b').click()
+  await expect(page.getByTestId('wf-preview')).toContainText('Sẽ gửi 2 prompt')
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string }[] }[] }) => r.batches.map((b) => b.items.map((i) => i.prompt))))).toEqual([['mèo ở sân', 'chó ở nhà']])
+  await node('csv').locator('label.filebtn input').setInputFiles({ name: 'b.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,\n') })
+  await expect(node('csv').getByRole('alert')).toContainText('Dòng 2, cột “Nơi”: Ô này đang trống')
+})
+
+test('Workflow: + Tạo video Flow adds a node already set to video, titled so; a Vòng lặp after it is refused with its own reason', async () => {
+  const { page } = await launch(tmp())
+  const node = (t: string) => page.getByTestId(`wf-${t}`)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByRole('button', { name: '+ Text', exact: true }).click()
+  await page.getByRole('button', { name: '+ Tạo video Flow' }).click()
+  await page.getByRole('button', { name: '+ Vòng lặp' }).click()
+  await expect(node('generate').locator('header b')).toHaveText('Tạo video Flow')
+  await expect(node('generate').getByTestId('wf-combo')).toHaveText('Video · Veo 3.1 - Lite · 16:9 · x1')
+  await node('text').getByLabel('Prompt của node Text').fill('ngọn nến cháy')
+  await node('text').locator('.react-flow__handle.source').click(); await node('generate').locator('.react-flow__handle.target').click()
+  await node('generate').locator('.react-flow__handle.source').click(); await node('loop').locator('.react-flow__handle.target').click()
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(node('loop').getByRole('alert')).toContainText('Vòng lặp chỉ dùng được sau node tạo ảnh')
+  expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches.length))).toBe(0)
 })
 
 type FakeGpt = { __toolflowFakeGpt: { ledger: { sends: string[]; newChats: number; opens: string[] } } }
@@ -1209,3 +1308,304 @@ test('Workflow: a Tạo ảnh node sent to Gemini (with a ratio) feeds one sent 
   expect((readdirSync(root, { recursive: true }) as string[]).filter((f) => String(f).endsWith('.png'))).toHaveLength(2)
 })
 
+test('Kết quả: filters by save state, site, kind and tag combine with the search; select all / none; tags added and removed; Xoá asks first and sends the saved file to the Recycle Bin; Xuất file copies the files with a CSV', async () => {
+  const ud = tmp(), root = join(tmp(), 'dl'), exp = join(tmp(), 'xuat')
+  const { page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_EXPORT_DIR: exp })
+  await create(page, ['một con mèo', 'một con chó', 'một con cá'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3)
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
+  await create(page, ['một con chim'])
+  await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
+  await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 }) // a chat site saves by itself
+  await expect(outputs(page)).toHaveCount(4)
+  const save = page.getByLabel('Lọc theo trạng thái lưu'), site = page.getByLabel('Lọc theo nền tảng'), kind = page.getByLabel('Lọc theo loại'), tag = page.getByLabel('Lọc theo thẻ')
+  await save.selectOption('unsaved')
+  await expect(outputs(page)).toHaveCount(3)
+  await expect(page.getByText('0/3', { exact: true })).toBeVisible() // the count line follows the filter
+  await save.selectOption('saved')
+  await expect(outputs(page)).toHaveCount(1)
+  await save.selectOption('')
+  await site.selectOption('flow')
+  await expect(outputs(page)).toHaveCount(3)
+  await page.getByLabel('Tìm prompt hoặc lô').fill('mèo')
+  await expect(outputs(page)).toHaveCount(1)
+  await page.getByLabel('Tìm prompt hoặc lô').fill('')
+  await kind.selectOption('video')
+  await expect(page.getByText('Không có kết quả nào khớp bộ lọc đang chọn.')).toBeVisible()
+  await kind.selectOption('')
+  await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
+  await expect(outputs(page).filter({ hasText: 'Đã lưu' })).toHaveCount(3)
+  // select all = every card the filter shows; tag them
+  await page.getByRole('button', { name: 'Chọn tất cả' }).click()
+  await expect(page.getByTestId('picked')).toHaveText('Đã chọn 3')
+  await page.getByLabel('Tên thẻ').fill('  bìa sách ')
+  await page.getByRole('button', { name: 'Gắn thẻ' }).click()
+  await expect(outputs(page).filter({ has: page.getByTestId('tags').filter({ hasText: 'bìa sách' }) })).toHaveCount(3)
+  await page.getByRole('button', { name: 'Bỏ chọn' }).click()
+  await expect(page.getByTestId('picked')).toHaveText('Đã chọn 0')
+  await site.selectOption('')
+  await tag.selectOption('bìa sách')
+  await expect(outputs(page)).toHaveCount(3)
+  await outputs(page).filter({ hasText: 'một con cá' }).getByLabel('Chọn kết quả này').check()
+  await page.getByLabel('Tên thẻ').fill('bìa sách')
+  await page.getByRole('button', { name: 'Gỡ thẻ' }).click()
+  await expect(outputs(page)).toHaveCount(2)
+  await tag.selectOption('')
+  await expect(outputs(page)).toHaveCount(4)
+  await expect(page.getByTestId('picked')).toHaveText('Đã chọn 1') // the fish stays picked across filters
+  await page.getByRole('button', { name: 'Bỏ chọn' }).click()
+  // Xoá: asked first; Huỷ keeps everything
+  await outputs(page).filter({ hasText: 'một con mèo' }).getByLabel('Chọn kết quả này').check()
+  await page.getByRole('button', { name: 'Xoá 1 kết quả' }).click()
+  await page.getByRole('button', { name: 'Huỷ' }).click()
+  await expect(outputs(page)).toHaveCount(4)
+  expect(pngFiles(root)).toHaveLength(4)
+  await page.getByRole('button', { name: 'Xoá 1 kết quả' }).click()
+  await page.getByRole('button', { name: 'Có, xoá' }).click()
+  await expect(page.locator('section[aria-label="Kết quả"]').getByRole('status')).toHaveText('Đã xoá 1 kết quả khỏi màn này: 1 tệp đã vào Thùng rác.')
+  await expect(outputs(page)).toHaveCount(3)
+  await expect(outputs(page).filter({ hasText: 'một con mèo' })).toHaveCount(0)
+  expect(pngFiles(root)).toHaveLength(3)
+  expect(readdirSync(join(ud, 'fake-trash')).filter((f) => f.endsWith('.png'))).toHaveLength(1) // the test build's Recycle Bin
+  await expect(page.getByRole('button', { name: 'Tải tất cả kết quả' })).toBeDisabled() // nothing left to save: the deleted one is not offered again
+  // Xuất file with nothing picked: everything the filter shows
+  await site.selectOption('flow')
+  await page.getByRole('button', { name: 'Xuất file' }).click()
+  await expect(page.locator('section[aria-label="Kết quả"]').getByRole('status')).toHaveText('Đã xuất 2 tệp và toolflow-export.csv.')
+  const files = readdirSync(exp).sort()
+  expect(files.filter((f) => f.endsWith('.png'))).toHaveLength(2)
+  const csv = readFileSync(join(exp, 'toolflow-export.csv'))
+  expect(csv.subarray(0, 3).toString('hex')).toBe('efbbbf')
+  expect(csv.toString('utf8')).toContain('"một con chó","Flow","Ảnh"')
+  expect(csv.toString('utf8')).toContain('"bìa sách"')
+  expect(csv.toString('utf8')).not.toContain('một con mèo')
+})
+
+test('Sao lưu / khôi phục in Cài đặt: the backup is one valid SQLite file with the settings; a wrong file is refused inline; refused while a prompt is being sent; a good one is staged, the app restarts and comes back with the old data and settings', async () => {
+  const ud = tmp(), bak = join(tmp(), 'sao-luu.db'), good = join(tmp(), 'good.db')
+  let { app, page } = await launch(ud, '', { TOOLFLOW_BACKUP_FILE: bak })
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  const fast = page.getByLabel('Nhanh', { exact: true })
+  await fast.click()
+  await expect(fast).toBeChecked()
+  const box = page.getByRole('group', { name: 'Sao lưu', exact: true })
+  await box.getByRole('button', { name: 'Sao lưu dữ liệu' }).click()
+  await expect(box.getByRole('status')).toHaveText('Đã sao lưu vào tệp sao-luu.db')
+  const b = new Database(bak, { readonly: true })
+  expect(b.prepare('select count(*) n from batch').get()).toEqual({ n: 1 })
+  expect(JSON.parse((b.prepare("select value v from toolflow_backup where key='draft'").get() as { v: string }).v)).toMatchObject({ speed: 'fast' })
+  b.close()
+  copyFileSync(bak, good)
+  writeFileSync(bak, 'không phải sqlite'.repeat(50))
+  await box.getByRole('button', { name: 'Khôi phục từ bản sao lưu' }).click()
+  await expect(box.getByRole('alert')).toContainText('không phải bản sao lưu ToolFlow')
+  expect(existsSync(join(ud, 'restore.db'))).toBe(false)
+  copyFileSync(good, bak)
+  // a prompt waiting for the user's Gửi is in flight: no restore
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)').check()
+  await page.getByLabel('Danh sách prompt').fill('một con chó')
+  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(1, { timeout: 10_000 })
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await box.getByRole('button', { name: 'Khôi phục từ bản sao lưu' }).click()
+  await expect(box.getByRole('alert')).toContainText('Đang có lượt đang gửi')
+  expect(existsSync(join(ud, 'restore.db'))).toBe(false)
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await page.getByRole('button', { name: 'Dừng', exact: true }).click()
+  await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(0, { timeout: 10_000 })
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  const normal = page.getByLabel('Mặc định', { exact: true })
+  await normal.click()
+  await expect(normal).toBeChecked()
+  await box.getByRole('button', { name: 'Khôi phục từ bản sao lưu' }).click()
+  await expect(box.getByRole('status')).toContainText('App đang tự đóng và mở lại')
+  expect(existsSync(join(ud, 'restore.db'))).toBe(true)
+  await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __toolflowRestarts?: number }).__toolflowRestarts)).toBe(1) // the test build only counts the relaunch
+  await app.close()
+  ;({ app, page } = await launch(ud))
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page).filter({ hasText: 'một con mèo' })).toHaveCount(1)
+  await expect(items(page).filter({ hasText: 'một con chó' })).toHaveCount(0) // made after the backup
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByLabel('Nhanh', { exact: true })).toBeChecked() // the settings came back too
+  const left = readdirSync(ud)
+  expect(left).not.toContain('restore.db')
+  expect(left.filter((f) => f.startsWith('toolflow.db.before-restore-') && !/-(wal|shm)$/.test(f))).toHaveLength(1) // the data before the restore is kept
+})
+
+test('Kết nối: the chosen tab is remembered by account + project; after a restart it is chosen again by itself (Tự chọn lại) and an unfinished batch goes on; Quên các tab đã nhớ stops that', async () => {
+  const ud = tmp()
+  let { app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await page.getByRole('button', { name: 'Dùng tab này' }).click()
+  await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
+  await expect(page.getByText('Tự chọn lại', { exact: true })).toHaveCount(0) // the user's own click
+  await expect(page.getByRole('button', { name: 'Quên các tab đã nhớ' })).toBeVisible()
+  await create(page, ['một con mèo'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+  await app.close()
+  const db = openDb(join(ud, 'toolflow.db')) // the app was closed with a batch still running: two prompts not sent yet
+  const done = db.prepare('select target_project p, settings_json s from batch').get() as { p: string; s: string }
+  const { batchId } = enqueueBatch(db, { commandId: 'left', kind: 'image', projectId: done.p, settings: JSON.parse(done.s), prompts: ['dở một', 'dở hai'], refs: [[], []], mode: 'auto' })
+  db.prepare("update batch set status='running' where id=?").run(batchId)
+  db.close()
+  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' })) // Chrome and the app restarted: nobody clicks anything
+  await page.getByRole('button', { name: 'Hàng đợi' }).click()
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3, { timeout: 20_000 })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
+  await expect(page.getByText('Tự chọn lại', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Quên các tab đã nhớ' }).click()
+  await expect(page.getByRole('button', { name: 'Quên các tab đã nhớ' })).toHaveCount(0)
+  await app.close()
+  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' }))
+  await page.waitForTimeout(6000) // longer than one round of the main-process loop
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByRole('button', { name: 'Dùng tab này' })).toBeVisible()
+  await expect(page.getByText('Đang dùng', { exact: true })).toHaveCount(0)
+})
+
+test('Kết nối: the setup panel ticks what is done and opens Chrome on the extensions page or Flow (the app starts Chrome, not the page); without Chrome it says so inline', async () => {
+  let { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  const step = (name: string) => page.getByRole('list', { name: 'Các bước kết nối' }).locator('li').filter({ hasText: name })
+  await expect(step('Chrome tìm thấy')).toHaveAttribute('data-done', 'true')
+  await expect(step('Extension đã nối')).toHaveAttribute('data-done', 'false')
+  await expect(step('Có tab Flow')).toHaveAttribute('data-done', 'true')
+  await expect(step('Đã mở dự án')).toHaveAttribute('data-done', 'true')
+  await expect(step('Đã chọn tab')).toHaveAttribute('data-done', 'true')
+  await page.getByRole('button', { name: 'Mở trang tiện ích trong Chrome' }).click()
+  await page.getByRole('button', { name: 'Mở Google Flow' }).click()
+  await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual(['chrome://extensions', 'https://labs.google/fx/tools/flow'])
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await app.close()
+  ;({ app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0', TOOLFLOW_FAKE_CHROME: '0' }))
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(step('Chrome tìm thấy')).toHaveAttribute('data-done', 'false')
+  await page.getByRole('button', { name: 'Mở Google Flow' }).click()
+  await expect(page.getByRole('alert')).toContainText('Không tìm thấy Google Chrome')
+  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual([])
+})
+
+// ---- notices, Hẹn giờ chạy, tray, credit ----
+const TG_TOKEN = '123456789:AAFakeFakeFakeFakeFakeFakeFakeFake_x'
+/** A local stand-in for api.telegram.org (the app reaches it through TOOLFLOW_TELEGRAM_API): one /start waiting, every sendMessage recorded. */
+async function fakeTelegram(): Promise<{ url: string; sent: string[]; close(): void }> {
+  const sent: string[] = []
+  const s = createServer((req, res) => {
+    let raw = ''
+    req.on('data', (c) => { raw += c })
+    req.on('end', () => {
+      const method = (req.url ?? '').split('/').pop()
+      if (method === 'sendMessage') sent.push(JSON.parse(raw).text)
+      res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true, result: method === 'getUpdates' ? [{ update_id: 1, message: { message_id: 1, chat: { id: 77, type: 'private' }, text: '/start' } }] : true }))
+    })
+  })
+  await new Promise<void>((r) => s.listen(0, '127.0.0.1', r))
+  return { url: `http://127.0.0.1:${(s.address() as AddressInfo).port}`, sent, close: () => s.close() }
+}
+const bell = (page: Page) => page.getByRole('button', { name: /^Thông báo/ })
+const notices = (page: Page) => page.getByTestId('notice')
+
+test('notices: a finished batch rings the bell and the Telegram bot gets a content-free message (never the prompt); the token never comes back to the screen', async () => {
+  const tg = await fakeTelegram()
+  try {
+    const { page } = await launch(tmp(), '', { TOOLFLOW_TELEGRAM_API: tg.url })
+    await expect(bell(page)).toHaveAccessibleName('Thông báo')
+    await page.getByRole('button', { name: 'Cài đặt' }).click()
+    await expect(page.getByTestId('tg-state')).toHaveText('Telegram: chưa có mã bot')
+    await page.getByLabel('Mã bot Telegram').fill('không phải mã')
+    await page.getByRole('button', { name: 'Lưu mã' }).click()
+    await expect(page.getByRole('alert')).toContainText('Mã bot không đúng')
+    await page.getByLabel('Mã bot Telegram').fill(TG_TOKEN)
+    await page.getByRole('button', { name: 'Lưu mã' }).click()
+    await expect(page.getByTestId('tg-state')).toHaveText('Telegram: đã có mã bot, chưa kết nối')
+    await expect(page.getByLabel('Mã bot Telegram')).toHaveValue('')
+    await page.getByRole('button', { name: 'Kết nối Telegram' }).click()
+    await expect(page.getByTestId('tg-state')).toHaveText('Telegram: đã kết nối')
+    await page.getByRole('button', { name: 'Gửi tin thử' }).click()
+    await expect.poll(() => tg.sent.length).toBe(1)
+    const secret = 'con mèo bí mật 4711'
+    await create(page, [secret])
+    await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
+    await expect(bell(page)).toHaveAccessibleName('Thông báo (1 chưa đọc)')
+    await expect.poll(() => tg.sent.length).toBe(2)
+    expect(tg.sent[1]).toMatch(/^Lô [0-9a-f]{8} đã xong\nFlow · Ảnh · 1\/1 có kết quả · 0 lỗi$/)
+    for (const m of tg.sent) expect(m).not.toContain(secret)
+    await bell(page).click()
+    await expect(notices(page)).toHaveCount(1)
+    await expect(notices(page).first()).toContainText('đã xong')
+    await page.getByRole('button', { name: 'Đánh dấu đã đọc' }).click()
+    await expect(bell(page)).toHaveAccessibleName('Thông báo')
+    expect(await page.content()).not.toContain(TG_TOKEN.split(':')[1])
+    expect(JSON.stringify(await page.evaluate(() => (window as unknown as { api: { getTelegram(): Promise<unknown> } }).api.getTelegram()))).toBe('{"configured":true,"linked":true}')
+  } finally { tg.close() }
+})
+
+const pad = (n: number): string => String(n).padStart(2, '0')
+test('Hẹn giờ chạy: the queue shows the time with Huỷ hẹn giờ, then the batch starts by itself at that time and the bell says so', async () => {
+  const { app, page } = await launch(tmp())
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByLabel('Danh sách prompt').fill('một con mèo hẹn giờ')
+  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(1)
+  await page.getByLabel('Hẹn giờ chạy').check()
+  await expect(page.getByRole('button', { name: 'Tạo lô và hẹn giờ' })).toBeDisabled() // no time picked yet
+  const now = await app.evaluate(() => (globalThis as unknown as { __toolflowClock: { now(): number } }).__toolflowClock.now())
+  const at = new Date(Math.ceil(now / 60_000) * 60_000 + 6 * 60_000) // whole minutes (the field has none smaller); the test clock runs 30x: 12-14 s from now
+  await page.getByLabel('Giờ chạy', { exact: true }).fill(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`)
+  await page.getByRole('button', { name: 'Tạo lô và hẹn giờ' }).click()
+  await expect(page.getByTestId('schedule')).toContainText(`Hẹn chạy lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
+  await expect(page.getByRole('button', { name: 'Huỷ hẹn giờ' })).toBeVisible()
+  await expect(items(page)).toHaveCount(1)
+  await expect(items(page).first()).toContainText('Đang chờ')
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1, { timeout: 40_000 })
+  await expect(page.getByTestId('schedule')).toHaveCount(0)
+  await bell(page).click()
+  await expect(notices(page).filter({ hasText: 'đã bắt đầu theo hẹn giờ' })).toHaveCount(1)
+  await expect(notices(page).filter({ hasText: 'đã bắt đầu theo hẹn giờ' })).toContainText(`hẹn lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
+})
+
+test('tray: closing the window hides it and the app keeps running (a second launch shows it again); Tự mở cùng Windows is recorded, never written to the registry in a test; app.close() still quits', async () => {
+  const dir = tmp()
+  const { app, page } = await launch(dir)
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await expect(page.getByLabel('Đóng cửa sổ thì thu xuống khay (lịch vẫn chạy)')).toBeChecked()
+  const login = page.getByLabel('Tự mở cùng Windows')
+  await expect(login).not.toBeChecked()
+  await login.click()
+  await expect(login).toBeChecked()
+  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowLoginItem?: unknown[] }).__toolflowLoginItem)).toEqual([{ openAtLogin: true, args: ['--hidden'] }])
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()))).toEqual([false])
+  expect(app.process().exitCode).toBeNull()
+  const env = { ...process.env, TOOLFLOW_FAKE_DRIVER: '1', TOOLFLOW_E2E: '1', TOOLFLOW_USER_DATA: dir } as Record<string, string>
+  delete env.ELECTRON_RUN_AS_NODE
+  const b = spawn(electronPath as unknown as string, ['--no-sandbox', '.'], { cwd: desktop, env, stdio: 'ignore' })
+  expect(await new Promise((r) => { b.on('exit', r); setTimeout(() => { b.kill(); r('timeout') }, 20_000) })).not.toBe('timeout')
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => w.isVisible()))).toEqual([true])
+  const proc = app.process()
+  await app.close()
+  expect(proc.exitCode !== null || proc.signalCode !== null).toBe(true)
+})
+
+test('credit: Flow\'s balance shows in Kết nối with its time; falling under the threshold raises one notice, not one per answer', async () => {
+  const { page } = await launch(tmp(), 'video-ok,video-ok')
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  const th = page.getByLabel('Cảnh báo khi credit dưới')
+  await expect(th).toHaveValue('50')
+  await th.fill('1000') // the fake Flow reports 958 with each video receipt, then 948 in its poll
+  await expect.poll(() => page.evaluate(() => (window as unknown as { api: { listBatches(): Promise<{ session: { draft: { creditWarn: number } } }> } }).api.listBatches().then((r) => r.session.draft.creditWarn))).toBe(1000)
+  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
+  await page.getByRole('radio', { name: 'Video', exact: true }).check()
+  await create(page, ['video một', 'video hai'])
+  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('credits')).toHaveText(/^Credit Flow còn: 9[45]8, đọc lúc \d\d:\d\d$/)
+  await bell(page).click()
+  await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toHaveCount(1)
+  await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toContainText('dưới mức cảnh báo 1000')
+})

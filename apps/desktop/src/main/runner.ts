@@ -53,6 +53,7 @@ export function createRunner(o: {
   db: Db; driver: FlowDriver; clock: { now(): number }; tabs: string[]; speed: 'default' | 'fast'; autoAllowed(email: string | null): boolean; combos?: readonly Combo[]; // qualified combos (default: the profile's)
   selfCheckOk?(tab: string): Promise<boolean>; // false ⇒ manual; absent ⇒ ok
   projectOf?(tab: string): string | null; // the project open in that tab: it only takes batches of that project; absent ⇒ any (single-tab unit tests)
+  onCredits?(tab: string, credits: number): void; // the account's Flow balance, as a video receipt or poll reports it
 }): Runner {
   const { db, driver, clock } = o;
   const max = CAPS[o.speed];
@@ -73,6 +74,8 @@ export function createRunner(o: {
   const rearm = new Set<string>(); // fenced while the user was to send here: the armed tracker still stamps the old epoch
   const clicking = new Set<string>(); // attempts whose driver.click has not returned
   const paused = new Map<string, string | null>(); // authoritative even when the DB write failed; flushed each tick
+  // shortcut: only video answers carry the balance (payload [1]); an image receipt has none, read it from an image answer once one is captured with it
+  const credit = (tab: string, c: unknown) => { if (typeof c === 'number') try { o.onCredits?.(tab, c); } catch { /* a notice must never stop the runner */ } };
   const unc = new Set<string>(); // batches whose current pause was set only because an attempt went uncertain: the only pause release() lifts
 
   const state = (id: string) => JSON.parse((db.prepare('select state_json j from attempt where id=?').get(id) as { j: string }).j) as AttemptState;
@@ -155,7 +158,7 @@ export function createRunner(o: {
   }
 
   /** Flow polls its videos by itself; an answer can name operations of any attempt and of the user's own videos: only attempts that own one take it. */
-  function onPoll(text: string) {
+  function onPoll(text: string, tab: string) {
     const waiting = (db.prepare("select a.id, a.state_json j from attempt a where json_extract(a.state_json,'$.item') in ('generating','needs_review')").all() as { id: string; j: string }[])
       .map((r) => ({ id: r.id, s: JSON.parse(r.j) as AttemptState })).filter((a) => a.s.operations && (a.s.item === 'generating' || a.s.stage === 'accepted'));
     if (!waiting.length) return;
@@ -163,14 +166,15 @@ export function createRunner(o: {
     try {
       const r = parseRpcResponse(text, 'jwpduf') as { error?: unknown; payload?: unknown };
       if (r.error) return; // the poll itself was refused: says nothing about a video, the next one will
-      ops = (parsePoll(r.payload) as { operations: { operationId: string }[] }).operations;
+      const p = parsePoll(r.payload) as { credits: number | null; operations: { operationId: string }[] };
+      ops = p.operations; credit(tab, p.credits);
     } catch (err) { for (const b of new Set(waiting.map((a) => info(a.id).batch))) fail(b, err); return; } // unreadable: every batch that waits on a poll stops (PROTOCOL_DRIFT)
     for (const a of waiting) if ((a.s.operations as { operationId: string }[]).some((o) => ops.some((p) => p.operationId === o.operationId))) apply(a.id, { type: 'poll', operations: ops } as AttemptEvent);
   }
 
   function onEvent(e: DriverEvent) {
     if (e.type === 'disconnected') { fence(e.tabId); return; }
-    if (e.type === 'poll') { onPoll(e.text); return; }
+    if (e.type === 'poll') { onPoll(e.text, e.tabId); return; }
     if (!(e.epoch >= epoch(e.tabId))) return; // answers a connection that is gone; reconcile settles what it left uncertain
     if (e.type === 'sent') {
       const pg = pages.get(e.tabId); if (pg) pg.ours++; // the page's gen counted this send
@@ -203,6 +207,7 @@ export function createRunner(o: {
       fail(info(hit.id).batch, err); return;
     }
     awaiting.splice(awaiting.indexOf(hit), 1);
+    if (ev.type === 'receipt') credit(e.tabId, (ev.receipt as { credits?: unknown }).credits);
     const kind = info(hit.id).kind;
     const s = apply(hit.id, ev);
     if (ev.type === 'rejected' && classifyGenerateError(ev.error).admission === 'throttle') caps[kind] = nextCap(caps[kind], 'throttled', max[kind]);
@@ -347,6 +352,15 @@ export function createRunner(o: {
       const next = ids.slice(0, max.tabs);
       for (const t of tabs) if (!next.includes(t)) fence(t);
       tabs = next;
+      // A batch paused only because its tab was lost (nothing sent since: its attempt is still preparing) goes on once a tab of its project
+      // is granted again. One with an attempt that is uncertain or waits for the user's send stays paused for the user.
+      for (const [b, why] of paused) {
+        if (why !== 'CONNECTOR_LOST') continue;
+        const p = (db.prepare('select target_project p from batch where id=?').get(b) as { p: string }).p;
+        if (!next.some((t) => !o.projectOf || o.projectOf(t) === p)) continue;
+        if (db.prepare("select 1 from item i join attempt a on a.id=i.attempt_id where i.batch_id=? and json_extract(a.state_json,'$.item') in ('needs_review','awaiting_user')").get(b)) continue;
+        paused.delete(b); setStatus(b, 'paused', 'running');
+      }
     },
     tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p; },
     start(b) { paused.delete(b); unc.delete(b); setStatus(b, 'queued', 'running'); },

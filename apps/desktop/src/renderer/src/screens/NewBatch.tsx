@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { Draft, Preset } from '../types'
 import TemplateBuilder, { EMPTY_TEMPLATE, type TemplateState } from './TemplateBuilder'
 import { ComboFields, choicesOf, comboLabel, defaultCombo, withChange, type Combo } from '../combo'
+import { csvMsg, fillRows, readCsv } from '../csv'
+import { codeIn, hintOf } from '../hints'
 
 type Row = { n: number; prompt: string; refs: string[]; error: string | null }
 type Asset = { id: string; name: string; bytes: number }
@@ -46,7 +48,10 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
   const pickBtn = useRef<HTMLButtonElement>(null)
+  const msgRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ block: 'center' }) }, [msg]) // it lands right above the sticky action bar, under it when scrolled to the end
   const [cmd, setCmd] = useState(() => crypto.randomUUID()) // same id on a double click = one batch
+  const [when, setWhen] = useState<string | null>(null) // Hẹn giờ chạy: the chosen local date-time; null = run now
   const set = (p: Partial<Draft>): void => setD((x) => ({ ...x, ...p }))
   const [presets, setPresets] = useState<Preset[]>([])
   const [naming, setNaming] = useState<string | null>(null) // the name being typed for "Lưu làm mẫu"
@@ -98,14 +103,32 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
     try { set({ text: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(await f.arrayBuffer()) }); setMsg('') }
     catch { setMsg('File không phải UTF-8 hợp lệ.') }
   }
+  // CSV: one column becomes the prompt list at once, or '' = the columns are the {variables} of the template box above
+  const [csv, setCsv] = useState<string[][] | null>(null)
+  const [col, setCol] = useState('')
+  const [csvErr, setCsvErr] = useState('')
+  const fromColumn = (rows: string[][], c: string): void => { // shortcut: a header over 40 characters cannot be a {variable}; rename the column in the file
+    setCol(c)
+    if (!c) return setCsvErr('')
+    const r = fillRows(`{${c}}`, rows)
+    setCsvErr('error' in r ? csvMsg(r.error) : '')
+    if ('prompts' in r) set({ text: r.prompts.join('\n') })
+  }
+  const loadCsv = async (f?: File): Promise<void> => {
+    if (!f) return
+    const r = readCsv(await f.arrayBuffer())
+    setCsv('rows' in r ? r.rows : null)
+    if ('error' in r) return setCsvErr(csvMsg(r.error))
+    fromColumn(r.rows, r.rows[0][0].trim())
+  }
   const create = async (): Promise<void> => {
     try {
-      const r = await window.api.enqueueBatch(args(refs))
+      const r = await window.api.enqueueBatch({ ...args(refs), ...(when ? { startAt: new Date(when).getTime() } : {}) })
       if (!('batchId' in r)) return setMsg('Không tạo được lô: ảnh tham chiếu chưa khớp số prompt.')
-      for (const id of (r.batchIds as string[] | undefined) ?? [r.batchId]) await window.api.startBatch(id) // one batch per granted project
+      if (!when) for (const id of (r.batchIds as string[] | undefined) ?? [r.batchId]) await window.api.startBatch(id) // one batch per granted project; a scheduled one waits for its time
       setCmd(crypto.randomUUID())
       onCreated()
-    } catch (e) { setMsg((e as Error).message.includes('NO_PROJECT_TAB') ? 'Chưa có tab Flow nào được cấp quyền — mở một dự án Flow rồi bấm “Dùng tab này”' : `Không tạo được lô: ${(e as Error).message}`) }
+    } catch (e) { const m = (e as Error).message; setMsg(m.includes('NO_PROJECT_TAB') ? 'Chưa có tab Flow nào được cấp quyền — mở một dự án Flow rồi bấm “Dùng tab này”' : `Không tạo được lô: ${(m.includes('SCHEDULE_') && hintOf(codeIn(m))) || m}`) }
   }
 
   return (
@@ -129,15 +152,26 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </form>
         )}
       </div>
-      <TemplateBuilder value={tpl} onChange={(t) => { keptTpl = t; setTpl(t) }} hasText={d.text.trim() !== ''} onApply={(ps) => set({ text: ps.join('\n') })} />
+      <TemplateBuilder value={tpl} onChange={(t) => { keptTpl = t; setTpl(t) }} hasText={d.text.trim() !== ''} onApply={(ps) => set({ text: ps.join('\n') })} table={csv && !col ? csv : null} />
       <div>
         <label className="field-label" htmlFor="prompts">Danh sách prompt</label>
         <textarea id="prompts" value={d.text} onChange={(e) => set({ text: e.target.value })} placeholder="Mỗi dòng một prompt" />
         <div className="toolbar small-text muted">
           <label className="filebtn">Nạp file TXT<input type="file" accept=".txt,text/plain" onChange={(e) => void file(e.target.files?.[0])} /></label>
+          <label className="filebtn">Nạp file CSV<input type="file" accept=".csv,text/csv" onChange={(e) => { void loadCsv(e.target.files?.[0]); e.target.value = '' }} /></label>
+          {csv && (
+            <>
+              <select aria-label="Lấy prompt từ cột" value={col} onChange={(e) => fromColumn(csv, e.target.value)}>
+                {csv[0].map((h, i) => <option key={i} value={h.trim()}>Cột “{h.trim()}”</option>)}
+                <option value="">Ghép nhiều cột bằng mẫu ở trên</option>
+              </select>
+              <button className="small x" aria-label="Bỏ file CSV" onClick={() => { setCsv(null); setCsvErr('') }}>×</button>
+            </>
+          )}
           <span className="spacer" />
           <span><span className="num">{rows.length}</span> prompt</span>
         </div>
+        {csvErr && <p role="alert" className="notice" data-testid="csv-error">{csvErr}</p>}
       </div>
       <div className="choices">
         <fieldset className="wide">
@@ -215,11 +249,13 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </table>
         </div>
       )}
-      {msg && <p role="alert" className="notice">{msg}</p>}
+      {msg && <p role="alert" className="notice" ref={msgRef}>{msg}</p>}
       <div className="actionbar">
         <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && model ? ` · ${model}` : ''}${gem && aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
-        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0}>Tạo lô và chạy</button>
+        <label><input type="checkbox" checked={when !== null} onChange={(e) => setWhen(e.target.checked ? '' : null)} /> Hẹn giờ chạy</label>
+        {when !== null && <input type="datetime-local" aria-label="Giờ chạy" value={when} onChange={(e) => setWhen(e.target.value)} />}
+        <button className="primary" onClick={() => void create()} disabled={rows.length === 0 || errs.length > 0 || when === ''}>{when !== null ? 'Tạo lô và hẹn giờ' : 'Tạo lô và chạy'}</button>
       </div>
     </section>
   )

@@ -3,17 +3,22 @@ export type Attempt = {
   error: { code?: string; why?: string; reasons?: string[]; resolution?: string } | null
   profileVersion: string | null; outputs: string[]; journal: { type: string; at: number }[]
   downloads: Record<string, Download> // by output (media) id; absent = not requested yet
+  tags?: Record<string, string[]> // by output id: the user's tags in Kết quả
 }
 export type Download = { state: 'intent' | 'started' | 'completed' | 'failed' | 'needs_review'; actualName: string | null; errorCode: string | null }
 export type Item = { id: string; ord: number; prompt: string; refs: string[]; attemptId: string; attempts: Attempt[] } // refs: asset ids
-export type Batch = { pauseReason?: string | null; id: string; kind: 'image' | 'video'; provider?: 'flow' | 'chatgpt' | 'gemini'; status: string; archived: boolean; createdAt: number; settings: { mode?: string; split?: { part: number; of: number } }; project?: string | null; items: Item[] }
-export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean } // autoSave: Flow results are saved as they get ready
+export type Batch = { pauseReason?: string | null; startAt?: number | null; id: string; kind: 'image' | 'video'; provider?: 'flow' | 'chatgpt' | 'gemini'; status: string; archived: boolean; createdAt: number; settings: { mode?: string; split?: { part: number; of: number } }; project?: string | null; items: Item[] }
+export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean; notifyApp: boolean; notifyWindows: boolean; notifyTelegram: boolean; tray: boolean; openAtLogin: boolean; creditWarn: number } // autoSave: Flow results are saved as they get ready
+export type Notice = { id: number; at: number; kind: 'done' | 'attention' | 'scheduled' | 'credit'; batchId: string | null; title: string; body: string; read: boolean }
+export type Notices = { items: Notice[]; unread: number; windowsBlocked: boolean }
+export type TelegramState = { configured: boolean; linked: boolean }
 export type UpdateState = { state: 'off' | 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error'; current: string; version?: string; percent?: number; code?: string }
 export type PresetAsset = { id: string; name: string; bytes: number; missing?: boolean }
 export type Preset = { id: string; name: string; kind: Draft['kind']; mode: Draft['mode']; combo?: import('./combo').Combo; refs: { assetIds: string[]; mode: 'none' | 'sequential' | 'all'; perItem: number; assets: PresetAsset[] }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } }
-export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean }
+export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean; auto?: boolean } // auto: chosen again by the app from the remembered tabs
 export type Session = {
-  extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean; gptTabs?: number; gemTabs?: number
+  extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean; gptTabs?: number; gemTabs?: number; credits?: { email: string; credits: number; at: number }[]
+  chromeFound?: boolean; remembered?: number // remembered: how many (account, project) pairs the app chooses again by itself
   selfCheck: { ok: true } | { ok: false; code: string; reasons: string[] } | null
 }
 

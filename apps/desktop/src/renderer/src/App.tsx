@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Preset, type Session, type UpdateState } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Notices, type Preset, type Session, type UpdateState } from './types'
 import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
@@ -28,6 +28,31 @@ function Status({ s }: { s: Session | null }): React.JSX.Element {
       {sc && !sc.ok && <Chip tone="attn">{sc.reasons.includes('RELOAD_TAB') ? 'Extension cần tải lại' : `Trang Flow: ${sc.code}`}</Chip>}
       <span>Tự bấm {s.autoEnabled ? 'bật' : 'tắt'}</span>
       <span className="avatar" title={s.email ?? 'chưa đọc được tài khoản'}>{s.email ? s.email.slice(0, 2).toUpperCase() : '—'}</span>
+    </div>
+  )
+}
+
+/** The bell: unread count and the last 50 notices, kept in main's DB (they survive a restart). */
+function Bell(): React.JSX.Element {
+  const [n, setN] = useState<Notices | null>(null)
+  const [open, setOpen] = useState(false)
+  const load = useCallback(() => void window.api.listNotices().then(setN), [])
+  useEffect(() => { load(); return window.api.onNotice(load) }, [load])
+  const unread = n?.unread ?? 0
+  return (
+    <div className="bell">
+      <button className="icon-btn" aria-label={unread ? `Thông báo (${unread} chưa đọc)` : 'Thông báo'} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="bell" />{unread > 0 && <span className="count" aria-hidden="true">{unread}</span>}
+      </button>
+      {open && n && (
+        <div className="bell-panel" role="region" aria-label="Danh sách thông báo">
+          <div className="bell-head"><b>Thông báo</b><span className="spacer" /><button disabled={!unread} onClick={() => void window.api.readNotices()}>Đánh dấu đã đọc</button></div>
+          {n.windowsBlocked && <p className="notice warn small-text" role="status">Windows đang tắt thông báo nên bạn chỉ thấy tin ở đây. Muốn có thông báo góc màn hình: mở Cài đặt Windows → Hệ thống → Thông báo, bật “Thông báo” và bật cho ToolFlow.</p>}
+          {n.items.length === 0 ? <p className="muted small-text">Chưa có thông báo nào.</p> : (
+            <ul>{n.items.map((i) => <li key={i.id} data-read={i.read} data-testid="notice"><b>{i.title}</b><span className="small-text">{i.body}</span><span className="muted small-text">{new Date(i.at).toLocaleString('vi-VN')}</span></li>)}</ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -135,6 +160,7 @@ function App(): React.JSX.Element {
             <label className="search"><Icon name="search" /><input type="search" aria-label="Tìm prompt hoặc lô" placeholder="Tìm prompt, mã lô…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           )}
           {(upd?.state === 'downloading' || upd?.state === 'available') && <span className="muted small-text" role="status">Đang tải bản {upd.version}{upd.percent !== undefined ? ` · ${upd.percent}%` : '…'}</span>}
+          <Bell />
           <button className="icon-btn" aria-label={dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'} title={dark ? 'Giao diện sáng' : 'Giao diện tối'} onClick={() => pickTheme(dark ? 'light' : 'dark')}>
             <Icon name={dark ? 'sun' : 'moon'} />
           </button>

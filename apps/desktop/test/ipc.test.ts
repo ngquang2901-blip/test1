@@ -8,7 +8,7 @@ import { DEFAULT_COMBO } from '../src/main/profile';
 import { FAKE_COMBOS, createFakeDriver } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
 import { autoAllowed, enableAuto } from '../src/main/account';
-import { createHandlers, revisioned, parseDraft, type Draft } from '../src/main/ipc';
+import { createHandlers, revisioned, parseDraft, DEFAULT_DRAFT, type Draft } from '../src/main/ipc';
 import { clockFactor, errorCode } from '../src/main/boot-util';
 import { newer } from '../src/renderer/src/revision';
 
@@ -17,7 +17,7 @@ function rig(email: string | null = 'a@b.c', script: ('image-ok' | 'no-request')
   const clock = { t: 1_000_000, now() { return this.t; } };
   const runner = createRunner({ db, driver: ((f) => ({ ...f, ping: async (t: string) => ({ ...(await f.ping(t)), t: clock.now() }) }))(createFakeDriver(script)), clock, tabs: ['t1'], speed: 'default', combos: FAKE_COMBOS, autoAllowed: (e) => autoAllowed(db, e) });
   const events: Array<{ entity: string; id: string; revision: number }> = [];
-  let draft: Draft = { text: 't', kind: 'image', mode: 'auto', speed: 'default', autoSave: true };
+  let draft: Draft = { ...DEFAULT_DRAFT, text: 't' };
   const h = createHandlers({ db, runner, grants: { use: () => {} }, projects: projects ?? (() => { const x = projectId(); return x ? [x] : []; }), email: async () => email, session: async () => ({}), pickPaths: async () => [], getDraft: () => draft, saveDraft: (d) => { draft = d; }, emit: revisioned((e) => events.push(e)), clock, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null });
   return { db, h, events, runner, clock, draft: () => draft };
 }
@@ -118,7 +118,7 @@ test('getBatch carries the current revision', async () => {
 test('saveDraft merges a partial patch into the stored draft', async () => {
   const { h, draft } = rig();
   await h.saveDraft({ speed: 'fast' });
-  expect(draft()).toEqual({ text: 't', kind: 'image', mode: 'auto', speed: 'fast', autoSave: true });
+  expect(draft()).toEqual({ ...DEFAULT_DRAFT, text: 't', speed: 'fast' });
   await expect(h.saveDraft({ speed: 'warp' })).rejects.toThrow(/INVALID_ARGS/);
   await h.saveDraft({ autoSave: false });
   expect(draft()).toMatchObject({ speed: 'fast', autoSave: false });
@@ -126,7 +126,7 @@ test('saveDraft merges a partial patch into the stored draft', async () => {
 });
 
 test('parseDraft: a bad draft on disk falls back to defaults', () => {
-  const def = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true };
+  const def = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true, notifyApp: true, notifyWindows: true, notifyTelegram: true, tray: true, openAtLogin: false, creditWarn: 50 };
   expect(parseDraft({ kind: 'mixed' })).toEqual(def);
   expect(parseDraft('x')).toEqual(def);
   expect(parseDraft({ text: 'hi', speed: 'fast' })).toEqual({ ...def, text: 'hi', speed: 'fast' });
@@ -216,7 +216,7 @@ test('several granted projects: the list is split line i -> project i mod n, lin
 
 test('enableAuto / disableAuto cover every account of the granted tabs; without ack nothing changes', async () => {
   const { db, runner, clock } = rig()
-  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => 'a@b.c', emails: async () => ['a@b.c', 'x@y.z'], session: async () => ({}), pickPaths: async () => [], getDraft: () => ({ text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true }), saveDraft: () => {}, emit: revisioned(() => {}), downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
+  const h = createHandlers({ db, runner, clock, grants: { use: () => {} }, projects: () => ['p'], email: async () => 'a@b.c', emails: async () => ['a@b.c', 'x@y.z'], session: async () => ({}), pickPaths: async () => [], getDraft: () => ({ ...DEFAULT_DRAFT, text: '' }), saveDraft: () => {}, emit: revisioned(() => {}), downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null })
   await expect(h.enableAuto({})).rejects.toMatchObject({ code: 'ACK_REQUIRED' })
   expect([autoAllowed(db, 'a@b.c'), autoAllowed(db, 'x@y.z')]).toEqual([false, false])
   await h.enableAuto({ ack: true })
@@ -264,4 +264,18 @@ test('enqueueBatch for Gemini: an image batch kept apart by its provider, with a
   await expect(h.enqueueBatch({ commandId: 'm6', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '16:9' })).rejects.toThrow(/INVALID_ARGS/);
   const c = (await h.enqueueBatch({ commandId: 'm7', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', refs })) as { batchId: string }; // ChatGPT takes reference images too
   expect(JSON.parse((db.prepare('select refs_json r from item where batch_id=?').get(c.batchId) as { r: string }).r)).toEqual(ids);
+});
+
+test('openChrome: the renderer names a page, main picks the address; anything else is refused; no Chrome found is CHROME_NOT_FOUND; forgetTabs reaches the grants', async () => {
+  const opened: string[] = []; let found = true, forgot = 0;
+  const h = createHandlers({ db: openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db')), runner: {} as never, grants: { use: () => {} }, projects: () => [], email: async () => null, session: async () => ({}), pickPaths: async () => [], getDraft: () => parseDraft(null), saveDraft: () => {}, emit: revisioned(() => {}), clock: { now: () => 1 }, downloader: { batch: async () => {}, retry: async () => {}, file: () => '' }, reveal: () => {}, thumb: () => null,
+    openChrome: (url) => (found && opened.push(url), found), forgetTabs: () => { forgot++; } });
+  await h.openChrome('extensions'); await h.openChrome('flow');
+  expect(opened).toEqual(['chrome://extensions', 'https://labs.google/fx/tools/flow']);
+  for (const bad of ['https://evil.example', 'chrome://settings', null, { url: 'x' }]) await expect(h.openChrome(bad)).rejects.toThrow(/INVALID_ARGS/);
+  found = false;
+  await expect(h.openChrome('flow')).rejects.toThrow(/CHROME_NOT_FOUND/);
+  expect(opened).toHaveLength(2);
+  await h.forgetTabs();
+  expect(forgot).toBe(1);
 });

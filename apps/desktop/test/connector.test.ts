@@ -363,3 +363,14 @@ test('downloads ask every profile; a profile that does not answer is left out, a
   const q = s.send('downloads', { id: 3 })
   await expect(q).rejects.toBeInstanceOf(ConnectorError)
 })
+
+test('onConnect fires once per accepted extension connection, never for a refused one (the app lists tabs at once to pick the remembered ones again)', async () => {
+  let n = 0
+  const s = await startConnectorServer({ token: TOKEN, extensionId: EXT_ID, onConnect: () => { n++ } })
+  closers.push(() => s.close())
+  expect(await (await connect(s.port, { token: 'cd'.repeat(32) })).closed).toBe(4401)
+  expect(n).toBe(0)
+  await connect(s.port, { inst: '0123abcd' })
+  await tick()
+  expect(n).toBe(1)
+})

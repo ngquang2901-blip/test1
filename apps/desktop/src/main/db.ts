@@ -38,7 +38,20 @@ const MIGRATIONS = [
    create index attempt_state on attempt(json_extract(state_json, '$.item'));
    create index attempt_reconcile on attempt(reconcile_at) where reconcile_at is not null;
    create index journal_attempt on journal_event(attempt_id, id);`,
+  // what the user did to one output in Kết quả: its tags, and deleted_at once removed from Kết quả (never shown or saved again)
+  `create table output_mark(attempt_id text not null, media_id text not null, tags_json text not null default '[]', deleted_at integer,
+     primary key(attempt_id, media_id));`,
+  // the Flow tabs the user chose, by account + project (a tab id changes when Chrome restarts): a tab of such a pair is chosen again by itself
+  `create table remembered_tab(email text not null, project_id text not null, primary key(email, project_id));`,
+  // scheduled start (Hẹn giờ chạy), the in-app notices (last 50 kept) and the last Flow credit balance read per account
+  `alter table batch add column start_at integer;
+   create index batch_start on batch(start_at) where start_at is not null;
+   create table notice(id integer primary key autoincrement, at integer not null, kind text not null, batch_id text, title text not null, body text not null, read integer not null default 0);
+   create index notice_unread on notice(read, id);
+   create table credit(email text primary key, credits integer not null, at integer not null);`,
 ];
+/** The schema this app writes; a backup from a newer app is refused. */
+export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function openDb(file: string): Db {
   const db = new Database(file);

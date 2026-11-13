@@ -258,12 +258,13 @@ test('refs without a project, an asset store or a known asset fail closed before
   expect(t.flow.uploads).toHaveLength(0)
 })
 
-test('I2: a tab on another project => TARGET_CHANGED before any page op; no upload, the binding table is untouched', async () => {
+test('I2: a tab on another project => TARGET_CHANGED (a tab gone: ConnectorError) before any page op; no upload, the binding table is untouched', async () => {
   for (const tabPath of ['/fx/tools/flow/project/11111111-2222-4333-8444-555555555555', null]) {
     const t = rig([], { tabPath }), a = t.m.add(), b = t.m.add()
     t.m.store.writeBinding({ assetId: b, projectId: P, uploadName: 'tf-keep-1.png', mediaId: null, state: 'uncertain', intentAt: 1 })
     const before = JSON.stringify([...t.m.rows])
-    expect(await t.prepare([a, b])).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+    if (tabPath) expect(await t.prepare([a, b])).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+    else await expect(t.prepare([a, b])).rejects.toThrow('tab gone') // the runner pauses on CONNECTOR_LOST and goes on when the tab is back
     expect(t.flow.ops).toEqual(['tabs']) // not settings / state / file / attach / prep
     expect(t.flow.uploads).toHaveLength(0)
     expect(JSON.stringify([...t.m.rows])).toBe(before)

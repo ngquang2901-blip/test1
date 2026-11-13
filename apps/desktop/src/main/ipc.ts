@@ -10,18 +10,28 @@ import { disableAuto, enableAuto } from './account';
 import { AssetError, EXT, registerAsset, sniff } from './assets';
 import type { Grants } from './tabs';
 import type { Downloader } from './downloads';
-import { readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync } from 'node:fs';
+import { basename } from 'node:path';
+import { copyInto, csv, writeInto } from './export';
 import type { Updates } from './updates';
 import { randomUUID } from 'node:crypto';
+import { CHROME_PAGES } from './chrome';
+import { setStart, startAtOf } from './schedule';
 
-export type Draft = { text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean };
+export type Draft = {
+  text: string; kind: 'image' | 'video'; mode: 'auto' | 'manual'; speed: 'default' | 'fast'; autoSave: boolean;
+  notifyApp: boolean; notifyWindows: boolean; notifyTelegram: boolean; // one switch per notice channel
+  tray: boolean; openAtLogin: boolean; creditWarn: number; // closing hides to the tray; start with Windows (in the tray); warn under this many Flow credits
+};
 export type StateEvent = { entity: 'batch'; id: string; revision: number };
 export type Emit = ((entity: 'batch', id: string) => void) & { revision(): number };
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projects(): string[] | Promise<string[]>; clock: { now(): number }; // projects: distinct projects of the granted tabs
   email(): Promise<string | null>; emails?(): Promise<string[]>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit; // emails: every account of the granted tabs (absent ⇒ just email())
-  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>;
+  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; openChrome?(url: string): boolean; forgetTabs?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>; // openChrome: false = no Chrome found
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
+  trash?(path: string): Promise<void>; // Kết quả's Xoá: a saved file goes to the Recycle Bin (shell.trashItem), never deleted for good
+  pickFolder?(): Promise<string | null>; // Kết quả's Xuất file: the folder the user picks, null = cancelled
 };
 
 const MAX_TEXT = 1_000_000;
@@ -32,6 +42,11 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object'
 const oneOf = <T extends string>(v: unknown, ...ok: T[]): T => (ok.includes(v as T) ? (v as T) : bad());
 const MODES = ['none', 'all', 'sequential', 'start'] as const;
 const text = (v: unknown): string => (typeof v === 'string' && v.length <= MAX_TEXT ? v : bad());
+const coded = (code: string): Error => Object.assign(new Error(code), { code });
+const MAX_OUTPUTS = 20_000, MAX_TAGS = 20;
+const tagText = (v: unknown): string => { const t = typeof v === 'string' ? v.trim() : ''; return t && t.length <= 30 && !/[\u0000-\u001f\u007f]/.test(t) ? t : bad(); };
+const SITE: Record<string, string> = { flow: 'Flow', chatgpt: 'ChatGPT', gemini: 'Gemini' };
+type Out = { attemptId: string; mediaId: string; prompt: string; line: number; batchId: string; provider: string; kind: string };
 
 /** Monotonic revision stamped in main; the renderer drops older ones. */
 export function revisioned(send: (e: StateEvent) => void): Emit {
@@ -39,7 +54,7 @@ export function revisioned(send: (e: StateEvent) => void): Emit {
   return Object.assign((entity: 'batch', id: string) => send({ entity, id, revision: ++rev }), { revision: () => rev });
 }
 
-export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true };
+export const DEFAULT_DRAFT: Draft = { text: '', kind: 'image', mode: 'auto', speed: 'default', autoSave: true, notifyApp: true, notifyWindows: true, notifyTelegram: true, tray: true, openAtLogin: false, creditWarn: 50 };
 // Validates only the fields present; throws INVALID_ARGS on a bad one.
 const draftPatch = (a: unknown): Partial<Draft> => {
   const o = obj(a), p: Partial<Draft> = {};
@@ -47,7 +62,8 @@ const draftPatch = (a: unknown): Partial<Draft> => {
   if (o.kind !== undefined) p.kind = oneOf(o.kind, 'image', 'video');
   if (o.mode !== undefined) p.mode = oneOf(o.mode, 'auto', 'manual');
   if (o.speed !== undefined) p.speed = oneOf(o.speed, 'default', 'fast');
-  if (o.autoSave !== undefined) p.autoSave = typeof o.autoSave === 'boolean' ? o.autoSave : bad();
+  for (const k of ['autoSave', 'notifyApp', 'notifyWindows', 'notifyTelegram', 'tray', 'openAtLogin'] as const) if (o[k] !== undefined) p[k] = typeof o[k] === 'boolean' ? (o[k] as boolean) : bad();
+  if (o.creditWarn !== undefined) p.creditWarn = Number.isInteger(o.creditWarn) && (o.creditWarn as number) >= 0 && (o.creditWarn as number) <= 1_000_000 ? (o.creditWarn as number) : bad();
   return p;
 };
 /** A draft read from disk goes through the same validator as IPC; anything bad means defaults. */
@@ -67,6 +83,21 @@ export function createHandlers(d: Deps) {
   const previews = new Map<string, { url: string }>(); // newest last; key: file path, size, change time
   const mut = (batchId: string, f: () => void) => { f(); d.emit('batch', batchId); };
   const accounts = async (): Promise<string[]> => (d.emails ? d.emails() : [await d.email()].filter((e): e is string => !!e));
+  /** The outputs a Kết quả action names, each proven to be an output of that attempt (once each), with what the export needs. */
+  const outputsArg = (v: unknown): Out[] => {
+    const list = Array.isArray(v) && v.length > 0 && v.length <= MAX_OUTPUTS ? v : bad();
+    const q = d.db.prepare('select a.state_json j, i.prompt, i.ord, b.id batchId, b.provider, b.kind from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where a.id=?');
+    const seen = new Map<string, Out>();
+    for (const x of list) {
+      const o = obj(x), attemptId = str(o.attemptId), mediaId = str(o.mediaId);
+      const r = (q.get(attemptId) as { j: string; prompt: string; ord: number; batchId: string; provider: string; kind: string } | undefined) ?? bad();
+      if (!((JSON.parse(r.j).outputs ?? []) as { mediaId: string }[]).some((m) => m.mediaId === mediaId)) bad();
+      seen.set(`${attemptId}:${mediaId}`, { attemptId, mediaId, prompt: r.prompt, line: r.ord + 1, batchId: r.batchId, provider: r.provider, kind: r.kind });
+    }
+    return [...seen.values()];
+  };
+  const tagsOf = (x: Out): string[] => JSON.parse((d.db.prepare('select tags_json t from output_mark where attempt_id=? and media_id=?').get(x.attemptId, x.mediaId) as { t: string } | undefined)?.t ?? '[]');
+  const touched = (outs: Out[]): void => new Set(outs.map((x) => x.batchId)).forEach((b) => d.emit('batch', b));
   const batchOf = (attemptId: string) => (d.db.prepare('select i.batch_id b from attempt a join item i on i.id=a.item_id where a.id=?').get(attemptId) as { b: string } | undefined)?.b ?? bad();
   return {
     async saveDraft(a: unknown) {
@@ -76,6 +107,7 @@ export function createHandlers(d: Deps) {
       const o = obj(a);
       const commandId = str(o.commandId), kind = oneOf(o.kind, 'image', 'video'), mode = oneOf(o.mode, 'auto', 'manual'), src = text(o.text);
       const provider = o.provider === undefined ? 'flow' : oneOf(o.provider, 'flow', 'chatgpt', 'gemini');
+      const startAt = o.startAt === undefined || o.dryRun === true ? null : startAtOf(o.startAt, d.clock.now()); // Hẹn giờ chạy: checked before anything is created
       const site = provider !== 'flow'; // ChatGPT / Gemini: images only, always sent by the app, no Flow project / settings
       if (site && (kind !== 'image' || mode !== 'auto')) bad();
       const aspect = o.aspect === undefined ? undefined : provider === 'gemini' ? oneOf(o.aspect, ...GEM_ASPECTS) : bad(); // Gemini's own ratio menu
@@ -95,6 +127,7 @@ export function createHandlers(d: Deps) {
       if (o.dryRun === true || errors.length) return { rows, errors }; // a mapping error never creates a batch: no rotation, no truncation (AC-04)
       if (site) {
         const r = enqueueBatch(d.db, { commandId, kind, provider, projectId: null, mode, settings: { provider, ...(aspect ? { aspect } : {}), ...(model ? { model } : {}) }, prompts: parsed.items.map((it) => it.prompt), refs, sourceLines: parsed.items.map((it) => it.sourceLine) });
+        if (startAt !== null) setStart(d.db, r.batchId, startAt);
         d.emit('batch', r.batchId);
         return { ...r, batchIds: [r.batchId] };
       }
@@ -107,7 +140,7 @@ export function createHandlers(d: Deps) {
         settings: { combo, ...(parts.length > 1 ? { split: { part: k + 1, of: parts.length } } : {}) },
         prompts: p.idx.map((i) => parsed.items[i].prompt), refs: p.idx.map((i) => refs[i]), sourceLines: p.idx.map((i) => parsed.items[i].sourceLine),
       }));
-      made.forEach((r) => d.emit('batch', r.batchId));
+      made.forEach((r) => { if (startAt !== null) setStart(d.db, r.batchId, startAt); d.emit('batch', r.batchId); });
       return { ...made[0], batchIds: made.map((r) => r.batchId) };
     },
     async pickRefs() { // codes only: a path in the result would reach the renderer
@@ -142,7 +175,11 @@ export function createHandlers(d: Deps) {
       return { id };
     },
     async deletePreset(a: unknown) { d.db.prepare('delete from preset where id=?').run(str(a)); },
-    async startBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.start(id)); },
+    async startBatch(a: unknown) { const id = str(a); mut(id, () => { d.db.prepare('update batch set start_at=null where id=?').run(id); d.runner.start(id); }); }, // started: no time left to wait for
+    async scheduleBatch(a: unknown) { // Hẹn giờ / Huỷ hẹn giờ on a batch that has not started
+      const o = obj(a), id = str(o.batchId), at = o.at === null ? null : startAtOf(o.at, d.clock.now());
+      mut(id, () => setStart(d.db, id, at));
+    },
     async pauseBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.pause(id)); },
     async resumeBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.resume(id)); },
     async stopBatch(a: unknown) { const id = str(a); mut(id, () => d.runner.stop(id)); },
@@ -194,12 +231,64 @@ export function createHandlers(d: Deps) {
       if (small) { previews.set(key, out); if (previews.size > PREVIEWS_KEPT) previews.delete(previews.keys().next().value!); } // a full file is not kept: too big
       return out;
     },
+    async tagOutputs(a: unknown) { // the user's Gắn thẻ / Gỡ thẻ on the outputs picked in Kết quả
+      const o = obj(a), outs = outputsArg(o.outputs);
+      if ((o.add === undefined) === (o.remove === undefined)) bad();
+      const add = o.add === undefined ? null : tagText(o.add), remove = o.remove === undefined ? null : tagText(o.remove);
+      const put = d.db.prepare('insert into output_mark(attempt_id, media_id, tags_json) values(?,?,?) on conflict(attempt_id, media_id) do update set tags_json=excluded.tags_json');
+      d.db.transaction(() => {
+        for (const x of outs) {
+          const tags = tagsOf(x), next = add ? (tags.includes(add) ? tags : [...tags, add]) : tags.filter((t) => t !== remove);
+          if (next.length > MAX_TAGS) throw coded('TAG_LIMIT'); // nothing is tagged: the whole selection or none
+          put.run(x.attemptId, x.mediaId, JSON.stringify(next));
+        }
+      })();
+      touched(outs);
+    },
+    async deleteOutputs(a: unknown) { // the user's Xoá in Kết quả, asked twice; files go to the Recycle Bin, nothing is sent to Flow or any site
+      const o = obj(a), outs = outputsArg(o.outputs);
+      if (o.confirm !== true || !d.trash) bad();
+      const r = { deleted: 0, trashed: 0, missing: 0, failed: 0 };
+      const saved = d.db.prepare("select 1 from download where attempt_id=? and media_id=? and state='completed'");
+      const hide = d.db.prepare('insert into output_mark(attempt_id, media_id, deleted_at) values(?,?,?) on conflict(attempt_id, media_id) do update set deleted_at=excluded.deleted_at');
+      for (const x of outs) {
+        if (saved.get(x.attemptId, x.mediaId)) {
+          let path: string | null = null;
+          try { path = d.downloader.file(x.attemptId, x.mediaId); } catch (e) { if ((e as { code?: string }).code !== 'NOT_FOUND') { r.failed++; continue; } } // PATH_ESCAPE: not ours to move
+          if (!path) r.missing++;
+          else try { await d.trash!(path); r.trashed++; } catch { r.failed++; continue; } // the file is still there, so the output stays shown
+        }
+        hide.run(x.attemptId, x.mediaId, d.clock.now());
+        r.deleted++;
+      }
+      touched(outs);
+      return r;
+    },
+    async exportOutputs(a: unknown) { // copies of the saved files + toolflow-export.csv in a folder the user picks; the originals stay where they are
+      const outs = outputsArg(obj(a).outputs);
+      const files = outs.flatMap((x) => { try { return [{ x, path: d.downloader.file(x.attemptId, x.mediaId) }]; } catch { return []; } }); // not saved, or the file is gone
+      const skipped = outs.length - files.length;
+      if (!files.length) return { copied: 0, skipped, csv: null };
+      const dir = d.pickFolder ? await d.pickFolder() : bad();
+      if (!dir) return { canceled: true };
+      mkdirSync(dir, { recursive: true });
+      const at = d.db.prepare('select updated_at u from download where attempt_id=? and media_id=?');
+      const rows = files.map(({ x, path }) => [copyInto(path, dir, basename(path)), x.prompt, SITE[x.provider] ?? x.provider, x.kind === 'video' ? 'Video' : 'Ảnh', x.batchId, x.line, tagsOf(x).join('; '),
+        new Date((at.get(x.attemptId, x.mediaId) as { u: number }).u).toLocaleString('sv-SE')]); // sv-SE: 2026-11-13 09:30:00, which Excel reads as a date
+      const name = writeInto(dir, 'toolflow-export.csv', csv([['Tên tệp', 'Prompt', 'Nền tảng', 'Loại', 'Mã lô', 'Dòng', 'Thẻ', 'Lưu lúc'], ...rows]));
+      return { copied: files.length, skipped, csv: name };
+    },
     async revealOutput(a: unknown) { const o = obj(a); d.reveal(d.downloader.file(str(o.attemptId), str(o.mediaId))); }, // opens the OS file manager on the saved file
     async getUpdate() { return d.updates?.get() ?? { state: 'off', current: '' }; },
     async checkUpdate() { return d.updates ? d.updates.check() : { state: 'off', current: '' }; }, // the user's "Kiểm tra bản mới"
     async installUpdate() { if (!d.updates) bad(); d.updates!.install(); }, // BATCH_RUNNING while a batch is sending
     async openExtensionFolder() { d.openExtensionFolder?.(); }, // the folder the user picks in Chrome's Load unpacked
-    async useTabs(a: unknown) { // validates against the last listing; session-only
+    async openChrome(a: unknown) { // the renderer names the page; main holds the address and the program
+      const url = CHROME_PAGES[oneOf(a, 'extensions', 'flow')];
+      if (!d.openChrome?.(url)) throw Object.assign(new Error('CHROME_NOT_FOUND'), { code: 'CHROME_NOT_FOUND' });
+    },
+    async forgetTabs() { d.forgetTabs?.(); }, // 'Quên các tab đã nhớ': no tab is chosen again by itself after this
+    async useTabs(a: unknown) { // validates against the last listing; remembered by account + project
       if (Array.isArray(a) && a.length > d.runner.caps().tabs) throw Object.assign(new Error('TOO_MANY_TABS'), { code: 'TOO_MANY_TABS' }); // a tab over the speed cap would never run, and its project's part of a batch would wait forever
       d.grants.use(a);
     },

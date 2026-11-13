@@ -4,7 +4,7 @@ import flow from '../../../profiles/flow.json'
 
 type Combo = { kind: 'image' | 'video'; mode: string; model: string; aspect: string; quality?: string; count: number }
 
-type Node = { id: string; type: 'text' | 'generate' | 'download' | 'note' | 'branch'; x: number; y: number; text?: string; combo?: Combo; cond?: 'all' | 'any' | 'filtered' }
+type Node = { id: string; type: 'text' | 'generate' | 'download' | 'note' | 'branch' | 'loop'; x: number; y: number; text?: string; combo?: Combo; cond?: 'all' | 'any' | 'filtered'; rounds?: number }
 export type Template = { name: string; nodes: Node[]; edges: { from: string; to: string; port?: string }[] }
 const VIDEO = (flow.combos as Combo[]).find((c) => c.kind === 'video') // the app's default video settings (same rule as combo.tsx; not imported: this file is also read by the node-side test)
 const video = VIDEO ? { combo: VIDEO } : {}
@@ -57,5 +57,14 @@ export const TEMPLATES: Template[] = [
       { id: 'g2', type: 'generate', x: 1020, y: 160 }, { id: 'd', type: 'download', x: 1360, y: 0 },
     ],
     edges: [{ from: 't1', to: 'g1' }, { from: 'g1', to: 'b' }, { from: 'b', to: 'g2', port: 'ok' }, { from: 't2', to: 'g2' }, { from: 'g1', to: 'd' }, { from: 'g2', to: 'd' }],
+  },
+  {
+    name: 'Ảnh tinh chỉnh 3 vòng',
+    nodes: [
+      { id: 't', type: 'text', x: 0, y: 0, text: 'chân dung một ông lão đánh cá, nếp nhăn rõ nét, ánh sáng tự nhiên, ảnh chụp chi tiết cao' },
+      { id: 'g', type: 'generate', x: 340, y: 0 }, { id: 'l', type: 'loop', x: 680, y: 0, rounds: 3 }, { id: 'd', type: 'download', x: 1020, y: 0 },
+      { id: 'n', type: 'note', x: 0, y: 300, text: 'Vòng 2 và 3 gửi lại đúng prompt này, kèm ảnh của vòng trước làm ảnh tham chiếu, để ảnh rõ và đẹp dần. Chỉ ảnh vòng cuối được tải về.' },
+    ],
+    edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'l' }, { from: 'l', to: 'd' }],
   },
 ]

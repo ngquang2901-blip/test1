@@ -10,27 +10,28 @@ import { Chip, Icon, type Tone } from '../ui'
 import { Thumb } from './Results'
 import { ComboFields, Opt, comboLabel, defaultCombo, type Combo } from '../combo'
 import { TEMPLATES } from '../wf-templates'
+import { csvMsg, fillRows, readCsv } from '../csv'
 
-type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch'
+type Kind = 'text' | 'image' | 'generate' | 'download' | 'note' | 'branch' | 'loop' | 'csv'
 type Cond = 'all' | 'any' | 'filtered' // what a Điều kiện node asks (absent = 'all')
 type Site = 'chatgpt' | 'gemini' // a Tạo ảnh node that goes to a chat site instead of Flow
-type Data = { text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string }
-/** A Tạo ảnh node says where it sends: Flow unless a site is chosen. */
-const genTitle = (site?: Site): string => (site === 'gemini' ? 'Tạo ảnh Gemini' : site === 'chatgpt' ? 'Tạo ảnh ChatGPT' : 'Tạo ảnh Flow')
+type Data = { text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string; rounds?: number; rows?: string[][] } // rounds: a Vòng lặp's; rows: a Bảng CSV's table (header first), text being its {Cột} template
+/** A Tạo ảnh node says where it sends (Flow unless a site is chosen) and whether it makes videos. */
+const genTitle = (d: Data): string => (d.site === 'gemini' ? 'Tạo ảnh Gemini' : d.site === 'chatgpt' ? 'Tạo ảnh ChatGPT' : d.combo?.kind === 'video' ? 'Tạo video Flow' : 'Tạo ảnh Flow')
 const SITE_LABEL: Record<Site, string> = { chatgpt: 'ChatGPT · Create image', gemini: 'Gemini · Tạo hình ảnh' }
 const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9'], GEM_MODELS = ['Flash-Lite', 'Flash', 'Pro']
 type WNode = Node<Data, Kind>
 type Var = { name: string; value: string }
-type NodeRun = { state: string; code: string | null; total: number; done: number; thumb: { attemptId: string; mediaId: string } | null }
+type NodeRun = { state: string; code: string | null; total: number; done: number; thumb: { attemptId: string; mediaId: string } | null; round?: number; rounds?: number } // round: a Vòng lặp's round shown
 type RunView = { status: 'running' | 'done' | 'failed' | 'stopped'; nodes: Record<string, NodeRun> }
-type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
+type Canvas = { name?: string; nodes: { id: string; type: Kind; x: number; y: number; text?: string; assets?: PresetAsset[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string; rounds?: number; rows?: string[][] }[]; edges: { from: string; to: string; port?: string }[]; vars?: Record<string, string> }
 type Saved = Canvas & { id: string; name: string }
 type Plan = { steps: { node: string; kind: 'image' | 'video'; prompts: string; images: string[]; deps: { node: string; port: string; cond?: Cond }[]; save: boolean; feeds: boolean; combo?: Combo; site?: Site }[]; errors: { node?: string; code: string }[] }
 
-const KINDS: Kind[] = ['text', 'image', 'generate', 'branch', 'download', 'note']
-const TITLE: Record<Kind, string> = { text: 'Text', image: 'Ảnh tham chiếu', generate: 'Tạo ảnh Flow', download: 'Tự tải về', note: 'Ghi chú', branch: 'Điều kiện' }
-const ICON = { text: 'list', image: 'image', generate: 'layers', download: 'download', note: 'sliders', branch: 'branch' } as const
-const WIRES: Record<string, Kind[]> = { text: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch'], branch: ['generate'] } // main checks the same table again
+const KINDS: (Kind | 'video')[] = ['text', 'csv', 'image', 'generate', 'video', 'loop', 'branch', 'download', 'note'] // the toolbar; 'video' = a Tạo ảnh node set to the default video settings
+const TITLE: Record<Kind, string> = { text: 'Text', image: 'Ảnh tham chiếu', generate: 'Tạo ảnh Flow', download: 'Tự tải về', note: 'Ghi chú', branch: 'Điều kiện', loop: 'Vòng lặp', csv: 'Bảng CSV' }
+const ICON = { text: 'list', image: 'image', generate: 'layers', download: 'download', note: 'sliders', branch: 'branch', loop: 'repeat', csv: 'table' } as const
+const WIRES: Record<string, Kind[]> = { text: ['generate'], csv: ['generate'], image: ['generate'], generate: ['generate', 'download', 'branch', 'loop'], branch: ['generate'], loop: ['generate', 'download', 'branch'] } // main checks the same table again
 const STATE: Record<string, [Tone, string]> = { waiting: ['idle', 'Chờ lượt'], running: ['run', 'Đang chạy'], done: ['done', 'Xong'], failed: ['attn', 'Lỗi'], skipped: ['attn', 'Bỏ qua'], bypassed: ['idle', 'Không chạy'], stopped: ['idle', 'Đã dừng'] }
 const WHY: Record<string, string> = {
   WF_NO_GENERATE: 'Chưa có node Tạo ảnh Flow nào. Thêm một node rồi nối Text vào nó',
@@ -71,23 +72,30 @@ const ARIA = { 'controls.ariaLabel': 'Phóng to, thu nhỏ', 'controls.zoomIn.ar
 const clean = (m: string): string => m.replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
 // where a new node lands: inputs stack on the left; a taken spot pushes the node down (a Tạo ảnh also right, so a chain reads left to right)
 const place = (type: Kind, ns: WNode[]): { x: number; y: number } => {
-  const p = { x: type === 'generate' ? 400 : type === 'download' || type === 'branch' ? 760 : 40, y: 40 }
+  const p = { x: type === 'generate' ? 400 : type === 'download' || type === 'branch' || type === 'loop' ? 760 : 40, y: 40 }
   while (ns.some((n) => Math.abs(n.position.x - p.x) < 300 && Math.abs(n.position.y - p.y) < 240)) { p.y += 240; if (type === 'generate') p.x += 360 }
   return p
 }
 
-type Tools = { run: RunView | null; errs: Record<string, string>; patch(id: string, d: Data): void; pick(id: string): void; del(id: string): void }
-const Ctx = createContext<Tools>({ run: null, errs: {}, patch() {}, pick() {}, del() {} })
+type Tools = { run: RunView | null; errs: Record<string, string>; patch(id: string, d: Data): void; pick(id: string): void; del(id: string): void; csv(id: string, f?: File): void }
+const Ctx = createContext<Tools>({ run: null, errs: {}, patch() {}, pick() {}, del() {}, csv() {} })
+const chip = (r: NodeRun): string => `${STATE[r.state]?.[1] ?? r.state}${r.round ? ` · vòng ${r.round}/${r.rounds}` : ''}${r.total ? ` ${r.done}/${r.total}` : ''}`
+const CsvButton = ({ id, has }: { id: string; has: boolean }): React.JSX.Element => {
+  const { csv } = useContext(Ctx)
+  return <label className="filebtn small nodrag">{has ? 'Nạp file CSV khác' : 'Nạp file CSV'}<input type="file" accept=".csv,text/csv" onChange={(e) => { csv(id, e.target.files?.[0]); e.target.value = '' }} /></label>
+}
+const cols = (d: Data): string => (d.rows?.[0] ?? []).map((h) => `{${h.trim()}}`).join(' ')
 
 function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
   const { run, errs, patch, pick, del } = useContext(Ctx)
-  const r = run?.nodes[id], err = errs[id] ?? (r?.code ? why(r.code) : undefined)
+  const r = run?.nodes[id], live = type === 'csv' && data.rows ? fillRows(data.text ?? '', data.rows) : null // a Bảng CSV says at once which row cannot become a prompt
+  const err = errs[id] ?? (live && 'error' in live ? csvMsg(live.error) : undefined) ?? (r?.code ? why(r.code) : undefined)
   return (
     <div className="wf-node" data-testid={`wf-${type}`} data-state={err && !r ? 'failed' : r?.state}>
-      {(type === 'generate' || type === 'download' || type === 'branch') && <Handle type="target" position={Position.Left} />}
+      {(type === 'generate' || type === 'download' || type === 'branch' || type === 'loop') && <Handle type="target" position={Position.Left} />}
       <header>
-        <Icon name={ICON[type]} /><b>{type === 'generate' ? genTitle(data.site) : TITLE[type]}</b><span className="spacer" />
-        {r && <Chip tone={STATE[r.state]?.[0] ?? 'idle'}>{STATE[r.state]?.[1] ?? r.state}{r.total ? ` ${r.done}/${r.total}` : ''}</Chip>}
+        <Icon name={ICON[type]} /><b>{type === 'generate' ? genTitle(data) : TITLE[type]}</b><span className="spacer" />
+        {r && <Chip tone={STATE[r.state]?.[0] ?? 'idle'}>{chip(r)}</Chip>}
         <button className="x nodrag" aria-label={`Xoá node ${TITLE[type]}`} onClick={() => del(id)}>×</button>
       </header>
       {(type === 'text' || type === 'note') && (
@@ -103,6 +111,14 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
       {type === 'generate' && <p className="wf-combo" data-testid="wf-combo">{data.site ? `${SITE_LABEL[data.site]}${data.model ? ` · ${data.model}` : ''}${data.aspect ? ` · ${data.aspect}` : ''}` : `${data.combo?.kind === 'video' ? 'Video · ' : ''}${comboLabel(data.combo ?? DEFAULT)}`}</p>}
       {type === 'generate' && (r?.thumb ? <Thumb attemptId={r.thumb.attemptId} media={r.thumb.mediaId} saved /> : <p className="hint">Mỗi prompt nối vào tạo một lượt ảnh. Nối chấm bên phải sang node Tạo ảnh khác để dùng ảnh vừa tạo làm ảnh tham chiếu.</p>)}
       {type === 'download' && <p className="hint">Lưu kết quả của node nối vào đây về thư mục Downloads/ToolFlow.</p>}
+      {type === 'loop' && <p className="hint">Chạy lại node Tạo ảnh nối vào, tổng cộng {data.rounds} vòng. Mỗi vòng dùng ảnh của vòng trước làm ảnh tham chiếu.</p>}
+      {type === 'csv' && (
+        <>
+          <p className="hint" data-testid="wf-csv-info">{live && 'prompts' in live ? `${live.prompts.length} prompt · cột: ${cols(data)}` : data.rows ? `Cột: ${cols(data)}` : 'Mỗi dòng của file thành một prompt.'}</p>
+          <CsvButton id={id} has={!!data.rows} />
+          <textarea className="nodrag nowheel" rows={2} aria-label="Mẫu prompt của node Bảng CSV" placeholder="Ví dụ: {Tên} đứng ở {Nơi}" value={data.text ?? ''} onChange={(e) => patch(id, { text: e.target.value })} />
+        </>
+      )}
       {type === 'branch' && (
         <>
           <p className="hint">Xét node Tạo ảnh nối vào bên trái, rồi chạy tiếp một trong hai nhánh:</p>
@@ -111,11 +127,11 @@ function Box({ id, type, data }: NodeProps<WNode>): React.JSX.Element {
         </>
       )}
       {err && <p className="wf-err" role="alert">{err}</p>}
-      {(type === 'text' || type === 'image' || type === 'generate') && <Handle type="source" position={Position.Right} />}
+      {(type === 'text' || type === 'image' || type === 'generate' || type === 'loop' || type === 'csv') && <Handle type="source" position={Position.Right} />}
     </div>
   )
 }
-const NODE_TYPES = { text: Box, image: Box, generate: Box, download: Box, note: Box, branch: Box }
+const NODE_TYPES = { text: Box, image: Box, generate: Box, download: Box, note: Box, branch: Box, loop: Box, csv: Box }
 
 // the canvas survives a visit to another screen: mid-run the user goes to Hàng đợi (or to Flow to click Gửi) and comes back
 let keep: { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null; hist?: { past: string[]; future: string[]; cur: string } } = { nodes: [], edges: [], vars: [], name: '', runId: null }
@@ -150,6 +166,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   }, [runId])
 
   // ---- undo / redo: one snapshot of what the user built (not selection or sizes) each time it settles ----
+  // shortcut: a Bảng CSV's rows are copied into every snapshot (up to 100); keep tables out of the snapshot if big CSVs make editing slow
   const snap = JSON.stringify({ nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data })), edges: edges.map(({ id, source, target, sourceHandle }) => ({ id, source, target, sourceHandle })), vars })
   const hist = useRef(keep.hist ?? { past: [] as string[], future: [] as string[], cur: snap }) // the steps come back with the canvas
   const [, bump] = useState(0)
@@ -188,16 +205,22 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const typeOf = (id: string | null): string => nodes.find((n) => n.id === id)?.type ?? ''
   const table = Object.fromEntries(vars.filter((v) => v.name.trim()).map((v) => [v.name.trim(), v.value]))
   /** What is saved, exported and undone: texts as written, with their {biến}. */
-  const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string }[]; edges: object[]; vars: Record<string, string> } => ({
+  const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string; rounds?: number; rows?: string[][] }[]; edges: object[]; vars: Record<string, string> } => ({
     nodes: nodes.map((n) => ({ id: n.id, type: n.type!, x: n.position.x, y: n.position.y, ...(n.data.text !== undefined ? { text: n.data.text } : {}), ...(n.data.assets ? { assetIds: n.data.assets.map((a) => a.id) } : {}),
-      ...(n.type === 'generate' && n.data.site ? { site: n.data.site, ...(n.data.site === 'gemini' && n.data.aspect ? { aspect: n.data.aspect } : {}), ...(n.data.site === 'gemini' && n.data.model ? { model: n.data.model } : {}) } : n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}) })),
+      ...(n.type === 'generate' && n.data.site ? { site: n.data.site, ...(n.data.site === 'gemini' && n.data.aspect ? { aspect: n.data.aspect } : {}), ...(n.data.site === 'gemini' && n.data.model ? { model: n.data.model } : {}) } : n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}),
+      ...(n.type === 'loop' ? { rounds: n.data.rounds ?? 2 } : {}), ...(n.type === 'csv' && n.data.rows ? { rows: n.data.rows } : {}) })),
     edges: edges.map((e) => ({ from: e.source, to: e.target, ...(e.sourceHandle ? { port: e.sourceHandle } : {}) })),
     vars: table,
   })
-  /** What runs: every Text node with its variables filled in (one prompt per line); a variable without a value is an error on that node. */
+  /** What runs: every Text node with its variables filled in, every Bảng CSV with its template filled per row (one prompt per line); a variable without a value or a bad row is an error on that node. */
   const filled = (): { graph: object; errs: Record<string, string> } => {
     const g = raw(), bad: Record<string, string> = {}
     const out = g.nodes.map((n) => {
+      if (n.type === 'csv') {
+        const r = fillRows(n.text ?? '', n.rows ?? [])
+        if ('error' in r) { bad[n.id] = csvMsg(r.error); return { ...n, text: '', rows: undefined } }
+        return { ...n, text: r.prompts.join('\n'), rows: undefined } // main reads it like a Text node; the table itself is not needed to run
+      }
       if (n.type !== 'text') return n
       const r = fillLines(n.text ?? '', table)
       if ('error' in r) { bad[n.id] = varErr(r.error); return n }
@@ -210,7 +233,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     reset()
     setName(w?.name ?? '')
     setVars(Object.entries(w?.vars ?? {}).map(([n, value]) => ({ name: n, value })))
-    setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}), ...(n.combo ? { combo: n.combo } : {}), ...(n.cond ? { cond: n.cond } : {}), ...(n.site ? { site: n.site } : {}), ...(n.aspect ? { aspect: n.aspect } : {}), ...(n.model ? { model: n.model } : {}) } })))
+    setNodes((w?.nodes ?? []).map((n) => ({ id: n.id, type: n.type, position: { x: n.x, y: n.y }, data: { ...(n.text !== undefined ? { text: n.text } : {}), ...(n.assets ? { assets: n.assets } : {}), ...(n.combo ? { combo: n.combo } : {}), ...(n.cond ? { cond: n.cond } : {}), ...(n.site ? { site: n.site } : {}), ...(n.aspect ? { aspect: n.aspect } : {}), ...(n.model ? { model: n.model } : {}), ...(n.rounds ? { rounds: n.rounds } : {}), ...(n.rows ? { rows: n.rows } : {}) } })))
     setEdges((w?.edges ?? []).map((e) => ({ id: `${e.from}>${e.to}`, source: e.from, target: e.to, ...(e.port ? { sourceHandle: e.port } : {}) })))
     setTimeout(() => void rf.current?.fitView(FIT), 50)
   }
@@ -220,7 +243,8 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     if (!at) setTimeout(() => void rf.current?.fitView(FIT), 50) // a new node must be on screen
     return id
   }
-  const blank = (k: Kind): Data => (k === 'text' || k === 'note' ? { text: '' } : {})
+  const blank = (k: Kind | 'video'): Data => (k === 'text' || k === 'note' || k === 'csv' ? { text: '' } : k === 'loop' ? { rounds: 2 } : k === 'video' ? { combo: defaultCombo('video') } : {})
+  const addKind = (k: Kind | 'video', at?: { x: number; y: number }): void => void add(k === 'video' ? 'generate' : k, blank(k), at)
   const starter = (): void => { // the chain most people start from, already wired
     const t = add('text', { text: '' }), g = add('generate'), d = add('download')
     setEdges([{ id: `${t}>${g}`, source: t, target: g }, { id: `${g}>${d}`, source: g, target: d }])
@@ -233,6 +257,13 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
       const p = await window.api.pickRefs() as { assets: PresetAsset[]; errors: unknown[] }
       if (p.assets.length) tools.patch(id, { assets: p.assets.slice(0, 10) })
       setMsg(p.errors.length ? `${p.errors.length} file không dùng được (chỉ nhận PNG, JPG, WEBP dưới 20 MB)` : p.assets.length > 10 ? 'Chỉ lấy 10 ảnh đầu' : '')
+    }),
+    csv: (id, f) => call(async () => { // read here: main never sees the file, only the table inside the node
+      if (!f) return
+      const r = readCsv(await f.arrayBuffer())
+      if ('error' in r) return setErrs((e) => ({ ...e, [id]: csvMsg(r.error) }))
+      setErrs(({ [id]: _, ...e }) => e)
+      setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, data: { ...n.data, rows: r.rows, text: n.data.text?.trim() ? n.data.text : `{${r.rows[0][0].trim()}}` } } : n))) // the first column, until the user writes a template
     }),
   }
   const start = (): void => call(async () => {
@@ -294,8 +325,8 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
     const bad = t === 'generate' ? filled().errs : {}, wired = edges.filter((e) => e.target === sel.id).map((e) => bad[e.source]).filter(Boolean) // a wired Text whose variable has no value
     return (
       <>
-        <h3><Icon name={ICON[t]} /> {t === 'generate' ? genTitle(sel.data.site) : TITLE[t]}</h3>
-        {r && <Chip tone={STATE[r.state]?.[0] ?? 'idle'}>{STATE[r.state]?.[1] ?? r.state}{r.total ? ` ${r.done}/${r.total}` : ''}</Chip>}
+        <h3><Icon name={ICON[t]} /> {t === 'generate' ? genTitle(sel.data) : TITLE[t]}</h3>
+        {r && <Chip tone={STATE[r.state]?.[0] ?? 'idle'}>{chip(r)}</Chip>}
         {(t === 'text' || t === 'note') && <textarea aria-label={t === 'text' ? 'Prompt (bảng cấu hình)' : 'Ghi chú (bảng cấu hình)'} rows={10} value={sel.data.text ?? ''} onChange={(e) => tools.patch(sel.id, { text: e.target.value })} />}
         {fill && ('error' in fill ? <p className="wf-err" role="alert">{varErr(fill.error)}</p> : <p className="hint" data-testid="wf-count">{fill.prompts.length} prompt sau khi thay biến</p>)}
         {t === 'image' && (
@@ -342,6 +373,24 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
           </div>
         )}
         {t === 'download' && <p className="hint">Nối chấm bên phải của node Tạo ảnh vào node này để ảnh tự lưu về Downloads/ToolFlow khi tạo xong. Node này không có gì để chỉnh.</p>}
+        {t === 'loop' && (
+          <>
+            <label className="wf-set">Số vòng (2 đến 10)<input type="number" aria-label="Số vòng" min={2} max={10} value={sel.data.rounds ?? 2} onChange={(e) => tools.patch(sel.id, { rounds: Math.min(10, Math.max(2, Math.trunc(Number(e.target.value)) || 2)) })} /></label>
+            <p className="hint" data-testid="wf-loop-help">Nối một node Tạo ảnh vào bên trái. Vòng 1 là chính node đó; mỗi vòng sau gửi lại đúng các prompt của nó, prompt nào cũng kèm ảnh của chính nó ở vòng trước làm ảnh tham chiếu. Nối chấm bên phải sang Tự tải về, Tạo ảnh hoặc Điều kiện: chúng nhận ảnh của vòng cuối. Mỗi vòng tốn credit như một lần chạy node đó.</p>
+          </>
+        )}
+        {t === 'csv' && (() => {
+          const fill = sel.data.rows ? fillRows(sel.data.text ?? '', sel.data.rows) : null
+          return (
+            <>
+              <CsvButton id={sel.id} has={!!sel.data.rows} />
+              <p className="hint">File .csv lưu dạng UTF-8 (Excel: Lưu thành → CSV UTF-8). Dòng đầu là tên cột; mỗi dòng sau thành một prompt, dòng trống được bỏ qua.</p>
+              {sel.data.rows && <p className="hint">Các cột: {cols(sel.data)}</p>}
+              <textarea aria-label="Mẫu prompt (bảng cấu hình)" rows={4} value={sel.data.text ?? ''} onChange={(e) => tools.patch(sel.id, { text: e.target.value })} />
+              {fill && ('error' in fill ? <p className="wf-err" role="alert">{csvMsg(fill.error)}</p> : <p className="hint" data-testid="wf-count">{fill.prompts.length} prompt từ bảng</p>)}
+            </>
+          )
+        })()}
         {t === 'branch' && (
           <>
             <Opt label="Xét node Tạo ảnh phía trước theo điều kiện" value={sel.data.cond ?? 'all'} options={Object.keys(COND)} show={(c) => COND[c as Cond].name} onChange={(c) => tools.patch(sel.id, { cond: c === 'all' ? undefined : (c as Cond) })} />
@@ -379,7 +428,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
           : <button className="primary small" disabled={!nodes.length} onClick={start}>Chạy workflow</button>}
       </div>
       <div className="wf-bar">
-        {KINDS.map((k) => <button key={k} className="small" draggable title="Bấm để thêm, hoặc kéo thả vào khung" onDragStart={(e) => e.dataTransfer.setData(DRAG, k)} onClick={() => add(k, blank(k))}>+ {TITLE[k]}</button>)}
+        {KINDS.map((k) => <button key={k} className="small" draggable title="Bấm để thêm, hoặc kéo thả vào khung" onDragStart={(e) => e.dataTransfer.setData(DRAG, k)} onClick={() => addKind(k)}>+ {k === 'video' ? 'Tạo video Flow' : TITLE[k]}</button>)}
         <button className="small" disabled={!nodes.length} onClick={() => void rf.current?.fitView(FIT)}>Căn giữa</button>
         <button className="small" disabled={!h.past.length && snap === h.cur} onClick={() => travel(true)}>Hoàn tác</button>
         <button className="small" disabled={!h.future.length || snap !== h.cur} onClick={() => travel(false)}>Làm lại</button>
@@ -390,11 +439,11 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
       </div>
       <div className="wf-main">
         <div className="wf-canvas" onDragOver={(e) => { if (e.dataTransfer.types.includes(DRAG)) e.preventDefault() }}
-          onDrop={(e) => { const k = e.dataTransfer.getData(DRAG) as Kind; if (KINDS.includes(k) && rf.current) { e.preventDefault(); add(k, blank(k), rf.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })) } }}>
+          onDrop={(e) => { const k = e.dataTransfer.getData(DRAG) as Kind; if (KINDS.includes(k) && rf.current) { e.preventDefault(); addKind(k, rf.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })) } }}>
           <Ctx.Provider value={tools}>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onInit={(i) => { rf.current = i }}
               onConnect={(c: Connection) => setEdges((es) => addEdge(c, es))}
-              isValidConnection={(c) => c.source !== c.target && !!WIRES[typeOf(c.source)]?.includes(typeOf(c.target) as Kind) && !(typeOf(c.target) === 'branch' && edges.some((e) => e.target === c.target))}
+              isValidConnection={(c) => c.source !== c.target && !!WIRES[typeOf(c.source)]?.includes(typeOf(c.target) as Kind) && !((typeOf(c.target) === 'branch' || typeOf(c.target) === 'loop') && edges.some((e) => e.target === c.target))}
               fitView fitViewOptions={FIT} minZoom={0.3} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }} ariaLabelConfig={ARIA}>
               <Background />
               <Controls showInteractive={false} showFitView={false} />

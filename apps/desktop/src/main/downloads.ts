@@ -202,7 +202,9 @@ export function createDownloader(o: DownloaderOptions) {
     const b = o.db.prepare('select created_at at, kind from batch where id=?').get(batchId) as { at: number; kind: 'image' | 'video' } | undefined
     if (!b) throw coded('NOT_FOUND')
     const items = o.db.prepare('select i.ord ord, i.prompt prompt, a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batchId) as { ord: number; prompt: string; aid: string; j: string }[]
-    return items.flatMap((it) => ((JSON.parse(it.j) as AttemptState).outputs ?? []).map((m: { mediaId: string }) => ({ batchId, attemptId: it.aid, mediaId: m.mediaId, index: it.ord + 1, prompt: it.prompt, at: b.at, kind: b.kind })))
+    // deleted in Kết quả: never saved again, by Tải tất cả, Thử lại, auto save or a chat site's runner
+    const gone = new Set((o.db.prepare('select m.attempt_id a, m.media_id m from item i join output_mark m on m.attempt_id=i.attempt_id where i.batch_id=? and m.deleted_at is not null').all(batchId) as { a: string; m: string }[]).map((r) => `${r.a}:${r.m}`))
+    return items.flatMap((it) => ((JSON.parse(it.j) as AttemptState).outputs ?? []).filter((m: { mediaId: string }) => !gone.has(`${it.aid}:${m.mediaId}`)).map((m: { mediaId: string }) => ({ batchId, attemptId: it.aid, mediaId: m.mediaId, index: it.ord + 1, prompt: it.prompt, at: b.at, kind: b.kind })))
   }
   const stateOf = (x: Out): string | undefined => (o.db.prepare('select state from download where attempt_id=? and media_id=?').get(x.attemptId, x.mediaId) as { state: string } | undefined)?.state
 

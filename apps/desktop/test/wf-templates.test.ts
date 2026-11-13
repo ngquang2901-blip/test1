@@ -13,4 +13,5 @@ test('every ready-made workflow is a graph the app accepts and can run as it is;
   const kinds = (name: string): string[] => plan(parseGraph(TEMPLATES.find((t) => t.name === name)!)).steps.map((s) => s.kind)
   expect(kinds('Tạo ảnh rồi làm video từ ảnh đó')).toEqual(['image', 'video'])
   expect(kinds('Video từ chữ')).toEqual(['video'])
+  expect(plan(parseGraph(TEMPLATES.find((t) => t.name === 'Ảnh tinh chỉnh 3 vòng')!)).steps.map((s) => [s.node, s.save])).toEqual([['g', false], ['l#2', false], ['l#3', true]])
 })

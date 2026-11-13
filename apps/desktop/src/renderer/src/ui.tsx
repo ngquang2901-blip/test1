@@ -1,4 +1,5 @@
 // Shared visual pieces: state tones, the status dot, a few line icons (inline, no icon library).
+import { useState } from 'react'
 import type { Attempt } from './types'
 
 export type Tone = 'run' | 'wait' | 'attn' | 'done' | 'idle'
@@ -23,12 +24,15 @@ const PATHS = {
   image: 'M4 4h16v16H4zM4 16l5-5 4 4 3-3 4 4',
   sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
   layers: 'M3 6h18v12H3zM3 10h18',
+  repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
+  table: 'M3 5h18v14H3zM3 10h18M3 15h18M10 5v14',
   nodes: 'M3 4h7v6H3zM14 14h7v6h-7zM10 7h3a2 2 0 0 1 2 2v5',
   branch: 'M6 6v12M6 12h6a6 6 0 0 0 6-6M6 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM6 18a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM18 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
   moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',
 } as const
 
 export function Icon({ name, size = 16 }: { name: keyof typeof PATHS; size?: number }): React.JSX.Element {
@@ -36,5 +40,18 @@ export function Icon({ name, size = 16 }: { name: keyof typeof PATHS; size?: num
     <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={PATHS[name]} />
     </svg>
+  )
+}
+
+/** Inline two-step confirm (no window.confirm): the first button asks, the second does it (a costly one focuses Huỷ, so a stray Enter never pays); both are plain buttons, so the keyboard reaches them. */
+export function TwoStep({ label, ask, yes, go, safeFocus }: { label: string; ask: string; yes: string; go: () => void; safeFocus?: boolean }): React.JSX.Element {
+  const [on, setOn] = useState(false)
+  if (!on) return <button className={safeFocus ? 'small danger' : 'small'} onClick={() => setOn(true)}>{label}</button>
+  return (
+    <span className="confirm" role="group" aria-label={ask}>
+      <span>{ask}</span>
+      <button className="small primary" autoFocus={!safeFocus} onClick={() => { setOn(false); go() }}>{yes}</button>
+      <button className="small" autoFocus={safeFocus} onClick={() => setOn(false)}>Huỷ</button>
+    </span>
   )
 }

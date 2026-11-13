@@ -70,6 +70,12 @@ export const HINTS: Record<string, string> = {
   GPT_ATTACH_NOT_READY: 'Ảnh tham chiếu tải lên ChatGPT chưa xong sau 40 giây. Kiểm tra mạng rồi bấm Tiếp tục',
   GPT_REF_MISMATCH: 'Ảnh đính kèm trong ô nhập của ChatGPT không khớp với lô. Gỡ ảnh lạ trong ô nhập (nếu có) rồi bấm Tiếp tục; app sẽ gắn lại ảnh của lô',
   GPT_REF_ASSET_MISSING: 'Ảnh tham chiếu của lô không còn đọc được trên máy (file bị xoá, đổi hoặc chuyển chỗ). Tạo lại lô với ảnh còn đó',
+  // Kết quả and Cài đặt (sao lưu)
+  TAG_LIMIT: 'Mỗi kết quả có tối đa 20 thẻ. Gỡ bớt thẻ cũ rồi gắn lại',
+  EXPORT_NAME_TAKEN: 'Thư mục đã có quá nhiều tệp trùng tên. Chọn thư mục khác rồi xuất lại',
+  BACKUP_INVALID: 'Tệp này không phải bản sao lưu ToolFlow hoặc đã hỏng. Chọn đúng tệp đã tạo bằng nút Sao lưu dữ liệu',
+  BACKUP_TOO_NEW: 'Bản sao lưu này được tạo bằng ToolFlow mới hơn bản đang dùng. Cập nhật app rồi khôi phục lại',
+  BATCH_RUNNING: 'Đang có lượt đang gửi nên app chưa làm việc này. Đợi lô chạy xong rồi bấm lại',
   // ChatGPT
   NO_CHATGPT_TAB: 'Chưa thấy tab ChatGPT nào. Mở chatgpt.com trong Chrome có extension ToolFlow, đăng nhập, rồi bấm Tiếp tục',
   GPT_CONVERSATION_CHANGED: 'Tab ChatGPT đã chuyển sang cuộc trò chuyện khác nên app không gõ vào đó. Bấm Tiếp tục: app mở lại cuộc trò chuyện của lô rồi gửi tiếp',
@@ -86,13 +92,38 @@ export const HINTS: Record<string, string> = {
   GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
   GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang không gửi: prompt vẫn nằm trong ô nhập, chưa có gì được gửi đi. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi có lượt, bấm Tiếp tục',
   GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
+  // workflow: Vòng lặp, Bảng CSV (the CSV lines are also read by Tạo lô; the row and column are put in front of them)
+  WF_LOOP_INPUT: 'Node Vòng lặp cần đúng một node Tạo ảnh nối vào chấm bên trái',
+  WF_LOOP_VIDEO: 'Vòng lặp chỉ dùng được sau node tạo ảnh: video không làm ảnh tham chiếu cho vòng sau được. Nối Vòng lặp sau một node Tạo ảnh',
+  CSV_NOT_UTF8: 'File CSV không phải dạng UTF-8 nên chữ có dấu sẽ bị lỗi. Trong Excel bấm Lưu thành, chọn kiểu “CSV UTF-8 (Comma delimited)” rồi nạp lại file đó',
+  CSV_BAD_QUOTE: 'File CSV có dấu ngoặc kép (\") chưa đóng hoặc đặt sai chỗ. Mở file bằng Excel, lưu lại dạng CSV rồi nạp lại',
+  CSV_EMPTY: 'File CSV chưa có dòng nào có chữ. Dòng đầu là tên cột, các dòng sau mỗi dòng một prompt',
+  CSV_TOO_BIG: 'File CSV quá lớn (tối đa 2000 dòng và 50 cột). Chia file nhỏ hơn rồi nạp từng phần',
+  CSV_NO_PLACEHOLDER: 'Mẫu chưa có tên cột nào. Viết tên cột trong ngoặc nhọn, ví dụ {Tên}',
+  CSV_NO_COLUMN: 'File CSV không có cột này. Sửa tên trong ngoặc nhọn cho đúng tên cột ở dòng đầu file',
+  CSV_EMPTY_CELL: 'Ô này đang trống nên dòng đó chưa thành prompt được. Điền ô đó hoặc xoá cả dòng trong file rồi nạp lại',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
+  CHROME_NOT_FOUND: 'Không tìm thấy Google Chrome trên máy này. Cài Chrome (google.com/chrome) rồi bấm lại, hoặc tự mở Chrome và làm theo các bước dưới',
   ILLEGAL_TRANSITION: 'Trạng thái lượt này không hợp lệ. Xem lịch sử lượt trong Chi tiết rồi báo người bảo trì',
   STORAGE_UNAVAILABLE: 'Không ghi được dữ liệu của app (đầy ổ đĩa hoặc thiếu quyền). Giải phóng chỗ rồi bấm Tiếp tục',
   INTERNAL_ERROR: 'Lỗi nội bộ của app. Xem nhật ký rồi báo người bảo trì',
   INTENT_REFUSED: 'Chưa ghi được ý định gửi nên app không bấm Gửi. Kiểm tra kết nối ở màn Kết nối rồi bấm Tiếp tục',
+  // Hẹn giờ chạy
+  SCHEDULE_PAST: 'Giờ hẹn đã qua. Chọn một giờ sau bây giờ',
+  SCHEDULE_TOO_FAR: 'Chỉ hẹn được trong vòng 30 ngày tới. Chọn giờ gần hơn',
+  NOT_SCHEDULABLE: 'Lô này đã chạy hoặc đã dừng nên không hẹn giờ được nữa',
+  // Telegram
+  TG_BAD_TOKEN: 'Mã bot không đúng. Mở @BotFather trong Telegram, chép lại mã của bot (dạng 123456:ABC…) rồi dán vào đây',
+  TG_NOT_CONFIGURED: 'Chưa có mã bot. Dán mã bot rồi bấm Lưu mã',
+  TG_NO_START: 'Bot chưa nhận được /start. Mở bot của bạn trong Telegram, bấm Start (hoặc gửi /start) rồi bấm Kết nối Telegram lại',
+  TG_NOT_LINKED: 'Chưa kết nối với Telegram của bạn. Gửi /start cho bot rồi bấm Kết nối Telegram',
+  TG_BLOCKED: 'Bạn đã chặn bot hoặc chưa bấm Start. Mở bot trong Telegram, bỏ chặn, gửi /start rồi bấm Kết nối Telegram lại',
+  TG_NETWORK: 'Không gọi được Telegram (mất mạng hoặc mạng chặn Telegram). Kiểm tra mạng rồi thử lại',
+  TG_FAILED: 'Telegram từ chối yêu cầu. Thử lại sau; nếu vẫn vậy, tạo lại mã bot và dán lại',
 }
+/** The last error code in an IPC error message ("Error invoking remote method 'x': Error: TG_BAD_TOKEN"). */
+export const codeIn = (msg: string): string | undefined => msg.match(/[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+/g)?.pop()
 /** The line for a code; for a ChatGPT batch the site named in it is ChatGPT (the shared lines were written for Flow). */
 export const hintOf = (code: string | undefined | null, provider?: string): string | undefined => {
   const h = code && Object.hasOwn(HINTS, code) ? HINTS[code] : undefined
