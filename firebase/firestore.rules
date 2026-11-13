@@ -1,0 +1,17 @@
+rules_version = '2';
+// Paste into Firebase console → Firestore Database → Rules. A user may read only his own row and create it once, as pending;
+// status / plan / until are set by the admin in the console only. config/app holds buyInfo (how to buy), readable when signed in.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email', 'status', 'createdAt'])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.email == request.auth.token.email;
+    }
+    match /config/app {
+      allow get: if request.auth != null;
+    }
+  }
+}

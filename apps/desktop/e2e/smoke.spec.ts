@@ -1609,3 +1609,22 @@ test('credit: Flow\'s balance shows in Kết nối with its time; falling under 
   await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toHaveCount(1)
   await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toContainText('dưới mức cảnh báo 1000')
 })
+
+test('Google sign-in: nothing of the app opens before an active plan; a new account waits with the buy text, sign-out locks again', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_LICENSE: 'signed_out', TOOLFLOW_FAKE_LICENSE_AFTER: 'pending' })
+  await expect(page.getByRole('button', { name: 'Tạo lô', exact: true })).toHaveCount(0)
+  expect(await page.evaluate(() => window.api.listBatches().then(() => 'open', (e: Error) => e.message))).toContain('LICENSE_REQUIRED') // main refuses too, not only the screen
+  await page.getByRole('button', { name: 'Đăng nhập bằng Google' }).click()
+  await expect(page.getByText('đã đăng ký nhưng chưa có gói')).toBeVisible()
+  await expect(page.getByLabel('Cách mua gói')).toContainText('Liên hệ để mua gói')
+  await page.getByRole('button', { name: 'Đăng xuất' }).click()
+  await expect(page.getByRole('button', { name: 'Đăng nhập bằng Google' })).toBeVisible()
+
+  const b = await launch(tmp(), '', { TOOLFLOW_FAKE_LICENSE: 'signed_out' }) // this account has bought a plan
+  await b.page.getByRole('button', { name: 'Đăng nhập bằng Google' }).click()
+  await b.page.getByRole('button', { name: 'Cài đặt', exact: true }).click()
+  await expect(b.page.getByRole('group', { name: 'Tài khoản' })).toContainText('fake@example.invalid')
+  await b.page.getByRole('button', { name: 'Đăng xuất' }).click()
+  await expect(b.page.getByRole('button', { name: 'Đăng nhập bằng Google' })).toBeVisible()
+  await expect(b.page.getByRole('button', { name: 'Cài đặt', exact: true })).toHaveCount(0)
+})

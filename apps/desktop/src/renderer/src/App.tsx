@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Notices, type Preset, type Session, type UpdateState } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type License, type Notices, type Preset, type Session, type UpdateState } from './types'
 import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
 import Results from './screens/Results'
 import Workflow from './screens/Workflow'
 import Settings from './screens/Settings'
+import Account from './screens/Account'
 import { newer } from './revision'
 import { Chip, Icon, batchTone, itemTone } from './ui'
 import { getTheme, isDark, setTheme, type Theme } from './theme'
@@ -57,7 +58,7 @@ function Bell(): React.JSX.Element {
   )
 }
 
-function App(): React.JSX.Element {
+function Main({ lic }: { lic: License }): React.JSX.Element {
   const [screen, setScreen] = useState<(typeof SCREENS)[number]>('Kết nối')
   const [batches, setBatches] = useState<Batch[]>([])
   const [session, setSession] = useState<Session | null>(null)
@@ -181,11 +182,21 @@ function App(): React.JSX.Element {
           {screen === 'Workflow' && session && <Workflow s={session} />}
           {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
-          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}
+          {screen === 'Cài đặt' && session && <Settings lic={lic} s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}
         </main>
       </div>
     </div>
   )
+}
+
+/** Nothing of the app shows (or runs, main gates it too) until the Google account has an active plan. */
+function App(): React.JSX.Element {
+  const [lic, setLic] = useState<License | null>(null)
+  useEffect(() => {
+    void window.api.getLicense().then(setLic, () => setLic({ status: 'offline', code: 'LICENSE_NETWORK' }))
+    return window.api.onLicense((s) => setLic(s as License))
+  }, [])
+  return lic?.status === 'active' ? <Main lic={lic} /> : <Account lic={lic} />
 }
 
 export default App
