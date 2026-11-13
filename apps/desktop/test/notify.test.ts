@@ -14,10 +14,11 @@ function rig(p: Partial<{ notifyApp: boolean; notifyWindows: boolean; notifyTele
   const prefs = { notifyApp: true, notifyWindows: true, notifyTelegram: true, creditWarn: 50, ...p };
   const toasts: Notice[] = [], telegram: string[] = [], reasons = new Map<string, string>();
   let changed = 0;
-  const n = createNotifier({ db, now: () => Date.UTC(2026, 10, 13, 7, 5), prefs: () => prefs, lastError: (id) => reasons.get(id) ?? null, changed: () => { changed++; },
+  const timers: (() => void)[] = [];
+  const n = createNotifier({ db, now: () => Date.UTC(2026, 10, 13, 7, 5), prefs: () => prefs, lastError: (id) => reasons.get(id) ?? null, changed: () => { changed++; }, later: (f) => { timers.push(f); },
     channels: { windows: (x) => { toasts.push(x); }, telegram: async (t) => { telegram.push(t); } } });
   const batch = (prompts = [PROMPT, 'b', 'c'], provider: 'flow' | 'chatgpt' = 'flow') => enqueueBatch(db, { commandId: Math.random().toString(), kind: 'image', provider, projectId: 'p', settings: {}, mode: 'auto', prompts, refs: prompts.map(() => []) }).batchId;
-  return { db, n, prefs, toasts, telegram, reasons, batch, changed: () => changed };
+  return { db, n, prefs, toasts, telegram, reasons, batch, changed: () => changed, timers };
 }
 /** The batch row and each item's current attempt as the runner would leave them. */
 function put(db: Db, id: string, status: string, items: (string | [string, string])[], stop = 0) {
@@ -125,4 +126,15 @@ test('the runner hands over the credit balance Flow reports with a video receipt
   for (const e of driver.videoPolls()) driver.emit(e);
   await runner.tick();
   expect(seen).toEqual([['t1', 958], ['t1', 948]]);
+});
+
+test('a lost connection notifies only when it lasts: the app picks the tab again by itself, so a short drop that already went on says nothing', () => {
+  const t = rig();
+  const a = t.batch(['x']), b = t.batch(['y']);
+  for (const id of [a, b]) { put(t.db, id, 'running', ['preparing']); t.n.batchChanged(id); t.reasons.set(id, 'CONNECTOR_LOST'); put(t.db, id, 'paused', ['preparing']); t.n.batchChanged(id); }
+  expect(t.n.list().items).toEqual([]); // not at once
+  t.reasons.delete(a); put(t.db, a, 'running', ['preparing']); t.n.batchChanged(a); // a: the tab came back and the batch went on
+  t.timers.forEach((f) => f());
+  expect(t.n.list().items.map((i) => [i.kind, i.batchId])).toEqual([['attention', b]]); // b: still waiting after the grace time
+  expect(t.telegram).toHaveLength(1);
 });

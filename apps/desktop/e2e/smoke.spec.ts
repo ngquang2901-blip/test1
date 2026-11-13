@@ -605,6 +605,7 @@ test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar l
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await expect(boxes).toHaveCount(3)
+  await page.waitForTimeout(400) // an edit becomes its own undo step once the canvas stayed still for 300 ms (measured: the steps below took 0.34 s, a race)
   await expect(page.locator('.react-flow__minimap')).toBeVisible()
   await page.getByRole('button', { name: 'Căn giữa' }).click()
   await expect.poll(scale).toBeLessThanOrEqual(1)

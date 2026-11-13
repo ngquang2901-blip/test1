@@ -8,6 +8,7 @@ import { hintOf } from '../renderer/src/hints';
 
 export type Notice = { kind: 'done' | 'attention' | 'scheduled' | 'credit'; batchId: string | null; title: string; body: string };
 const KEPT = 50;
+const LOST_GRACE_MS = 2 * 60_000;
 const SITE: Record<string, string> = { flow: 'Flow', chatgpt: 'ChatGPT', gemini: 'Gemini' };
 const KIND: Record<string, string> = { image: 'Ảnh', video: 'Video' };
 const DONE: BatchStatus[] = ['completed', 'partial_failed', 'failed'];
@@ -18,6 +19,7 @@ export function createNotifier(o: {
   lastError(batchId: string): string | null; // the runner's pause reason (null: paused by the user)
   channels: { windows?(n: Notice): void; telegram?(text: string): Promise<void> };
   changed(): void; // the in-app list moved: the screen re-reads it
+  later?(f: () => void, ms: number): void; // tests run the grace timer by hand
 }) {
   const { db } = o;
   const seen = new Map<string, BatchStatus>(); // last status per batch; the first sighting (boot) only records
@@ -55,7 +57,10 @@ export function createNotifier(o: {
       if (!code) return; // the user's own Tạm dừng
       const provider = (db.prepare('select provider p from batch where id=?').get(id) as { p: string }).p;
       const hint = hintOf(code, provider);
-      notify({ kind: 'attention', batchId: id, title: `Lô ${short} cần bạn xem`, body: `${facts(id)} · ${code}${hint ? `: ${hint}` : ''}` });
+      const tell = (): void => notify({ kind: 'attention', batchId: id, title: `Lô ${short} cần bạn xem`, body: `${facts(id)} · ${code}${hint ? `: ${hint}` : ''}` });
+      if (code !== 'CONNECTOR_LOST') return tell();
+      // the remembered tab is picked again and the batch goes on by itself: only a drop that lasts needs the user (no message per Chrome hiccup)
+      (o.later ?? ((f, ms) => void setTimeout(f, ms).unref?.()))(() => { if (batchStatus(db, id) === 'paused' && o.lastError(id) === 'CONNECTOR_LOST') tell(); }, LOST_GRACE_MS);
     },
     scheduled(id: string, at: number, late: boolean): void {
       notify({ kind: 'scheduled', batchId: id, title: `Lô ${id.slice(0, 8)} đã bắt đầu theo hẹn giờ`, body: `${facts(id)} · ${late ? `bắt đầu trễ: hẹn lúc ${hhmm(at)}, lúc đó app đang tắt` : `hẹn lúc ${hhmm(at)}`}` });
