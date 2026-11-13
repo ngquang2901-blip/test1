@@ -343,3 +343,12 @@ The owner's five asks, his choices: tabs remembered by account + Flow project an
 - Gate on `p3`: typecheck 0, unit 438, extension 109, protocol 56, e2e 65/65. Two e2e failures on the way: (1) 'Workflow: zoom buttons…' failed 3/3 on the merged build: a race in the test, not the app (measured: the three zoom steps took 0.34 s, under the 300 ms the canvas waits before an undo step; the bell made the top bar a little different and the timing tipped); the test now waits 0.4 s. (2) 'Flow results save themselves…' failed once in the first full run (the retried save never came within 30 s), then passed 2/2 alone, 5/5 in a loop and in two more full runs: seen once, cause not found.
 - Not proven live (no extension in this PC's Chrome yet): reconnect timing, Chrome launch, Telegram's real API, a Windows notification that shows (turned off on this PC), the real Recycle Bin and restore relaunch, the tray menu and the login item.
 - Released **v0.13.0** (id 443876969, Windows only, 3 assets equal to `dist/`). Gate on `main`: typecheck 0, unit 438, extension 109, protocol 56, e2e 65/65; the packaged app opens in 0.9 s and reads 0.13.0; `app.asar` holds no e-mail, token or home path. The installed 0.12.1 updated itself from GitHub to 0.13.0 (new window 36 s after the click; 0.12.1 still runs that install, so its window froze about 22 s while Defender scanned the installer: the notice before the restart works from 0.13.0 on).
+
+## 0.13.0 on the real Chrome (2026-11-13)
+
+Installed app 0.13.0 (separate test data folder) + ToolFlow Connector 0.13.0 loaded unpacked in Chrome profile Default, Flow project open:
+- Connection screen: all 5 steps ticked, self-check ok, "Dùng tab này" remembered the tab.
+- One image batch (1 prompt, x2): completed, 2/2 JPEG 1376x768 saved to Downloads/ToolFlow/2026-11-13_3fa77e24.
+- Closed the Flow tab and opened the project again: the app picked the tab itself (auto) within 5 s, self-check ok.
+- Closed and restarted the app: extension reconnected and the remembered tab was picked again without a click.
+Not exercised: a tab lost in the middle of a batch (would leave a paid turn uncertain), tray menu, Telegram, Windows toast (notifications are off on this machine).
