@@ -295,3 +295,85 @@ test('site node: a Tạo ảnh node may go to ChatGPT or Gemini instead of Flow;
   bad({ nodes: [N('t', 'text', 0, { text: 'x', site: 'gemini' })], edges: [] }) // only a Tạo ảnh node goes somewhere
 })
 
+
+// ---- Vòng lặp: the generate node wired into it runs again with the same prompts, each round with the previous round's results as refs ----
+const LOOP = (rounds: unknown = 3, extra: { nodes?: object[]; edges?: object[] } = {}): unknown => ({
+  nodes: [N('t', 'text', 0, { text: 'mèo\nchó' }), N('img', 'image', 0, { assetIds: ['a1'] }), N('g', 'generate', 300), N('l', 'loop', 600, { rounds }), N('dl', 'download', 900), ...(extra.nodes ?? [])],
+  edges: [{ from: 't', to: 'g' }, { from: 'img', to: 'g' }, { from: 'g', to: 'l' }, { from: 'l', to: 'dl' }, ...(extra.edges ?? [])],
+})
+
+test('Vòng lặp, parseGraph: rounds 2..10 on a loop node only; it takes a Tạo ảnh and gives to Tạo ảnh / Tự tải về / Điều kiện', () => {
+  expect(parseGraph(LOOP()).nodes.find((n) => n.id === 'l')!.rounds).toBe(3)
+  const bad = (v: unknown) => expect(() => parseGraph(v), JSON.stringify(v)).toThrow(/INVALID_ARGS/)
+  for (const r of [1, 11, 2.5, '3', null]) bad(LOOP(r))
+  bad({ nodes: [N('l', 'loop')], edges: [] }) // a loop node always says how many rounds
+  bad({ nodes: [N('g', 'generate', 0, { rounds: 3 })], edges: [] }) // only a loop node has rounds
+  bad({ nodes: [N('t', 'text'), N('l', 'loop', 0, { rounds: 2 })], edges: [{ from: 't', to: 'l' }] }) // a loop repeats a Tạo ảnh node, not a Text
+  expect(parseGraph(LOOP(2, { nodes: [N('b', 'branch', 900), N('h', 'generate', 1200), N('u', 'text', 900, { text: 'x' })], edges: [{ from: 'l', to: 'b' }, { from: 'b', to: 'h', port: 'ok' }, { from: 'u', to: 'h' }] })).edges).toHaveLength(7)
+})
+
+test('Vòng lặp, plan: unrolled into one step per round (<loop>#2, #3), same prompts, each round sequential on the one before; what is wired out of the loop gets the last round', () => {
+  const { steps, errors } = plan(parseGraph(LOOP(3, { nodes: [N('u', 'text', 900, { text: 'cảnh' }), N('h', 'generate', 1200)], edges: [{ from: 'l', to: 'h' }, { from: 'u', to: 'h' }] })))
+  expect(errors).toEqual([])
+  expect(steps.map((s) => [s.node, s.prompts, s.images, s.deps, s.save, s.feeds, s.round])).toEqual([
+    ['g', 'mèo\nchó', ['a1'], [], false, true, undefined],
+    ['l#2', 'mèo\nchó', [], [{ node: 'g', port: 'direct' }], false, true, 2],
+    ['l#3', 'mèo\nchó', [], [{ node: 'l#2', port: 'direct' }], true, true, 3],
+    ['h', 'cảnh', [], [{ node: 'l#3', port: 'direct' }], false, false, undefined],
+  ])
+  // a Điều kiện after the loop looks at the last round
+  const br = plan(parseGraph(LOOP(2, { nodes: [N('b', 'branch', 900), N('h', 'generate', 1200), N('u', 'text', 900, { text: 'x' })], edges: [{ from: 'l', to: 'b' }, { from: 'b', to: 'h', port: 'fail' }, { from: 'u', to: 'h' }] })))
+  expect([br.errors, br.steps.at(-1)!.deps]).toEqual([[], [{ node: 'l#2', port: 'fail' }]])
+})
+
+test('Vòng lặp, plan errors: no Tạo ảnh or two of them wired in; a video node before it (a video is not a reference image); a loop back into its own node', () => {
+  expect(plan(parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate'), N('l', 'loop', 300, { rounds: 2 }), N('dl', 'download')], edges: [{ from: 't', to: 'g' }, { from: 'l', to: 'dl' }] })).errors).toEqual([{ node: 'l', code: 'WF_LOOP_INPUT' }])
+  const two = plan(parseGraph(LOOP(2, { nodes: [N('g2', 'generate', 300), N('t2', 'text', 0, { text: 'y' })], edges: [{ from: 't2', to: 'g2' }, { from: 'g2', to: 'l' }] })))
+  expect(two.errors).toContainEqual({ node: 'l', code: 'WF_LOOP_INPUT' })
+  const video = plan(parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300, { combo: VIDEO }), N('l', 'loop', 600, { rounds: 2 }), N('dl', 'download', 900)], edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'l' }, { from: 'l', to: 'dl' }] }))
+  expect(video.errors).toEqual([{ node: 'l', code: 'WF_LOOP_VIDEO' }]) // its own code, not WF_VIDEO_OUTPUT as well
+  const back = plan(parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300), N('l', 'loop', 600, { rounds: 2 })], edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'l' }, { from: 'l', to: 'g' }] }))
+  expect(back.errors).toEqual([{ node: 'g', code: 'WF_CYCLE' }])
+})
+
+test('Vòng lặp, run: one batch per round in order; round n sends prompt i with the saved result of prompt i of round n-1; only the last round is wired to Tự tải về; the run shows which round', async () => {
+  const r = rig()
+  const all = createWorkflows({
+    db: r.db, now: () => 5, sleep: () => new Promise((x) => setTimeout(x, 1)),
+    enqueue: async (a) => { r.enq.push(a as (typeof r.enq)[number]); return { batchIds: [`b${r.enq.length}`] } },
+    start: async () => {}, stop: async () => {}, status: () => 'completed', download: async (b) => void r.calls.push(`download ${b}`),
+    outputs: (b) => [`/dl/${b}-1.png`, `/dl/${b}-2.png`], codes: () => [null, null], register: (p) => `asset:${p}`, savePath: async () => null, openPath: async () => null,
+  })
+  const { runId } = await all.handlers.runWorkflow({ graph: LOOP(3), mode: 'auto' }) as { runId: string }
+  let view = await all.handlers.workflowRun(runId)
+  for (let i = 0; i < 200 && view!.status === 'running'; i++) { await new Promise((x) => setTimeout(x, 5)); view = await all.handlers.workflowRun(runId) }
+  expect(view!.status).toBe('done')
+  expect(r.enq.map((e) => [e.commandId.split(':')[2], e.text, e.refs.mode, e.refs.assetIds])).toEqual([
+    ['g', 'mèo\nchó', 'all', ['a1']],
+    ['l#2', 'mèo\nchó', 'sequential', ['asset:/dl/b1-1.png', 'asset:/dl/b1-2.png']],
+    ['l#3', 'mèo\nchó', 'sequential', ['asset:/dl/b2-1.png', 'asset:/dl/b2-2.png']],
+  ])
+  expect((r.enq[1] as unknown as { refs: { perItem: number } }).refs.perItem).toBe(1)
+  expect(r.calls).toEqual(['download b1', 'download b2', 'download b3'])
+  expect(view!.nodes.l).toMatchObject({ state: 'done', round: 3, rounds: 3 })
+})
+
+test('Vòng lặp, run: a round with a missing result stops the loop there (later rounds and what follows are skipped, nothing sent for them)', async () => {
+  const r = rig({ missing: ['B'] })
+  const { runId } = await r.wf.runWorkflow({ graph: LOOP(3), mode: 'auto' }) as { runId: string }
+  expect(await r.wait(runId)).toBe('failed')
+  expect(r.enq).toHaveLength(1)
+  expect((await r.wf.workflowRun(runId))!.nodes.l).toMatchObject({ state: 'skipped', code: 'WF_UPSTREAM_INCOMPLETE', round: 2, rounds: 3 })
+})
+
+// ---- Bảng CSV: rows stored in the node (validated like text); the canvas fills its template per row, so plan() reads it like a Text node ----
+test('Bảng CSV, parseGraph + plan: rows are bounded strings on a csv node only; it feeds a Tạo ảnh node one prompt per line like a Text node', () => {
+  const g = { nodes: [N('c', 'csv', 0, { text: 'mèo ở sân\nchó ở nhà', rows: [['Tên', 'Nơi'], ['mèo', 'sân'], ['chó', 'nhà']] }), N('g', 'generate', 300)], edges: [{ from: 'c', to: 'g' }] }
+  expect(parseGraph(g).nodes[0].rows).toEqual([['Tên', 'Nơi'], ['mèo', 'sân'], ['chó', 'nhà']])
+  expect(plan(parseGraph(g)).steps.map((s) => s.prompts)).toEqual(['mèo ở sân\nchó ở nhà'])
+  const bad = (v: unknown) => expect(() => parseGraph(v), JSON.stringify(v).slice(0, 80)).toThrow(/INVALID_ARGS/)
+  const withRows = (rows: unknown, type = 'csv') => ({ nodes: [N('c', type, 0, { rows })], edges: [] })
+  for (const rows of ['a,b', [['a', 1]], [null], Array(2002).fill(['x']), [Array(51).fill('x')], [['x'.repeat(1_000_001)]], Array(2).fill(['x'.repeat(600_000)])]) bad(withRows(rows))
+  bad(withRows([['a']], 'text')) // only a Bảng CSV node holds rows
+  bad({ nodes: [N('c', 'csv'), N('d', 'download')], edges: [{ from: 'c', to: 'd' }] })
+})
