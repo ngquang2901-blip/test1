@@ -3,7 +3,7 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.14.1-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.15.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
@@ -33,6 +33,12 @@ Từ bản 0.13.0:
   - Muốn có thông báo ở góc màn hình: mở Cài đặt Windows → Hệ thống → Thông báo, bật thông báo.
   - Telegram: tạo bot với @BotFather, dán mã bot vào **Cài đặt → Thông báo** rồi bấm **Lưu mã**. Nhắn `/start` cho bot, bấm **Kết nối Telegram**, rồi **Gửi tin thử**. Tin nhắn chỉ có mã lô, số lượng và mã lỗi, không có prompt hay ảnh.
 - **Credit**: màn Kết nối hiện số credit Flow còn lại. App đọc được số này khi bạn tạo video. Mức cảnh báo đặt trong Cài đặt.
+
+## Workflow kiểu TobyFlow: Khung cuối, Ghép video (từ bản 0.15.0)
+- Thêm khối: nút + ở thanh dọc bên trái, phím N, chuột phải vào nền, bấm chấm ra của một khối, hoặc kéo dây thả ra chỗ trống (khối mới tự nối).
+- **Khung cuối** lấy khung hình cuối của video làm khung đầu cho video sau. **Ghép video** nối các video theo thứ tự dây nối thành một file MP4 đặt cạnh video đầu; bấm "Mở thư mục" ở tab Kết quả để mở chỗ chứa file.
+- Mẫu có sẵn "Nối cảnh video": sửa 2 ô Text (cùng số prompt) rồi bấm Chạy workflow. Mỗi video tốn khoảng 10 credit Flow.
+- Cửa sổ nhỏ: bấm "Ẩn bảng bên phải" để canvas rộng hơn.
 
 ## Workflow: video, vòng lặp, CSV (từ bản 0.13.0)
 - **+ Tạo video Flow** thêm một node tạo video.
