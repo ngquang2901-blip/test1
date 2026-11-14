@@ -3,7 +3,7 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.15.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải `ToolFlow-0.16.0-Setup.exe` về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 

@@ -376,3 +376,9 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 - Live run 2 (18 credits left, so reduced: Text → Tạo video → Ghép video, 10 credits): done, `ghep-video-9056421f.mp4` 7.93 s 1280x720 AAC. First paused `COVERED` before sending (Flow's account menu left open by the agent); resumed after closing it. Khung cuối → second video was not re-run live after the fix.
 - Gate on main: typecheck 0, unit 451/451, extension 109/109, protocol 56/56, build 0, e2e 68/68; packaged app started (0.15.0, responding, db created).
 - Open: e2e "Nối cảnh video" stuck once at "Đang chạy" (1 of ~45 runs, not reproduced in 20 repeats); a popup form at the bottom of the canvas may need scrolling.
+
+## 0.16.0: product mosaic look (2026-11-15)
+- Branch `p5-mosaic` (256d84a: five-card Tổng quan on real data, Plus Jakarta Sans bundled, light + dark variables, one-time entrance animation) merged into `main`, version 0.16.0. Workflow screen keeps its dark TobyFlow look (font only).
+- Branch gate (subagent): typecheck 0, unit 451/451, build 0, e2e 68/68. On main after the merge: typecheck, unit 451/451, extension 109/109, protocol 56/56, build 0; the e2e run was stopped and the packaged app was NOT started (owner: "phát hành đi không cần test nữa").
+- Released v0.16.0 (3 assets, sizes equal to dist); `releases/latest/download/latest.yml` reads 0.16.0. Self-update on this PC not run.
+- Known: Workflow e2e tests (Điều kiện, zoom, several tabs, uncertain) flake on main too (Điều kiện 3 of 12); top bar wraps to two lines at 1000 px on Hàng đợi / Kết quả.
