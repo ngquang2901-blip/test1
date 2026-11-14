@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, session as electronSession, shell, Tray } from 'electron'
-import { basename, join } from 'path'
+import { basename, dirname, join } from 'path'
 import { homedir } from 'os'
+import { randomUUID } from 'crypto'
 import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -18,6 +19,8 @@ import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createWorkflows } from './workflow'
+import { concatVideos, lastFrame } from './ffmpeg'
+import { TINY_PNG } from './fake-driver'
 import { createExtGpt, createFakeGpt, isGemMedia, isGptMedia, type GptDriver, type GptScript } from './gpt-driver'
 import { createGptRunner, routeRunner } from './gpt-runner'
 import { createHandlers, registerIpc, revisioned, parseDraft, type Draft } from './ipc'
@@ -286,6 +289,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
     status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
+    // FAKE: the fake's clips are 24-byte headers ffmpeg cannot read, so a 1x1 frame and the clips' bytes back to back stand in
+    lastFrame: async (v) => { const dir = join(userData, 'frames'), png = join(dir, `${randomUUID()}.png`); mkdirSync(dir, { recursive: true }); if (FAKE) writeFileSync(png, TINY_PNG); else await lastFrame(v, png); return png },
+    reveal: (p) => shell.showItemInFolder(p),
+    merge: async (files, name) => { const out = join(dirname(files[0]), name); if (FAKE) writeFileSync(out, Buffer.concat(files.map((f) => readFileSync(f)))); else await concatVideos(files, out); return out },
     outputs: (b) => (db.prepare('select a.id aid, a.state_json j from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(b) as { aid: string; j: string }[]).map((r) => {
       for (const o of (JSON.parse(r.j).outputs ?? []) as { mediaId: string }[]) try { return downloader.file(r.aid, o.mediaId) } catch { /* not saved: try the next one */ }
       return null
