@@ -414,7 +414,7 @@ test('Giao diện: the top-bar button switches dark/light, Cài đặt offers S�
   let { app, page } = await launch(ud)
   await page.emulateMedia({ colorScheme: 'light' })
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('system')
-  expect(await bg(page)).toBe('rgb(251, 248, 245)')
+  expect(await bg(page)).toBe('rgb(240, 240, 240)')
   await page.emulateMedia({ colorScheme: 'dark' }) // system follows the OS
   expect(await bg(page)).toBe('rgb(20, 20, 20)')
   await page.emulateMedia({ colorScheme: 'light' })
@@ -423,7 +423,7 @@ test('Giao diện: the top-bar button switches dark/light, Cài đặt offers S�
   await page.getByRole('button', { name: 'Cài đặt' }).click()
   await expect(page.getByLabel('Tối', { exact: true })).toBeChecked()
   await page.getByLabel('Sáng', { exact: true }).check()
-  expect(await bg(page)).toBe('rgb(251, 248, 245)')
+  expect(await bg(page)).toBe('rgb(240, 240, 240)')
   await page.getByLabel('Tối', { exact: true }).check()
   await app.close()
   ;({ app, page } = await launch(ud))
