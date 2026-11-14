@@ -43,7 +43,7 @@ export default function Settings({ lic, s, reload, theme = 'system', onTheme, up
   return (
     <section aria-label="Cài đặt">
       <h2>Cài đặt</h2>
-      {lic && <AccountBox lic={lic} />}
+      {lic?.email && <AccountBox lic={lic} />}
       <fieldset>
         <legend>Giao diện</legend>
         <label><input type="radio" name="theme" checked={theme === 'light'} onChange={() => onTheme?.('light')} /> Sáng</label>

@@ -9,3 +9,6 @@ export const LICENSE_CONFIG: LicenseConfig = {
   clientId: import.meta.env.MAIN_VITE_GOOGLE_CLIENT_ID ?? '',
   clientSecret: import.meta.env.MAIN_VITE_GOOGLE_CLIENT_SECRET ?? '',
 };
+
+// Sign-in + plan gate. Off since 0.14.1 (owner's call): the app opens like 0.13.0. true brings it back unchanged.
+export const LICENSE_REQUIRED = false;

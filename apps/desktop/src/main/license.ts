@@ -129,6 +129,12 @@ export function createLicense(o: {
 }
 export type License = ReturnType<typeof createLicense>;
 
+/** Sign-in turned off (LICENSE_REQUIRED false): the app opens for everyone, no account and no network call. */
+export function createOpenLicense(): License {
+  const st: LicenseState = { status: 'active' };
+  return { state: () => st, ok: () => true, async signIn() {}, async check() {}, signOut() {} };
+}
+
 /** Unpackaged test runs only (e2e, fake Flow): TOOLFLOW_FAKE_LICENSE is the state at start (default active), a sign-in goes to TOOLFLOW_FAKE_LICENSE_AFTER. */
 export function createFakeLicense(start: string | undefined, after: string | undefined, onChange: (s: LicenseState) => void): License {
   const email = 'fake@example.invalid';

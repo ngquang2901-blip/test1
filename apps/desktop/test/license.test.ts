@@ -2,7 +2,7 @@ import { test, expect } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createLicense, type LicenseState } from '../src/main/license';
+import { createLicense, createOpenLicense, type LicenseState } from '../src/main/license';
 
 const config = { apiKey: 'k', projectId: 'p', clientId: 'cid', clientSecret: 'cs' };
 const DAY = 86_400_000;
@@ -131,4 +131,12 @@ test('without a Firebase config nothing is called and the app stays locked', asy
   await expect(lic.signIn()).rejects.toMatchObject({ code: 'LICENSE_NOT_CONFIGURED' });
   expect(lic.ok()).toBe(false);
   expect(cloud.calls).toEqual([]);
+});
+
+test('sign-in turned off: the app is open with no account, and nothing is called', async () => {
+  const lic = createOpenLicense();
+  expect(lic.ok()).toBe(true);
+  expect(lic.state()).toEqual({ status: 'active' });
+  await lic.check(); await lic.signIn(); lic.signOut();
+  expect(lic.ok()).toBe(true);
 });

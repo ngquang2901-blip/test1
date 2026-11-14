@@ -33,8 +33,8 @@ import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
 import { findChrome, launchChrome } from './chrome'
-import { createFakeLicense, createLicense } from './license'
-import { LICENSE_CONFIG } from './license-config'
+import { createFakeLicense, createLicense, createOpenLicense } from './license'
+import { LICENSE_CONFIG, LICENSE_REQUIRED } from './license-config'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -150,6 +150,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const onLicense = (s: unknown): void => win()?.webContents.send('license', s)
   const lic = !app.isPackaged && (FAKE || process.env.TOOLFLOW_E2E === '1')
     ? createFakeLicense(process.env.TOOLFLOW_FAKE_LICENSE, process.env.TOOLFLOW_FAKE_LICENSE_AFTER, onLicense)
+    : !LICENSE_REQUIRED ? createOpenLicense()
     : createLicense({ config: LICENSE_CONFIG, file: join(userData, 'license.bin'), now: Date.now, onChange: onLicense, openBrowser: (u) => void shell.openExternal(u),
       seal: { encrypt: (t) => safeStorage.encryptString(t), decrypt: (b) => safeStorage.decryptString(b) } })
   const checkLicense = (): Promise<void> => lic.check().catch(() => {})
