@@ -360,3 +360,11 @@ Google sign-in + plan (Firebase `toolflow-ce107`), Aurora sign-in screen, Tổng
 - Packaged app (`dist/win-unpacked`, ProductVersion 0.14.0.0) started with the sign-in test data folder: window responding, license checked against the real Firebase → `active` (ngquang2901), opens on Tổng quan, body font Inter. `app.asar`: no e-mail, home path, token shape or Flow project id; scrubbed fixtures present.
 - Release id 444363522: 3 assets, sizes equal to `dist/`, published. `releases/latest/download/latest.yml` = 0.14.0; the installed 0.13.0 reads that feed (`app-update.yml`: github ngquang2901-blip/test1).
 - Not run: the click-through update from the installed 0.13.0 (the owner's own 0.13.0 was running with their data, so the install was left to them), sign-in from a fresh account in the packaged app (done earlier with the dev build), `config/app.buyInfo` not set yet (the pending screen shows no buy text until the admin adds it in Firestore; no new release needed).
+
+## 0.14.1 released: sign-in turned off (2026-11-14)
+
+Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `license-config.ts` gives `createOpenLicense()` (active, no account, no network); the Firebase code and project stay, `true` brings the gate back (then `.env.local` is needed again: with the gate off the build inlines none of its values). Settings shows Tài khoản only when there is an account.
+- Gate on Windows: typecheck 0, unit 445 (1 new), extension 109, flow-protocol 56, build 0, e2e 67.
+- Packaged app with an empty data folder: ProductVersion 0.14.1.0, opens on Tổng quan, no sign-in screen, no Tài khoản box.
+- Release id 444879826: 3 assets, sizes equal to `dist/`, published.
+- A 0.14.0 locked at the sign-in screen: its updater still runs (not gated) and downloaded 0.14.1 within 25 s of start on this machine (`@toolflowdesktop-updater/pending`, size equal), but that screen has no update button: the install happens on a real quit (tray → Thoát; autoInstallOnAppQuit) or by running the new Setup. The tray quit was not clicked here (the owner was using the PC).
