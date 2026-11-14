@@ -308,6 +308,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(keep.edges)
   const [vars, setVars] = useState<Var[]>(keep.vars)
   const [name, setName] = useState(keep.name)
+  const [panel, setPanel] = useState(true) // a 1000 px window leaves the canvas ~460 px with the panel open
   const [runId, setRunId] = useState(keep.runId)
   const [run, setRun] = useState<RunView | null>(null)
   const [errs, setErrs] = useState<Record<string, string>>({})
@@ -679,6 +680,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         <button className="small" disabled={!id} onClick={() => call(() => window.api.deleteWorkflow(id).then(list).then(() => setMsg('Đã xoá bản lưu. Các node vẫn còn trên màn hình, bấm Lưu nếu muốn giữ lại')))}>Xoá</button>
         <button className="small" disabled={!nodes.length} onClick={() => open(undefined)}>Mới</button>
         <button className="primary small" disabled={!name.trim() || !nodes.length} onClick={() => call(() => window.api.saveWorkflow({ name, graph: raw() }).then(list).then(() => setMsg('Đã lưu')))}>Lưu</button>
+        <button className="small" aria-pressed={!panel} onClick={() => { setPanel(!panel); fit() }}>{panel ? 'Ẩn bảng bên phải' : 'Hiện bảng bên phải'}</button>
       </header>
       <div className="wf-body">
         <div className="wf-center">
@@ -733,7 +735,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
             {msg || (run ? { running: 'Đang chạy, theo dõi từng lượt ở Hàng đợi', done: 'Workflow đã chạy xong', failed: 'Workflow chạy xong, có node lỗi (xem dòng đỏ)', stopped: 'Workflow đã dừng' }[run.status] : !s.autoEnabled ? 'Tự bấm đang tắt (bật ở Cài đặt): bạn bấm Gửi trong Flow cho từng prompt' : '')}
           </p>
         </div>
-        <aside className="wf-side nokey" aria-label="Cấu hình">{side()}</aside>
+        <aside className="wf-side nokey" aria-label="Cấu hình" hidden={!panel}>{side()}</aside>
       </div>
     </section>
   )

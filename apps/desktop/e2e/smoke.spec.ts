@@ -627,6 +627,13 @@ test('Workflow: zoom buttons; the block picker opens from +, the N key and a rig
   await expect(boxes).toHaveCount(3)
   await page.waitForTimeout(400) // an edit becomes its own undo step once the canvas stayed still for 300 ms (measured: the steps below took 0.34 s, a race)
   await expect(page.locator('.react-flow__minimap')).toHaveCount(0) // TobyFlow has none
+  const width = () => page.locator('.react-flow').evaluate((e) => e.getBoundingClientRect().width)
+  const narrow = await width()
+  await page.getByRole('button', { name: 'Ẩn bảng bên phải' }).click() // a 1000 px window leaves the canvas ~460 px
+  await expect(page.getByRole('complementary', { name: 'Cấu hình' })).toBeHidden()
+  expect(await width()).toBeGreaterThan(narrow + 250)
+  await page.getByRole('button', { name: 'Hiện bảng bên phải' }).click()
+  await expect(page.getByRole('complementary', { name: 'Cấu hình' })).toBeVisible()
   const picker = page.getByRole('dialog', { name: 'Thêm khối' })
   await page.getByRole('button', { name: 'Căn giữa' }).click() // focus on a button: N is a shortcut only outside text boxes
   await page.keyboard.press('n')
