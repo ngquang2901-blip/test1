@@ -12,12 +12,12 @@ const CHAIN: Graph = parseGraph({
   edges: [{ from: 't1', to: 'g1' }, { from: 'img', to: 'g1' }, { from: 'g1', to: 'g2' }, { from: 't2', to: 'g2' }, { from: 'g2', to: 'dl' }],
 })
 
-function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; statusOf?: (b: string) => string } = {}) {
+function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; frameFails?: boolean; late?: boolean; statusOf?: (b: string) => string } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'tf-wf-')), file = join(dir, 'out.toolflow.json'), dialogs: string[] = []
   const db = openDb(join(dir, 't.db'))
   db.prepare("insert into asset(id,path,sha256,bytes,mime,name,created_at) values('a1','/x/a.png','h',3,'image/png','a.png',1)").run()
   const calls: string[] = [], enq: { commandId: string; text: string; mode: string; combo?: object; refs: { assetIds: string[]; mode: string } }[] = []
-  const gone = (k: string) => (o.missing ?? []).includes(k)
+  const gone = (k: string) => (o.missing ?? []).includes(k) || (!!o.late && k === 'B' && calls.filter((c) => c === 'download b1').length < 2) // late: B is saved only by the second try
   const all = createWorkflows({
     db, now: () => 5, sleep: () => new Promise((r) => setTimeout(r, 1)), // a real macrotask: an instant sleep would starve the timers while a batch is "running"
     enqueue: async (a) => { enq.push(a as (typeof enq)[number]); return { batchIds: [`b${enq.length}`] } },
@@ -26,6 +26,8 @@ function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; st
     outputs: (b) => (b === 'b1' ? [gone('A') ? null : '/dl/A.png', gone('B') ? null : '/dl/B.png'] : ['/dl/c.png']),
     codes: (b) => (b === 'b1' ? [null, o.blocked ? 'CONTENT_BLOCKED' : gone('B') ? 'PROVIDER_ERROR_UNKNOWN' : null] : [null]),
     register: (p) => `asset:${p}`,
+    lastFrame: async (p) => { calls.push(`frame ${p}`); if (o.frameFails) throw Object.assign(new Error('FFMPEG_FAILED'), { code: 'FFMPEG_FAILED' }); return `${p}.last.png` },
+    merge: async (files, name) => { calls.push(`merge ${files.join(',')} ${name}`); return `/dl/${name}` },
     savePath: async (suggested) => { dialogs.push(suggested); return file }, openPath: async () => file,
   })
   const wf = all.handlers
@@ -342,7 +344,7 @@ test('Vòng lặp, run: one batch per round in order; round n sends prompt i wit
     db: r.db, now: () => 5, sleep: () => new Promise((x) => setTimeout(x, 1)),
     enqueue: async (a) => { r.enq.push(a as (typeof r.enq)[number]); return { batchIds: [`b${r.enq.length}`] } },
     start: async () => {}, stop: async () => {}, status: () => 'completed', download: async (b) => void r.calls.push(`download ${b}`),
-    outputs: (b) => [`/dl/${b}-1.png`, `/dl/${b}-2.png`], codes: () => [null, null], register: (p) => `asset:${p}`, savePath: async () => null, openPath: async () => null,
+    outputs: (b) => [`/dl/${b}-1.png`, `/dl/${b}-2.png`], codes: () => [null, null], register: (p) => `asset:${p}`, lastFrame: async (p) => p, merge: async () => '', savePath: async () => null, openPath: async () => null,
   })
   const { runId } = await all.handlers.runWorkflow({ graph: LOOP(3), mode: 'auto' }) as { runId: string }
   let view = await all.handlers.workflowRun(runId)
@@ -376,4 +378,63 @@ test('Bảng CSV, parseGraph + plan: rows are bounded strings on a csv node only
   for (const rows of ['a,b', [['a', 1]], [null], Array(2002).fill(['x']), [Array(51).fill('x')], [['x'.repeat(1_000_001)]], Array(2).fill(['x'.repeat(600_000)])]) bad(withRows(rows))
   bad(withRows([['a']], 'text')) // only a Bảng CSV node holds rows
   bad({ nodes: [N('c', 'csv'), N('d', 'download')], edges: [{ from: 'c', to: 'd' }] })
+})
+
+// ---- Khung cuối: a video node's last frames become the start frames of the next node; Ghép video: clips of several video nodes made into one ----
+// T (2 prompts) → V1 (video) → Khung cuối → V2 (video, its own 2 prompts) → Ghép video ← V1
+const SCENES = (extra: { nodes?: object[]; edges?: object[] } = {}): Graph => parseGraph({
+  nodes: [N('t1', 'text', 0, { text: 'cảnh 1\ncảnh 2' }), N('v1', 'generate', 300, { combo: VIDEO }), N('f', 'frame', 600), N('t2', 'text', 600, { text: 'tiếp 1\ntiếp 2' }), N('v2', 'generate', 900, { combo: VIDEO }), N('m', 'merge', 1200), ...(extra.nodes ?? [])],
+  edges: [{ from: 't1', to: 'v1' }, { from: 'v1', to: 'f' }, { from: 'f', to: 'v2' }, { from: 't2', to: 'v2' }, { from: 'v1', to: 'm' }, { from: 'v2', to: 'm' }, ...(extra.edges ?? [])],
+})
+
+test('Khung cuối + Ghép video, parseGraph + plan: a frame node takes one video node and gives to Tạo ảnh; a merge node takes video nodes, in wire order', () => {
+  const p = plan(SCENES())
+  expect(p.errors).toEqual([])
+  expect(p.steps.map((s) => [s.node, s.kind, s.save, s.feeds, s.deps])).toEqual([['v1', 'video', true, true, []], ['v2', 'video', true, false, [{ node: 'v1', port: 'direct' }]]])
+  expect(p.merges).toEqual([{ node: 'm', inputs: ['v1', 'v2'] }])
+  const bad = (v: unknown) => expect(() => parseGraph(v)).toThrow(/INVALID_ARGS/)
+  bad({ nodes: [N('t', 'text'), N('f', 'frame')], edges: [{ from: 't', to: 'f' }] }) // a frame comes from a Tạo ảnh node
+  bad({ nodes: [N('m', 'merge'), N('d', 'download')], edges: [{ from: 'm', to: 'd' }] }) // a merge saves its own file
+  const img = (type: string) => plan(parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300), N('n', type, 600)], edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'n' }] })).errors
+  expect(img('frame')).toEqual([{ node: 'n', code: 'WF_FRAME_INPUT' }]) // an image node has no last frame
+  expect(img('merge')).toEqual([{ node: 'n', code: 'WF_MERGE_INPUT' }])
+  expect(plan(parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300), N('m', 'merge', 600)], edges: [{ from: 't', to: 'g' }] })).errors).toEqual([{ node: 'm', code: 'WF_MERGE_INPUT' }]) // nothing wired in
+  const two = plan(SCENES({ nodes: [N('t3', 'text', 0, { text: 'y' }), N('v3', 'generate', 300, { combo: VIDEO })], edges: [{ from: 't3', to: 'v3' }, { from: 'v3', to: 'f' }] })).errors
+  expect(two).toContainEqual({ node: 'f', code: 'WF_FRAME_INPUT' }) // exactly one video node
+})
+
+test('Khung cuối + Ghép video, run: prompt i of the next scene starts from the last frame of prompt i; the merge gets every clip of V1 then V2 and names its file', async () => {
+  const t = rig()
+  const runId = ((await t.wf.runWorkflow({ graph: SCENES(), mode: 'auto' })) as { runId: string }).runId
+  expect(await t.wait(runId)).toBe('done')
+  expect(t.calls.filter((c) => c.startsWith('frame'))).toEqual(['frame /dl/A.png', 'frame /dl/B.png'])
+  expect([t.enq[1].refs.mode, t.enq[1].refs.assetIds]).toEqual(['sequential', ['asset:/dl/A.png.last.png', 'asset:/dl/B.png.last.png']])
+  const merge = t.calls.find((c) => c.startsWith('merge'))!
+  expect(merge).toMatch(/^merge \/dl\/A\.png,\/dl\/B\.png,\/dl\/c\.png ghep-video-[\w-]{8}\.mp4$/)
+  expect((await t.wf.workflowRun(runId))!.nodes.m).toMatchObject({ state: 'done', file: expect.stringMatching(/^ghep-video-/) })
+  await t.wf.revealWorkflowFile({ runId, node: 'm' }) // the path stays in main
+  await expect(t.wf.revealWorkflowFile({ runId, node: 'v1' })).rejects.toMatchObject({ code: 'WF_FILE_GONE' })
+})
+
+test('Khung cuối + Ghép video, run: a missing clip skips the merge (never a video with a scene missing); a frame that ffmpeg cannot read fails the node and skips the next scene', async () => {
+  const gone = rig({ missing: ['B'] })
+  const id1 = ((await gone.wf.runWorkflow({ graph: SCENES(), mode: 'auto' })) as { runId: string }).runId
+  expect(await gone.wait(id1)).toBe('failed')
+  expect(gone.calls.some((c) => c.startsWith('merge'))).toBe(false)
+  expect((await gone.wf.workflowRun(id1))!.nodes.m).toMatchObject({ state: 'skipped', code: 'WF_UPSTREAM_INCOMPLETE' })
+  const bad = rig({ frameFails: true })
+  const id2 = ((await bad.wf.runWorkflow({ graph: SCENES(), mode: 'auto' })) as { runId: string }).runId
+  expect(await bad.wait(id2)).toBe('failed')
+  expect(bad.enq).toHaveLength(1)
+  const n = (await bad.wf.workflowRun(id2))!.nodes
+  expect([n.v1.state, n.v1.code, n.v2.state]).toEqual(['failed', 'FFMPEG_FAILED', 'skipped'])
+})
+
+test('a save that fails once right after the result is tried again before what needs the file (seen live: a fresh Flow video)', async () => {
+  const t = rig({ late: true })
+  const runId = ((await t.wf.runWorkflow({ graph: SCENES(), mode: 'auto' })) as { runId: string }).runId
+  expect(await t.wait(runId)).toBe('done')
+  expect(t.calls.filter((c) => c === 'download b1')).toHaveLength(2)
+  expect(t.calls.filter((c) => c.startsWith('frame'))).toEqual(['frame /dl/A.png', 'frame /dl/B.png'])
+  expect((await t.wf.workflowRun(runId))!.nodes.m.state).toBe('done')
 })

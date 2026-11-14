@@ -38,6 +38,7 @@ const api = {
   runWorkflow: call('runWorkflow'),
   stopWorkflow: call('stopWorkflow'),
   workflowRun: call('workflowRun'),
+  revealWorkflowFile: call('revealWorkflowFile'),
   getMcp: call('getMcp'),
   setMcp: call('setMcp'),
   openMcpFile: call('openMcpFile'),

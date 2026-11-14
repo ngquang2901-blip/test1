@@ -1,4 +1,4 @@
-import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test'
+import { test, expect, _electron, type ElectronApplication, type Locator, type Page } from '@playwright/test'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import Database from 'better-sqlite3'
 import { openDb } from '../src/main/db'
@@ -38,6 +38,25 @@ async function tabTo(page: Page, name: string): Promise<void> {
     if (await page.evaluate((n) => ((document.activeElement as HTMLInputElement | null)?.labels?.[0]?.textContent ?? document.activeElement?.textContent ?? '').trim() === n || document.activeElement?.getAttribute('aria-label') === n, name)) return
   }
   throw new Error(`cannot Tab to ${name}`)
+}
+// Workflow canvas: a block comes from the picker (the + of the tool column); a wire is a drag from an output port to an input port
+async function addNode(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: 'Thêm khối', exact: true }).click()
+  await page.getByRole('option', { name, exact: true }).click()
+}
+async function drag(page: Page, from: Locator, to: Locator): Promise<void> {
+  const hit = (l: Locator) => l.evaluate((e) => { const r = e.getBoundingClientRect(), x = r.x + r.width / 2, y = r.y + r.height / 2; return document.elementFromPoint(x, y) === e ? { x, y } : null })
+  let was = ''
+  await expect.poll(async () => { // a new block refits the canvas a moment later: wait until the view holds still and both ports are on screen and on top
+    const now = await page.locator('.react-flow__viewport').evaluate((e) => (e as HTMLElement).style.transform), still = now === was
+    was = now
+    return still && !!(await hit(from)) && !!(await hit(to))
+  }, { intervals: [150] }).toBe(true)
+  const a = (await from.boundingBox())!, b = (await to.boundingBox())!
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 })
+  await page.mouse.up()
 }
 const items = (page: Page) => page.locator('[data-testid=item]')
 
@@ -464,13 +483,13 @@ test('Workflow: Text → Tạo ảnh → Tạo ảnh (result as ref) → Tự t�
   const root = tmp()
   const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
   const node = (t: string) => page.getByTestId(`wf-${t}`)
-  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => drag(page, from.locator('.react-flow__handle.source'), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await expect(page.locator('.react-flow__edge')).toHaveCount(2)
   await node('text').getByLabel('Prompt của node Text').fill('nhân vật A')
-  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
-  await page.getByRole('button', { name: '+ Text' }).click()
+  await addNode(page, 'Tạo ảnh Flow')
+  await addNode(page, 'Text')
   await node('text').nth(1).getByLabel('Prompt của node Text').fill('cảnh 1')
   await wire(node('generate').nth(0), node('generate').nth(1)) // the first node's result is the second node's reference image
   await wire(node('text').nth(1), node('generate').nth(1))
@@ -506,7 +525,7 @@ test('Workflow: Text → Tạo ảnh → Tạo ảnh (result as ref) → Tự t�
 test('Workflow: a node without a prompt is named on the canvas and nothing is sent', async () => {
   const { page } = await launch(tmp())
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
+  await addNode(page, 'Tạo ảnh Flow')
   await page.getByRole('button', { name: 'Chạy workflow' }).click()
   await expect(page.getByTestId('wf-generate').getByRole('alert')).toContainText('Node này chưa có prompt')
   expect(await page.evaluate(() => window.api.listBatches().then((r: { batches: unknown[] }) => r.batches.length))).toBe(0)
@@ -531,7 +550,7 @@ test('Workflow: variables fill the prompts and the side panel shows what will be
   await expect(page.getByTestId('wf-preview')).toContainText('Kết quả sẽ được tải về máy')
 
   // undo / redo: an added node, then a deleted node with its text and wires
-  await page.getByRole('button', { name: '+ Ghi chú' }).click()
+  await page.getByRole('button', { name: 'Thêm ghi chú' }).click()
   await expect(boxes).toHaveCount(4)
   await page.getByRole('button', { name: 'Hoàn tác' }).click()
   await expect(boxes).toHaveCount(3)
@@ -574,13 +593,13 @@ test('Workflow: variables fill the prompts and the side panel shows what will be
 })
 
 test('Workflow: Điều kiện — the first node lost its image, so the "Thiếu ảnh" side runs and the "Đủ ảnh" side does not', async () => {
-  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: tmp(), TOOLFLOW_FAKE_DOWNLOADS: 'download-html' }) // the first saved file is not an image
+  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: tmp(), TOOLFLOW_FAKE_DOWNLOADS: 'download-html,download-html,download-html,download-html' }) // the first node's file is never an image, not even on the workflow's three later tries
   const node = (t: string) => page.getByTestId(`wf-${t}`)
-  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => { await from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`).click(); await to.locator('.react-flow__handle.target').click() }
+  const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => drag(page, from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await node('text').getByLabel('Prompt của node Text').fill('nhân vật')
-  for (const b of ['+ Điều kiện', '+ Tạo ảnh Flow', '+ Tạo ảnh Flow', '+ Text', '+ Text']) await page.getByRole('button', { name: b, exact: true }).click()
+  for (const b of ['Điều kiện', 'Tạo ảnh Flow', 'Tạo ảnh Flow', 'Text', 'Text']) await addNode(page, b)
   await node('text').nth(1).getByLabel('Prompt của node Text').fill('cảnh có nhân vật')
   await node('text').nth(2).getByLabel('Prompt của node Text').fill('cảnh dự phòng')
   await wire(node('generate').nth(0), node('branch'))
@@ -599,7 +618,7 @@ test('Workflow: Điều kiện — the first node lost its image, so the "Thiế
   expect(sent).toEqual([['cảnh dự phòng', 0], ['nhân vật', 0]])
 })
 
-test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar lands where it is dropped; undo history survives another screen', async () => {
+test('Workflow: zoom buttons; the block picker opens from +, the N key and a right click, filters as typed; a block dragged from it lands where it is dropped; undo history survives another screen', async () => {
   const { page } = await launch(tmp())
   const boxes = page.locator('.react-flow__node')
   const scale = () => page.locator('.react-flow__viewport').evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).a)
@@ -607,7 +626,27 @@ test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar l
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await expect(boxes).toHaveCount(3)
   await page.waitForTimeout(400) // an edit becomes its own undo step once the canvas stayed still for 300 ms (measured: the steps below took 0.34 s, a race)
-  await expect(page.locator('.react-flow__minimap')).toBeVisible()
+  await expect(page.locator('.react-flow__minimap')).toHaveCount(0) // TobyFlow has none
+  const width = () => page.locator('.react-flow').evaluate((e) => e.getBoundingClientRect().width)
+  const narrow = await width()
+  await page.getByRole('button', { name: 'Ẩn bảng bên phải' }).click() // a 1000 px window leaves the canvas ~460 px
+  await expect(page.getByRole('complementary', { name: 'Cấu hình' })).toBeHidden()
+  expect(await width()).toBeGreaterThan(narrow + 250)
+  await page.getByRole('button', { name: 'Hiện bảng bên phải' }).click()
+  await expect(page.getByRole('complementary', { name: 'Cấu hình' })).toBeVisible()
+  const picker = page.getByRole('dialog', { name: 'Thêm khối' })
+  await page.getByRole('button', { name: 'Căn giữa' }).click() // focus on a button: N is a shortcut only outside text boxes
+  await page.keyboard.press('n')
+  await expect(picker.getByRole('option')).toHaveCount(11)
+  await expect(picker.getByLabel('Tìm khối')).toBeFocused()
+  await page.keyboard.type('ghép')
+  await expect(picker.getByRole('option')).toHaveText([/Ghép video/])
+  await page.keyboard.press('Escape')
+  await expect(picker).toHaveCount(0)
+  const pane = page.locator('.react-flow__pane'), box = (await pane.boundingBox())!
+  await page.mouse.click(box.x + box.width - 20, box.y + 30, { button: 'right' })
+  await expect(picker).toBeVisible()
+  await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Căn giữa' }).click()
   await expect.poll(scale).toBeLessThanOrEqual(1)
   const z0 = await scale()
@@ -616,13 +655,14 @@ test('Workflow: zoom buttons and minimap; a node type dragged from the toolbar l
   const z1 = await scale()
   await page.getByRole('button', { name: 'Phóng to', exact: true }).click()
   await expect.poll(scale).toBeGreaterThan(z1)
-  // drag "+ Ghi chú" onto the canvas: one more node, at the drop point (not in the default left column)
-  const pane = page.locator('.react-flow__pane'), box = (await pane.boundingBox())!
-  await page.getByRole('button', { name: '+ Ghi chú' }).dragTo(pane, { targetPosition: { x: box.width - 330, y: box.height - 260 } })
+  // drag "Ghi chú" from the picker onto the canvas: one more node, at the drop point (not in the default left column)
+  await page.getByRole('button', { name: 'Thêm khối', exact: true }).click()
+  await picker.getByRole('option', { name: 'Ghi chú', exact: true }).dragTo(pane, { targetPosition: { x: box.width - 60, y: box.height - 90 } })
   await expect(boxes).toHaveCount(4)
+  await expect(picker).toHaveCount(0)
   const note = (await page.getByTestId('wf-note').boundingBox())!
-  expect(Math.abs(note.x - (box.x + box.width - 330))).toBeLessThan(30)
-  expect(Math.abs(note.y - (box.y + box.height - 260))).toBeLessThan(30)
+  expect(Math.abs(note.x - (box.x + box.width - 60))).toBeLessThan(30)
+  expect(Math.abs(note.y - (box.y + box.height - 90))).toBeLessThan(30)
   await expect(page.getByRole('button', { name: 'Hoàn tác' })).toBeEnabled()
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
@@ -697,11 +737,11 @@ test('Workflow: a Tạo ảnh node carries its own model / aspect / count into i
 test('Workflow: Điều kiện "Có prompt bị Flow lọc" — Flow refuses the first node\'s prompt, so that side runs its rewritten prompt and the other side does not', async () => {
   const { page } = await launch(tmp(), 'blocked', { TOOLFLOW_DOWNLOAD_ROOT: tmp() }) // the first send comes back refused for its content
   const node = (t: string) => page.getByTestId(`wf-${t}`)
-  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => { await from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`).click(); await to.locator('.react-flow__handle.target').click() }
+  const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => drag(page, from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await node('text').getByLabel('Prompt của node Text').fill('nhân vật')
-  for (const b of ['+ Điều kiện', '+ Tạo ảnh Flow', '+ Tạo ảnh Flow', '+ Text', '+ Text']) await page.getByRole('button', { name: b, exact: true }).click()
+  for (const b of ['Điều kiện', 'Tạo ảnh Flow', 'Tạo ảnh Flow', 'Text', 'Text']) await addNode(page, b)
   await node('text').nth(1).getByLabel('Prompt của node Text').fill('nhân vật, viết lại nhẹ hơn')
   await node('text').nth(2).getByLabel('Prompt của node Text').fill('cảnh tiếp theo')
   await wire(node('generate').nth(0), node('branch'))
@@ -973,12 +1013,12 @@ test('Workflow: a node switched to Video starts from the image the node before i
   const root = join(tmp(), 'dl')
   const { app, page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
   const node = (t: string) => page.getByTestId(`wf-${t}`), panel = page.getByTestId('wf-settings')
-  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => drag(page, from.locator('.react-flow__handle.source'), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await node('text').getByLabel('Prompt của node Text').fill('nhân vật A')
-  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
-  await page.getByRole('button', { name: '+ Text' }).click()
+  await addNode(page, 'Tạo ảnh Flow')
+  await addNode(page, 'Text')
   await node('text').nth(1).getByLabel('Prompt của node Text').fill('nhân vật quay đầu lại')
   await wire(node('generate').nth(0), node('generate').nth(1))
   await wire(node('text').nth(1), node('generate').nth(1))
@@ -1054,7 +1094,7 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   const root = join(tmp(), 'dl')
   const { page } = await launch(tmp(), 'image-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(7) // the placeholder + 6 templates
+  await expect(page.getByLabel('Mẫu có sẵn').locator('option')).toHaveCount(8) // the placeholder + 7 templates
   await page.getByLabel('Mẫu có sẵn').selectOption('Tạo ảnh rồi làm video từ ảnh đó')
   await expect(page.getByLabel('Tên workflow')).toHaveValue('Tạo ảnh rồi làm video từ ảnh đó')
   await expect(page.locator('.react-flow__node')).toHaveCount(6)
@@ -1063,6 +1103,45 @@ test('Workflow: a ready-made workflow opens wired and named, and runs as it is (
   await page.getByRole('button', { name: 'Chạy workflow' }).click()
   await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
   expect((readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))).toHaveLength(1)
+})
+
+test('Workflow: Nối cảnh video — Text → Tạo video → Khung cuối → Tạo video → Ghép video runs both scenes, joins the clips and offers the folder; a wire let go on empty canvas opens the picker and the new block is wired', async () => {
+  const root = join(tmp(), 'dl')
+  const { page } = await launch(tmp(), 'video-ok,video-ok,video-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root }) // two scenes of two prompts each
+  const node = (t: string) => page.getByTestId(`wf-${t}`), left = async (l: Locator) => (await l.boundingBox())!.x
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByLabel('Mẫu có sẵn').selectOption('Nối cảnh video')
+  await expect(page.locator('.react-flow__node')).toHaveCount(7)
+  await expect(page.locator('.react-flow__edge')).toHaveCount(6)
+  await expect(node('merge').locator('.wf-order')).toHaveText('3') // the run order from the plan: scene 1, scene 2, then the join
+  await page.getByRole('button', { name: 'Tự sắp xếp' }).click()
+  await expect.poll(async () => [await left(node('text').nth(0)) < await left(node('generate').nth(0)), await left(node('generate').nth(0)) < await left(node('frame')), await left(node('frame')) < await left(node('generate').nth(1)), await left(node('generate').nth(1)) < await left(node('merge'))]).toEqual([true, true, true, true])
+  await page.getByRole('button', { name: 'Chạy workflow' }).click()
+  await expect(page.getByRole('button', { name: 'Dừng workflow' })).toBeVisible()
+  await expect(page.getByTestId('wf-status')).toHaveText('Workflow đã chạy xong', { timeout: 60_000 })
+  await expect(node('merge')).toContainText('Xong')
+  await expect(node('merge')).toContainText(/ghep-video-[0-9a-f]{8}\.mp4/)
+  await expect(node('merge').getByRole('button', { name: 'Mở thư mục' })).toBeVisible() // not clicked: it would open Explorer
+  const mp4 = (readdirSync(root, { recursive: true }) as string[]).map(String).filter((f) => f.endsWith('.mp4'))
+  expect([mp4.length, mp4.filter((f) => basename(f).startsWith('ghep-video-')).length]).toEqual([5, 1]) // four clips and the joined video
+  await node('merge').locator('header b').click()
+  await page.getByRole('tab', { name: 'Kết quả' }).click()
+  await expect(page.locator('aside[aria-label="Cấu hình"]')).toContainText('ghep-video-')
+
+  // a wire from a Text's output let go on empty canvas: the picker offers only what a prompt can go to, and wires the new block
+  await page.getByRole('button', { name: 'Mới', exact: true }).click()
+  await addNode(page, 'Text')
+  const out = (await node('text').locator('.react-flow__handle.source').boundingBox())!
+  await page.mouse.move(out.x + out.width / 2, out.y + out.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(out.x + 40, out.y + 230, { steps: 10 })
+  await page.mouse.up()
+  const picker = page.getByRole('dialog', { name: 'Thêm khối' })
+  await expect(picker).toContainText('Gợi ý cho cổng')
+  await expect(picker.getByRole('option')).toHaveText([/^Tạo ảnh Flow/, /^Tạo video Flow/])
+  await picker.getByRole('option', { name: 'Tạo video Flow', exact: true }).click()
+  await expect(page.locator('.react-flow__edge')).toHaveCount(1)
+  await expect(node('generate').locator('header b')).toHaveText('Tạo video Flow')
 })
 
 test('Tạo lô: Nạp file CSV fills the prompt list from a column, or from the template box with the columns as {variables}; an empty cell is named, not dropped', async () => {
@@ -1093,9 +1172,9 @@ test('Workflow: Text → Tạo ảnh → Vòng lặp (3) → Tự tải về run
   const ud = tmp(), root = join(tmp(), 'dl')
   const { app, page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root })
   const node = (t: string) => page.getByTestId(`wf-${t}`)
-  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => drag(page, from.locator('.react-flow__handle.source'), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  for (const k of ['Text', 'Tạo ảnh Flow', 'Vòng lặp', 'Tự tải về']) await page.getByRole('button', { name: `+ ${k}`, exact: true }).click()
+  for (const k of ['Text', 'Tạo ảnh Flow', 'Vòng lặp', 'Tự tải về']) await addNode(page, k)
   await node('text').getByLabel('Prompt của node Text').fill('chân dung ông lão')
   await wire(node('text'), node('generate'))
   await wire(node('generate'), node('loop'))
@@ -1126,9 +1205,9 @@ test('Workflow: a Bảng CSV node drives a Tạo ảnh node, one prompt per row 
   const { page } = await launch(tmp())
   const node = (t: string) => page.getByTestId(`wf-${t}`)
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  await page.getByRole('button', { name: '+ Bảng CSV' }).click()
-  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
-  await node('csv').locator('.react-flow__handle.source').click(); await node('generate').locator('.react-flow__handle.target').click()
+  await addNode(page, 'Bảng CSV')
+  await addNode(page, 'Tạo ảnh Flow')
+  await drag(page, node('csv').locator('.react-flow__handle.source'), node('generate').locator('.react-flow__handle.target'))
   await node('csv').locator('label.filebtn input').setInputFiles({ name: 'a.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,sân\n\nchó,nhà\n') })
   await expect(node('csv').getByLabel('Mẫu prompt của node Bảng CSV')).toHaveValue('{Tên}') // the first column until a template is written
   await expect(node('csv').getByTestId('wf-csv-info')).toHaveText('2 prompt · cột: {Tên} {Nơi}')
@@ -1146,14 +1225,14 @@ test('Workflow: + Tạo video Flow adds a node already set to video, titled so; 
   const { page } = await launch(tmp())
   const node = (t: string) => page.getByTestId(`wf-${t}`)
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
-  await page.getByRole('button', { name: '+ Text', exact: true }).click()
-  await page.getByRole('button', { name: '+ Tạo video Flow' }).click()
-  await page.getByRole('button', { name: '+ Vòng lặp' }).click()
+  await addNode(page, 'Text')
+  await addNode(page, 'Tạo video Flow')
+  await addNode(page, 'Vòng lặp')
   await expect(node('generate').locator('header b')).toHaveText('Tạo video Flow')
   await expect(node('generate').getByTestId('wf-combo')).toHaveText('Video · Veo 3.1 - Lite · 16:9 · x1')
   await node('text').getByLabel('Prompt của node Text').fill('ngọn nến cháy')
-  await node('text').locator('.react-flow__handle.source').click(); await node('generate').locator('.react-flow__handle.target').click()
-  await node('generate').locator('.react-flow__handle.source').click(); await node('loop').locator('.react-flow__handle.target').click()
+  await drag(page, node('text').locator('.react-flow__handle.source'), node('generate').locator('.react-flow__handle.target'))
+  await drag(page, node('generate').locator('.react-flow__handle.source'), node('loop').locator('.react-flow__handle.target'))
   await expect(page.locator('.react-flow__edge')).toHaveCount(2)
   await page.getByRole('button', { name: 'Chạy workflow' }).click()
   await expect(node('loop').getByRole('alert')).toContainText('Vòng lặp chỉ dùng được sau node tạo ảnh')
@@ -1278,12 +1357,12 @@ test('Workflow: a Tạo ảnh node sent to Gemini (with a ratio) feeds one sent 
   const root = join(tmp(), 'dl')
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
   const node = (t: string) => page.getByTestId(`wf-${t}`), site = page.getByTestId('wf-site')
-  const wire = async (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => { await from.locator('.react-flow__handle.source').click(); await to.locator('.react-flow__handle.target').click() }
+  const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>) => drag(page, from.locator('.react-flow__handle.source'), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
   await page.getByRole('button', { name: /Tạo chuỗi mẫu/ }).click()
   await node('text').getByLabel('Prompt của node Text').fill('nhân vật A')
-  await page.getByRole('button', { name: '+ Tạo ảnh Flow' }).click()
-  await page.getByRole('button', { name: '+ Text' }).click()
+  await addNode(page, 'Tạo ảnh Flow')
+  await addNode(page, 'Text')
   await node('text').nth(1).getByLabel('Prompt của node Text').fill('nhân vật A đứng trên cầu')
   await wire(node('generate').nth(0), node('generate').nth(1))
   await wire(node('text').nth(1), node('generate').nth(1))
@@ -1295,6 +1374,8 @@ test('Workflow: a Tạo ảnh node sent to Gemini (with a ratio) feeds one sent 
   await expect(node('generate').nth(0).getByTestId('wf-combo')).toHaveText('Gemini · Tạo hình ảnh · Flash · 9:16')
   await expect(page.getByTestId('wf-settings')).toHaveCount(0) // no Flow settings on a site node
   await expect(page.getByTestId('wf-preview')).toContainText('Mỗi prompt tạo 1 ảnh, tổng cộng 1 ảnh')
+  await page.keyboard.press('Escape') // closes the form floating under the node, which may cover the next one
+  await expect(page.getByTestId('wf-preview')).toHaveCount(0)
   await node('generate').nth(1).locator('header b').click()
   await site.getByLabel('Nền tảng').selectOption('chatgpt')
   await expect(node('generate').nth(1).getByTestId('wf-combo')).toHaveText('ChatGPT · Create image')

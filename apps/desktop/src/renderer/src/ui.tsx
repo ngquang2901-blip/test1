@@ -35,7 +35,27 @@ const PATHS = {
   grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   coin: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM14.5 9.5a2.5 2 0 0 0-2.5-1.5c-1.4 0-2.5.8-2.5 2s1.1 1.6 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2a2.5 2 0 0 1-2.5-1.5M12 6.5v11',
   bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',
+  // the Workflow editor (TobyFlow look): tools, ports, block types
+  text: 'M5 7V5h14v2M12 5v14M9 19h6',
+  video: 'M3 7h12v10H3zM15 10.5l6-3.5v10l-6-3.5',
+  film: 'M4 4h16v16H4zM8 4v16M16 4v16M4 9h4M4 15h4M16 9h4M16 15h4',
+  merge: 'M4 6h5l3 6-3 6H4M12 12h8M17 9l3 3-3 3',
+  note: 'M5 3h10l4 4v14H5zM15 3v4h4M8 12h8M8 16h5',
+  play: 'M8 5v14l11-7z',
+  stop: 'M7 7h10v10H7z',
+  undo: 'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+  redo: 'M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3',
+  focus: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
+  layout: 'M3 4h6v5H3zM15 4h6v5h-6zM9 15h6v5H9zM6 9v3h12V9M12 12v3',
+  gear: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',
+  copy: 'M8 8h12v12H8zM4 16V4h12',
+  clip: 'M9 3h6v3H9zM7 4H5v17h14V4h-2M9 12h6M9 16h4',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  expand: 'M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7',
+  folder: 'M3 6h6l2 2h10v11H3z',
+  dot: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
 } as const
+export type IconName = keyof typeof PATHS
 
 export function Icon({ name, size = 16 }: { name: keyof typeof PATHS; size?: number }): React.JSX.Element {
   return (
