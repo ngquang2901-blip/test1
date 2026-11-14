@@ -192,6 +192,8 @@ export function createWorkflows(d: WfDeps) {
         if (run.stop) { for (const b of n.batchIds) await d.stop(b); n.state = 'stopped'; continue }
         if (s.feeds) n.blocked = n.batchIds.some((b) => d.codes(b).includes('CONTENT_BLOCKED')) // what Flow answered: known before, and whatever becomes of, the saving below
         if (s.save || s.feeds) for (const b of n.batchIds) await d.download(b)
+        // a save can fail once right after the result appears (seen live: a fresh Flow video, saved by auto save 2 s later), and what follows needs the file
+        for (let k = 0; k < 3 && (s.save || s.feeds) && !run.stop && n.batchIds.some((b) => d.outputs(b).some((f) => !f)); k++) { await sleep(5000); for (const b of n.batchIds) await d.download(b) }
         if (s.feeds) { const fs = n.batchIds.flatMap((b) => d.outputs(b)), out: (string | null)[] = []; for (const f of fs) out.push(f ? d.register(s.kind === 'video' ? await d.lastFrame(f) : f) : null); n.assets = out } // a video hands on its last frames (it feeds only through Khung cuối)
         const notOk = n.batchIds.map((b) => d.status(b)).find((st) => st !== 'completed')
         n.state = notOk ? 'failed' : 'done'

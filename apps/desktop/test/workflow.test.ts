@@ -12,12 +12,12 @@ const CHAIN: Graph = parseGraph({
   edges: [{ from: 't1', to: 'g1' }, { from: 'img', to: 'g1' }, { from: 'g1', to: 'g2' }, { from: 't2', to: 'g2' }, { from: 'g2', to: 'dl' }],
 })
 
-function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; frameFails?: boolean; statusOf?: (b: string) => string } = {}) {
+function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; frameFails?: boolean; late?: boolean; statusOf?: (b: string) => string } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'tf-wf-')), file = join(dir, 'out.toolflow.json'), dialogs: string[] = []
   const db = openDb(join(dir, 't.db'))
   db.prepare("insert into asset(id,path,sha256,bytes,mime,name,created_at) values('a1','/x/a.png','h',3,'image/png','a.png',1)").run()
   const calls: string[] = [], enq: { commandId: string; text: string; mode: string; combo?: object; refs: { assetIds: string[]; mode: string } }[] = []
-  const gone = (k: string) => (o.missing ?? []).includes(k)
+  const gone = (k: string) => (o.missing ?? []).includes(k) || (!!o.late && k === 'B' && calls.filter((c) => c === 'download b1').length < 2) // late: B is saved only by the second try
   const all = createWorkflows({
     db, now: () => 5, sleep: () => new Promise((r) => setTimeout(r, 1)), // a real macrotask: an instant sleep would starve the timers while a batch is "running"
     enqueue: async (a) => { enq.push(a as (typeof enq)[number]); return { batchIds: [`b${enq.length}`] } },
@@ -428,4 +428,13 @@ test('Khung cuối + Ghép video, run: a missing clip skips the merge (never a v
   expect(bad.enq).toHaveLength(1)
   const n = (await bad.wf.workflowRun(id2))!.nodes
   expect([n.v1.state, n.v1.code, n.v2.state]).toEqual(['failed', 'FFMPEG_FAILED', 'skipped'])
+})
+
+test('a save that fails once right after the result is tried again before what needs the file (seen live: a fresh Flow video)', async () => {
+  const t = rig({ late: true })
+  const runId = ((await t.wf.runWorkflow({ graph: SCENES(), mode: 'auto' })) as { runId: string }).runId
+  expect(await t.wait(runId)).toBe('done')
+  expect(t.calls.filter((c) => c === 'download b1')).toHaveLength(2)
+  expect(t.calls.filter((c) => c.startsWith('frame'))).toEqual(['frame /dl/A.png', 'frame /dl/B.png'])
+  expect((await t.wf.workflowRun(runId))!.nodes.m.state).toBe('done')
 })

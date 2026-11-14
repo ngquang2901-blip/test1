@@ -593,7 +593,7 @@ test('Workflow: variables fill the prompts and the side panel shows what will be
 })
 
 test('Workflow: Điều kiện — the first node lost its image, so the "Thiếu ảnh" side runs and the "Đủ ảnh" side does not', async () => {
-  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: tmp(), TOOLFLOW_FAKE_DOWNLOADS: 'download-html' }) // the first saved file is not an image
+  const { page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: tmp(), TOOLFLOW_FAKE_DOWNLOADS: 'download-html,download-html,download-html,download-html' }) // the first node's file is never an image, not even on the workflow's three later tries
   const node = (t: string) => page.getByTestId(`wf-${t}`)
   const wire = (from: ReturnType<typeof node>, to: ReturnType<typeof node>, port = '') => drag(page, from.locator(`.react-flow__handle.source${port && `[data-handleid="${port}"]`}`), to.locator('.react-flow__handle.target'))
   await page.getByRole('button', { name: 'Workflow', exact: true }).click()
