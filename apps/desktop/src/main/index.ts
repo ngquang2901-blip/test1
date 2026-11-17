@@ -359,7 +359,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   }
   registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers })
   // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
-  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late) })
+  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late), attention: (b, title, body) => notifier.notify({ kind: 'attention', batchId: b, title, body }) })
   const schedTick = (): void => void (lic.ok() ? sched.tick() : Promise.resolve()).catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
   schedTick()
   setInterval(schedTick, 5000)
