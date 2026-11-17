@@ -64,7 +64,7 @@ export function createGptRunner(o: {
   const review = (s: AttemptState, code: string, why: string): AttemptState => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, why }, admission: 'pause', creditSpent: true })
   const heldAt = new Map<string, number>(), lifted = new Set<string>() // when a batch was paused here; prompts whose pause was lifted once already
   const hold = (batch: string, code: string): void => {
-    db.prepare("update batch set status='paused', revision=revision+1 where id=? and status='running'").run(batch)
+    db.prepare("update batch set status='paused', pause_reason=?, revision=revision+1 where id=? and status in ('running','paused')").run(code, batch)
     reasons.set(batch, code); heldAt.set(batch, clock.now())
   }
   const theTab = async (conv?: string | null): Promise<string | null> => {
@@ -179,7 +179,7 @@ export function createGptRunner(o: {
       heldAt.delete(b)
       const cur = rows('i.batch_id=?', b).find((a) => a.s.item === 'queued' || a.s.item === 'preparing')
       if (!cur || lifted.has(cur.id)) continue
-      if (db.prepare("update batch set status='running', revision=revision+1 where id=? and status='paused' and stop_requested=0 and archived=0").run(b).changes) lifted.add(cur.id)
+      if (db.prepare("update batch set status='running', pause_reason=null, revision=revision+1 where id=? and status='paused' and stop_requested=0 and archived=0").run(b).changes) lifted.add(cur.id)
     }
     for (const b of [...reasons.keys()]) { // the user resumed a batch this runner paused
       if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status === 'running') { reasons.delete(b); reopen.add(b) }
@@ -209,6 +209,7 @@ export function createGptRunner(o: {
   return {
     tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p },
     recover() { // after a restart a click without its turn is uncertain, never resent; an answer being generated is simply watched again
+      for (const r of db.prepare("select id, pause_reason w from batch where provider=? and status='paused' and pause_reason is not null").all(provider) as { id: string; w: string }[]) { reasons.set(r.id, r.w); heldAt.set(r.id, clock.now()) } // the pause reason outlives the restart
       for (const a of rows("json_extract(a.state_json,'$.item')='submitting'")) put(a.id, 'restart', next(a.s, { type: 'restart' }))
     },
     lastError: (b) => reasons.get(b) ?? null,

@@ -87,7 +87,7 @@ export function createRunner(o: {
   const flush = () => {
     for (const b of paused.keys()) {
       if (unc.has(b)) continue; // not persisted: recover() rebuilds it from target_block, so a restart still auto-resumes (R31)
-      try { db.prepare("update batch set status='paused', revision=revision+1 where id=? and status='running'").run(b); } catch { /* retried next tick */ }
+      try { db.prepare("update batch set status='paused', pause_reason=?, revision=revision+1 where id=? and (status='running' or (status='paused' and pause_reason is not ?))").run(paused.get(b) ?? null, b, paused.get(b) ?? null); } catch { /* retried next tick */ }
     }
   };
   const pause = (b: string, reason: string | null = null, uncertain = false) => { paused.set(b, reason); if (uncertain) unc.add(b); else unc.delete(b); flush(); };
@@ -121,7 +121,7 @@ export function createRunner(o: {
     return s;
   };
 
-  const setStatus = (b: string, from: string, to: string) => db.prepare('update batch set status=?, revision=revision+1 where id=? and status=?').run(to, b, from);
+  const setStatus = (b: string, from: string, to: string) => db.prepare('update batch set status=?, pause_reason=null, revision=revision+1 where id=? and status=?').run(to, b, from);
   /** Unblocks the project and lets the batch go on, unless another attempt of it still needs review. */
   const release = (id: string) => {
     unblock(db, id);
@@ -311,7 +311,7 @@ export function createRunner(o: {
       } catch (err) { fail(b.id, err); }
     }
     // 3. a click that left no request is uncertain after its deadline; then every due reconcile (D-11)
-    for (const r of db.prepare(`select a.id, ${CLICK_MS} c, a.state_json j from attempt a where json_extract(a.state_json, '$.item') = 'submitting'`).all() as { id: string; c: number | null; j: string }[]) { // CLICK_MS: a click whose click_at/clicked write failed is still swept
+    for (const r of db.prepare(`select a.id, ${CLICK_MS} c, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where b.provider='flow' and json_extract(a.state_json, '$.item') = 'submitting'`).all() as { id: string; c: number | null; j: string }[]) { // CLICK_MS: a click whose click_at/clicked write failed is still swept
       const s = JSON.parse(r.j) as AttemptState;
       if (s.item === 'submitting' && r.c !== null && !s.request && clock.now() - r.c >= SEND_DEADLINE_MS && !clicking.has(r.id)) {
         try { // fence the tab: the late sent/response of this attempt must not bind to the next one clicked there
@@ -404,6 +404,7 @@ export function createRunner(o: {
       db.prepare('update batch set archived=1, revision=revision+1 where id=?').run(b);
     },
     recover() { // D-04: every intent without a receipt is uncertain after a restart; blocks are rebuilt from the attempts themselves
+      for (const r of db.prepare("select b.id, b.pause_reason w from batch b where b.provider='flow' and b.status='paused' and b.pause_reason is not null").all() as { id: string; w: string }[]) paused.set(r.id, r.w); // the pause reason outlives the restart
       const all = db.prepare("select a.id, a.state_json j from attempt a join item i on i.id=a.item_id join batch b on b.id=i.batch_id where b.provider='flow'").all() as { id: string; j: string }[];
       for (const r of all) if (['submitting', 'awaiting_user'].includes((JSON.parse(r.j) as AttemptState).item)) apply(r.id, { type: 'restart' });
       db.transaction(() => {

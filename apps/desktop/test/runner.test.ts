@@ -1048,3 +1048,22 @@ test('B3: click_at write fails right after a real click: the 30 s sweep still en
   await t.step(3);
   expect(t.driver.ledger.clicks).toBe(1);
 });
+
+test('B5: the pause reason survives a restart: lastError is kept and CONNECTOR_LOST still restarts by itself when the tab is back', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2 });
+  t.runner.start(t.batchId);
+  t.driver.hidden.add('t1');
+  await t.step(2);
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  const r2 = createRunner({ db: t.db, driver: t.driver, clock: t.clock, tabs: [], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true });
+  r2.recover();
+  expect(r2.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  t.driver.hidden.delete('t1');
+  r2.setTabs(['t1']);
+  expect(batchRow(t.db, t.batchId).status).toBe('running');
+  expect(r2.lastError(t.batchId)).toBeNull();
+  const r3 = createRunner({ db: t.db, driver: t.driver, clock: t.clock, tabs: [], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true });
+  r3.recover();
+  expect(r3.lastError(t.batchId)).toBeNull(); // cleared on resume, not stale
+});
