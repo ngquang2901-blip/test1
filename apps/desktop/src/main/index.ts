@@ -19,7 +19,7 @@ import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createWorkflows } from './workflow'
-import { concatVideos, lastFrame } from './ffmpeg'
+import { concatVideos, lastFrame, pruneFrames } from './ffmpeg'
 import { TINY_PNG } from './fake-driver'
 import { createExtGpt, createFakeGpt, isGemMedia, isGptMedia, type GptDriver, type GptScript } from './gpt-driver'
 import { createGptRunner, routeRunner } from './gpt-runner'
@@ -285,6 +285,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     const o = { properties: ['openFile' as const], filters }
     return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
   }
+  pruneFrames(join(userData, 'frames'), clock.now())
   const wf = createWorkflows({
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
