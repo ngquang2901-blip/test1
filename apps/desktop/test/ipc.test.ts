@@ -261,7 +261,13 @@ test('enqueueBatch for Gemini: an image batch kept apart by its provider, with a
   expect((db.prepare('select refs_json r from item where batch_id=? order by ord').all(g.batchId) as { r: string }[]).map((x) => JSON.parse(x.r))).toEqual([ids, ids]);
   await expect(h.enqueueBatch({ commandId: 'm4', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', aspect: '21:9' })).rejects.toThrow(/INVALID_ARGS/);
   await expect(h.enqueueBatch({ commandId: 'm5', text: 'x', kind: 'image', mode: 'auto', provider: 'gemini', refs: { assetIds: ['nope'], mode: 'all', perItem: 1 } })).rejects.toThrow(/INVALID_ARGS/);
-  await expect(h.enqueueBatch({ commandId: 'm6', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '16:9' })).rejects.toThrow(/INVALID_ARGS/);
+  // ChatGPT has no ratio control: the ratio travels as one sentence after the prompt (measured: 16:9 -> 1672x941, 9:16 -> 941x1672)
+  const w = (await h.enqueueBatch({ commandId: 'm6', text: 'a bike\na cat', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '16:9' })) as { batchId: string };
+  expect(JSON.parse((db.prepare('select settings_json s from batch where id=?').get(w.batchId) as { s: string }).s)).toMatchObject({ provider: 'chatgpt', aspect: '16:9' });
+  expect((db.prepare('select prompt from item where batch_id=? order by ord').all(w.batchId) as { prompt: string }[]).map((x) => x.prompt)).toEqual(['a bike Make the image a wide landscape in 16:9 aspect ratio.', 'a cat Make the image a wide landscape in 16:9 aspect ratio.']);
+  const sq = (await h.enqueueBatch({ commandId: 'm6b', text: 'a cup.', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '1:1' })) as { batchId: string };
+  expect((db.prepare('select prompt from item where batch_id=?').get(sq.batchId) as { prompt: string }).prompt).toBe('a cup. Make the image a square in 1:1 aspect ratio.');
+  await expect(h.enqueueBatch({ commandId: 'm6c', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', aspect: '21:9' })).rejects.toThrow(/INVALID_ARGS/);
   const c = (await h.enqueueBatch({ commandId: 'm7', text: 'x', kind: 'image', mode: 'auto', provider: 'chatgpt', refs })) as { batchId: string }; // ChatGPT takes reference images too
   expect(JSON.parse((db.prepare('select refs_json r from item where batch_id=?').get(c.batchId) as { r: string }).r)).toEqual(ids);
 });

@@ -123,7 +123,7 @@ const place = (type: Kind, ns: WNode[]): { x: number; y: number } => {
 }
 /** A Tạo ảnh node's frame: the aspect its settings ask for (Gemini's own, or square when the site decides). */
 const ratio = (d: Data): [number, number] => {
-  const m = /^(\d+):(\d+)$/.exec(d.site ? (d.site === 'gemini' ? d.aspect ?? '' : '') : (d.combo ?? DEFAULT).aspect)
+  const m = /^(\d+):(\d+)$/.exec(d.site ? d.aspect ?? '' : (d.combo ?? DEFAULT).aspect)
   return m ? [Number(m[1]), Number(m[2])] : [1, 1]
 }
 
@@ -171,7 +171,7 @@ function Pills({ id, d }: { id: string; d: Data }): React.JSX.Element {
     <div className="wf-pills nodrag">
       <Pill label="Nền tảng trên node" value={d.site} options={['flow', 'chatgpt', 'gemini']} show={(v) => SITE_NAME[v]} onChange={(v) => patch(id, { site: v === 'flow' ? undefined : (v as Site), combo: undefined, aspect: undefined, model: undefined })} />
       {d.site === 'gemini' && <Pill label="Mô hình trên node" value={d.model ?? ''} options={['', ...GEM_MODELS]} show={(v) => v || 'Mô hình tự động'} onChange={(v) => patch(id, { model: v || undefined })} />}
-      {d.site === 'gemini' && <Pill label="Tỉ lệ trên node" value={d.aspect ?? ''} options={['', ...GEM_ASPECTS]} show={(v) => v || 'Tỉ lệ tự động'} onChange={(v) => patch(id, { aspect: v || undefined })} />}
+      {d.site && <Pill label="Tỉ lệ trên node" value={d.aspect ?? ''} options={['', ...GEM_ASPECTS]} show={(v) => v || 'Tỉ lệ tự động'} onChange={(v) => patch(id, { aspect: v || undefined })} />}
     </div>
   )
   const c = d.combo ?? DEFAULT, all = choicesOf(c.kind), ch = all.find((x) => x.model === c.model), set = (p: Partial<Combo>): void => patch(id, { combo: withChange(c, p) })
@@ -368,7 +368,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   /** What is saved, exported and undone: texts as written, with their {biến}. */
   const raw = (): { nodes: { id: string; type: Kind; x: number; y: number; text?: string; assetIds?: string[]; combo?: Combo; cond?: Cond; site?: Site; aspect?: string; model?: string; rounds?: number; rows?: string[][] }[]; edges: object[]; vars: Record<string, string> } => ({
     nodes: nodes.map((n) => ({ id: n.id, type: n.type!, x: n.position.x, y: n.position.y, ...(n.data.text !== undefined ? { text: n.data.text } : {}), ...(n.data.assets ? { assetIds: n.data.assets.map((a) => a.id) } : {}),
-      ...(n.type === 'generate' && n.data.site ? { site: n.data.site, ...(n.data.site === 'gemini' && n.data.aspect ? { aspect: n.data.aspect } : {}), ...(n.data.site === 'gemini' && n.data.model ? { model: n.data.model } : {}) } : n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}),
+      ...(n.type === 'generate' && n.data.site ? { site: n.data.site, ...(n.data.aspect ? { aspect: n.data.aspect } : {}), ...(n.data.site === 'gemini' && n.data.model ? { model: n.data.model } : {}) } : n.type === 'generate' && n.data.combo ? { combo: n.data.combo } : {}), ...(n.type === 'branch' && n.data.cond ? { cond: n.data.cond } : {}),
       ...(n.type === 'loop' ? { rounds: n.data.rounds ?? 2 } : {}), ...(n.type === 'csv' && n.data.rows ? { rows: n.data.rows } : {}) })),
     edges: edges.map((e) => ({ from: e.source, to: e.target, ...(e.sourceHandle ? { port: e.sourceHandle } : {}) })),
     vars: table,
@@ -526,7 +526,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         <div className="wf-set" data-testid="wf-site">
           <Opt label="Nền tảng" value={n.data.site ?? 'flow'} options={['flow', 'chatgpt', 'gemini']} show={(v) => SITE_NAME[v]} onChange={(v) => tools.patch(n.id, { site: v === 'flow' ? undefined : (v as Site), combo: undefined, aspect: undefined, model: undefined })} />
           {n.data.site === 'gemini' && <Opt label="Mô hình" value={n.data.model ?? ''} options={['', ...GEM_MODELS]} show={(v) => v || 'Theo Gemini'} onChange={(v) => tools.patch(n.id, { model: v || undefined })} />}
-          {n.data.site === 'gemini' && <Opt label="Tỉ lệ khung hình" value={n.data.aspect ?? ''} options={['', ...GEM_ASPECTS]} show={(v) => v || 'Theo Gemini'} onChange={(v) => tools.patch(n.id, { aspect: v || undefined })} />}
+          {n.data.site && <Opt label="Tỉ lệ khung hình" value={n.data.aspect ?? ''} options={['', ...GEM_ASPECTS]} show={(v) => v || (n.data.site === 'gemini' ? 'Theo Gemini' : 'ChatGPT tự chọn')} onChange={(v) => tools.patch(n.id, { aspect: v || undefined })} />}
           {n.data.site && <p className="hint">Node này gửi vào tab {n.data.site === 'gemini' ? 'gemini.google.com' : 'chatgpt.com'} đang mở: mỗi prompt một ảnh, app tự gửi và tự lưu. Ảnh nối vào được dùng làm ảnh tham chiếu.</p>}
         </div>
         {!n.data.site && (

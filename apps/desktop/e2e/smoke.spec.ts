@@ -1339,10 +1339,11 @@ test('Gemini batch with an aspect ratio and reference images: both chosen in T�
   expect(l.refs).toEqual([['ref-1.png'], ['ref-1.png']]) // one image each, the second prompt's own
   expect(l.attached.map((x) => x.clear)).toEqual([true, true])
   expect(l.attached.every((x) => x.bytes > 0)).toBe(true)
-  // ChatGPT: the same images, no ratio menu
+  // ChatGPT: the same images; its ratio has no menu on the page, so it rides at the end of the prompt
   await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
   await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
-  await expect(page.getByTestId('gem-aspect')).toHaveCount(0)
+  await page.getByTestId('gem-aspect').selectOption('16:9')
+  await expect(page.getByTestId('combo')).toContainText('ChatGPT · Create image · 16:9')
   await page.getByLabel('Danh sách prompt').fill('một con chim')
   await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
   await page.getByLabel('Số ảnh tham chiếu mỗi prompt').fill('2')
@@ -1350,7 +1351,9 @@ test('Gemini batch with an aspect ratio and reference images: both chosen in T�
   await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 })
-  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGpt: { ledger: { refs: string[][] } } }).__toolflowFakeGpt.ledger.refs)).toEqual([['ref-1.png', 'ref-2.png']])
+  const g = await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGpt: { ledger: { refs: string[][]; sends: string[] } } }).__toolflowFakeGpt.ledger)
+  expect(g.refs).toEqual([['ref-1.png', 'ref-2.png']])
+  expect(g.sends).toEqual(['một con chim Make the image a wide landscape in 16:9 aspect ratio.'])
 })
 
 test('Workflow: a Tạo ảnh node sent to Gemini (with a ratio) feeds one sent to ChatGPT; each site gets its prompt once, the second with the first one\'s image', async () => {

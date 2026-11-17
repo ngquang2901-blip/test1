@@ -79,7 +79,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const refs = { assetIds: pool.map((a) => a.id), mode: refMode, perItem: video ? (endFrame ? 2 : 1) : perItem } // a video takes its start frame, and with the box its end frame
   const refsKey = JSON.stringify(refs), comboKey = JSON.stringify(chosen ?? null)
   /** What goes to main for this batch (preview and create alike). */
-  const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd, refs: r, ...(gem && aspect ? { aspect } : {}), ...(gem && model ? { model } : {}) } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
+  const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd, refs: r, ...(aspect ? { aspect } : {}), ...(gem && model ? { model } : {}) } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
   useEffect(() => {
     let live = true
     window.api.enqueueBatch({ ...args(JSON.parse(refsKey)), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)); setDryErr('') } }, (e: Error) => { if (live) { setRows([]); setErrs([]); setDryErr(hintOf(codeIn(e.message)) ?? '') } })
@@ -209,10 +209,10 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
             {GEM_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </fieldset>}
-        {gem && <fieldset>
+        {gpt && <fieldset>
           <legend>Tỉ lệ khung hình</legend>
           <select aria-label="Tỉ lệ khung hình" data-testid="gem-aspect" value={aspect} onChange={(e) => setAspect(e.target.value)}>
-            <option value="">Theo Gemini (cái đang chọn trong tab)</option>
+            <option value="">{gem ? 'Theo Gemini (cái đang chọn trong tab)' : 'ChatGPT tự chọn'}</option>
             {GEM_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </fieldset>}
@@ -253,7 +253,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
       )}
       {msg && <p role="alert" className="notice" ref={msgRef}>{msg}</p>}
       <div className="actionbar">
-        <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && model ? ` · ${model}` : ''}${gem && aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
+        <span className="muted small-text" data-testid="combo">{site ? `Sẽ gửi: ${site.name} · ${site.tool}${gem && model ? ` · ${model}` : ''}${aspect ? ` · ${aspect}` : ''} · tự động` : combo ? `Sẽ gửi: ${d.kind === 'video' ? 'Video' : 'Ảnh'} · ${comboLabel(combo)}` : ''}</span>
         <span className="spacer" />
         <label><input type="checkbox" checked={when !== null} onChange={(e) => setWhen(e.target.checked ? '' : null)} /> Hẹn giờ chạy</label>
         {when !== null && <input type="datetime-local" aria-label="Giờ chạy" value={when} onChange={(e) => setWhen(e.target.value)} />}
