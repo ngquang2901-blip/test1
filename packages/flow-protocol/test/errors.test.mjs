@@ -84,3 +84,8 @@ test('poll failures never resubmit, even with a resubmittable code', () => {
 function pickKeys(c) {
   return { code: c.code, admission: c.admission, resubmit: c.resubmit, drift: c.drift };
 }
+
+test('a reason named like an Object.prototype key is unknown, not a table row', () => {
+  assert.deepEqual(classifyGenerateError({ reasons: ['constructor'] }).code, 'PROVIDER_ERROR_UNKNOWN');
+  assert.equal(classifyGenerateError({ reasons: ['constructor'] }).admission, 'pause');
+});

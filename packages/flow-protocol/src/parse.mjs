@@ -86,7 +86,7 @@ const REQUEST = {
 export function parseGenerateRequest(fReq) {
   const outer = json(fReq, 'request');
   const rpc = at(outer, [0, 0, 0], isStr, 'request');
-  const L = REQUEST[rpc];
+  const L = Object.hasOwn(REQUEST, rpc) ? REQUEST[rpc] : undefined;
   if (!L) throw new ProtocolDrift('request', [0, 0, 0], rpc);
   const where = `request ${rpc}`;
   const inner = json(at(outer, [0, 0, 1], isStr, where), where);
