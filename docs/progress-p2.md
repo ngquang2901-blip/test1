@@ -398,3 +398,8 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 - Live run on the owner's Chrome caught what unit tests could not: A7's `tabs.onUpdated` filter is Firefox-only and threw in Chrome, so the new worker never connected. Fixed (filter inside the listener), sw tests now use Chrome-strict event stand-ins. Then: new handshake connected, page self-check ok over the private MessageChannel, an image batch ran with auto-send and 2 images were downloaded.
 - Upgrade: Chrome keeps the old extension until it is reloaded; the app now notices the old token offer and Kết nối tells the user to reload ToolFlow Connector.
 
+## 0.18.0 (2026-11-17): ChatGPT aspect ratio, MCP hints
+- Owner turned TobyFlow off for good (disabled, not removed) and dropped Telegram remote control.
+- ChatGPT has no ratio control on the page; the ratio rides as one English sentence after each prompt (`withRatio` in gpt-driver.ts), chosen in Tạo lô, on a Workflow ChatGPT node and over MCP. Live on the owner's ChatGPT: 16:9 -> 1672x941, 9:16 -> 941x1672, 1:1 -> 1254x1254, 4:3 -> 1448x1086, 3:4 -> 1086x1448.
+- MCP `toolflow_list_batches` (and download/resume replies) carry `hint`, the Vietnamese line the app shows for a pause/error code, so an agent no longer guesses what PAGE_BLOCKED means.
+
