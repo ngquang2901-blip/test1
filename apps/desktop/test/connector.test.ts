@@ -387,3 +387,22 @@ test('onConnect fires once per accepted extension connection, never for a refuse
   await tick()
   expect(n).toBe(1)
 })
+
+test('listTabs keeps the last known email when a later account call fails; a vanished tab is forgotten', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  let fail = false, gone = false
+  c.ws.on('message', (d) => {
+    const m = JSON.parse(d.toString())
+    const reply = (r: unknown, ok = true) => c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ...(ok ? { ok, result: r } : { ok, error: r }) }))
+    if (m.op === 'tabs') reply(gone ? [] : [{ tabId: 2, path: '/fx/tools/flow', active: true }])
+    else if (m.op === 'account') fail ? reply('timeout', false) : reply('a@x.y')
+  })
+  const d = createExtDriver(s)
+  expect((await d.listTabs())[0].email).toBe('a@x.y')
+  fail = true
+  expect((await d.listTabs())[0].email).toBe('a@x.y')
+  gone = true; expect(await d.listTabs()).toEqual([])
+  gone = false
+  expect((await d.listTabs())[0].email).toBeNull() // forgotten, and the account still fails
+})

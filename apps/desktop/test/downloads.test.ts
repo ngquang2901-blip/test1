@@ -475,3 +475,14 @@ test('Tải tất cả never restarts a needs_review output (only Thử lại do
   expect(rows(b.db)[0].state).toBe('completed')
   expect(b.fake.ledger.fetches).toBe(1)
 })
+
+test('B8: the file was moved but the completed write failed: the next look finishes with the moved file, no ACK_LOST and no copy', async () => {
+  const r = rig()
+  await requestDownload(r.db, r.spy, r.args(), r.env)
+  const done = rows(r.db)[0]
+  r.db.prepare("update download set state='started', handle='1', actual_name=null, bytes=null").run() // as if the write after the move had failed
+  const row = await requestDownload(r.db, r.spy, r.args(), r.env)
+  expect([row.state, row.actual_name, row.bytes]).toEqual(['completed', done.actual_name, TINY_PNG.length])
+  expect(r.fake.ledger.fetches).toBe(1)
+  expect(onlyFiles(r.root)).toHaveLength(1)
+})

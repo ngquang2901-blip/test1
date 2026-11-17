@@ -493,3 +493,14 @@ test('a pause before the click for a page that was not ready lifts by itself aft
   expect(c.status()).not.toBe('running'); // a stopped batch is left alone
 });
 
+test('B5: a ChatGPT pause reason survives a restart and is cleared by resume', async () => {
+  const t = rig([], ['a red kite'], { fake: { tabs: 0 } });
+  await t.ticks(2);
+  const g2 = createGptRunner({ db: t.db, driver: t.fake.driver, clock: t.clock, pollMs: 0, sleep: async () => undefined, download: async () => undefined });
+  g2.recover();
+  expect(g2.lastError(t.batch)).toBe('NO_CHATGPT_TAB');
+  t.runner.resume(t.batch);
+  const g3 = createGptRunner({ db: t.db, driver: t.fake.driver, clock: t.clock, pollMs: 0, sleep: async () => undefined, download: async () => undefined });
+  g3.recover();
+  expect(g3.lastError(t.batch)).toBeNull();
+});

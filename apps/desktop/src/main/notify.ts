@@ -20,9 +20,10 @@ export function createNotifier(o: {
   channels: { windows?(n: Notice): void; telegram?(text: string): Promise<void> };
   changed(): void; // the in-app list moved: the screen re-reads it
   later?(f: () => void, ms: number): void; // tests run the grace timer by hand
+  seen?: Map<string, BatchStatus>; // statuses read before runner.recover(): a batch it moved to needs_review is then a change, not a first sighting
 }) {
   const { db } = o;
-  const seen = new Map<string, BatchStatus>(); // last status per batch; the first sighting (boot) only records
+  const seen = o.seen ?? new Map<string, BatchStatus>(); // last status per batch; the first sighting (boot) only records
   let blocked = false;
   const facts = (id: string) => {
     const b = db.prepare('select provider p, kind k from batch where id=?').get(id) as { p: string; k: string };

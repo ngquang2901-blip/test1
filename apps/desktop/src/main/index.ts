@@ -1,6 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, session as electronSession, shell, Tray } from 'electron'
 import { basename, dirname, join } from 'path'
-import { homedir } from 'os'
 import { randomUUID } from 'crypto'
 import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -131,6 +130,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const siteOf = (b: string): typeof gptRunner | null => { const p = (db.prepare('select provider p from batch where id=?').get(b) as { p: string } | undefined)?.p; return p === 'chatgpt' ? gptRunner : p === 'gemini' ? gemRunner : null }
   grants = createGrants(driver, runner, { db, cap: () => runner.caps().tabs })
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
+  const bootStatus = new Map(batchSignatures(db).map((r) => [r.id, batchStatus(db, r.id)])) // before recover(): a crash that leaves a batch needs_review is then noticed
   runner.recover()
   // Main, not the renderer: the remembered tabs are chosen again (and their batches go on) while the window is hidden too
   const relist = (): void => void grants.list().catch(() => {}) // no extension yet: the next round
@@ -164,7 +164,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const telegram = createTelegram({ file: join(userData, 'telegram.json'), base: FAKE ? process.env.TOOLFLOW_TELEGRAM_API : undefined })
   const toasts = new Set<Notification>() // shortcut: kept until closed so a click still reaches us; a toast left in the Action Center past that is not followed
   const notifier = createNotifier({
-    db, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
+    db, seen: bootStatus, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
     channels: {
       windows: (n) => {
         if (!Notification.isSupported()) return
@@ -181,14 +181,14 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
   // The root is not user-configurable yet. The built-in test Flow never writes into the user's Downloads: its files go to
   // TOOLFLOW_DOWNLOAD_ROOT (e2e) or into the test's own user-data folder.
-  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(homedir(), 'Downloads', 'ToolFlow')
+  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(app.getPath('downloads'), 'ToolFlow')
   const downloader = createDownloader({
     db, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, onChange: (b) => emit('batch', b),
     // an output is fetched from the tab of its own site: a ChatGPT image id is a message id + image number, a Flow one a plain uuid
     driver: { fetchMedia: (tab, p) => (isGptMedia(p.mediaId) ? gptRunner.fetchMedia(tab, p) : isGemMedia(p.mediaId) ? gemRunner.fetchMedia(tab, p) : driver.fetchMedia(tab, p)), downloads: (q) => driver.downloads(q) },
     async tab(b) {
       const site = siteOf(b)
-      if (!site) return grants.granted()[0] ?? null
+      if (!site) return grants.forProject((db.prepare('select target_project p from batch where id=?').get(b) as { p: string | null } | undefined)?.p ?? null)
       const t = await site.findTab()
       if (!t) throw Object.assign(new Error('NO_CHATGPT_TAB'), { code: 'NO_CHATGPT_TAB' })
       return t

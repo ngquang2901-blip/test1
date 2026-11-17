@@ -49,6 +49,8 @@ const MIGRATIONS = [
    create table notice(id integer primary key autoincrement, at integer not null, kind text not null, batch_id text, title text not null, body text not null, read integer not null default 0);
    create index notice_unread on notice(read, id);
    create table credit(email text primary key, credits integer not null, at integer not null);`,
+  // why a batch is paused (a code, null for the user's own pause): survives a restart, so the queue, the auto-restart and the MCP resume still know
+  `alter table batch add column pause_reason text;`,
 ];
 /** The schema this app writes; a backup from a newer app is refused. */
 export const SCHEMA_VERSION = MIGRATIONS.length;

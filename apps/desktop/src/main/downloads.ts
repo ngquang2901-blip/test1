@@ -108,6 +108,18 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
   const prefix = `${a.attemptId}_${a.mediaId}` // one browser file name per (attempt, output): the search key
   const planned = (): string => get()!.planned_name
 
+  /** The temp file is gone: if the move to the planned final name already happened (the 'completed' write failed after it), finish with that file instead of calling it lost. */
+  const moved = (c: DlInfo): DlRow | null => {
+    const rel = planned().replace(/\.[^./]+$/, '')
+    for (const ext of [...new Set([...Object.values(EXT), 'mp4'])]) {
+      try {
+        const st = lstatSync(join(env.root, `${rel}.${ext}`))
+        if (st.isFile() && st.size > 0 && (!(c.fileSize > 0) || st.size === c.fileSize)) return set({ state: 'completed', actual_name: `${dirname(rel)}/${basename(rel)}.${ext}`, bytes: st.size, error_code: null })
+      } catch { /* not this extension */ }
+    }
+    return null
+  }
+
   /** Validate the finished temp file and put it at its final name. null = the file is not there (moved or deleted already). */
   const finish = (c: DlInfo): DlRow | null => {
     const path = c.filename
@@ -122,7 +134,7 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
       try { readSync(fd, head, 0, 12, 0) } finally { closeSync(fd) }
       // a video must be an MP4 (file-type box at byte 4): the still picture Flow shows for it, saved as if it were the result, would be a wrong file
       mime = size === 0 ? null : a.kind === 'video' ? (head.subarray(4, 8).toString('latin1') === 'ftyp' ? 'video/mp4' : null) : sniff(head)
-    } catch { return null }
+    } catch { return moved(c) }
     if (!mime) { rmSync(path, { force: true }); return set({ state: 'failed', error_code: a.kind === 'video' ? 'DOWNLOAD_NOT_VIDEO' : 'DOWNLOAD_NOT_IMAGE' }) } // HTML error page, login redirect, 0 bytes, the other kind of file
     const rel = planned().replace(/\.[^./]+$/, `.${mime === 'video/mp4' ? 'mp4' : EXT[mime]}`) // the real type decides the extension; the stored plan stays as planned
     try {

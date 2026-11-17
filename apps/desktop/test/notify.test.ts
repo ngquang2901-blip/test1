@@ -6,16 +6,16 @@ import { openDb, type Db } from '../src/main/db';
 import { enqueueBatch } from '../src/main/batch';
 import { createNotifier, type Notice } from '../src/main/notify';
 import { createFakeDriver, fakeCombo, FAKE_COMBOS } from '../src/main/fake-driver';
-import { createRunner } from '../src/main/runner';
+import { createRunner, type BatchStatus } from '../src/main/runner';
 
 const PROMPT = 'một con mèo bí mật';
-function rig(p: Partial<{ notifyApp: boolean; notifyWindows: boolean; notifyTelegram: boolean; creditWarn: number }> = {}) {
+function rig(p: Partial<{ notifyApp: boolean; notifyWindows: boolean; notifyTelegram: boolean; creditWarn: number }> = {}, seen?: Map<string, BatchStatus>) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-n-')), 't.db'));
   const prefs = { notifyApp: true, notifyWindows: true, notifyTelegram: true, creditWarn: 50, ...p };
   const toasts: Notice[] = [], telegram: string[] = [], reasons = new Map<string, string>();
   let changed = 0;
   const timers: (() => void)[] = [];
-  const n = createNotifier({ db, now: () => Date.UTC(2026, 10, 13, 7, 5), prefs: () => prefs, lastError: (id) => reasons.get(id) ?? null, changed: () => { changed++; }, later: (f) => { timers.push(f); },
+  const n = createNotifier({ db, seen, now: () => Date.UTC(2026, 10, 13, 7, 5), prefs: () => prefs, lastError: (id) => reasons.get(id) ?? null, changed: () => { changed++; }, later: (f) => { timers.push(f); },
     channels: { windows: (x) => { toasts.push(x); }, telegram: async (t) => { telegram.push(t); } } });
   const batch = (prompts = [PROMPT, 'b', 'c'], provider: 'flow' | 'chatgpt' = 'flow') => enqueueBatch(db, { commandId: Math.random().toString(), kind: 'image', provider, projectId: 'p', settings: {}, mode: 'auto', prompts, refs: prompts.map(() => []) }).batchId;
   return { db, n, prefs, toasts, telegram, reasons, batch, changed: () => changed, timers };
@@ -137,4 +137,15 @@ test('a lost connection notifies only when it lasts: the app picks the tab again
   t.timers.forEach((f) => f());
   expect(t.n.list().items.map((i) => [i.kind, i.batchId])).toEqual([['attention', b]]); // b: still waiting after the grace time
   expect(t.telegram).toHaveLength(1);
+});
+
+test('B7: a batch that recover() moved to needs_review before the first scan still raises its notice; one already needs_review at boot does not', () => {
+  const seen = new Map<string, BatchStatus>()
+  const t = rig({}, seen)
+  const a = t.batch(['x']), b = t.batch(['y'])
+  put(t.db, a, 'running', ['submitting']); put(t.db, b, 'paused', [['needs_review', 'SUBMIT_UNCERTAIN']])
+  seen.set(a, 'running'); seen.set(b, 'needs_review') // read at boot, before recover()
+  put(t.db, a, 'paused', [['needs_review', 'SUBMIT_UNCERTAIN']]) // recover(): the click had no receipt
+  t.n.batchChanged(a); t.n.batchChanged(b)
+  expect(t.n.list().items.map((i) => [i.kind, i.batchId])).toEqual([['attention', a]])
 });

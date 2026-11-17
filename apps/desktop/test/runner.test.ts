@@ -1033,3 +1033,50 @@ test('CONNECTOR_LOST with an attempt the user may still send (arm failed): the t
   uncertainNoCancel(t.states()[0]);
   expect([t.driver.ledger.arms, t.driver.ledger.prepares]).toEqual([arms, prepares]);
 });
+
+test('B3: click_at write fails right after a real click: the 30 s sweep still ends it as uncertain, never resent, tab not busy', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2 });
+  const real = t.db.prepare.bind(t.db); let thrown = false;
+  (t.db as any).prepare = (sql: string) => { const st = real(sql); if (!thrown && sql.startsWith('update attempt set click_at')) { thrown = true; return { run: () => { throw Object.assign(new Error('disk full'), { code: 'SQLITE_FULL' }); } }; } return st; };
+  t.runner.start(t.batchId);
+  await t.step();
+  expect(thrown).toBe(true);
+  expect(t.driver.ledger.clicks).toBe(1);
+  t.clock.t += 31_000;
+  await t.step(2);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+});
+
+test('B5: the pause reason survives a restart: lastError is kept and CONNECTOR_LOST still restarts by itself when the tab is back', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2 });
+  t.runner.start(t.batchId);
+  t.driver.hidden.add('t1');
+  await t.step(2);
+  expect(t.runner.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  expect(batchRow(t.db, t.batchId).status).toBe('paused');
+  const r2 = createRunner({ db: t.db, driver: t.driver, clock: t.clock, tabs: [], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true });
+  r2.recover();
+  expect(r2.lastError(t.batchId)).toBe('CONNECTOR_LOST');
+  t.driver.hidden.delete('t1');
+  r2.setTabs(['t1']);
+  expect(batchRow(t.db, t.batchId).status).toBe('running');
+  expect(r2.lastError(t.batchId)).toBeNull();
+  const r3 = createRunner({ db: t.db, driver: t.driver, clock: t.clock, tabs: [], speed: 'default', combos: FAKE_COMBOS, autoAllowed: () => true });
+  r3.recover();
+  expect(r3.lastError(t.batchId)).toBeNull(); // cleared on resume, not stale
+});
+
+test('B6: a tick that arrives while the previous one is still running joins it instead of queueing another run', async () => {
+  const t = rig(['image-ok'], { n: 1, slowClick: true });
+  t.runner.start(t.batchId);
+  const first = t.runner.tick();
+  await flush();
+  const ticks = Array.from({ length: 50 }, () => t.runner.tick());
+  expect(ticks.every((p) => p === first)).toBe(true);
+  expect(t.driver.ledger.clicks).toBe(0);
+  t.openClick();
+  await first;
+  expect(t.runner.tick()).not.toBe(first); // free again
+});
