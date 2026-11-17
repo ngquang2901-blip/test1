@@ -195,3 +195,10 @@ test('gemFetch: two requests at once run one after the other (one press at a tim
   await tick(30);
   assert.deepEqual(c.calls.filter((x) => x[0] === 'suggest').map((x) => [x[1], x[2].filename]), [[31, 'ToolFlow-tmp/a.bin'], [32, 'ToolFlow-tmp/b.bin']]); // the first was asked about after the second had begun: still its own name
 });
+
+test('fullSizeSince: only an entry that started at or after the press counts, and only the first', () => {
+  const e = (n, startTime) => ({ name: `https://lh3.googleusercontent.com/rd-gg-dl/${n}=s0-d`, encodedBodySize: 9e6, startTime });
+  assert.equal(G.fullSizeSince([e('old', 90)], 100), null, 'the late file of an earlier press');
+  assert.equal(G.fullSizeSince([e('old', 90), e('a', 100), e('b', 120)], 100), 'https://lh3.googleusercontent.com/rd-gg-dl/a=s0-d');
+  assert.equal(G.fullSizeSince([{ ...e('s', 150), encodedBodySize: 10 }], 100), null);
+});

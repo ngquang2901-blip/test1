@@ -36,11 +36,12 @@
   // is big too (…=s1024-rw, 0.65 MB WebP): the size option s0 with d (download) is what marks the real file. The extension downloads that address.
   const isFullSizeUrl = (u) => { try { const x = new URL(u); return x.protocol === 'https:' && /^lh[0-9]\.googleusercontent\.com$/.test(x.hostname) && !x.port && !x.username && !x.password && /^\/rd-gg(-dl)?\/[^/]+=s0-d(-[A-Za-z0-9]+)*$/.test(x.pathname); } catch { return false; } };
   const isFullSize = (entry) => isFullSizeUrl(entry?.name) && entry.encodedBodySize > 50_000;
+  const fullSizeSince = (entries, t0) => entries.find((e) => e.startTime >= t0 && isFullSize(e))?.name ?? null; // an earlier press's late file is not this press's
   // The page then also hands the bytes to a sandboxed frame that starts a browser download: an opaque blob with no referrer, an image named
   // Gemini_Generated_Image_<id>. Chrome lets that through only once per page load the user started, so it cannot be relied on; when it does
   // start it is a second copy.
   const isGeminiDownload = (item) => String(item?.url ?? '').startsWith('blob:') && /^image\/(png|jpeg|webp)$/.test(String(item?.mime ?? ''))
     && /^Gemini_Generated_Image_[A-Za-z0-9]+\.[a-z]{3,4}$/.test(String(item?.filename ?? '').split(/[\\/]/).pop());
 
-  globalThis.TFGem = { flat, isId, IMAGE_ICON, IMAGE_MODE, ASPECT_ICONS, MODELS, isModelItem, MAX_REFS, isRefFile, ownsQuery, turnDone, mediaId, parseMediaId, convOf, isFullSizeUrl, isFullSize, isGeminiDownload };
+  globalThis.TFGem = { flat, isId, IMAGE_ICON, IMAGE_MODE, ASPECT_ICONS, MODELS, isModelItem, MAX_REFS, isRefFile, ownsQuery, turnDone, mediaId, parseMediaId, convOf, isFullSizeUrl, isFullSize, fullSizeSince, isGeminiDownload };
 })();

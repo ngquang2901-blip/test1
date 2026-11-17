@@ -140,7 +140,14 @@ export function gemFetchOp(c, a, lingerMs = 15000) {
   return p;
 }
 
+export const SITES = ['https://flow.google.com/', 'https://chatgpt.com/', 'https://gemini.google.com/']; // = host_permissions: only there tab.url is readable
+/** Throws unless the tab is one of ours (a tab of another site has no url for us). */
+export async function siteTab(c, tabId) {
+  let url = ''; try { url = (await c.tabs.get(tabId)).url || ''; } catch { /* no such tab */ }
+  if (!SITES.some((s) => url.startsWith(s))) throw new Error('NOT_SITE_TAB');
+}
+
 export async function downloadsOp(c, a) {
   const q = Number.isInteger(a.id) ? { id: a.id } : { filenameRegex: 'ToolFlow-tmp[\\\\/]' + a.filenamePrefix.replace(/[.]/g, '\\.'), limit: 20 };
-  return (await c.downloads.search(q)).map(shapeDownload);
+  return (await c.downloads.search(q)).filter((d) => d.byExtensionId === c.runtime.id).map(shapeDownload); // only our own: the profile's other downloads are not for the app
 }

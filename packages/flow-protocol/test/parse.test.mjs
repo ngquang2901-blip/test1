@@ -187,3 +187,7 @@ test('harmless additions do not break parsing', () => {
   p[0][0].push('extra');
   assert.equal(parseImageReceipt(p).outputs.length, 1);
 });
+
+test('a request rpc named like an Object.prototype key is drift', () => {
+  assert.throws(() => parseGenerateRequest(JSON.stringify([[['constructor', '[]']]])), ProtocolDrift);
+});

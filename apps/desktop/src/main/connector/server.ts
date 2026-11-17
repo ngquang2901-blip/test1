@@ -1,11 +1,13 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { ConnectorError, type DriverEvent } from '../driver'
 
 type Conn = { ws: WebSocket; inst: string; tabs: Set<string> }
 type Pending = { conn: Conn; resolve: (v: unknown) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }
 
-const digest = (s: string): Buffer => createHash('sha256').update(s).digest()
+// Mutual proof, the token itself never crosses the socket: client offers tfn.<nonce> + tfp.<hmac(token,'c'+nonce)>, our first frame answers {hello: hmac(token,'s'+nonce)}.
+const mac = (token: string, tag: 'c' | 's', nonce: string): string => createHmac('sha256', token).update(tag + nonce).digest('hex')
+const sameHex = (a: string, b: string): boolean => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b))
 // Per-op budgets (ms): reads fail fast, composer work and file work get room; unlisted ops use `default`.
 export const OP_TIMEOUT_MS: Record<string, number> = {
   ping: 3000, account: 3000,
@@ -27,7 +29,7 @@ const parse = (id: string | number): [string, number] => {
 
 export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number>; onConnect?: () => void }) {
   const budgets = { ...OP_TIMEOUT_MS, ...o.budgets } // injectable so tests need no real 20 s waits
-  // the token rides in a subprotocol (`tf.<token>`), not the URL: Chrome prints failed WebSocket URLs in the extension's Errors page
+  // the proof rides in a subprotocol (`tfp.<hmac>`), not the URL: Chrome prints failed WebSocket URLs in the extension's Errors page
   const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0, handleProtocols: (ps) => (ps.has(PROTO) ? PROTO : false) })
   await new Promise<void>((res, rej) => {
     wss.once('listening', res)
@@ -40,7 +42,6 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
   const pending = new Map<number, Pending>()
   const listeners = new Set<(e: DriverEvent) => void>()
   const emit = (e: DriverEvent): void => listeners.forEach((cb) => cb(e))
-  const want = digest(o.token)
 
   const drop = (c: Conn): void => {
     if (conns.get(c.inst) === c) conns.delete(c.inst)
@@ -56,11 +57,13 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
   }
 
   wss.on('connection', (ws, req) => {
-    // digests make timingSafeEqual length-safe; the protocol header is never logged or put in an error
+    // the protocol header is never logged or put in an error
     const protos = String(req.headers['sec-websocket-protocol'] ?? '').split(',').map((p) => p.trim())
-    const token = protos.find((p) => p.startsWith('tf.'))?.slice(3) ?? ''
-    const ok = timingSafeEqual(digest(token), want) && req.headers.origin === `chrome-extension://${o.extensionId}`
+    const nonce = protos.find((p) => /^tfn\.[0-9a-f]{16,64}$/.test(p))?.slice(4) ?? ''
+    const proof = protos.find((p) => /^tfp\.[0-9a-f]{64}$/.test(p))?.slice(4) ?? ''
+    const ok = !!nonce && sameHex(proof, mac(o.token, 'c', nonce)) && req.headers.origin === `chrome-extension://${o.extensionId}`
     if (!ok) return void ws.close(4401, 'unauthorized')
+    ws.send(JSON.stringify({ hello: mac(o.token, 's', nonce) })) // first frame: proves to the extension that this is the app and not whatever listens on that port
     const inst = protos.find((p) => /^tfi\.[0-9a-f]{8}$/.test(p))?.slice(4) ?? ''
     const conn: Conn = { ws, inst, tabs: new Set() }
     const old = conns.get(inst)
