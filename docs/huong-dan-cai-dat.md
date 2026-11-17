@@ -11,7 +11,7 @@ ToolFlow chỉ có bản cho Windows (từ bản 0.12.1). Máy Linux đang dùng
 
 ## Đăng nhập
 
-Bản 0.14.0 bắt đăng nhập bằng tài khoản Google. Từ bản 0.14.1 phần này đã tắt: app mở thẳng như trước, không cần tài khoản. Nếu app đang ở màn đăng nhập của 0.14.0: chuột phải biểu tượng ToolFlow ở khay → Thoát, đợi khoảng 1 phút rồi mở lại (app đã tự tải bản mới và cài khi thoát). Hoặc tải bản 0.14.1 và cài đè lên.
+ToolFlow không cần tài khoản: app mở thẳng. (Bản 0.14.0 từng bắt đăng nhập Google; từ bản 0.14.1 đã tắt, về sau bỏ hẳn.) Nếu app đang ở màn đăng nhập của 0.14.0: chuột phải biểu tượng ToolFlow ở khay → Thoát, đợi khoảng 1 phút rồi mở lại (app đã tự tải bản mới và cài khi thoát). Hoặc tải bản 0.14.1 và cài đè lên.
 
 ## Lần đầu mở app: nối với Chrome (làm một lần cho mỗi hồ sơ Chrome)
 Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục extension và nút **Chép đường dẫn**:

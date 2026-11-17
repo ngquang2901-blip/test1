@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Draft, License, Session, TelegramState, UpdateState } from '../types'
-import { AccountBox } from './Account'
+import type { Draft, Session, TelegramState, UpdateState } from '../types'
 import { codeIn, errText, hintOf } from '../hints'
 import type { Theme } from '../theme'
 import { Chip } from '../ui'
@@ -14,7 +13,7 @@ const updText = (u?: UpdateState | null): string => !u ? '' :
   : u.state === 'ready' ? `Bản ${u.version} đã tải xong`
   : `Không kiểm tra được bản mới (mạng hoặc máy chủ cập nhật) · ${u.code ?? ''}`
 
-export default function Settings({ lic, s, reload, theme = 'system', onTheme, upd, onUpd, onInstall }: { lic?: License; s: Session; reload(): void; theme?: Theme; onTheme?(t: Theme): void; upd?: UpdateState | null; onUpd?(u: UpdateState): void; onInstall?(): void }): React.JSX.Element {
+export default function Settings({ s, reload, theme = 'system', onTheme, upd, onUpd, onInstall }: { s: Session; reload(): void; theme?: Theme; onTheme?(t: Theme): void; upd?: UpdateState | null; onUpd?(u: UpdateState): void; onInstall?(): void }): React.JSX.Element {
   const [ack, setAck] = useState(false)
   const [msg, setMsg] = useState('')
   const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(errText(e.message)))
@@ -43,7 +42,6 @@ export default function Settings({ lic, s, reload, theme = 'system', onTheme, up
   return (
     <section aria-label="Cài đặt">
       <h2>Cài đặt</h2>
-      {lic?.email && <AccountBox lic={lic} />}
       <fieldset>
         <legend>Giao diện</legend>
         <label><input type="radio" name="theme" checked={theme === 'light'} onChange={() => onTheme?.('light')} /> Sáng</label>
