@@ -79,6 +79,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let grants!: Grants // assigned once the runner exists; the ext driver only asks it lazily
   let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
   let connected: (() => boolean) | null = null // real mode only
+  let oldExt = (): boolean => false
   let connectorError: string | null = null
   let extVersion: string = extManifest.version
   if (FAKE) {
@@ -110,6 +111,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       gemDriver = createExtGpt(server, 'gemini')
       rawPing = driver.ping
       connected = server.connected
+      oldExt = server.oldExt
     } catch (e) {
       connectorError = errorCode(e) // code only: messages carry paths and tokens
       console.error('connector setup failed', connectorError)
@@ -251,7 +253,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const accts = [...new Set(tabs.filter((t) => t.granted).map((t) => t.email).filter((e): e is string => !!e))]
       return {
         extDir: FAKE ? null : join(userData, 'extension'), // shown in S1 so the user can paste it into Chrome's folder dialog (not secret: pair.json inside is)
-        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : connected ? connected() : null, connectorError, // '0': e2e of the setup panel
+        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : connected ? connected() : null, oldExt: oldExt(), connectorError, // '0': e2e of the setup panel
         chromeFound: chromeExe !== null, remembered: grants.remembered(), tabs, email: em, draft, speedInUse: runner.caps(),
         accounts: accts.map((e) => ({ email: e, auto: autoAllowed(db, e) })), // auto is per account; the runner checks each tab's own
         gptTabs: await gptDriver.tabs().then((t) => t.length, () => 0), // how many chatgpt.com tabs the extension sees (a ChatGPT batch uses one)

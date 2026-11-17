@@ -50,6 +50,18 @@ test('rejects wrong token', async () => {
   expect(await (await connect(s.port, { query: true })).closed).toBe(4401) // a right token in the URL is not accepted: only the proof carries it
   expect(await (await connect(s.port, { plain: true })).closed).toBe(4401) // nor the bare token as a subprotocol
 })
+test('a pre-0.17 extension (old `tf.<token>` offer with the right token) is refused but reported, so the app can say: reload it in Chrome', async () => {
+  const s = await boot()
+  expect(s.oldExt()).toBe(false)
+  await (await connect(s.port, { plain: true, token: 'cd'.repeat(32) })).closed // a wrong token says nothing
+  expect(s.oldExt()).toBe(false)
+  expect(await (await connect(s.port, { plain: true })).closed).toBe(4401)
+  expect(s.oldExt()).toBe(true)
+  const c = await connect(s.port) // the reloaded extension connects: nothing old is left to report
+  await tick()
+  expect(s.oldExt()).toBe(false)
+  c.ws.close()
+})
 test('the first frame is hello = hmac(token, "s"+nonce); the token itself never appears', async () => {
   const s = await boot()
   const c = await connect(s.port)

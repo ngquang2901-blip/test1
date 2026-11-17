@@ -39,6 +39,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
   let epoch = Date.now() // R41: monotonic across restarts; fences replies only (tab epochs belong to the runner)
   const conns = new Map<string, Conn>() // one per extension instance (Chrome profile); the same instance reconnecting replaces itself
   let nextId = 1
+  let oldAt = 0 // last refused offer from a pre-0.17 copy of our extension (it sent the token itself): Chrome still runs old code
   const pending = new Map<number, Pending>()
   const listeners = new Set<(e: DriverEvent) => void>()
   const emit = (e: DriverEvent): void => listeners.forEach((cb) => cb(e))
@@ -62,7 +63,12 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
     const nonce = protos.find((p) => /^tfn\.[0-9a-f]{16,64}$/.test(p))?.slice(4) ?? ''
     const proof = protos.find((p) => /^tfp\.[0-9a-f]{64}$/.test(p))?.slice(4) ?? ''
     const ok = !!nonce && sameHex(proof, mac(o.token, 'c', nonce)) && req.headers.origin === `chrome-extension://${o.extensionId}`
-    if (!ok) return void ws.close(4401, 'unauthorized')
+    if (!ok) {
+      const old = protos.find((p) => p.startsWith('tf.'))?.slice(3) ?? ''
+      if (req.headers.origin === `chrome-extension://${o.extensionId}` && sameHex(old, o.token)) oldAt = Date.now()
+      return void ws.close(4401, 'unauthorized')
+    }
+    oldAt = 0
     ws.send(JSON.stringify({ hello: mac(o.token, 's', nonce) })) // first frame: proves to the extension that this is the app and not whatever listens on that port
     const inst = protos.find((p) => /^tfi\.[0-9a-f]{8}$/.test(p))?.slice(4) ?? ''
     const conn: Conn = { ws, inst, tabs: new Set() }
@@ -121,6 +127,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
     address: () => wss.address() as { address: string; port: number },
     epoch: () => epoch,
     connected: () => conns.size > 0,
+    oldExt: () => oldAt > Date.now() - 60_000, // the old copy retries every few seconds; a minute without one means it is gone
     onEvent(cb: (e: DriverEvent) => void): () => void {
       listeners.add(cb)
       return () => void listeners.delete(cb)

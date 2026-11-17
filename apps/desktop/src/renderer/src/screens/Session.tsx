@@ -27,6 +27,7 @@ function Setup({ s, picked }: { s: Session; picked: boolean }): React.JSX.Elemen
           <button className="small" onClick={() => open('flow')}>Mở Google Flow</button>
         </div>
         {error && <p role="alert" className="notice">{hintOf(error) ?? `Lỗi ${error}`}</p>}
+        {s.oldExt && s.connected !== true && <p role="alert" className="notice" data-testid="old-ext">Chrome vẫn chạy tiện ích ToolFlow bản cũ nên app không nhận. Bấm <b>Mở trang tiện ích trong Chrome</b>, tìm <b>ToolFlow Connector</b> và bấm nút tải lại (↻) — hoặc tắt hẳn Chrome rồi mở lại.</p>}
       </div>
       {s.connected !== true && (
         <ol className="panel-body steps">
