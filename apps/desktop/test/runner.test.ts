@@ -1033,3 +1033,18 @@ test('CONNECTOR_LOST with an attempt the user may still send (arm failed): the t
   uncertainNoCancel(t.states()[0]);
   expect([t.driver.ledger.arms, t.driver.ledger.prepares]).toEqual([arms, prepares]);
 });
+
+test('B3: click_at write fails right after a real click: the 30 s sweep still ends it as uncertain, never resent, tab not busy', async () => {
+  const t = rig(['image-ok', 'image-ok'], { n: 2 });
+  const real = t.db.prepare.bind(t.db); let thrown = false;
+  (t.db as any).prepare = (sql: string) => { const st = real(sql); if (!thrown && sql.startsWith('update attempt set click_at')) { thrown = true; return { run: () => { throw Object.assign(new Error('disk full'), { code: 'SQLITE_FULL' }); } }; } return st; };
+  t.runner.start(t.batchId);
+  await t.step();
+  expect(thrown).toBe(true);
+  expect(t.driver.ledger.clicks).toBe(1);
+  t.clock.t += 31_000;
+  await t.step(2);
+  expect(t.states()[0]).toMatchObject({ item: 'needs_review', stage: 'uncertain' });
+  await t.step(3);
+  expect(t.driver.ledger.clicks).toBe(1);
+});

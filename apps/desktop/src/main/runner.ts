@@ -311,9 +311,9 @@ export function createRunner(o: {
       } catch (err) { fail(b.id, err); }
     }
     // 3. a click that left no request is uncertain after its deadline; then every due reconcile (D-11)
-    for (const r of db.prepare('select a.id, a.click_at c, a.state_json j from attempt a where a.click_at is not null and json_extract(a.state_json, \'$.item\') = \'submitting\'').all() as { id: string; c: number; j: string }[]) {
+    for (const r of db.prepare(`select a.id, ${CLICK_MS} c, a.state_json j from attempt a where json_extract(a.state_json, '$.item') = 'submitting'`).all() as { id: string; c: number | null; j: string }[]) { // CLICK_MS: a click whose click_at/clicked write failed is still swept
       const s = JSON.parse(r.j) as AttemptState;
-      if (s.item === 'submitting' && s.clicked && !s.request && clock.now() - r.c >= SEND_DEADLINE_MS && !clicking.has(r.id)) {
+      if (s.item === 'submitting' && r.c !== null && !s.request && clock.now() - r.c >= SEND_DEADLINE_MS && !clicking.has(r.id)) {
         try { // fence the tab: the late sent/response of this attempt must not bind to the next one clicked there
           const tab = [...slot].find(([, v]) => v === r.id)?.[0];
           if (tab) fence(tab); else apply(r.id, { type: 'deadline' });
