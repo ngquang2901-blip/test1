@@ -175,7 +175,7 @@ export function createGptRunner(o: {
     s = put(c.id, 'intent', { ...s, item: 'submitting', stage: 'intent_recorded', clicked: false, baseline: base, request: null, error: null, manual: false })
     let r: GptStep
     try { r = await driver.send(tab, s.prompt, files.length) } catch { put(c.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'the page did not answer the click')); return }
-    if (!r.ok && r.code === 'SEND_NO_EFFECT') { put(c.id, 'no_effect', { ...s, item: 'preparing', stage: 'rejected_before_dispatch', clicked: true, error: { code: `GPT_${r.code}` } }); return hold(batch, `GPT_${r.code}`) } // clicked, no turn in time: the old baseline stays, so a late turn is adopted instead of sent again
+    if (!r.ok && `GPT_${r.code}` === 'GPT_SEND_NO_EFFECT') { put(c.id, 'no_effect', { ...s, item: 'preparing', stage: 'rejected_before_dispatch', clicked: true, error: { code: `GPT_${r.code}` } }); return hold(batch, `GPT_${r.code}`) } // clicked, no turn in time: the old baseline stays, so a late turn is adopted instead of sent again
     if (!r.ok) { // the page refused before clicking
       put(c.id, 'not_clicked', { ...s, item: 'preparing', stage: 'rejected_before_dispatch', error: { code: `GPT_${r.code}` } })
       return hold(batch, `GPT_${r.code}`)

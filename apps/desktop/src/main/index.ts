@@ -287,6 +287,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   }
   pruneFrames(join(userData, 'frames'), clock.now())
   const wf = createWorkflows({
+    marker: join(userData, 'wf-running.json'), attention: (title, body) => notifier.notify({ kind: 'attention', batchId: null, title, body }),
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
     status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
@@ -301,6 +302,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     codes: (b) => (db.prepare("select json_extract(a.state_json,'$.error.code') c from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord").all(b) as { c: string | null }[]).map((r) => r.c),
   })
   wfActive = wf.active
+  wf.interrupted()
   // MCP: an AI agent on this machine drives the same handlers the screens call. Off until the user turns it on in Cài đặt.
   const mcp = createMcpSwitch({
     file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(), // a fixed port, so the agent's config survives restarts

@@ -2,7 +2,7 @@
 // path: every "generate" node becomes one batch through the same enqueue the Tạo lô screen uses, so each send keeps every
 // guarantee of a batch (intent first, never sent twice, refs checked). Nothing here talks to Flow directly.
 import { randomUUID } from 'node:crypto'
-import { readFileSync, statSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import type { Db } from './db'
 import { safeComponent } from './downloads'
@@ -164,15 +164,18 @@ export type WfDeps = {
   lastFrame(video: string): Promise<string> // the clip's last frame as an image file (ffmpeg)
   merge(files: string[], name: string): Promise<string> // the clips joined into one video file named name, next to the first; returns its path
   reveal?(path: string): void // shows a file in the OS file manager
+  marker?: string; attention?(title: string, body: string): void // marker: a file naming the runs in progress, so a run cut off by a quit is told at the next start
   savePath(suggested: string): Promise<string | null>; openPath(): Promise<string | null> // the OS file dialogs (null = cancelled)
 }
 
 export function createWorkflows(d: WfDeps) {
   const sleep = d.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const runs = new Map<string, Run>()
+  const marks = (): Record<string, string> => { try { return JSON.parse(readFileSync(d.marker!, 'utf8')) as Record<string, string> } catch { return {} } }
+  const mark = (id: string, name: string | null): void => { if (!d.marker) return; const m = marks(); if (name === null) delete m[id]; else m[id] = name; try { if (Object.keys(m).length) writeFileSync(d.marker, JSON.stringify(m)); else rmSync(d.marker, { force: true }) } catch { /* the notice is best effort */ } }
   const code = (e: unknown): string => (e as { code?: string })?.code ?? 'INTERNAL_ERROR'
 
-  // shortcut: nodes run one after another and a run lives in memory (after an app restart its batches go on, later nodes do not start); run branches in parallel / persist the run when users build wide graphs
+  // shortcut: nodes run one after another and a run lives in memory (after an app restart its batches go on, later nodes do not start: only a notice at the next start, see interrupted); run branches in parallel / persist and resume the run when users build wide graphs
   async function exec(run: Run, steps: Step[], merges: Merge[], mode: 'auto' | 'manual'): Promise<void> {
     for (const s of steps) {
       const n = run.nodes[s.node]
@@ -215,6 +218,11 @@ export function createWorkflows(d: WfDeps) {
   // for the canvas: image nodes carry names and sizes, never paths; a file not registered on this machine is marked missing
   const forCanvas = (g: Graph) => ({ edges: g.edges, vars: g.vars ?? {}, nodes: g.nodes.map((n) => ({ ...n, ...(n.assetIds ? { assets: n.assetIds.map((id) => assetOf.get(id) ?? { id, name: '', bytes: 0, missing: true }) } : {}) })) })
   return {
+    /** At start: a run still marked was cut off by a quit or crash; later nodes never start, so the user is told. */
+    interrupted(): void {
+      for (const n of Object.values(marks())) d.attention?.('Workflow bị dừng giữa chừng', `Workflow ${n ? `${n} ` : ''}bị dừng giữa chừng vì app tắt — mở Workflow và chạy lại`)
+      if (d.marker) rmSync(d.marker, { force: true })
+    },
     active: (): boolean => [...runs.values()].some((r) => r.status === 'running'), // not an IPC handler: main asks before restarting for an update
     handlers: {
       async listWorkflows() {
@@ -250,7 +258,7 @@ export function createWorkflows(d: WfDeps) {
       },
       /** Starts the run and returns at once; the canvas polls workflowRun. A graph that cannot run returns its errors and sends nothing. dryRun: only the plan (what each node would send). */
       async runWorkflow(a: unknown) {
-        const o = a as { graph?: unknown; mode?: unknown; dryRun?: unknown } | null
+        const o = a as { graph?: unknown; mode?: unknown; dryRun?: unknown; name?: unknown } | null
         const mode = o?.mode === 'auto' || o?.mode === 'manual' ? o.mode : bad()
         const g = parseGraph(o!.graph), { steps, merges, errors } = plan(g)
         for (const s of steps) if (s.images.some((id) => !assetOf.get(id))) errors.push({ node: s.node, code: 'REF_ASSET_MISSING' })
@@ -261,7 +269,9 @@ export function createWorkflows(d: WfDeps) {
         const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries([...steps, ...merges].map((s) => [s.node, { state: 'waiting', batchIds: [] }])), loops }
         for (const [id, r] of runs) if (r.status !== 'running' && runs.size >= 20) runs.delete(id) // finished runs are only kept for the canvas that started them
         runs.set(run.id, run)
-        void exec(run, steps, merges, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) })
+        const saved = d.db.prepare('select name from workflow where json=?').get(JSON.stringify(g)) as { name: string } | undefined
+        mark(run.id, (typeof o!.name === 'string' && o!.name.trim()) || saved?.name || '')
+        void exec(run, steps, merges, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) }).finally(() => mark(run.id, null))
         return { runId: run.id }
       },
       async stopWorkflow(a: unknown) { // no new node starts; the node that is running has its batches stopped like the Dừng button
