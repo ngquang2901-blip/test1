@@ -1,4 +1,5 @@
 import { test, expect } from 'vitest'
+import { hintOf } from '../src/renderer/src/hints'
 import { createMcpSwitch, rpc, startMcp, toolsOf, type Tool } from '../src/main/mcp'
 
 const echo: Record<string, Tool> = {
@@ -60,9 +61,15 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
   expect(calls).toHaveLength(4)
   for (const bad of [{}, { prompts: [] }, { prompts: 'x' }, { prompts: ['a\nb'] }, { prompts: [''] }, { prompts: Array(101).fill('x') }, { prompts: ['x'], kind: 'audio' }, { prompts: ['x'.repeat(5001)] }, { prompts: ['x'], site: 'grok' }, { prompts: ['x'], site: 7 }])
     await expect(t.toolflow_create_batch.run(bad), JSON.stringify(bad).slice(0, 60)).rejects.toMatchObject({ code: 'INVALID_ARGS' })
-  const brief = { id: 'b1', kind: 'video', status: 'completed', pauseReason: null, items: [{ n: 1, prompt: 'p1', state: 'ready', error: null, files: ['/dl/a1-m1.mp4'] }, { n: 2, prompt: 'p2', state: 'failed', error: 'CONTENT_BLOCKED', files: [] }] }
+  const brief = { id: 'b1', kind: 'video', status: 'completed', pauseReason: null, items: [{ n: 1, prompt: 'p1', state: 'ready', error: null, files: ['/dl/a1-m1.mp4'] }, { n: 2, prompt: 'p2', state: 'failed', error: 'CONTENT_BLOCKED', hint: hintOf('CONTENT_BLOCKED'), files: [] }] }
   expect(await t.toolflow_list_batches.run({})).toEqual({ batches: [brief] })
   expect(await t.toolflow_list_batches.run({ batchId: 'nope' })).toEqual({ batches: [] })
+  // the Vietnamese line the app shows for a code rides along as `hint` (batch pause and item error), worded for the batch's site
+  const hinted = await toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, file: () => '', list: async () => ({ session: {}, batches: [{ id: 'h1', kind: 'image', provider: 'gemini', status: 'paused', pauseReason: 'GPT_NO_PLUS', items: [{ prompt: 'p', attempts: [{ id: 'a', item: 'failed', error: { code: 'PAGE_BLOCKED' }, outputs: [] }] }] }, { id: 'h2', kind: 'image', status: 'paused', pauseReason: 'PAGE_BLOCKED', items: [] }] }) }).toolflow_list_batches.run({}) as { batches: { hint?: string; items: { hint?: string }[] }[] }
+  expect(hinted.batches[0].hint).toContain('Gemini')
+  expect(hinted.batches[0].items[0].hint).toMatch(/tiện ích khác/)
+  expect(hinted.batches[1].hint).toMatch(/tiện ích khác/)
+  expect(hintOf('CONTENT_BLOCKED')).toBeTruthy()
   expect(await t.toolflow_download.run({ batchId: 'b1' })).toEqual({ batches: [brief] })
   expect(calls.at(-1)).toBe('download b1')
   await expect(t.toolflow_download.run({})).rejects.toMatchObject({ code: 'INVALID_ARGS' })
@@ -84,7 +91,7 @@ test('tools: resume lifts only a pause the page caused (re-checked before any cl
     resume: async (id) => void resumed.push(id),
     list: async () => ({ batches: [b('p1', 'paused', 'PAGE_BLOCKED'), b('p2', 'paused', 'COVERED'), b('u1', 'paused', 'SUBMIT_UNCERTAIN'), b('u2', 'paused', null), b('r1', 'running', null)], session: {} }),
   })
-  expect(await t.toolflow_resume.run({ batchId: 'p1' })).toEqual({ batches: [b('p1', 'paused', 'PAGE_BLOCKED')] })
+  expect(await t.toolflow_resume.run({ batchId: 'p1' })).toEqual({ batches: [{ ...b('p1', 'paused', 'PAGE_BLOCKED'), hint: hintOf('PAGE_BLOCKED') }] })
   await t.toolflow_resume.run({ batchId: 'p2' })
   expect(resumed).toEqual(['p1', 'p2'])
   for (const [a, code] of [[{ batchId: 'u1' }, 'NEEDS_USER'], [{ batchId: 'u2' }, 'NEEDS_USER'], [{ batchId: 'r1' }, 'NOT_PAUSED'], [{ batchId: 'nope' }, 'NOT_FOUND'], [{}, 'INVALID_ARGS']] as const)

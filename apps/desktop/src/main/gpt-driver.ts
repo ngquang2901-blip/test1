@@ -32,6 +32,9 @@ export const isGemMedia = (id: string): boolean => /^[0-9a-f]{8,32}-[1-9][0-9]?$
 const SITES = { chatgpt: { ops: 'gpt', conv: new RegExp(`^/c/(${UUID})$`) }, gemini: { ops: 'gem', conv: /^\/app\/([0-9a-f]{8,32})$/ } } as const
 export type Site = keyof typeof SITES
 export const GEM_ASPECTS = ['1:1', '9:16', '3:4', '4:3', '16:9'] as const // the ratios Gemini's menu offers (measured)
+const SHAPE: Record<string, string> = { '1:1': 'a square', '16:9': 'a wide landscape', '4:3': 'a landscape', '9:16': 'a tall portrait', '3:4': 'a portrait' }
+/** ChatGPT has no ratio control: the ratio goes into the prompt as one sentence (measured: 16:9 -> 1672x941, 9:16 -> 941x1672). */
+export const withRatio = (prompt: string, aspect: string): string => `${prompt} Make the image ${SHAPE[aspect]} in ${aspect} aspect ratio.`
 export const GEM_MODELS = ['Flash-Lite', 'Flash', 'Pro'] as const // model families of Gemini's menu (measured)
 export type ModeOpts = { aspect?: string; model?: string } // what a Gemini batch may choose next to the image tool
 

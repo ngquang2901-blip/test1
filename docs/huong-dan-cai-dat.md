@@ -73,7 +73,7 @@ Từ bản 0.13.0:
 - Nếu bạn chuyển tab ChatGPT sang cuộc trò chuyện khác, lô tạm dừng; bấm **Tiếp tục** thì app mở lại đúng cuộc trò chuyện của lô.
 - ChatGPT trả lời mà không có ảnh (hết lượt tạo ảnh, hoặc prompt bị từ chối): dòng đó báo lỗi, lô tạm dừng để bạn đọc câu trả lời trong ChatGPT.
 - **Ảnh tham chiếu** (từ bản 0.10.0): bấm **Chọn ảnh…** rồi chọn cách chia như với Flow. App tự dán ảnh vào ô nhập của ChatGPT trước khi gửi. Tài khoản miễn phí bị ChatGPT giới hạn số ảnh tải lên mỗi ngày.
-- Chưa có: chọn tỉ lệ khung hình (ghi thẳng trong prompt).
+- **Tỉ lệ khung hình** (từ bản 0.18.0): ô **Tỉ lệ khung hình** chọn 1:1, 16:9, 9:16, 4:3 hoặc 3:4. ChatGPT không có nút chọn tỉ lệ, nên app thêm một câu tiếng Anh vào cuối mỗi prompt (ví dụ "Make the image a wide landscape in 16:9 aspect ratio."); câu đó hiện trong Hàng đợi cùng prompt. Để "ChatGPT tự chọn" thì prompt giữ nguyên.
 
 ## Tạo ảnh bằng Gemini (từ bản 0.8.0)
 1. Trong Chrome đã cài extension ToolFlow, mở https://gemini.google.com/app và đăng nhập. Gemini để ngôn ngữ nào cũng được.
@@ -86,7 +86,7 @@ Từ bản 0.13.0:
 - Gemini trả lời mà không có ảnh, hoặc để trống câu trả lời: dòng đó báo lỗi sau khoảng 20 giây và lô tạm dừng để bạn xem trong Gemini; bấm **Tiếp tục** để gửi các prompt còn lại.
 - Khi lô chạy, app đưa tab Gemini lên trước. Đừng thu nhỏ cửa sổ Chrome đó, đừng gõ vào Gemini và đừng để sẵn chữ trong ô nhập của Gemini (app không gõ đè lên chữ có sẵn, lô sẽ tạm dừng).
 - Lúc lấy ảnh cỡ đầy đủ, app bấm nút tải của Gemini; bản tải riêng của Gemini (tên `Gemini_Generated_Image_…`) nếu có sẽ bị app huỷ để không lưu trùng. Trong lúc lô chạy, đừng tự bấm tải ảnh trong Gemini.
-- **Trong Workflow** (từ bản 0.10.0): bấm vào node **Tạo ảnh**, ở ô **Nền tảng** chọn Google Flow, ChatGPT hoặc Gemini. Node Gemini có thêm ô Mô hình và Tỉ lệ khung hình. Ảnh của node trước nối sang sẽ thành ảnh tham chiếu của node sau, kể cả khi hai node ở hai nền tảng khác nhau.
+- **Trong Workflow** (từ bản 0.10.0): bấm vào node **Tạo ảnh**, ở ô **Nền tảng** chọn Google Flow, ChatGPT hoặc Gemini. Node Gemini có thêm ô Mô hình và Tỉ lệ khung hình; node ChatGPT có ô Tỉ lệ khung hình (từ bản 0.18.0). Ảnh của node trước nối sang sẽ thành ảnh tham chiếu của node sau, kể cả khi hai node ở hai nền tảng khác nhau.
 - Có lô ChatGPT và lô Gemini chạy cùng lúc thì app làm lần lượt, mỗi lúc một prompt (từ bản 0.11.0), vì hai tab nằm chung một cửa sổ Chrome. Lô Flow vẫn chạy song song như cũ.
 
 ## Cho trợ lý AI điều khiển ToolFlow (MCP, từ bản 0.6.1)
@@ -99,7 +99,7 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 - Nếu Hàng đợi báo **ToolFlow không kiểm được trang Flow**: thường do một tiện ích khác (vd TobyFlow) đang chạy trên trang Flow. Tắt tiện ích đó trong `chrome://extensions`, tải lại tab Flow, rồi bấm Tiếp tục (hoặc bảo trợ lý cho lô chạy tiếp).
 - Màn **Kết nối** ghi dòng "Self-check: lỗi …" kèm một câu tiếng Việt bên dưới nói cần làm gì; khi mã là `PROTOCOL_DRIFT — heartbeat:hook…` thì cũng là lý do trên (tiện ích khác đang giữ trang Flow): tắt tiện ích đó rồi F5 tab Flow.
 - Nút **Tạm dừng** chỉ có ở lô đang chạy; lô đang chờ hoặc đã hẹn giờ thì bấm **Dừng** (hoặc **Huỷ hẹn giờ**).
-- Từ bản 0.11.0, lệnh tạo lô nhận thêm nền tảng **ChatGPT** hoặc **Gemini** (chỉ ảnh; Gemini chọn được tỉ lệ và mô hình). Lô đó chạy trong tab chatgpt.com / gemini.google.com đang mở, app tự gửi và tự lưu, tốn lượt tạo ảnh của tài khoản đó chứ không tốn credit Flow.
+- Từ bản 0.11.0, lệnh tạo lô nhận thêm nền tảng **ChatGPT** hoặc **Gemini** (chỉ ảnh; Gemini chọn được tỉ lệ và mô hình, ChatGPT chọn được tỉ lệ từ bản 0.18.0). Lô đó chạy trong tab chatgpt.com / gemini.google.com đang mở, app tự gửi và tự lưu, tốn lượt tạo ảnh của tài khoản đó chứ không tốn credit Flow.
 - Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được **Tự động gửi**: nếu bạn chưa bật, lô của nó chờ bạn bấm Gửi trong Flow.
 - Ai đọc được file `mcp.json` cũng điều khiển được app: đừng gửi file đó cho người khác. Muốn khoá lại thì bỏ tích.
 

@@ -53,7 +53,7 @@ export function parseGraph(v: unknown): Graph {
     if (n.combo !== undefined && n.type !== 'generate') bad() // settings belong to a Tạo ảnh node
     if (n.cond !== undefined && (n.type !== 'branch' || !CONDS.includes(n.cond as string))) bad()
     if (n.site !== undefined && (n.type !== 'generate' || (n.site !== 'chatgpt' && n.site !== 'gemini') || n.combo !== undefined)) bad() // a site node has no Flow settings
-    if (n.aspect !== undefined && (n.site !== 'gemini' || !(GEM_ASPECTS as readonly unknown[]).includes(n.aspect))) bad()
+    if (n.aspect !== undefined && (n.site === undefined || !(GEM_ASPECTS as readonly unknown[]).includes(n.aspect))) bad()
     if (n.model !== undefined && (n.site !== 'gemini' || !(GEM_MODELS as readonly unknown[]).includes(n.model))) bad()
     if ((n.type === 'loop') !== (Number.isInteger(n.rounds) && (n.rounds as number) >= 2 && (n.rounds as number) <= 10)) bad() // a loop node always says how many rounds, nothing else does
     if (n.rows !== undefined && (n.type !== 'csv' || !Array.isArray(n.rows) || n.rows.length > 2001 || !n.rows.every((r) => Array.isArray(r) && r.length <= 50 && r.every((c) => typeof c === 'string')) || n.rows.flat().join('').length > 1_000_000)) bad() // header + 2000 rows (a batch's prompt cap), the size cap of a text
