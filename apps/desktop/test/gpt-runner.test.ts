@@ -493,7 +493,6 @@ test('a pause before the click for a page that was not ready lifts by itself aft
   expect(c.status()).not.toBe('running'); // a stopped batch is left alone
 });
 
-<<<<<<< HEAD
 test('B5: a ChatGPT pause reason survives a restart and is cleared by resume', async () => {
   const t = rig([], ['a red kite'], { fake: { tabs: 0 } });
   await t.ticks(2);
@@ -504,7 +503,7 @@ test('B5: a ChatGPT pause reason survives a restart and is cleared by resume', a
   const g3 = createGptRunner({ db: t.db, driver: t.fake.driver, clock: t.clock, pollMs: 0, sleep: async () => undefined, download: async () => undefined });
   g3.recover();
   expect(g3.lastError(t.batch)).toBeNull();
-=======
+});
 
 test('a click that showed no turn in time: a late turn is adopted, the prompt is not sent again', async () => {
   const t = rig([], ['a red kite']);
@@ -545,5 +544,4 @@ test('needs_review with two candidate turns carrying the prompt stays needs_revi
   await t.ticks(1); await drop();
   await t.ticks(3);
   expect(items(t.states())).toBe('needs_review');
->>>>>>> fix-d-run
 });
