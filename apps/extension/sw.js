@@ -14,6 +14,12 @@ async function instance() {
   return id;
 }
 
+const hex = (u8) => [...u8].map((b) => b.toString(16).padStart(2, '0')).join('');
+async function mac(token, msg) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(token), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return hex(new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg))));
+}
+
 function later() {
   clearTimeout(retry);
   retry = setTimeout(connect, retryMs);
@@ -25,9 +31,15 @@ async function connect() {
   connecting = true;
   try {
     const { port, token } = await (await fetch(chrome.runtime.getURL('pair.json'))).json();
-    const s = new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`, `tfi.${await instance()}`]); // token never in the URL: Chrome logs failed URLs
-    s.onmessage = (m) => onCommand(s, m.data);
-    s.onopen = () => { retryMs = 1000; };
+    const nonce = hex(crypto.getRandomValues(new Uint8Array(16)));
+    const want = await mac(token, 's' + nonce), protos = ['toolflow.v1', `tfn.${nonce}`, `tfp.${await mac(token, 'c' + nonce)}`, `tfi.${await instance()}`]; // all awaited before the socket exists: its first frame must find onmessage set
+    const s = new WebSocket(`ws://127.0.0.1:${port}/`, protos); // the token itself is never sent, nor in the URL (Chrome logs failed URLs)
+    // no op is run and nothing is sent until the first frame proves the listener knows the token
+    s.onmessage = (m) => {
+      if (s.ready) return onCommand(s, m.data);
+      let h; try { h = JSON.parse(m.data).hello; } catch { /* not json: not the app */ }
+      if (h === want) { s.ready = true; retryMs = 1000; } else s.close(); // a wrong hello keeps the backoff growing
+    };
     s.onclose = (e) => { if (ws === s) { ws = undefined; if (e.code === 4401) retryMs = 30000; /* wrong token: a 1 s loop helps nobody */ later(); } };
     s.onerror = () => {};
     ws = s;
@@ -81,7 +93,7 @@ async function handle(op, a, epoch) {
 // sent/response carry the epoch of their own trusted click (stamped in main-world). Generates that start before any
 // trusted op on the tab (manual / Flow-initiated) have no epoch and are dropped by forwardEvent.
 chrome.runtime.onMessage.addListener((m, sender) => {
-  if (m?.tf !== 'event' || !sender.tab || ws?.readyState !== 1) return;
+  if (m?.tf !== 'event' || !sender.tab || !ws?.ready || ws.readyState !== 1) return;
   const out = forwardEvent(sender.tab.id, m.ev);
   if (out) ws.send(JSON.stringify(out));
 });
@@ -93,4 +105,4 @@ chrome.tabs.onUpdated.addListener(() => connect(), { urls: SITES.map((s) => s + 
 chrome.runtime.onStartup.addListener(connect);
 connect();
 // keep SW alive while connected (Chrome 116+: WS activity extends lifetime)
-setInterval(() => ws?.readyState === 1 && ws.send(JSON.stringify({ keepalive: Date.now() })), 20000);
+setInterval(() => ws?.ready && ws.readyState === 1 && ws.send(JSON.stringify({ keepalive: Date.now() })), 20000);
