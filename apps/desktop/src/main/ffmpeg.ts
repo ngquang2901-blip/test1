@@ -7,7 +7,7 @@ import { join } from 'node:path'
 const coded = (code: string): Error => Object.assign(new Error(code), { code })
 
 /** TOOLFLOW_FFMPEG (tests), then the copy shipped with the installed app. Only an unpackaged run (dev, tests) goes on to the one fetched into the repo, the working directory and PATH: a packaged app never runs an ffmpeg.exe planted there. */
-export function ffmpegBin(packaged = !!process.resourcesPath && !process.defaultApp): string {
+export function ffmpegBin(packaged = !!process.resourcesPath && !process.defaultApp && !process.env.ELECTRON_RUN_AS_NODE): string { // unit tests run under Electron as Node: not packaged
   const shipped = process.resourcesPath && join(process.resourcesPath, 'ffmpeg', 'ffmpeg.exe')
   const own = [process.env.TOOLFLOW_FFMPEG, shipped, ...(packaged ? [] : [join(__dirname, '..', '..', 'resources', 'ffmpeg', 'ffmpeg.exe'), join(process.cwd(), 'resources', 'ffmpeg', 'ffmpeg.exe')])]
   return own.find((p): p is string => !!p && existsSync(p)) ?? (packaged ? shipped || 'ffmpeg' : 'ffmpeg')

@@ -37,7 +37,7 @@ test('packaged: only TOOLFLOW_FFMPEG and the shipped copy; unpackaged still fall
   try {
     const planted = join(dir, 'resources', 'ffmpeg'); mkdirSync(planted, { recursive: true }); writeFileSync(join(planted, 'ffmpeg.exe'), 'x')
     const cwd = process.cwd(); process.chdir(dir)
-    try { expect(ffmpegBin(false)).toMatch(/resources.ffmpeg.ffmpeg\.exe$/); expect(ffmpegBin(true)).toBe('ffmpeg') } finally { process.chdir(cwd) } // packaged: the planted cwd copy is ignored (no resourcesPath under vitest)
+    try { expect(ffmpegBin(false)).toMatch(/resources.ffmpeg.ffmpeg\.exe$/); expect(ffmpegBin(true)).not.toBe(join(planted, 'ffmpeg.exe')) } finally { process.chdir(cwd) } // packaged: the planted cwd copy is ignored (no resourcesPath under vitest)
     process.env.TOOLFLOW_FFMPEG = join(planted, 'ffmpeg.exe'); expect(ffmpegBin(true)).toBe(join(planted, 'ffmpeg.exe'))
   } finally { if (prev === undefined) delete process.env.TOOLFLOW_FFMPEG; else process.env.TOOLFLOW_FFMPEG = prev }
 })
