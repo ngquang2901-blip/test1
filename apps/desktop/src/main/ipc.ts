@@ -1,4 +1,4 @@
-import type { IpcMain } from 'electron';
+import type { IpcMain, IpcMainInvokeEvent } from 'electron';
 import type { Db } from './db';
 import { MAX_REFS } from './workflow';
 import { GEM_ASPECTS, GEM_MODELS } from './gpt-driver';
@@ -307,6 +307,7 @@ export function createHandlers(d: Deps) {
 }
 export type Handlers = ReturnType<typeof createHandlers>;
 
-export function registerIpc(ipc: Pick<IpcMain, 'handle'>, h: Record<string, (a: never) => unknown>): void {
-  for (const [ch, fn] of Object.entries(h)) ipc.handle(ch, (_e, arg) => (fn as (a: unknown) => unknown)(arg));
+/** allow: only the app's own page may call (a frame of another origin, or a sub-frame, is refused). */
+export function registerIpc(ipc: Pick<IpcMain, 'handle'>, h: Record<string, (a: never) => unknown>, allow: (e: Pick<IpcMainInvokeEvent, 'senderFrame'>) => boolean = () => true): void {
+  for (const [ch, fn] of Object.entries(h)) ipc.handle(ch, (e, arg) => { if (!allow(e)) throw coded('FORBIDDEN'); return (fn as (a: unknown) => unknown)(arg) })
 }

@@ -357,7 +357,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async checkLicense() { await lic.check() },
     async signOut() { lic.signOut() },
   }
-  registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers })
+  registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers }, (e) => { const f = win()?.webContents.mainFrame; return !!f && e.senderFrame?.processId === f.processId && e.senderFrame?.routingId === f.routingId }) // the app's own main frame only
   // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
   const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late), attention: (b, title, body) => notifier.notify({ kind: 'attention', batchId: b, title, body }) })
   const schedTick = (): void => void (lic.ok() ? sched.tick() : Promise.resolve()).catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
