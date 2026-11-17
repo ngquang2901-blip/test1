@@ -1,4 +1,4 @@
-import { validate, forwardEvent, fetchMediaOp, gptFetchOp, gemFetchOp, downloadsOp } from './ops.js';
+import { validate, forwardEvent, siteTab, SITES, fetchMediaOp, gptFetchOp, gemFetchOp, downloadsOp } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
@@ -28,7 +28,7 @@ async function connect() {
     const s = new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`, `tfi.${await instance()}`]); // token never in the URL: Chrome logs failed URLs
     s.onmessage = (m) => onCommand(s, m.data);
     s.onopen = () => { retryMs = 1000; };
-    s.onclose = () => { if (ws === s) { ws = undefined; later(); } };
+    s.onclose = (e) => { if (ws === s) { ws = undefined; if (e.code === 4401) retryMs = 30000; /* wrong token: a 1 s loop helps nobody */ later(); } };
     s.onerror = () => {};
     ws = s;
   } catch (_) { later(); /* not paired yet: the alarm retries too */ } finally { connecting = false; }
@@ -63,15 +63,16 @@ async function handle(op, a, epoch) {
       return false;
     }
     case 'gptFront': { // ChatGPT's "+" menu does not open while the page is hidden (measured). First the tab becomes the active one of its window, which leaves the user's other windows alone;
+      await siteTab(chrome, a.tabId);
       const t = await chrome.tabs.update(a.tabId, { active: true }); // raise: only when that was not enough (window minimised, or covered where the OS reports it), the window itself comes forward
       if (a.raise === true) { const w = await chrome.windows.get(t.windowId); await chrome.windows.update(t.windowId, w.state === 'minimized' ? { state: 'normal', focused: true } : { focused: true }); }
       return true;
     }
     case 'gemFetch': return gemFetchOp(chrome, a); // tab presses its own full-size download and says where the page got the file -> downloaded here into ToolFlow-tmp
     case 'gptFetch': return gptFetchOp(chrome, a); // tab -> image bytes (internal message) -> chrome.downloads
-    case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
+    case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await siteTab(chrome, a.tabId); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }
     case 'open': return (await chrome.tabs.create({ url: a.url, active: true })).id;
-    case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await chrome.tabs.reload(a.tabId); return true;
+    case 'reloadTab': if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await siteTab(chrome, a.tabId); await chrome.tabs.reload(a.tabId); return true;
     case 'fetchMedia': return fetchMediaOp(chrome, a); // tab -> src (internal message) -> chrome.downloads; the url never leaves the extension
     case 'downloads': return downloadsOp(chrome, a);
   }
@@ -88,7 +89,7 @@ chrome.runtime.onMessage.addListener((m, sender) => {
 // SW dies when the relay is gone; alarms + tab events wake it so it reconnects
 chrome.alarms.create('wake', { periodInMinutes: 0.5 });
 chrome.alarms.onAlarm.addListener(connect);
-chrome.tabs.onUpdated.addListener(() => connect());
+chrome.tabs.onUpdated.addListener(() => connect(), { urls: SITES.map((s) => s + '*'), properties: ['status'] });
 chrome.runtime.onStartup.addListener(connect);
 connect();
 // keep SW alive while connected (Chrome 116+: WS activity extends lifetime)

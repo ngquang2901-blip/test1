@@ -153,7 +153,7 @@
       // The press makes the page fetch the real file; where from is read off the page's resource timing (an observer: the timing buffer of a
       // long-lived page is full). The address goes to our service worker only, which downloads it; it is never returned by an op.
       let url = null;
-      const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) if (G.isFullSize(e)) url = e.name; });
+      const t0 = performance.now(), po = new PerformanceObserver((l) => { url ??= G.fullSizeSince(l.getEntries(), t0); });
       po.observe({ type: 'resource' });
       b.click();
       until(() => url, FULL_SIZE_WAIT_MS).then(() => { po.disconnect(); reply(url ? { url } : { code: 'NO_FULL_SIZE' }); });

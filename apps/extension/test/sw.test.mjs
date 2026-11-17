@@ -18,7 +18,7 @@ async function load(app) {
       queueMicrotask(() => { if (app.up) { this.readyState = 1; this.onopen?.(); } else this.close(); });
     }
     send() {}
-    close() { if (this.readyState === 3) return; this.readyState = 3; this.onclose?.(); }
+    close(code) { if (this.readyState === 3) return; this.readyState = 3; this.onclose?.({ code }); }
   };
   await import(new URL(`../sw.js?load=${++loads}`, import.meta.url));
   return made;
@@ -57,4 +57,17 @@ test('while the app is away the extension retries after 1 s, doubling to 30 s at
   app.up = false; made.at(-1)[1].close();
   await advance(t, 1000);
   assert.equal(made.length, n + 1, 'first retry 1 s after the loss');
+});
+
+test('a 4401 close (wrong token) retries every 30 s, not every second', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const app = { up: true };
+  const made = await load(app);
+  await settle();
+  const n = made.length;
+  made.at(-1)[1].close(4401);
+  await advance(t, 29_000);
+  assert.equal(made.length, n, 'nothing before 30 s');
+  await advance(t, 2000);
+  assert.equal(made.length, n + 1);
 });

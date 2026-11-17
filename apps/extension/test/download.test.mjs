@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { OPS, validate, shapeDownload, fetchMediaOp, downloadsOp, validTmpName } from '../ops.js';
+import { siteTab, OPS, validate, shapeDownload, fetchMediaOp, downloadsOp, validTmpName } from '../ops.js';
 
 const ID = '3f2b9c1e-1111-4222-8333-444455556666';
 const SRC = 'https://flow-content.google/image/3f2b9c1e?sig=SECRETSIG';
@@ -39,7 +39,7 @@ test('shapeDownload keeps the five fields and drops every url', () => {
 
 function chromeFake({ reply, downloadId = 7, search = [] } = {}) {
   const calls = { sent: [], download: [], search: [] };
-  return { calls, tabs: { sendMessage: async (tab, m) => { calls.sent.push([tab, m]); if (reply instanceof Error) throw reply; return reply; } },
+  return { calls, runtime: { id: 'me' }, tabs: { sendMessage: async (tab, m) => { calls.sent.push([tab, m]); if (reply instanceof Error) throw reply; return reply; } },
     downloads: { download: async (o) => { calls.download.push(o); if (downloadId instanceof Error) throw downloadId; return downloadId; }, search: async (q) => { calls.search.push(q); return search; } } };
 }
 
@@ -66,7 +66,7 @@ test('fetchMedia failures return codes only (no url, no message)', async () => {
 });
 
 test('downloads op: by id or by tmp-folder prefix; results are shaped', async () => {
-  const raw = [{ id: 9, state: 'in_progress', filename: '/d/ToolFlow-tmp/p.bin', fileSize: -1, mime: '', url: SRC, finalUrl: SRC }];
+  const raw = [{ id: 9, state: 'in_progress', filename: '/d/ToolFlow-tmp/p.bin', fileSize: -1, mime: '', url: SRC, finalUrl: SRC, byExtensionId: 'me' }, { id: 10, filename: '/d/other.bin', byExtensionId: 'someone-else' }, { id: 11, filename: '/d/user.bin' }]; // only ours come back
   let c = chromeFake({ search: raw });
   assert.deepEqual(await downloadsOp(c, { id: 9 }), [{ id: 9, state: 'in_progress', filename: '/d/ToolFlow-tmp/p.bin', fileSize: -1, mime: '', error: null }]);
   assert.deepEqual(c.calls.search, [{ id: 9 }]);
@@ -142,4 +142,11 @@ test('wiring: sw.js routes locate to the page and fetchMedia/downloads to ops.js
   assert.match(sw, /case 'downloads': return downloadsOp\(chrome/);
   assert.ok(!/case 'download':/.test(sw));
   assert.ok(!OPS.includes('src'));
+});
+
+test('siteTab: only a tab on one of the three sites passes; anything else is NOT_SITE_TAB', async () => {
+  const c = (url, bad) => ({ tabs: { get: async () => { if (bad) throw new Error('no tab'); return { url }; } } });
+  for (const u of ['https://flow.google.com/project/x', 'https://chatgpt.com/', 'https://gemini.google.com/app']) await siteTab(c(u), 1);
+  for (const [u, bad] of [['https://evil.example/', false], [undefined, false], ['https://flow.google.com.evil.example/', false], ['', true]])
+    await assert.rejects(siteTab(c(u, bad), 1), /NOT_SITE_TAB/);
 });
