@@ -1066,7 +1066,7 @@ test('MCP: off until turned on in Cài đặt; then an agent with the key create
   expect(await tool('toolflow_status')).toMatchObject({ chatgptTabs: 1, geminiTabs: 1 })
   const g = await tool('toolflow_create_batch', { prompts: ['một con cá'], site: 'gemini', aspect: '9:16', model: 'Pro' }) as { batchIds: string[] }
   await expect.poll(async () => (await tool('toolflow_list_batches', { batchId: g.batchIds[0] })).batches[0].items[0].files.length, { timeout: 30_000 }).toBe(1) // saved by the app itself
-  expect((await ask('tools/call', { name: 'toolflow_create_batch', arguments: { prompts: ['x'], site: 'chatgpt', aspect: '9:16' } })).body!.isError).toBe(true)
+  expect((await ask('tools/call', { name: 'toolflow_create_batch', arguments: { prompts: ['x'], site: 'chatgpt', aspect: '21:9' } })).body!.isError).toBe(true)
   expect((await ask('tools/call', { name: 'toolflow_create_batch', arguments: { prompts: ['x'], site: 'gemini', kind: 'video' } })).body!.isError).toBe(true)
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await expect(items(page).filter({ hasText: 'một con mèo' })).toHaveCount(1) // the user sees the agent's batch like any other
