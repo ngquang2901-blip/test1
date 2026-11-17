@@ -131,6 +131,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const siteOf = (b: string): typeof gptRunner | null => { const p = (db.prepare('select provider p from batch where id=?').get(b) as { p: string } | undefined)?.p; return p === 'chatgpt' ? gptRunner : p === 'gemini' ? gemRunner : null }
   grants = createGrants(driver, runner, { db, cap: () => runner.caps().tabs })
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
+  const bootStatus = new Map(batchSignatures(db).map((r) => [r.id, batchStatus(db, r.id)])) // before recover(): a crash that leaves a batch needs_review is then noticed
   runner.recover()
   // Main, not the renderer: the remembered tabs are chosen again (and their batches go on) while the window is hidden too
   const relist = (): void => void grants.list().catch(() => {}) // no extension yet: the next round
@@ -164,7 +165,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const telegram = createTelegram({ file: join(userData, 'telegram.json'), base: FAKE ? process.env.TOOLFLOW_TELEGRAM_API : undefined })
   const toasts = new Set<Notification>() // shortcut: kept until closed so a click still reaches us; a toast left in the Action Center past that is not followed
   const notifier = createNotifier({
-    db, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
+    db, seen: bootStatus, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
     channels: {
       windows: (n) => {
         if (!Notification.isSupported()) return
