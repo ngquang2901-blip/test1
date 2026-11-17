@@ -4,6 +4,7 @@
 import { createServer, type IncomingMessage } from 'node:http'
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs'
+import { hintOf } from '../renderer/src/hints' // the Vietnamese line the screens show for a code
 
 export type Tool = { description: string; inputSchema: object; run(args: Record<string, unknown>): Promise<unknown> }
 type Opts = { version: string; tools: Record<string, Tool> }
@@ -74,7 +75,7 @@ export function createMcpSwitch(o: Opts & { file: string; port: number }) {
 
 /** Pauses from the check before a click: nothing was sent, and a resume runs the same check again. */
 const PAGE_PAUSES = ['PAGE_BLOCKED', 'TARGET_CHANGED', 'COVERED', 'CREDIT_WARNING', 'BUTTON_DISABLED', 'CHIP_MISMATCH']
-type Brief = { id: string; kind: string; status: string; pauseReason: string | null; items: { prompt: string; attempts: { id: string; item: string; error: { code?: string } | null; outputs: string[] }[] }[] }
+type Brief = { id: string; kind: string; provider?: string; status: string; pauseReason: string | null; items: { prompt: string; attempts: { id: string; item: string; error: { code?: string } | null; outputs: string[] }[] }[] }
 export type McpDeps = {
   enqueue(a: object): Promise<{ batchId?: string; batchIds?: string[]; errors?: { code: string }[] }>; start(batchId: string): Promise<unknown>; download(batchId: string): Promise<unknown>; resume(batchId: string): Promise<unknown> // the handlers the screens call
   list(): Promise<{ batches: unknown[]; session: unknown }>
@@ -84,8 +85,8 @@ export type McpDeps = {
 /** What an agent may do: read the state, send a list of prompts with the app's default settings, read results, save them. */
 export function toolsOf(d: McpDeps): Record<string, Tool> {
   const batches = async (id?: unknown): Promise<object> => ({ batches: ((await d.list()).batches as Brief[]).filter((b) => id === undefined || b.id === id).map((b) => ({
-    id: b.id, kind: b.kind, status: b.status, pauseReason: b.pauseReason ?? null,
-    items: b.items.map((it, i) => { const a = it.attempts.at(-1); return { n: i + 1, prompt: it.prompt, state: a?.item ?? null, error: a?.error?.code ?? null, files: (a?.outputs ?? []).flatMap((m) => { try { return [d.file(a!.id, m)] } catch { return [] } }) } }),
+    id: b.id, kind: b.kind, status: b.status, pauseReason: b.pauseReason ?? null, hint: hintOf(b.pauseReason, b.provider),
+    items: b.items.map((it, i) => { const a = it.attempts.at(-1); return { n: i + 1, prompt: it.prompt, state: a?.item ?? null, error: a?.error?.code ?? null, hint: hintOf(a?.error?.code, b.provider), files: (a?.outputs ?? []).flatMap((m) => { try { return [d.file(a!.id, m)] } catch { return [] } }) } }),
   })) })
   return {
     toolflow_status: {
@@ -111,7 +112,7 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
       },
     },
     toolflow_list_batches: {
-      description: 'Batches (newest first) with each prompt\'s state, error code and the paths of its saved files. batchId narrows to one.',
+      description: 'Batches (newest first) with each prompt\'s state, error code and the paths of its saved files. `hint` (on a batch with a pauseReason, and on an item with an error) is the Vietnamese explanation and next step the app shows the user for that code: read it instead of guessing what a code means. batchId narrows to one.',
       inputSchema: { type: 'object', properties: { batchId: { type: 'string' } } },
       run: (a) => batches(a.batchId),
     },
