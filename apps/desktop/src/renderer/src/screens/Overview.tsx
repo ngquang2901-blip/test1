@@ -165,7 +165,7 @@ export default function Overview({ batches, s, go }: { batches: Batch[]; s: Sess
 
       <div className="ov-stats">
         <Stat icon="layers" tint="orange" label="Lô đang chạy" value={String(active.length)} sub={waiting ? `${waiting} lượt đang chờ đến lượt` : 'Không có lượt nào đang chờ'} />
-        <Stat icon="image" tint="blue" label="Kết quả 30 ngày" value={String(outputs30)} sub="ảnh và video Flow đã trả về" />
+        <Stat icon="image" tint="blue" label="Kết quả 30 ngày" value={String(outputs30)} sub="ảnh và video có trong các lô tạo 30 ngày qua (Flow, ChatGPT, Gemini)" />
         <Stat icon="coin" tint="green" label="Credit Flow" value={credit ? String(credit.credits) : '—'} sub={credit ? `đọc lúc ${new Date(credit.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : 'Có số sau lần tạo video đầu tiên'} />
         <Stat icon="bell" tint="red" label="Cần bạn xem" value={String(needYou.length)} sub="lượt chờ bấm Gửi, lỗi hoặc chưa rõ" />
       </div>

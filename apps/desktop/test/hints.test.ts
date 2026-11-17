@@ -2,16 +2,14 @@ import { test, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { PUBLIC_ERRORS, CLIENT_SIGNALS } from '@toolflow/flow-protocol/errors'
-import { HINTS, hintOf } from '../src/renderer/src/hints'
+import { HINTS, checkHint, errText, hintOf } from '../src/renderer/src/hints'
 
 const root = resolve(__dirname, '../../..')
 const src = (p: string) => readFileSync(join(root, p), 'utf8')
 const lits = (s: string) => [...s.matchAll(/'([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)'/g)].map((m) => m[1])
 
-// Codes thrown to the caller of an IPC command (shown by the command's own error), never stored on an attempt or a pause.
-const IPC_ONLY = ['ALREADY_RERUN', 'BATCH_ARCHIVED', 'ATTRIBUTION_AMBIGUOUS', 'CLICK_IN_FLIGHT', 'COST_NOT_CONFIRMED', 'NOT_RERUNNABLE', 'TARGET_BLOCKED']
 // Internal comparisons / signals inside a code, not codes themselves.
-const NOT_CODES = ['NOT_FOUND', 'OBSERVER_DEAD', 'SUBMIT_LISTENER_MISSING']
+const NOT_CODES = ['ASSET_UNREADABLE', /* NewBatch's PICK_ERR table words the ASSET_* codes */ 'NOT_FOUND', 'OBSERVER_DEAD', 'SUBMIT_LISTENER_MISSING']
 
 // codes of the extension's locate/fetchMedia; downloads.ts stores them as DOWNLOAD_<code>
 function extDownloadCodes(): string[] {
@@ -23,10 +21,10 @@ function extDownloadCodes(): string[] {
 function emitted(): string[] {
   const refLogic = [...src('apps/extension/ref-logic.js').matchAll(/code: '([A-Z_]+)'/g)].map((m) => `REF_${m[1]}`) // ext-driver prefixes the page's attach codes
   return [...new Set([
-    ...lits(src('apps/desktop/src/main/connector/ext-driver.ts')), ...lits(src('apps/desktop/src/main/downloads.ts')), ...extDownloadCodes(), ...lits(src('apps/desktop/src/main/runner.ts')), ...lits(src('packages/flow-protocol/src/attempt.mjs')),
+    ...lits(src('apps/desktop/src/main/connector/ext-driver.ts')), ...lits(src('apps/desktop/src/main/downloads.ts')), ...extDownloadCodes(), ...lits(src('apps/desktop/src/main/runner.ts')), ...lits(src('apps/desktop/src/main/ipc.ts')), ...lits(src('packages/flow-protocol/src/attempt.mjs')),
     ...lits(src('apps/desktop/src/main/gpt-runner.ts')), ...[...(src('apps/extension/gpt-ops.js') + src('apps/extension/gem-ops.js')).matchAll(/code: '([A-Z_]+)'/g)].map((m) => m[1]).flatMap((c) => [`GPT_${c}`, `DOWNLOAD_${c}`]).filter((c) => !['DOWNLOAD_NO_EDITOR', 'DOWNLOAD_NO_PLUS', 'DOWNLOAD_OTHER_MODE', 'DOWNLOAD_MODE_NOT_FOUND', 'DOWNLOAD_MODE_NOT_SET', 'DOWNLOAD_COMPOSER_NOT_EMPTY', 'DOWNLOAD_PROMPT_MISMATCH', 'DOWNLOAD_NO_SEND', 'DOWNLOAD_SEND_DISABLED', 'GPT_NOT_FOUND', 'GPT_NOT_IMAGE', 'GPT_FETCH_FAILED', 'GPT_BUSY', 'GPT_NO_FULL_SIZE', 'DOWNLOAD_ASPECT_NOT_FOUND', 'DOWNLOAD_ASPECT_NOT_SET', 'DOWNLOAD_MODEL_NOT_FOUND', 'DOWNLOAD_MODEL_NOT_SET', 'DOWNLOAD_SEND_NO_EFFECT', 'DOWNLOAD_ATTACH_NOT_CLEARED', 'DOWNLOAD_ATTACH_REFUSED', 'DOWNLOAD_ATTACH_NOT_READY', 'DOWNLOAD_REF_MISMATCH'].includes(c)), // the page's composer codes pause a batch as GPT_<code>; its image codes fail a download as DOWNLOAD_<code>
     ...refLogic, ...Object.values(PUBLIC_ERRORS).map((r) => r.code), ...Object.values(CLIENT_SIGNALS).map((r) => r.code), 'NO_PROJECT_TAB', 'UNUSUAL_ACTIVITY',
-  ])].filter((c) => !IPC_ONLY.includes(c) && !NOT_CODES.includes(c)).sort()
+  ])].filter((c) => !NOT_CODES.includes(c)).sort()
 }
 
 test('every code the driver, runner and Flow error table can emit has a Vietnamese hint', () => {
@@ -68,4 +66,16 @@ test('every code the workflow plan and the CSV reader can show on the canvas has
   for (const c of ['WF_LOOP_INPUT', 'WF_LOOP_VIDEO', 'CSV_EMPTY_CELL', 'CSV_BAD_QUOTE']) expect(codes).toContain(c)
   expect(codes.filter((c) => !HINTS[c] && !canvas.includes(`  ${c}: '`))).toEqual([])
   for (const c of codes.filter((x) => HINTS[x])) expect(hintOf(c)).toMatch(/[\u00C0-\u1EF9]/)
+})
+
+test('a rejected button shows the Vietnamese line, not the raw IPC message; an unknown code stays as it is', () => {
+  expect(errText("Error invoking remote method 'rerun': Error: TARGET_BLOCKED")).toBe(hintOf('TARGET_BLOCKED'))
+  expect(errText("Error invoking remote method 'rerun': Error: TARGET_BLOCKED")).toMatch(/[À-ỹ]/)
+  expect(errText('lỗi lạ')).toBe('lỗi lạ')
+})
+
+test('a failed self-check shows its line; a heartbeat:hook reason means another extension holds the page', () => {
+  expect(checkHint({ code: 'PROTOCOL_DRIFT', reasons: ['heartbeat:hook_xhr_send'] })).toBe(hintOf('PAGE_BLOCKED'))
+  expect(checkHint({ code: 'PROTOCOL_DRIFT', reasons: ['other'] })).toBe(hintOf('PROTOCOL_DRIFT'))
+  expect(checkHint({ code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] })).toBe(hintOf('CONFIG_INCOMPLETE'))
 })

@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
-import { codeIn, hintOf } from '../hints'
+import { codeIn, errText, hintOf } from '../hints'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, siteLabel, time, type Attempt, type Batch, type Draft, type Preset } from '../types'
 import { Chip, Icon, TwoStep, itemTone } from '../ui'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
 const Hint = ({ a, provider }: { a: Attempt; provider?: string }): React.JSX.Element | null => { const h = hintOf(a.error?.code, provider); return h ? <div className="hint" data-testid="hint">{h}</div> : null } // what to do, next to the raw code
-const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
+const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(errText(e.message)))
 
 function Uncertain({ a }: { a: Attempt }): React.JSX.Element {
   return (
     <div className="status">
       <div className="hint">Lý do: {reasons(a) || 'không rõ'}</div>
-      <div className="hint">{a.reconcileAt ? `Đối soát lúc ${time(a.reconcileAt)}` : 'Đã đối soát nhưng chưa thấy kết quả — cần bạn xác nhận'}</div>
+      <div className="hint">{a.reconcileAt ? `Đối soát lúc ${time(a.reconcileAt)}` : 'App chưa tự kiểm tra được trên Flow — mở dự án Flow xem có kết quả của prompt này không, rồi chọn Đã gửi / Chưa gửi'}</div>
       <div className="toolbar">
         <button className="small" onClick={() => run(() => window.api.confirmUncertain({ attemptId: a.id, to: 'sent' }))}>Đã gửi</button>
         <button className="small" onClick={() => run(() => window.api.confirmUncertain({ attemptId: a.id, to: 'not_sent' }))}>Chưa gửi</button>

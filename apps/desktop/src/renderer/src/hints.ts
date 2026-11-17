@@ -103,6 +103,19 @@ export const HINTS: Record<string, string> = {
   CSV_NO_PLACEHOLDER: 'Mẫu chưa có tên cột nào. Viết tên cột trong ngoặc nhọn, ví dụ {Tên}',
   CSV_NO_COLUMN: 'File CSV không có cột này. Sửa tên trong ngoặc nhọn cho đúng tên cột ở dòng đầu file',
   CSV_EMPTY_CELL: 'Ô này đang trống nên dòng đó chưa thành prompt được. Điền ô đó hoặc xoá cả dòng trong file rồi nạp lại',
+  // buttons on Hàng đợi / Kết quả / Kết nối (the command's own refusal)
+  TARGET_BLOCKED: 'Dự án Flow này còn một lượt chưa rõ đã gửi hay chưa. Mở Flow kiểm tra, chọn “Đã gửi” hoặc “Chưa gửi” cho lượt đó rồi mới chạy lại',
+  CLICK_IN_FLIGHT: 'App đang bấm Gửi lượt này nên chưa làm được việc này. Đợi vài giây rồi bấm lại',
+  ALREADY_RERUN: 'Lượt này đã được chạy lại rồi (mỗi lượt chỉ chạy lại một lần để khỏi tốn credit hai lần). Xem lượt mới trong lô',
+  BATCH_ARCHIVED: 'Lô này đã lưu trữ nên không gửi thêm được. Tạo lô mới',
+  NOT_RERUNNABLE: 'Chỉ chạy lại được lượt đã báo lỗi. Lượt này không ở trạng thái đó',
+  COST_NOT_CONFIRMED: 'Chạy lại sẽ tốn thêm credit nên app cần bạn xác nhận trước. Bấm lại và chọn xác nhận',
+  NO_ACCOUNT: 'Chưa đọc được tài khoản Google nào từ Chrome. Mở Flow trong Chrome đã đăng nhập rồi thử lại',
+  ACK_REQUIRED: 'Bạn cần tick ô xác nhận trước khi làm việc này',
+  ATTRIBUTION_AMBIGUOUS: 'Không chắc kết quả vừa hiện là của lượt nào (có nhiều lượt gần nhau). Mở Flow đối chiếu, xử lý các lượt chưa rõ rồi bấm Tiếp tục',
+  TOO_MANY_TABS: 'Chọn nhiều tab hơn mức tốc độ hiện tại cho phép. Chọn Nhanh trong Cài đặt (rồi tắt hẳn và mở lại app) hoặc bớt tab',
+  REF_KIND_UNSUPPORTED: 'Video chỉ nhận tối đa hai ảnh (khung đầu và khung cuối). Bỏ bớt ảnh tham chiếu',
+  INVALID_ARGS: 'Dữ liệu gửi đi không hợp lệ hoặc quá dài (ví dụ danh sách prompt quá 1 MB). Rút ngắn lại rồi thử lại',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
   CHROME_NOT_FOUND: 'Không tìm thấy Google Chrome trên máy này. Cài Chrome (google.com/chrome) rồi bấm lại, hoặc tự mở Chrome và làm theo các bước dưới',
@@ -123,6 +136,10 @@ export const HINTS: Record<string, string> = {
   TG_NETWORK: 'Không gọi được Telegram (mất mạng hoặc mạng chặn Telegram). Kiểm tra mạng rồi thử lại',
   TG_FAILED: 'Telegram từ chối yêu cầu. Thử lại sau; nếu vẫn vậy, tạo lại mã bot và dán lại',
 }
+/** What an IPC rejection says to the user: the Vietnamese line for its code, else the raw message. */
+export const errText = (m: string): string => hintOf(codeIn(m)) ?? m
+/** What to do about a failed self-check; a heartbeat:hook reason means another extension holds the page. */
+export const checkHint = (sc: { code: string; reasons: string[] }): string | undefined => hintOf(sc.reasons.some((r) => r.startsWith('heartbeat:hook')) ? 'PAGE_BLOCKED' : sc.code)
 /** The last error code in an IPC error message ("Error invoking remote method 'x': Error: TG_BAD_TOKEN"). */
 export const codeIn = (msg: string): string | undefined => msg.match(/[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+/g)?.pop()
 /** The line for a code; for a ChatGPT batch the site named in it is ChatGPT (the shared lines were written for Flow). */

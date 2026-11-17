@@ -3,7 +3,7 @@
 Tải bản mới nhất: https://github.com/ngquang2901-blip/test1/releases/latest (mục **Assets**). Từ bản 0.5.1, app tự cập nhật; bản 0.5.0 trở về trước phải cài tay bản mới một lần.
 
 ## Windows
-1. Tải `ToolFlow-0.16.0-Setup.exe` về máy rồi bấm đúp.
+1. Tải file `ToolFlow-<phiên bản>-Setup.exe` (bản mới nhất ở mục **Assets**) về máy rồi bấm đúp.
 2. Windows có thể báo "Windows protected your PC" vì file chưa được ký số: bấm **More info** → **Run anyway**.
 3. Chọn nơi cài (để mặc định cũng được) → **Install**. App cài cho riêng tài khoản Windows đang dùng, không cần quyền Administrator. Có sẵn biểu tượng trên Desktop và trong Start menu.
 
@@ -20,7 +20,7 @@ Màn **Kết nối** hiện sẵn các bước, gồm đường dẫn thư mục
 3. Bấm **Load unpacked**, rồi chọn thư mục mà app hiển thị.
 4. Mở `flow.google.com`, vào một dự án. Trong vòng 30 giây app báo **Đã kết nối** → bấm **Dùng tab này**.
 
-Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên trong từng hồ sơ Chrome, rồi chọn tốc độ **Nhanh** trong Cài đặt.
+Muốn chạy nhiều tài khoản cùng lúc: làm lại các bước trên trong từng hồ sơ Chrome, rồi chọn tốc độ **Nhanh** trong Cài đặt. Tốc độ đổi xong chỉ có tác dụng sau khi bạn tắt hẳn app rồi mở lại: đóng cửa sổ chỉ thu app xuống khay hệ thống, nên bấm phải vào biểu tượng ToolFlow ở khay → **Thoát**, rồi mở app lại.
 
 Từ bản 0.13.0:
 - Màn Kết nối có danh sách các bước, bước nào xong thì được đánh dấu. Nút **Mở trang tiện ích trong Chrome** và **Mở Google Flow** mở thẳng Chrome đúng trang cần dùng.
@@ -57,11 +57,11 @@ Từ bản 0.13.0:
 - Màn **Tạo lô**: chọn **Video**, mỗi dòng một prompt. Mô hình Veo 3.1 - Lite, tỉ lệ 16:9 hoặc 9:16, mỗi prompt một video (10 credit Flow mỗi video, khoảng 1 phút).
 - Muốn video bắt đầu từ một ảnh: ở mục **Khung hình đầu** bấm **Chọn ảnh…**, rồi chọn dùng chung một ảnh hoặc mỗi prompt một ảnh theo thứ tự.
 - **Khung hình cuối** (từ bản 0.12.0): tích **Có khung hình cuối**. Mỗi prompt dùng hai ảnh: ảnh thứ nhất mở đầu video, ảnh thứ hai là cảnh kết thúc.
-- Từ bản 0.12.0: **2 video mỗi prompt** với Veo 3.1 - Lite (20 credit), và mô hình **Veo 3.1 - Fast** (9:16, 20 credit mỗi video). Lưu ý: Google ghi Veo 3.1 - Fast sẽ ngừng hoạt động ngày 5/12; sau ngày đó lô dùng mô hình này sẽ dừng với lỗi cài đặt.
+- Từ bản 0.12.0: **2 video mỗi prompt** với Veo 3.1 - Lite (20 credit). Mô hình Veo 3.1 - Fast không còn trong danh sách vì Google cho ngừng hoạt động ngày 5/12.
 - Màn **Kết quả**: từ bản 0.12.0 kết quả tự lưu về máy khi tạo xong (tắt được trong **Cài đặt → Lưu kết quả**); bấm **Tải tất cả kết quả** nếu đã tắt. Bấm **Xem video** để xem ngay trong app.
 - Lượt lưu bị lỗi được app tự thử lại 2 lần, cách nhau 30 giây. Lô ChatGPT / Gemini bị dừng vì trang chưa sẵn sàng (menu chưa hiện, ảnh tải lên chưa xong) được app tự cho chạy lại một lần sau 30 giây; chưa có gì được gửi đi trong trường hợp đó.
 - Màn **Workflow**: bấm vào node Tạo ảnh Flow, đổi **Loại kết quả** sang Video; ảnh nối vào node đó là khung hình đầu.
-- Màn **Workflow** có sẵn 5 mẫu trong ô **Mẫu có sẵn…** (từ bản 0.6.2): chọn một mẫu, sửa prompt trong các ô Text rồi bấm **Chạy workflow**.
+- Màn **Workflow** có sẵn 7 mẫu (Ảnh hàng loạt từ danh sách prompt; Nhân vật trước, cảnh sau; Tạo ảnh rồi làm video từ ảnh đó; Video từ chữ; Prompt dự phòng khi bị Flow lọc; Ảnh tinh chỉnh 3 vòng; Nối cảnh video) trong ô **Mẫu có sẵn…** (từ bản 0.6.2): chọn một mẫu, sửa prompt trong các ô Text rồi bấm **Chạy workflow**.
 - Mỗi prompt ảnh dùng được tối đa 10 ảnh tham chiếu (từ bản 0.6.2).
 
 ## Tạo ảnh bằng ChatGPT (từ bản 0.7.0)
@@ -97,6 +97,8 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 - Trợ lý có 5 lệnh: xem trạng thái, tạo lô (ảnh hoặc video, dùng cài đặt mặc định của app), xem các lô, tải kết quả về máy, và (từ bản 0.16.1) cho lô chạy tiếp.
 - Lệnh **cho lô chạy tiếp** chỉ dùng được với lô dừng vì trang Flow (có hộp thoại che nút Gửi, nút Gửi bị khoá, báo thiếu credit, sai dự án, hoặc ToolFlow không kiểm được trang). App kiểm lại trang trước khi bấm. Lô dừng vì lý do cần bạn xem (có thể đã gửi rồi, hoặc bạn tự bấm Tạm dừng) thì trợ lý không cho chạy tiếp được, bạn bấm **Tiếp tục** trong Hàng đợi.
 - Nếu Hàng đợi báo **ToolFlow không kiểm được trang Flow**: thường do một tiện ích khác (vd TobyFlow) đang chạy trên trang Flow. Tắt tiện ích đó trong `chrome://extensions`, tải lại tab Flow, rồi bấm Tiếp tục (hoặc bảo trợ lý cho lô chạy tiếp).
+- Màn **Kết nối** ghi dòng "Self-check: lỗi …" kèm một câu tiếng Việt bên dưới nói cần làm gì; khi mã là `PROTOCOL_DRIFT — heartbeat:hook…` thì cũng là lý do trên (tiện ích khác đang giữ trang Flow): tắt tiện ích đó rồi F5 tab Flow.
+- Nút **Tạm dừng** chỉ có ở lô đang chạy; lô đang chờ hoặc đã hẹn giờ thì bấm **Dừng** (hoặc **Huỷ hẹn giờ**).
 - Từ bản 0.11.0, lệnh tạo lô nhận thêm nền tảng **ChatGPT** hoặc **Gemini** (chỉ ảnh; Gemini chọn được tỉ lệ và mô hình). Lô đó chạy trong tab chatgpt.com / gemini.google.com đang mở, app tự gửi và tự lưu, tốn lượt tạo ảnh của tài khoản đó chứ không tốn credit Flow.
 - Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được **Tự động gửi**: nếu bạn chưa bật, lô của nó chờ bạn bấm Gửi trong Flow.
 - Ai đọc được file `mcp.json` cũng điều khiển được app: đừng gửi file đó cho người khác. Muốn khoá lại thì bỏ tích.
@@ -106,7 +108,7 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 - Dữ liệu app (lô, mẫu, extension): `%APPDATA%\ToolFlow`. Gỡ app không xoá thư mục này.
 
 ## Cập nhật bản mới
-- App tự kiểm tra bản mới khi mở và vài giờ một lần, tự tải về trong nền (thanh trên cùng hiện "Đang tải bản …"). Tải xong, một dải xanh hiện **Khởi động lại để cập nhật**: bấm là app tự cài rồi mở lại; bấm **Để sau** thì bản mới tự cài khi bạn tắt app. Đang có lượt chờ kết quả thì app không khởi động lại.
+- App tự kiểm tra bản mới khi mở và vài giờ một lần, tự tải về trong nền (thanh trên cùng hiện "Đang tải bản …"). Tải xong, một dải xanh hiện **Khởi động lại để cập nhật**: bấm là app tự cài rồi mở lại; bấm **Để sau** thì bản mới tự cài khi bạn tắt hẳn app (khay hệ thống → Thoát; đóng cửa sổ thôi chưa tắt). Đang có lượt chờ kết quả thì app không khởi động lại.
 - Xem phiên bản, kiểm tra tay: **Cài đặt → Cập nhật → Kiểm tra bản mới**.
 - Sau mỗi lần cập nhật, màn Kết nối có thể báo **Extension cần tải lại**: vào `chrome://extensions`, bấm nút tải lại (mũi tên vòng) ở thẻ **ToolFlow Connector**, rồi tải lại tab Flow (làm ở từng hồ sơ Chrome). Trong lúc báo, app không tự bấm Gửi.
 - Cũng có thể cài đè bản mới lên bản cũ bằng file cài; dữ liệu được giữ nguyên.
