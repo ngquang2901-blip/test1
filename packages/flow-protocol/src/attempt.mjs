@@ -78,7 +78,7 @@ export function next(s, ev) {
     case 'rejected': { // RPC-level error on the generate response itself: Flow created nothing
       if (!awaitingReceipt(s)) bad();
       const c = classifyGenerateError(ev.error);
-      if (ev.error.reasons.some((r) => PUBLIC_ERRORS[r]?.code === 'SUBMIT_UNCERTAIN')) return review(s, 'SUBMIT_UNCERTAIN', { why: 'generation already in progress', reasons: c.reasons }); // may be ours: D-04, never settle as failed; any such reason counts, whatever pick() chose
+      if (ev.error.reasons.some((r) => (Object.hasOwn(PUBLIC_ERRORS, r) && PUBLIC_ERRORS[r].code) === 'SUBMIT_UNCERTAIN')) return review(s, 'SUBMIT_UNCERTAIN', { why: 'generation already in progress', reasons: c.reasons }); // may be ours: D-04, never settle as failed; any such reason counts, whatever pick() chose
       if (s.item === 'needs_review') return fail(s, c);                 // late evidence settles, never resubmits
       if (c.resubmit && s.stopRequested) return { ...s, item: 'cancelled', stage: 'outcome_known', error: c };
       const delay = c.resubmit ? resubmitDelay(s.resubmits) : null;

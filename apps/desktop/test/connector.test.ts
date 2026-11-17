@@ -3,7 +3,7 @@ import WebSocket from 'ws'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { startConnectorServer, OP_TIMEOUT_MS } from '../src/main/connector/server'
 import { createServer } from 'node:net'
 import { installExtension, readOrCreateToken } from '../src/main/connector/pairing'
@@ -21,20 +21,25 @@ const boot = async () => {
   closers.push(() => s.close())
   return s
 }
-type Client = { ws: WebSocket; msgs: any[]; closed: Promise<number>; next(): Promise<any> }
-const connect = async (port: number, o: { token?: string; origin?: string | null; query?: boolean; inst?: string } = {}): Promise<Client> => {
+type Client = { ws: WebSocket; msgs: any[]; closed: Promise<number>; next(): Promise<any>; hello: any; nonce: string }
+const mac = (token: string, tag: string, nonce: string) => createHmac('sha256', token).update(tag + nonce).digest('hex')
+const connect = async (port: number, o: { token?: string; origin?: string | null; query?: boolean; inst?: string; plain?: boolean } = {}): Promise<Client> => {
   const headers = o.origin === null ? {} : { Origin: o.origin ?? ORIGIN }
+  const nonce = randomBytes(16).toString('hex'), token = o.token ?? TOKEN
   const ws = o.query // the old pairing style: token in the URL
-    ? new WebSocket(`ws://127.0.0.1:${port}/?token=${o.token ?? TOKEN}`, ['toolflow.v1'], { headers })
-    : new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${o.token ?? TOKEN}`, ...(o.inst ? [`tfi.${o.inst}`] : [])], { headers })
+    ? new WebSocket(`ws://127.0.0.1:${port}/?token=${token}`, ['toolflow.v1'], { headers })
+    : o.plain // the old `tf.<token>` style
+      ? new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tf.${token}`], { headers })
+      : new WebSocket(`ws://127.0.0.1:${port}/`, ['toolflow.v1', `tfn.${nonce}`, `tfp.${mac(token, 'c', nonce)}`, ...(o.inst ? [`tfi.${o.inst}`] : [])], { headers })
   const msgs: any[] = []
   const waiters: Array<(m: any) => void> = []
-  ws.on('message', (d) => { const m = JSON.parse(d.toString()); const w = waiters.shift(); if (w) w(m); else msgs.push(m) })
+  let hello: any
+  ws.on('message', (d) => { const m = JSON.parse(d.toString()); if (hello === undefined && 'hello' in m) { hello = m.hello; return } const w = waiters.shift(); if (w) w(m); else msgs.push(m) }) // the first frame is the app's proof, not an op
   const closed = new Promise<number>((r) => ws.on('close', (c) => r(c)))
   ws.on('error', () => {})
   await new Promise((r) => { ws.once('open', r); ws.once('close', r) })
   closers.push(() => ws.terminate())
-  return { ws, msgs, closed, next: () => (msgs.length ? Promise.resolve(msgs.shift()) : new Promise((r) => waiters.push(r))) }
+  return { ws, msgs, closed, nonce, get hello() { return hello }, next: () => (msgs.length ? Promise.resolve(msgs.shift()) : new Promise((r) => waiters.push(r))) }
 }
 const tick = () => new Promise((r) => setTimeout(r, 20))
 
@@ -42,7 +47,27 @@ test('rejects wrong token', async () => {
   const s = await boot()
   expect(await (await connect(s.port, { token: 'cd'.repeat(32) })).closed).toBe(4401)
   expect(await (await connect(s.port, { token: 'x' })).closed).toBe(4401)
-  expect(await (await connect(s.port, { query: true })).closed).toBe(4401) // a right token in the URL is not accepted: only the subprotocol carries it
+  expect(await (await connect(s.port, { query: true })).closed).toBe(4401) // a right token in the URL is not accepted: only the proof carries it
+  expect(await (await connect(s.port, { plain: true })).closed).toBe(4401) // nor the bare token as a subprotocol
+})
+test('a pre-0.17 extension (old `tf.<token>` offer with the right token) is refused but reported, so the app can say: reload it in Chrome', async () => {
+  const s = await boot()
+  expect(s.oldExt()).toBe(false)
+  await (await connect(s.port, { plain: true, token: 'cd'.repeat(32) })).closed // a wrong token says nothing
+  expect(s.oldExt()).toBe(false)
+  expect(await (await connect(s.port, { plain: true })).closed).toBe(4401)
+  expect(s.oldExt()).toBe(true)
+  const c = await connect(s.port) // the reloaded extension connects: nothing old is left to report
+  await tick()
+  expect(s.oldExt()).toBe(false)
+  c.ws.close()
+})
+test('the first frame is hello = hmac(token, "s"+nonce); the token itself never appears', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  await tick()
+  expect(c.hello).toBe(mac(TOKEN, 's', c.nonce))
+  expect(c.hello).not.toBe(mac(TOKEN, 'c', c.nonce)) // not a replay of the client's own proof
 })
 test('rejects wrong origin', async () => {
   const s = await boot()
@@ -373,4 +398,23 @@ test('onConnect fires once per accepted extension connection, never for a refuse
   await connect(s.port, { inst: '0123abcd' })
   await tick()
   expect(n).toBe(1)
+})
+
+test('listTabs keeps the last known email when a later account call fails; a vanished tab is forgotten', async () => {
+  const s = await boot()
+  const c = await connect(s.port)
+  let fail = false, gone = false
+  c.ws.on('message', (d) => {
+    const m = JSON.parse(d.toString())
+    const reply = (r: unknown, ok = true) => c.ws.send(JSON.stringify({ id: m.id, epoch: m.epoch, ...(ok ? { ok, result: r } : { ok, error: r }) }))
+    if (m.op === 'tabs') reply(gone ? [] : [{ tabId: 2, path: '/fx/tools/flow', active: true }])
+    else if (m.op === 'account') fail ? reply('timeout', false) : reply('a@x.y')
+  })
+  const d = createExtDriver(s)
+  expect((await d.listTabs())[0].email).toBe('a@x.y')
+  fail = true
+  expect((await d.listTabs())[0].email).toBe('a@x.y')
+  gone = true; expect(await d.listTabs()).toEqual([])
+  gone = false
+  expect((await d.listTabs())[0].email).toBeNull() // forgotten, and the account still fails
 })

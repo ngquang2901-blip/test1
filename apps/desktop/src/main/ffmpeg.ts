@@ -1,15 +1,21 @@
 // ffmpeg for the workflow's video nodes: the last frame of a clip (the start frame of the next scene) and several clips made into one.
 // The app ships its own ffmpeg.exe (resources/ffmpeg, fetched by scripts/fetch-ffmpeg.mjs); nothing here goes to the network.
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const coded = (code: string): Error => Object.assign(new Error(code), { code })
 
-/** TOOLFLOW_FFMPEG (tests), then the copy shipped with the installed app, then the one fetched into the repo, then PATH. */
-export function ffmpegBin(): string {
-  const own = [process.env.TOOLFLOW_FFMPEG, process.resourcesPath && join(process.resourcesPath, 'ffmpeg', 'ffmpeg.exe'), join(__dirname, '..', '..', 'resources', 'ffmpeg', 'ffmpeg.exe'), join(process.cwd(), 'resources', 'ffmpeg', 'ffmpeg.exe')]
-  return own.find((p): p is string => !!p && existsSync(p)) ?? 'ffmpeg'
+/** TOOLFLOW_FFMPEG (tests), then the copy shipped with the installed app. Only an unpackaged run (dev, tests) goes on to the one fetched into the repo, the working directory and PATH: a packaged app never runs an ffmpeg.exe planted there. */
+export function ffmpegBin(packaged = !!process.resourcesPath && !process.defaultApp && !process.env.ELECTRON_RUN_AS_NODE): string { // unit tests run under Electron as Node: not packaged
+  const shipped = process.resourcesPath && join(process.resourcesPath, 'ffmpeg', 'ffmpeg.exe')
+  const own = [process.env.TOOLFLOW_FFMPEG, shipped, ...(packaged ? [] : [join(__dirname, '..', '..', 'resources', 'ffmpeg', 'ffmpeg.exe'), join(process.cwd(), 'resources', 'ffmpeg', 'ffmpeg.exe')])]
+  return own.find((p): p is string => !!p && existsSync(p)) ?? (packaged ? shipped || 'ffmpeg' : 'ffmpeg')
+}
+
+/** Deletes the last-frame PNGs older than 7 days (they are only needed while the next scene is made). */
+export function pruneFrames(dir: string, now: number): void {
+  try { for (const f of readdirSync(dir)) { const p = join(dir, f); if (now - statSync(p).mtimeMs > 7 * 86_400_000) rmSync(p, { force: true }) } } catch { /* no folder yet */ }
 }
 
 function run(args: string[]): Promise<string> { // resolves with stderr (ffmpeg writes its report there)
@@ -45,5 +51,7 @@ export async function concatVideos(files: string[], out: string): Promise<void> 
     return `${v};${a}`
   })
   const filter = `${parts.join(';')};${ps.map((_, i) => `[v${i}][a${i}]`).join('')}concat=n=${ps.length}:v=1:a=1[v][a]`
-  await run(['-y', '-v', 'error', ...files.flatMap((f) => ['-i', f]), '-filter_complex', filter, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out])
+  try {
+    await run(['-y', '-v', 'error', ...files.flatMap((f) => ['-i', f]), '-filter_complex', filter, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out])
+  } catch (e) { rmSync(out, { force: true }); throw e } // a failed or timed-out merge leaves no half file in the results folder
 }

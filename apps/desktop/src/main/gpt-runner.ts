@@ -17,6 +17,7 @@ const AUTO_RESUME_MS = 30_000 // a page that was not ready for a prompt gets one
 const NOT_READY = new Set(['GPT_PAGE_NOT_READY', 'GPT_NO_EDITOR', 'GPT_NO_PLUS', 'GPT_MODE_NOT_FOUND', 'GPT_MODE_NOT_SET', 'GPT_ASPECT_NOT_SET', 'GPT_MODEL_NOT_SET', 'GPT_ATTACH_REFUSED', 'GPT_ATTACH_NOT_READY', 'GPT_SEND_DISABLED'])
 const NO_IMAGE_GRACE_MS = 20_000 // "finished without an image" is believed only after this: the image can render after the answer ends
 const NOT_STARTED_GRACE_MS = 90_000 // …and only after this when the answer was never seen in progress: a turn reads "complete" for some seconds right after the click (measured: 2–5 s)
+const PARKED_WATCH_MS = 3_600_000 // a needs-review attempt is looked at again for this long: a short connector drop must not lose its image
 const PAGE_WAIT_TRIES = 30 // x 500 ms: a navigated tab must show its composer within this
 
 type Row = { id: string; batch: string; s: AttemptState }
@@ -61,10 +62,11 @@ export function createGptRunner(o: {
   const otherSiteFlying = (): boolean => otherSite("'submitting','generating'")
   const otherSiteWaiting = (): boolean => otherSite("'queued','preparing'", "and b.status='running' and b.stop_requested=0")
   const flying = (): Row[] => rows("json_extract(a.state_json,'$.item') in ('submitting','generating')")
+  const parkedRows = (): Row[] => rows("json_extract(a.state_json,'$.item')='needs_review' and json_extract(a.state_json,'$.baseline') is not null and b.archived=0").filter((a) => clock.now() - (a.s.baseline as Base).at < PARKED_WATCH_MS)
   const review = (s: AttemptState, code: string, why: string): AttemptState => ({ ...s, item: 'needs_review', stage: s.stage === 'accepted' ? 'accepted' : 'uncertain', error: { code, why }, admission: 'pause', creditSpent: true })
   const heldAt = new Map<string, number>(), lifted = new Set<string>() // when a batch was paused here; prompts whose pause was lifted once already
   const hold = (batch: string, code: string): void => {
-    db.prepare("update batch set status='paused', revision=revision+1 where id=? and status='running'").run(batch)
+    db.prepare("update batch set status='paused', pause_reason=?, revision=revision+1 where id=? and status in ('running','paused')").run(code, batch)
     reasons.set(batch, code); heldAt.set(batch, clock.now())
   }
   const theTab = async (conv?: string | null): Promise<string | null> => {
@@ -90,9 +92,11 @@ export function createGptRunner(o: {
     if (tab) try { ({ turns, conv } = await driver.turns(tab, s.prompt)) } catch { /* not seen this time */ }
     const age = clock.now() - base.at
     const moving = (t: GptTurn): boolean => t.state !== 'complete' || t.pending > 0 || t.images.length > 0 // the answer is under way (or there)
-    if (s.item === 'submitting') {
+    const parked = s.item === 'needs_review' // a lost-looking attempt looked at again: it may only get better (adopted or ready), never worse
+    if (s.item === 'submitting' || (parked && !req)) {
       const fresh = turns.filter((t) => !base.keys.includes(t.key)), mine = fresh.filter((t) => t.mine)
-      if (mine.length === 1) { if (moving(mine[0])) started.add(a.id); put(a.id, 'turn', { ...s, item: 'generating', stage: 'accepted', request: { turnKey: mine[0].key, conv: base.conv ?? conv } satisfies Req, creditSpent: true, error: null }); return }
+      if (mine.length === 1) { if (moving(mine[0])) started.add(a.id); put(a.id, 'turn', { ...s, item: 'generating', stage: 'accepted', request: { turnKey: mine[0].key, conv: base.conv ?? conv } satisfies Req, creditSpent: true, error: null, admission: 'continue' }); return }
+      if (parked) return
       if (mine.length > 1) { put(a.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'more than one new turn with this prompt')); return }
       if (age >= SEND_DEADLINE_MS) put(a.id, 'deadline', fresh.length ? review(s, 'USER_INTERFERENCE', 'a turn that is not this prompt appeared') : review(s, 'SUBMIT_UNCERTAIN', 'no turn appeared after the click'))
       return
@@ -102,13 +106,13 @@ export function createGptRunner(o: {
     const cur = t && !req.conv && conv ? put(a.id, 'conv', { ...s, request: { ...req, conv } }) : s // a new conversation gets its id a moment after the first send
     if (t && t.state === 'complete' && t.images.length && !t.pending) {
       noImage.delete(a.id); started.delete(a.id)
-      put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null })
+      put(a.id, 'ready', { ...cur, item: 'ready', stage: 'outcome_known', outputs: t.images.map((mediaId) => ({ mediaId })), error: null, ...(parked && { admission: 'continue' }) })
       hands.busy = true // the other site does not start while this one saves
       try { await o.download?.(a.batch).catch(() => undefined) } finally { hands.busy = false } // a failed save shows on the output itself
       return
     }
     if (t && moving(t)) started.add(a.id)
-    if (t && t.state === 'complete' && !t.images.length && !t.pending) {
+    if (!parked && t && t.state === 'complete' && !t.images.length && !t.pending) {
       if (!noImage.has(a.id)) noImage.set(a.id, clock.now())
       if (clock.now() - noImage.get(a.id)! < (started.has(a.id) ? NO_IMAGE_GRACE_MS : NOT_STARTED_GRACE_MS)) return
       noImage.delete(a.id); started.delete(a.id)
@@ -117,7 +121,7 @@ export function createGptRunner(o: {
       return
     }
     noImage.delete(a.id)
-    if (age >= GEN_DEADLINE_MS) put(a.id, 'deadline', next(cur, { type: 'deadline' }))
+    if (!parked && age >= GEN_DEADLINE_MS) put(a.id, 'deadline', next(cur, { type: 'deadline' }))
   }
 
   /** Sends the next prompt of one batch. Anything in the way before the click pauses the batch and keeps the item. */
@@ -133,6 +137,12 @@ export function createGptRunner(o: {
     const { aspect, model } = JSON.parse(x.s) as { aspect?: string; model?: string }, refIds = JSON.parse(x.r) as string[]
     const files = refIds.map((id, k) => { try { const f = o.assets?.get(id); return f ? { name: `ref-${k + 1}.${EXT[f.mime] ?? 'bin'}`, mime: f.mime, b64: f.bytes().toString('base64') } : null } catch { return null } }) // bytes(): the file may be gone or changed
     if (files.some((f) => !f)) return hold(batch, 'GPT_REF_ASSET_MISSING')
+    const old = s.clicked ? (s.baseline as Base | undefined) : undefined // an earlier click that showed no turn in time: the turn may have come late
+    if (old) {
+      const seen = await driver.turns(tab, s.prompt).catch(() => ({ turns: [] as GptTurn[], conv: null as string | null })), mine = seen.turns.filter((t) => t.mine && !old.keys.includes(t.key))
+      if (mine.length === 1) { put(c.id, 'turn', { ...s, item: 'generating', stage: 'accepted', request: { turnKey: mine[0].key, conv: old.conv ?? seen.conv } satisfies Req, creditSpent: true, error: null }); return }
+      if (mine.length > 1) { put(c.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'more than one new turn with this prompt')); return }
+    }
     let keys: string[]
     try {
       let st: GptState | null
@@ -165,6 +175,7 @@ export function createGptRunner(o: {
     s = put(c.id, 'intent', { ...s, item: 'submitting', stage: 'intent_recorded', clicked: false, baseline: base, request: null, error: null, manual: false })
     let r: GptStep
     try { r = await driver.send(tab, s.prompt, files.length) } catch { put(c.id, 'deadline', review(s, 'SUBMIT_UNCERTAIN', 'the page did not answer the click')); return }
+    if (!r.ok && `GPT_${r.code}` === 'GPT_SEND_NO_EFFECT') { put(c.id, 'no_effect', { ...s, item: 'preparing', stage: 'rejected_before_dispatch', clicked: true, error: { code: `GPT_${r.code}` } }); return hold(batch, `GPT_${r.code}`) } // clicked, no turn in time: the old baseline stays, so a late turn is adopted instead of sent again
     if (!r.ok) { // the page refused before clicking
       put(c.id, 'not_clicked', { ...s, item: 'preparing', stage: 'rejected_before_dispatch', error: { code: `GPT_${r.code}` } })
       return hold(batch, `GPT_${r.code}`)
@@ -179,16 +190,18 @@ export function createGptRunner(o: {
       heldAt.delete(b)
       const cur = rows('i.batch_id=?', b).find((a) => a.s.item === 'queued' || a.s.item === 'preparing')
       if (!cur || lifted.has(cur.id)) continue
-      if (db.prepare("update batch set status='running', revision=revision+1 where id=? and status='paused' and stop_requested=0 and archived=0").run(b).changes) lifted.add(cur.id)
+      if (db.prepare("update batch set status='running', pause_reason=null, revision=revision+1 where id=? and status='paused' and stop_requested=0 and archived=0").run(b).changes) lifted.add(cur.id)
     }
     for (const b of [...reasons.keys()]) { // the user resumed a batch this runner paused
       if ((db.prepare('select status from batch where id=?').get(b) as { status: string } | undefined)?.status === 'running') { reasons.delete(b); reopen.add(b) }
     }
     const fly = flying()
     const batches = fly.length ? [] : db.prepare("select id from batch where provider=? and status='running' and stop_requested=0 and archived=0 order by created_at, rowid").all(provider) as { id: string }[]
-    if (!fly.length && !batches.length) return // nothing of ours: the extension is not asked anything
+    const parked = fly.length ? [] : parkedRows()
+    if (!fly.length && !batches.length && !parked.length) return // nothing of ours: the extension is not asked anything
     if (clock.now() - lastPoll < pollMs || hands.busy) return
     lastPoll = clock.now()
+    for (const a of parked) await watch(a)
     if (fly.length) { for (const a of fly) await watch(a); return } // one prompt at a time: the next goes out on a later tick
     for (const b of batches) {
       const list = rows('i.batch_id=?', b.id)
@@ -209,6 +222,7 @@ export function createGptRunner(o: {
   return {
     tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p },
     recover() { // after a restart a click without its turn is uncertain, never resent; an answer being generated is simply watched again
+      for (const r of db.prepare("select id, pause_reason w from batch where provider=? and status='paused' and pause_reason is not null").all(provider) as { id: string; w: string }[]) { reasons.set(r.id, r.w); heldAt.set(r.id, clock.now()) } // the pause reason outlives the restart
       for (const a of rows("json_extract(a.state_json,'$.item')='submitting'")) put(a.id, 'restart', next(a.s, { type: 'restart' }))
     },
     lastError: (b) => reasons.get(b) ?? null,

@@ -1,7 +1,7 @@
 {
   "name": "@toolflow/desktop",
   "productName": "ToolFlow",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "description": "ToolFlow: tự động tạo ảnh hàng loạt trên Google Flow",
   "main": "./out/main/index.js",
   "author": {
@@ -49,7 +49,7 @@
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^6.1.2",
     "@xyflow/react": "^12.12.1",
-    "electron": "44.7.2",
+    "electron": "44.11.3",
     "electron-builder": "^26.15.3",
     "electron-updater": "^6.8.11",
     "electron-vite": "^6.0.0",

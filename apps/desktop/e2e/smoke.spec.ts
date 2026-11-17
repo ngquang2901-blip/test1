@@ -20,7 +20,7 @@ async function launch(userData: string, script = '', extra: Record<string, strin
   apps.push(app)
   const page = await app.firstWindow()
   await expect(page.getByRole('heading', { name: 'ToolFlow' })).toBeVisible({ timeout: 20_000 })
-  if (!extra.TOOLFLOW_FAKE_LICENSE) await page.getByRole('button', { name: 'Kết nối', exact: true }).click() // the specs below start where the app opened before Tổng quan existed
+  if (!extra.HOME_SCREEN) await page.getByRole('button', { name: 'Kết nối', exact: true }).click() // the specs below start where the app opened before Tổng quan existed
   return { app, page }
 }
 test.afterEach(async () => { await Promise.all(apps.splice(0).map((a) => a.close().catch(() => {}))) })
@@ -1642,6 +1642,7 @@ test('Hẹn giờ chạy: the queue shows the time with Huỷ hẹn giờ, then 
   await page.getByRole('button', { name: 'Tạo lô và hẹn giờ' }).click()
   await expect(page.getByTestId('schedule')).toContainText(`Hẹn chạy lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
   await expect(page.getByRole('button', { name: 'Huỷ hẹn giờ' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Tạm dừng' })).toHaveCount(0) /* the runner pauses only a running batch */
   await expect(items(page)).toHaveCount(1)
   await expect(items(page).first()).toContainText('Đang chờ')
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1, { timeout: 40_000 })
@@ -1692,27 +1693,8 @@ test('credit: Flow\'s balance shows in Kết nối with its time; falling under 
   await expect(notices(page).filter({ hasText: 'Credit Flow sắp hết' })).toContainText('dưới mức cảnh báo 1000')
 })
 
-test('Google sign-in: nothing of the app opens before an active plan; a new account waits with the buy text, sign-out locks again', async () => {
-  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_LICENSE: 'signed_out', TOOLFLOW_FAKE_LICENSE_AFTER: 'pending' })
-  await expect(page.getByRole('button', { name: 'Tạo lô', exact: true })).toHaveCount(0)
-  expect(await page.evaluate(() => window.api.listBatches().then(() => 'open', (e: Error) => e.message))).toContain('LICENSE_REQUIRED') // main refuses too, not only the screen
-  await page.getByRole('button', { name: 'Đăng nhập bằng Google' }).click()
-  await expect(page.getByText('đã đăng ký nhưng chưa có gói')).toBeVisible()
-  await expect(page.getByLabel('Cách mua gói')).toContainText('Liên hệ để mua gói')
-  await page.getByRole('button', { name: 'Đăng xuất' }).click()
-  await expect(page.getByRole('button', { name: 'Đăng nhập bằng Google' })).toBeVisible()
-
-  const b = await launch(tmp(), '', { TOOLFLOW_FAKE_LICENSE: 'signed_out' }) // this account has bought a plan
-  await b.page.getByRole('button', { name: 'Đăng nhập bằng Google' }).click()
-  await b.page.getByRole('button', { name: 'Cài đặt', exact: true }).click()
-  await expect(b.page.getByRole('group', { name: 'Tài khoản' })).toContainText('fake@example.invalid')
-  await b.page.getByRole('button', { name: 'Đăng xuất' }).click()
-  await expect(b.page.getByRole('button', { name: 'Đăng nhập bằng Google' })).toBeVisible()
-  await expect(b.page.getByRole('button', { name: 'Cài đặt', exact: true })).toHaveCount(0)
-})
-
 test('the app opens on Tổng quan, whose numbers follow the batches', async () => {
-  const { page } = await launch(tmp(), 'image-ok,blocked,image-ok', { TOOLFLOW_FAKE_LICENSE: 'active' }) // FAKE_LICENSE: launch() leaves the first screen as it opened
+  const { page } = await launch(tmp(), 'image-ok,blocked,image-ok', { HOME_SCREEN: '1' }) // HOME_SCREEN: launch() leaves the first screen as it opened
   const ov = page.getByRole('region', { name: 'Tổng quan' })
   await expect(page.getByRole('button', { name: 'Tổng quan', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(ov.getByText('Chưa có lô nào.')).toBeVisible()

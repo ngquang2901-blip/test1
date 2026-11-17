@@ -1,8 +1,8 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { OPS, validate, shapeDownload, fetchMediaOp, downloadsOp, validTmpName } from '../ops.js';
+import { siteTab, OPS, validate, shapeDownload, fetchMediaOp, downloadsOp, validTmpName } from '../ops.js';
 
 const ID = '3f2b9c1e-1111-4222-8333-444455556666';
 const SRC = 'https://flow-content.google/image/3f2b9c1e?sig=SECRETSIG';
@@ -39,7 +39,7 @@ test('shapeDownload keeps the five fields and drops every url', () => {
 
 function chromeFake({ reply, downloadId = 7, search = [] } = {}) {
   const calls = { sent: [], download: [], search: [] };
-  return { calls, tabs: { sendMessage: async (tab, m) => { calls.sent.push([tab, m]); if (reply instanceof Error) throw reply; return reply; } },
+  return { calls, runtime: { id: 'me' }, tabs: { sendMessage: async (tab, m) => { calls.sent.push([tab, m]); if (reply instanceof Error) throw reply; return reply; } },
     downloads: { download: async (o) => { calls.download.push(o); if (downloadId instanceof Error) throw downloadId; return downloadId; }, search: async (q) => { calls.search.push(q); return search; } } };
 }
 
@@ -66,7 +66,7 @@ test('fetchMedia failures return codes only (no url, no message)', async () => {
 });
 
 test('downloads op: by id or by tmp-folder prefix; results are shaped', async () => {
-  const raw = [{ id: 9, state: 'in_progress', filename: '/d/ToolFlow-tmp/p.bin', fileSize: -1, mime: '', url: SRC, finalUrl: SRC }];
+  const raw = [{ id: 9, state: 'in_progress', filename: '/d/ToolFlow-tmp/p.bin', fileSize: -1, mime: '', url: SRC, finalUrl: SRC, byExtensionId: 'me' }, { id: 10, filename: '/d/other.bin', byExtensionId: 'someone-else' }, { id: 11, filename: '/d/user.bin' }]; // only ours come back
   let c = chromeFake({ search: raw });
   assert.deepEqual(await downloadsOp(c, { id: 9 }), [{ id: 9, state: 'in_progress', filename: '/d/ToolFlow-tmp/p.bin', fileSize: -1, mime: '', error: null }]);
   assert.deepEqual(c.calls.search, [{ id: 9 }]);
@@ -78,18 +78,18 @@ test('downloads op: by id or by tmp-folder prefix; results are shaped', async ()
 });
 
 // ---- page-ops.js: locate / src against a fake DOM ----
+const ports_ = []; after(() => ports_.forEach((p) => p.close())); // open ports keep the test process alive
 function page(imgs, videoSrc = {}) { // videoSrc: what the main world answers for a media id (it learnt it from Flow's own answers)
   let listener;
-  const on = {};
   const document = {
-    createElement: () => ({}), documentElement: { append() {} }, addEventListener(t, h) { on[t] = h; }, removeEventListener(t) { delete on[t]; }, body: { innerText: '' },
-    dispatchEvent(e) { if (e.type === 'toolflow:media') on['toolflow:media-result']?.({ detail: JSON.stringify({ src: videoSrc[JSON.parse(e.detail).mediaId] ?? null }) }); },
+    createElement: () => ({}), documentElement: { append() {} }, body: { innerText: '' },
     querySelector: () => null,
     querySelectorAll: (sel) => { const m = /^img\[data-media-id="([^"]*)"\]$/.exec(sel); return m ? imgs.filter((i) => i.id === m[1]) : []; },
   };
   const ctx = vm.createContext({ document, CSS: { escape: (s) => s }, chrome: { runtime: { id: 'me', getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set,
-    CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o?.detail; } } });
+    MessageChannel, location: { origin: 'https://flow.google.com' } });
   ctx.globalThis = ctx; ctx.window = ctx;
+  ctx.postMessage = (data, origin, ports) => { const p = ports[0]; ports_.push(p); p.onmessage = (e) => { if (e.data.name === 'toolflow:media') p.postMessage({ name: 'toolflow:media-result', id: e.data.id, detail: { src: videoSrc[e.data.detail.mediaId] ?? null } }); }; }; // the main world's end of the private channel
   vm.runInContext(readFileSync(new URL('../page-ops.js', import.meta.url), 'utf8'), ctx);
   const ask = (m, sender = { id: 'me' }) => new Promise((res) => { let done = false; const keep = listener(m, sender, (r) => { done = true; res(JSON.parse(JSON.stringify(r))); }); if (!keep && !done) setTimeout(() => res('no-reply'), 20); });
   return { op: (op, args) => ask({ tf: 'op', op, args }), src: (mediaId, sender) => ask({ tf: 'src', mediaId }, sender) };
@@ -142,4 +142,11 @@ test('wiring: sw.js routes locate to the page and fetchMedia/downloads to ops.js
   assert.match(sw, /case 'downloads': return downloadsOp\(chrome/);
   assert.ok(!/case 'download':/.test(sw));
   assert.ok(!OPS.includes('src'));
+});
+
+test('siteTab: only a tab on one of the three sites passes; anything else is NOT_SITE_TAB', async () => {
+  const c = (url, bad) => ({ tabs: { get: async () => { if (bad) throw new Error('no tab'); return { url }; } } });
+  for (const u of ['https://flow.google.com/project/x', 'https://chatgpt.com/', 'https://gemini.google.com/app']) await siteTab(c(u), 1);
+  for (const [u, bad] of [['https://evil.example/', false], [undefined, false], ['https://flow.google.com.evil.example/', false], ['', true]])
+    await assert.rejects(siteTab(c(u, bad), 1), /NOT_SITE_TAB/);
 });

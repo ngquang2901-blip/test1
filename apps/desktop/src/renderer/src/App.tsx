@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type License, type Notices, type Preset, type Session, type UpdateState } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Notices, type Preset, type Session, type UpdateState } from './types'
 import SessionScreen from './screens/Session'
 import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
 import Results from './screens/Results'
 import Workflow from './screens/Workflow'
 import Settings from './screens/Settings'
-import Account from './screens/Account'
 import Overview from './screens/Overview'
 import { newer } from './revision'
+import { checkHint, errText } from './hints'
 import { Chip, Icon, batchTone, itemTone } from './ui'
 import { getTheme, isDark, setTheme, type Theme } from './theme'
 
 const SCREENS = ['Tổng quan', 'Kết nối', 'Tạo lô', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
 const ICON = { 'Tổng quan': 'grid', 'Kết nối': 'plug', 'Tạo lô': 'plus', Workflow: 'nodes', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
-const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(e.message))
+const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(errText(e.message)))
 
 /** Session facts in the top bar. Wording differs from S1 on purpose (tests and pair-check read S1's exact phrases). */
 function Status({ s }: { s: Session | null }): React.JSX.Element {
@@ -27,8 +27,8 @@ function Status({ s }: { s: Session | null }): React.JSX.Element {
     <div className="status-line" aria-label="Trạng thái phiên">
       <Chip tone={linked ? 'done' : 'attn'}>{s.fake ? 'Chế độ thử (Flow giả)' : linked ? 'Chrome đang nối' : 'Chrome mất nối'}</Chip>
       <Chip tone={tab ? 'done' : 'attn'}>{n > 1 ? `${n} tab Flow` : tab ? `Tab dự án ${tab.projectId?.slice(0, 8) ?? '—'}` : 'Chưa cấp tab'}</Chip>
-      {sc && !sc.ok && <Chip tone="attn">{sc.reasons.includes('RELOAD_TAB') ? 'Extension cần tải lại' : `Trang Flow: ${sc.code}`}</Chip>}
-      <span>Tự bấm {s.autoEnabled ? 'bật' : 'tắt'}</span>
+      {sc && !sc.ok && <span title={checkHint(sc)}><Chip tone="attn">{sc.reasons.includes('RELOAD_TAB') ? 'Extension cần tải lại' : 'Trang Flow có vấn đề'}</Chip></span>}
+      <span className="auto">Tự bấm {s.autoEnabled ? 'bật' : 'tắt'}</span>
       <span className="avatar" title={s.email ?? 'chưa đọc được tài khoản'}>{s.email ? s.email.slice(0, 2).toUpperCase() : '—'}</span>
     </div>
   )
@@ -59,7 +59,7 @@ function Bell(): React.JSX.Element {
   )
 }
 
-function Main({ lic }: { lic: License }): React.JSX.Element {
+function App(): React.JSX.Element {
   const [screen, setScreen] = useState<(typeof SCREENS)[number]>('Tổng quan')
   const [batches, setBatches] = useState<Batch[]>([])
   const [session, setSession] = useState<Session | null>(null)
@@ -110,13 +110,17 @@ function Main({ lic }: { lic: License }): React.JSX.Element {
   }, [reload])
 
   // main pushes batch changes but not the session: until Chrome is paired and a tab granted, re-read it so S1 follows what the user does in Chrome
-  // shortcut: a lost connection after that shows on the next batch event or window focus; push a session event from main if that proves too late
   const ready = !!session && (session.fake || (session.connected === true && session.tabs.some((t) => t.granted)))
   useEffect(() => {
     if (ready) return
     const t = setInterval(() => void reload(), 3000)
     return () => clearInterval(t)
   }, [ready, reload])
+
+  useEffect(() => { // Chrome can close without any batch event: keep the bar honest while the window is shown
+    const t = setInterval(() => { if (!document.hidden) void reload() }, 5000)
+    return () => clearInterval(t)
+  }, [reload])
 
   const active = batches.filter((b) => !b.archived && ACTIVE.includes(b.status))
   // items that wait for the human (click Gửi, confirm, fix): the count stays on the nav until they are resolved
@@ -146,7 +150,7 @@ function Main({ lic }: { lic: License }): React.JSX.Element {
                   <div className="actions">
                     {b.status === 'paused'
                       ? <button onClick={() => run(() => window.api.resumeBatch(b.id))}>Tiếp tục</button>
-                      : <button onClick={() => run(() => window.api.pauseBatch(b.id))}>Tạm dừng</button>}
+                      : b.status === 'running' && <button onClick={() => run(() => window.api.pauseBatch(b.id))}>Tạm dừng</button>}
                     <button onClick={() => run(() => window.api.stopBatch(b.id))}>Dừng</button>
                   </div>
                 </div>
@@ -185,21 +189,11 @@ function Main({ lic }: { lic: License }): React.JSX.Element {
           {screen === 'Workflow' && session && <Workflow s={session} />}
           {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
-          {screen === 'Cài đặt' && session && <Settings lic={lic} s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}
+          {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}
         </main>
       </div>
     </div>
   )
-}
-
-/** Nothing of the app shows (or runs, main gates it too) until the Google account has an active plan. */
-function App(): React.JSX.Element {
-  const [lic, setLic] = useState<License | null>(null)
-  useEffect(() => {
-    void window.api.getLicense().then(setLic, () => setLic({ status: 'offline', code: 'LICENSE_NETWORK' }))
-    return window.api.onLicense((s) => setLic(s as License))
-  }, [])
-  return lic?.status === 'active' ? <Main lic={lic} /> : <Account lic={lic} />
 }
 
 export default App

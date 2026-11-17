@@ -17,7 +17,7 @@ export type PresetAsset = { id: string; name: string; bytes: number; missing?: b
 export type Preset = { id: string; name: string; kind: Draft['kind']; mode: Draft['mode']; combo?: import('./combo').Combo; refs: { assetIds: string[]; mode: 'none' | 'sequential' | 'all'; perItem: number; assets: PresetAsset[] }; template: { template: string; how: 'all' | 'zip'; lists: Record<string, string> } }
 export type SessionTab = { tabId: string; projectId: string | null; email: string | null; active: boolean; status: 'ok' | 'no_project' | 'no_login'; granted: boolean; auto?: boolean } // auto: chosen again by the app from the remembered tabs
 export type Session = {
-  extDir?: string | null; fake: boolean; connected: boolean | null; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean; gptTabs?: number; gemTabs?: number; credits?: { email: string; credits: number; at: number }[]
+  extDir?: string | null; fake: boolean; connected: boolean | null; oldExt?: boolean; connectorError: string | null; speedInUse: { image: number; video: number; tabs: number }; tabs: SessionTab[]; email: string | null; accounts?: { email: string; auto: boolean }[]; draft: Draft; autoEnabled: boolean; gptTabs?: number; gemTabs?: number; credits?: { email: string; credits: number; at: number }[]
   chromeFound?: boolean; remembered?: number // remembered: how many (account, project) pairs the app chooses again by itself
   selfCheck: { ok: true } | { ok: false; code: string; reasons: string[] } | null
 }
@@ -39,5 +39,3 @@ export function itemLabel(a: Attempt): string {
 export const time = (ms: number): string => new Date(ms).toLocaleTimeString('vi-VN')
 export const current = (it: Item): Attempt => it.attempts.find((a) => a.id === it.attemptId) ?? it.attempts[it.attempts.length - 1]
 
-/** Đăng nhập Google + gói (main's license.ts). Only 'active' opens the app. */
-export type License = { status: 'checking' | 'signed_out' | 'signing_in' | 'offline' | 'pending' | 'blocked' | 'expired' | 'active'; email?: string; plan?: string; until?: number; buyInfo?: string; code?: string }

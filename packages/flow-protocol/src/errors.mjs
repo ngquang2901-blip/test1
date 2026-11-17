@@ -97,7 +97,7 @@ const SEVERITY = ['continue', 'throttle', 'pause', 'stop_profile'];
 const UNKNOWN = { code: U, admission: 'pause', note: 'not in the qualified table: treat as drift', drift: true };
 
 function pick(reasons) {
-  const rows = reasons.map((r) => PUBLIC_ERRORS[r] || UNKNOWN);
+  const rows = reasons.map((r) => (Object.hasOwn(PUBLIC_ERRORS, r) ? PUBLIC_ERRORS[r] : UNKNOWN));
   if (!rows.length) return UNKNOWN;
   return rows.reduce((a, b) => (SEVERITY.indexOf(b.admission) > SEVERITY.indexOf(a.admission) ? b : a));
 }

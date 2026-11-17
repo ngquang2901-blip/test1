@@ -1,6 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, session as electronSession, shell, Tray } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, session as electronSession, shell, Tray } from 'electron'
 import { basename, dirname, join } from 'path'
-import { homedir } from 'os'
 import { randomUUID } from 'crypto'
 import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -19,7 +18,7 @@ import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createWorkflows } from './workflow'
-import { concatVideos, lastFrame } from './ffmpeg'
+import { concatVideos, lastFrame, pruneFrames } from './ffmpeg'
 import { TINY_PNG } from './fake-driver'
 import { createExtGpt, createFakeGpt, isGemMedia, isGptMedia, type GptDriver, type GptScript } from './gpt-driver'
 import { createGptRunner, routeRunner } from './gpt-runner'
@@ -36,8 +35,6 @@ import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
 import { findChrome, launchChrome } from './chrome'
-import { createFakeLicense, createLicense, createOpenLicense } from './license'
-import { LICENSE_CONFIG, LICENSE_REQUIRED } from './license-config'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -82,6 +79,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   let grants!: Grants // assigned once the runner exists; the ext driver only asks it lazily
   let rawPing: FlowDriver['ping'] // self-check judges heartbeat age on the wall clock, not the accelerated test clock
   let connected: (() => boolean) | null = null // real mode only
+  let oldExt = (): boolean => false
   let connectorError: string | null = null
   let extVersion: string = extManifest.version
   if (FAKE) {
@@ -113,6 +111,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       gemDriver = createExtGpt(server, 'gemini')
       rawPing = driver.ping
       connected = server.connected
+      oldExt = server.oldExt
     } catch (e) {
       connectorError = errorCode(e) // code only: messages carry paths and tokens
       console.error('connector setup failed', connectorError)
@@ -131,6 +130,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const siteOf = (b: string): typeof gptRunner | null => { const p = (db.prepare('select provider p from batch where id=?').get(b) as { p: string } | undefined)?.p; return p === 'chatgpt' ? gptRunner : p === 'gemini' ? gemRunner : null }
   grants = createGrants(driver, runner, { db, cap: () => runner.caps().tabs })
   if (FAKE && process.env.TOOLFLOW_FAKE_GRANT !== '0') { await grants.list(); grants.use(['t1']) } // test fixture: t1 pre-granted; '0' lets e2e click "Dùng tab này"
+  const bootStatus = new Map(batchSignatures(db).map((r) => [r.id, batchStatus(db, r.id)])) // before recover(): a crash that leaves a batch needs_review is then noticed
   runner.recover()
   // Main, not the renderer: the remembered tabs are chosen again (and their batches go on) while the window is hidden too
   const relist = (): void => void grants.list().catch(() => {}) // no extension yet: the next round
@@ -148,23 +148,11 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
   const emit = revisioned((e) => win()?.webContents.send('state', e))
-  // Đăng nhập Google + gói: nothing below runs for a user without an active plan (the gate wraps every handler, the runner and the schedule).
-  // The fake one exists only in unpackaged test runs, so an env variable cannot open a packaged app.
-  const onLicense = (s: unknown): void => win()?.webContents.send('license', s)
-  const lic = !app.isPackaged && (FAKE || process.env.TOOLFLOW_E2E === '1')
-    ? createFakeLicense(process.env.TOOLFLOW_FAKE_LICENSE, process.env.TOOLFLOW_FAKE_LICENSE_AFTER, onLicense)
-    : !LICENSE_REQUIRED ? createOpenLicense()
-    : createLicense({ config: LICENSE_CONFIG, file: join(userData, 'license.bin'), now: Date.now, onChange: onLicense, openBrowser: (u) => void shell.openExternal(u),
-      seal: { encrypt: (t) => safeStorage.encryptString(t), decrypt: (b) => safeStorage.decryptString(b) } })
-  const checkLicense = (): Promise<void> => lic.check().catch(() => {})
-  void checkLicense(); setInterval(checkLicense, 10 * 60_000)
-  const gated = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === 'function'
-    ? (...a: unknown[]) => { if (!lic.ok()) throw Object.assign(new Error('LICENSE_REQUIRED'), { code: 'LICENSE_REQUIRED' }); return f(...a) } : f])) as T
   // Notices. Telegram is called from main only (the renderer's no-network check stays true); its base URL is a test fake in e2e.
   const telegram = createTelegram({ file: join(userData, 'telegram.json'), base: FAKE ? process.env.TOOLFLOW_TELEGRAM_API : undefined })
   const toasts = new Set<Notification>() // shortcut: kept until closed so a click still reaches us; a toast left in the Action Center past that is not followed
   const notifier = createNotifier({
-    db, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
+    db, seen: bootStatus, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
     channels: {
       windows: (n) => {
         if (!Notification.isSupported()) return
@@ -181,14 +169,14 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
   // The root is not user-configurable yet. The built-in test Flow never writes into the user's Downloads: its files go to
   // TOOLFLOW_DOWNLOAD_ROOT (e2e) or into the test's own user-data folder.
-  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(homedir(), 'Downloads', 'ToolFlow')
+  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(app.getPath('downloads'), 'ToolFlow')
   const downloader = createDownloader({
     db, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, onChange: (b) => emit('batch', b),
     // an output is fetched from the tab of its own site: a ChatGPT image id is a message id + image number, a Flow one a plain uuid
     driver: { fetchMedia: (tab, p) => (isGptMedia(p.mediaId) ? gptRunner.fetchMedia(tab, p) : isGemMedia(p.mediaId) ? gemRunner.fetchMedia(tab, p) : driver.fetchMedia(tab, p)), downloads: (q) => driver.downloads(q) },
     async tab(b) {
       const site = siteOf(b)
-      if (!site) return grants.granted()[0] ?? null
+      if (!site) return grants.forProject((db.prepare('select target_project p from batch where id=?').get(b) as { p: string | null } | undefined)?.p ?? null)
       const t = await site.findTab()
       if (!t) throw Object.assign(new Error('NO_CHATGPT_TAB'), { code: 'NO_CHATGPT_TAB' })
       return t
@@ -225,7 +213,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     ...(FAKE ? { first: 500 } : {}),
   })
   updates.start()
-  const h = gated(createHandlers({
+  const h = createHandlers({
     updates,
     db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), openChrome, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
@@ -265,7 +253,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const accts = [...new Set(tabs.filter((t) => t.granted).map((t) => t.email).filter((e): e is string => !!e))]
       return {
         extDir: FAKE ? null : join(userData, 'extension'), // shown in S1 so the user can paste it into Chrome's folder dialog (not secret: pair.json inside is)
-        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : connected ? connected() : null, connectorError, // '0': e2e of the setup panel
+        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : connected ? connected() : null, oldExt: oldExt(), connectorError, // '0': e2e of the setup panel
         chromeFound: chromeExe !== null, remembered: grants.remembered(), tabs, email: em, draft, speedInUse: runner.caps(),
         accounts: accts.map((e) => ({ email: e, auto: autoAllowed(db, e) })), // auto is per account; the runner checks each tab's own
         gptTabs: await gptDriver.tabs().then((t) => t.length, () => 0), // how many chatgpt.com tabs the extension sees (a ChatGPT batch uses one)
@@ -275,7 +263,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
         selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
-  }))
+  })
   // Node workflows run through the very handlers the screens call; a result becomes a ref by registering its saved file.
   // FAKE only: e2e names the file because Playwright cannot drive a native dialog (same idea as TOOLFLOW_PICK_REFS)
   const wfDialog = async (save: string | null): Promise<string | null> => {
@@ -285,7 +273,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     const o = { properties: ['openFile' as const], filters }
     return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
   }
+  pruneFrames(join(userData, 'frames'), clock.now())
   const wf = createWorkflows({
+    marker: join(userData, 'wf-running.json'), attention: (title, body) => notifier.notify({ kind: 'attention', batchId: null, title, body }),
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
     status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
@@ -300,6 +290,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     codes: (b) => (db.prepare("select json_extract(a.state_json,'$.error.code') c from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord").all(b) as { c: string | null }[]).map((r) => r.c),
   })
   wfActive = wf.active
+  wf.interrupted()
   // MCP: an AI agent on this machine drives the same handlers the screens call. Off until the user turns it on in Cài đặt.
   const mcp = createMcpSwitch({
     file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(), // a fixed port, so the agent's config survives restarts
@@ -350,16 +341,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async connectTelegram() { return telegram.connect() },
     async testTelegram() { await telegram.send('ToolFlow: tin thử. Bạn sẽ nhận tin ở đây khi một lô xong, cần bạn xem, bắt đầu theo hẹn giờ hoặc khi credit Flow sắp hết.') },
   }
-  const licenseHandlers = { // the only calls open without a plan
-    async getLicense() { return lic.state() },
-    async signIn() { await lic.signIn() },
-    async checkLicense() { await lic.check() },
-    async signOut() { lic.signOut() },
-  }
-  registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers })
+  registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }, (e) => { const f = win()?.webContents.mainFrame; return !!f && e.senderFrame?.processId === f.processId && e.senderFrame?.routingId === f.routingId }) // the app's own main frame only
   // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
-  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late) })
-  const schedTick = (): void => void (lic.ok() ? sched.tick() : Promise.resolve()).catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
+  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late), attention: (b, title, body) => notifier.notify({ kind: 'attention', batchId: b, title, body }) })
+  const schedTick = (): void => void sched.tick().catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
   schedTick()
   setInterval(schedTick, 5000)
 
@@ -370,7 +355,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       if (seen.get(r.id) !== r.sig) { seen.set(r.id, r.sig); emit('batch', r.id); notifier.batchChanged(r.id) }
     }
   }
-  setInterval(() => { (lic.ok() ? runner.tick() : Promise.resolve()).catch((e) => console.error('tick', e)).finally(scan) }, 200)
+  setInterval(() => { runner.tick().catch((e) => console.error('tick', e)).finally(scan) }, 200)
   const saver = createAutoSaver({ db, now: () => clock.now(), enabled: () => draft.autoSave, downloader })
   if (process.env.TOOLFLOW_AUTOSAVE !== '0') setInterval(() => { saver.tick().catch((e) => console.error('autosave', (e as { code?: string }).code ?? 'INTERNAL_ERROR')) }, 3000) // '0': the specs that press Tải themselves
 }

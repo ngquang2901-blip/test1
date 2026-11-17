@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '../types'
 import { Chip } from '../ui'
-import { hintOf } from '../hints'
+import { checkHint, hintOf } from '../hints'
 
 const WHY: Record<string, string> = { no_project: 'Mở một dự án', no_login: 'Chưa đăng nhập Google' }
 
@@ -27,6 +27,7 @@ function Setup({ s, picked }: { s: Session; picked: boolean }): React.JSX.Elemen
           <button className="small" onClick={() => open('flow')}>Mở Google Flow</button>
         </div>
         {error && <p role="alert" className="notice">{hintOf(error) ?? `Lỗi ${error}`}</p>}
+        {s.oldExt && s.connected !== true && <p role="alert" className="notice" data-testid="old-ext">Chrome vẫn chạy tiện ích ToolFlow bản cũ nên app không nhận. Bấm <b>Mở trang tiện ích trong Chrome</b>, tìm <b>ToolFlow Connector</b> và bấm nút tải lại (↻) — hoặc tắt hẳn Chrome rồi mở lại.</p>}
       </div>
       {s.connected !== true && (
         <ol className="panel-body steps">
@@ -77,6 +78,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
             <Chip tone={sc === null ? 'idle' : sc.ok ? 'done' : 'attn'}>
               {sc === null ? 'Self-check: chưa chạy (không có tab)' : sc.ok ? 'Self-check: đạt' : `Self-check: lỗi ${sc.code} — ${sc.reasons.join(', ')}`}
             </Chip>
+            {sc && !sc.ok && checkHint(sc) && <div className="hint" data-testid="check-hint">{checkHint(sc)}</div>}
           </dd>
         </dl>
       </div>
@@ -96,7 +98,7 @@ export default function SessionScreen({ s, reload }: { s: Session | null; reload
                 </span>
                 {t.granted ? <><Chip tone="done">Đang dùng</Chip>{t.auto && <Chip tone="done">Tự chọn lại</Chip>}{mine.length > 1 && <button className="small" onClick={() => use(mine.filter((x) => x !== t.tabId))}>Thôi dùng</button>}</>
                   : t.status !== 'ok' ? <Chip tone="wait">{WHY[t.status]}</Chip>
-                  : full ? <span className="hint">{s.speedInUse.tabs === 1 ? 'Tốc độ Mặc định chỉ dùng 1 tab — chọn Nhanh trong Cài đặt để chạy tới 4 tab' : `Đã đủ ${s.speedInUse.tabs} tab`}</span>
+                  : full ? <span className="hint">{s.speedInUse.tabs === 1 ? 'Tốc độ Mặc định chỉ dùng 1 tab — chọn Nhanh trong Cài đặt (rồi tắt hẳn app: khay hệ thống → Thoát, và mở lại) để chạy tới 4 tab' : `Đã đủ ${s.speedInUse.tabs} tab`}</span>
                   : <button className="primary" onClick={() => use([...mine, t.tabId])}>Dùng tab này</button>}
               </li>
             ))}

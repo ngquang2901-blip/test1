@@ -47,6 +47,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const putCombo = (kind: Draft['kind'], c: Combo | undefined): void => { keptCombo = { ...keptCombo, [kind]: c }; setCombos(keptCombo) }
   const chosen = combos[d.kind], combo = chosen ?? defaultCombo(d.kind) // what this batch will be sent with
   const [errs, setErrs] = useState<{ index: number; code: string }[]>([])
+  const [dryErr, setDryErr] = useState('')
   const pickBtn = useRef<HTMLButtonElement>(null)
   const msgRef = useRef<HTMLParagraphElement>(null)
   useEffect(() => { if (msg) msgRef.current?.scrollIntoView({ block: 'center' }) }, [msg]) // it lands right above the sticky action bar, under it when scrolled to the end
@@ -81,7 +82,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
   const args = (r: unknown): object => (gpt ? { text: d.text, kind: 'image', mode: 'auto', provider, commandId: cmd, refs: r, ...(gem && aspect ? { aspect } : {}), ...(gem && model ? { model } : {}) } : { ...d, commandId: cmd, refs: r, ...(chosen ? { combo: chosen } : {}) })
   useEffect(() => {
     let live = true
-    window.api.enqueueBatch({ ...args(JSON.parse(refsKey)), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)) } }, () => { if (live) { setRows([]); setErrs([]) } })
+    window.api.enqueueBatch({ ...args(JSON.parse(refsKey)), dryRun: true }).then((r: { rows: Row[]; errors: { index: number; code: string }[] }) => { if (live) { setRows(r.rows); setErrs(r.errors.filter((e) => e.code in MAP_ERR)); setDryErr('') } }, (e: Error) => { if (live) { setRows([]); setErrs([]); setDryErr(hintOf(codeIn(e.message)) ?? '') } })
     onDraft?.(d) // the app's copy follows at once: coming back to Tạo lô shows this text, not the last one read from main
     const t = setTimeout(() => void window.api.saveDraft(d), 400)
     return () => { live = false; clearTimeout(t) }
@@ -157,7 +158,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
         <label className="field-label" htmlFor="prompts">Danh sách prompt</label>
         <textarea id="prompts" value={d.text} onChange={(e) => set({ text: e.target.value })} placeholder="Mỗi dòng một prompt" />
         <div className="toolbar small-text muted">
-          <label className="filebtn">Nạp file TXT<input type="file" accept=".txt,text/plain" onChange={(e) => void file(e.target.files?.[0])} /></label>
+          <label className="filebtn">Nạp file TXT<input type="file" accept=".txt,text/plain" onChange={(e) => { void file(e.target.files?.[0]); e.target.value = '' }} /></label>
           <label className="filebtn">Nạp file CSV<input type="file" accept=".csv,text/csv" onChange={(e) => { void loadCsv(e.target.files?.[0]); e.target.value = '' }} /></label>
           {csv && (
             <>
@@ -234,6 +235,7 @@ export default function NewBatch({ initial, onCreated, preset, onDraft }: { init
           </div>
         </fieldset>
       </div>
+      {dryErr && <p role="alert" className="notice" data-testid="dry-error">{dryErr}</p>}
       {errs.length > 0 && (
         <p role="alert" className="notice" data-testid="map-errors">
           {errs.some((e) => e.code === 'NOT_ENOUGH_REFS') && <>Thiếu ảnh cho prompt nào: {errs.filter((e) => e.code === 'NOT_ENOUGH_REFS').map((e) => `#${e.index + 1}`).join(', ')}. </>}

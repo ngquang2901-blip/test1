@@ -21,5 +21,5 @@ export function placeNoClobber(dir: string, name: string, write: (path: string) 
 export const copyInto = (src: string, dir: string, name: string): string => placeNoClobber(dir, name, (p) => copyFileSync(src, p, constants.COPYFILE_EXCL))
 export const writeInto = (dir: string, name: string, data: string): string => placeNoClobber(dir, name, (p) => writeFileSync(p, data, { flag: 'wx' }))
 
-/** Every field quoted; the BOM makes Excel read the file as UTF-8, so Vietnamese stays readable. */
-export const csv = (rows: (string | number)[][]): string => '\ufeff' + rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n') + '\r\n'
+/** Every field quoted, a text starting with = + - @ tab or CR gets a leading ' (Excel would run it as a formula); the BOM makes Excel read the file as UTF-8, so Vietnamese stays readable. */
+export const csv = (rows: (string | number)[][]): string => '\ufeff' + rows.map((r) => r.map((v) => `"${(typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? "'" + v : String(v)).replace(/"/g, '""')}"`).join(',')).join('\r\n') + '\r\n'

@@ -11,18 +11,21 @@
   const SUBMIT = 'flow-prompt-box button[type="submit"]';
   const CLEAR = 'button.clear-button';
   const TRIGGER = 'flow-prompt-box button.settings-trigger-button';
+  // One private channel to main-world.js (it takes port2 from the window message below); no DOM events, page scripts cannot see or forge it.
+  // Port messages queue until the other side listens, so an op that starts early just waits (or times out to null).
+  const chan = new MessageChannel(), waiting = new Map(); let seq = 0;
+  chan.port1.onmessage = (e) => {
+    const m = e.data; if (!m || typeof m !== 'object') return;
+    if (m.name === 'toolflow:event') { try { chrome.runtime.sendMessage({ tf: 'event', ev: m.detail }).catch(() => {}); } catch (_) { /* extension reloaded */ } return; } // main world -> service worker: generate request left / answered
+    waiting.get(m.id)?.(m.detail);
+  };
+  window.postMessage('toolflow:port', location.origin, [chan.port2]);
   const ask = (name, ms = 500, detail) => new Promise((resolve) => {
-    const h = (e) => { clearTimeout(t); document.removeEventListener(name + '-result', h); resolve(JSON.parse(e.detail)); };
-    const t = setTimeout(() => { document.removeEventListener(name + '-result', h); resolve(null); }, ms);
-    document.addEventListener(name + '-result', h);
-    document.dispatchEvent(new CustomEvent(name, detail ? { detail: JSON.stringify(detail) } : undefined));
+    const id = ++seq, t = setTimeout(() => { waiting.delete(id); resolve(null); }, ms);
+    waiting.set(id, (d) => { clearTimeout(t); waiting.delete(id); resolve(d); });
+    chan.port1.postMessage({ name, id, detail });
   });
   const until = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = fn(); if (v) return v; await sleep(150); } return null; };
-
-  // main world -> service worker: generate request left / answered
-  document.addEventListener('toolflow:event', (e) => {
-    try { chrome.runtime.sendMessage({ tf: 'event', ev: JSON.parse(e.detail) }).catch(() => {}); } catch (_) { /* extension reloaded */ }
-  });
 
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   // The one result tile of a media uuid; anything but exactly one is a code, never a guess.

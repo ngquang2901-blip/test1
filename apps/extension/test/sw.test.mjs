@@ -1,24 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 
 // sw.js against stand-ins: `app.up` says whether ToolFlow listens on 127.0.0.1; the clock is mocked, the 30 s alarm never fires by itself.
 let loads = 0;
+let tabUpdated = []; // listeners sw.js put on tabs.onUpdated
+// Chrome's own events take the listener only: a second (Firefox-style filter) argument throws "No matching signature" and kills the whole worker script.
+const ev = (into = []) => ({ addListener(...a) { if (a.length !== 1) throw new TypeError('Error in invocation: No matching signature.'); into.push(a[0]); } });
 async function load(app) {
   const made = []; // [time made, socket]
+  tabUpdated = [];
   globalThis.chrome = {
     storage: { local: { get: async () => ({ tfInstance: '0123abcd' }), set: async () => {} } },
-    alarms: { create() {}, onAlarm: { addListener() {} } },
-    tabs: { onUpdated: { addListener() {} } },
-    runtime: { onStartup: { addListener() {} }, onMessage: { addListener() {} }, getURL: (p) => p },
+    alarms: { create() {}, onAlarm: ev() },
+    tabs: { onUpdated: ev(tabUpdated) },
+    runtime: { onStartup: ev(), onMessage: ev(), getURL: (p) => p },
   };
   globalThis.fetch = async () => ({ json: async () => ({ port: 1, token: 'x' }) });
+  // WebCrypto HMAC finishes on a worker thread, outside the mocked clock: retry gaps then drift by a tick. Same result, answered in a microtask.
+  const real = globalThis.crypto;
+  Object.defineProperty(globalThis, 'crypto', { configurable: true, value: {
+    getRandomValues: (a) => real.getRandomValues(a), randomUUID: () => real.randomUUID(),
+    subtle: { importKey: async (_f, raw) => raw, sign: async (_a, raw, msg) => createHmac('sha256', Buffer.from(raw)).update(Buffer.from(msg)).digest().buffer },
+  } });
   globalThis.WebSocket = class {
-    constructor() {
-      this.readyState = 0; made.push([Date.now(), this]);
-      queueMicrotask(() => { if (app.up) { this.readyState = 1; this.onopen?.(); } else this.close(); });
+    constructor(url, protos) {
+      this.readyState = 0; this.sent = []; this.protos = protos; made.push([Date.now(), this]);
+      const nonce = protos.find((p) => p.startsWith('tfn.')).slice(4); // the app's side of the handshake: hello = hmac(token, 's' + nonce)
+      const hello = app.hello ?? createHmac('sha256', 'x').update('s' + nonce).digest('hex');
+      queueMicrotask(() => { if (app.up) { this.readyState = 1; this.onopen?.(); this.onmessage?.({ data: JSON.stringify({ hello }) }); } else this.close(); });
     }
-    send() {}
-    close() { if (this.readyState === 3) return; this.readyState = 3; this.onclose?.(); }
+    send(d) { this.sent.push(d); }
+    close(code) { if (this.readyState === 3) return; this.readyState = 3; this.onclose?.({ code }); }
   };
   await import(new URL(`../sw.js?load=${++loads}`, import.meta.url));
   return made;
@@ -57,4 +70,51 @@ test('while the app is away the extension retries after 1 s, doubling to 30 s at
   app.up = false; made.at(-1)[1].close();
   await advance(t, 1000);
   assert.equal(made.length, n + 1, 'first retry 1 s after the loss');
+});
+
+test('a 4401 close (wrong token) retries every 30 s, not every second', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const app = { up: true };
+  const made = await load(app);
+  await settle();
+  const n = made.length;
+  made.at(-1)[1].close(4401);
+  await advance(t, 29_000);
+  assert.equal(made.length, n, 'nothing before 30 s');
+  await advance(t, 2000);
+  assert.equal(made.length, n + 1);
+});
+
+test('handshake: the token is never offered, only a proof; ops are heard after a right hello and never after a wrong one', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const good = await load({ up: true }); await settle();
+  const s = good.at(-1)[1];
+  assert.ok(!s.protos.some((p) => p.startsWith('tf.')));
+  assert.equal(s.protos.find((p) => p.startsWith('tfp.')).length, 4 + 64);
+  s.onmessage({ data: JSON.stringify({ id: 5, op: 'nope' }) });
+  await settle();
+  assert.match(s.sent.at(-1), /"id":5/, 'an op after a right hello is answered');
+  const bad = await load({ up: true, hello: 'f'.repeat(64) }); await settle();
+  const b = bad.at(-1)[1];
+  assert.equal(b.readyState, 3, 'wrong hello: closed');
+  b.onmessage({ data: JSON.stringify({ id: 6, op: 'nope' }) });
+  await settle();
+  assert.equal(b.sent.length, 0, 'nothing answered, nothing sent to a listener that failed the proof');
+});
+
+test('a Flow tab that finishes loading wakes the connection; other tabs and other changes do not', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const app = { up: false };
+  const made = await load(app);
+  await settle();
+  assert.equal(tabUpdated.length, 1);
+  app.up = true;
+  const n = made.length;
+  tabUpdated[0](1, { status: 'complete' }, { url: 'https://example.com/' });
+  tabUpdated[0](1, { title: 'x' }, { url: 'https://flow.google.com/project/1' });
+  await settle();
+  assert.equal(made.length, n);
+  tabUpdated[0](2, { status: 'complete' }, { url: 'https://flow.google.com/project/1' });
+  await settle();
+  assert.equal(open(made), true);
 });

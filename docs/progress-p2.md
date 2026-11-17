@@ -368,6 +368,7 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 - Packaged app with an empty data folder: ProductVersion 0.14.1.0, opens on Tổng quan, no sign-in screen, no Tài khoản box.
 - Release id 444879826: 3 assets, sizes equal to `dist/`, published.
 - A 0.14.0 locked at the sign-in screen: its updater still runs (not gated) and downloaded 0.14.1 within 25 s of start on this machine (`@toolflowdesktop-updater/pending`, size equal), but that screen has no update button: the install happens on a real quit (tray → Thoát; autoInstallOnAppQuit) or by running the new Setup. The tray quit was not clicked here (the owner was using the PC).
+- Later (branch `fix-all`): the sign-in / license code is deleted (`license.ts`, `license-config.ts`, Account screen, `.auth` CSS, login video, Firebase rules, `docs/dang-nhap-google.md`, license IPC and the 10-minute check); `LICENSE_REQUIRED = true` no longer brings it back.
 
 ## 0.15.0: TobyFlow-style Workflow, Khung cuối, Ghép video (2026-11-14)
 - Branch `p4-workflow-toby` (a3b63bd ffmpeg + 2 nodes, e40edca editor redraw, 5505c9a save retry before consuming nodes, a22532b hide side panel) merged into `main`, version 0.15.0.
@@ -391,3 +392,9 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 ## 0.16.1 released (2026-11-17)
 - Gate on main: typecheck 0, unit 452/452, extension 109/109, protocol 56/56, build 0, e2e 68/68, package 0. Released v0.16.1 (3 assets, sizes equal to dist). The owner's app updated itself 0.16.0 → 0.16.1 (new window at ~51 s, responding); the MCP switch, its key and the remembered Flow tab came back by themselves.
 - Live with Kaiser on the real Flow tab (account `ng***`): TobyFlow on → Kaiser's batch paused `PAGE_BLOCKED` (Kaiser listed 5 tools and read the code); TobyFlow off + F5 → `selfCheckOk` true → Kaiser called `toolflow_resume` → item `awaiting_user` → Gửi clicked in Flow → `completed` → Kaiser's `toolflow_download` returned 2 saved JPEG files. TobyFlow turned back on afterwards.
+
+## 0.17.0 (2026-11-17): audit fixes
+- Audit (4 read-only reviewers + npm audit) → fixes A1–A9 (extension/protocol), B1–B10 (runner/connector/downloads), C1–C10 (UI), D1–D7 (ChatGPT/Gemini, ffmpeg, schedule, backup, IPC, CSV, workflow notice) in 4 worktrees, merged on fix-all. Plus: Electron 44.11.3 (GHSA-jr5w-w6x2-84p9), Veo 3.1 - Fast removed, the turned-off sign-in code deleted.
+- Live run on the owner's Chrome caught what unit tests could not: A7's `tabs.onUpdated` filter is Firefox-only and threw in Chrome, so the new worker never connected. Fixed (filter inside the listener), sw tests now use Chrome-strict event stand-ins. Then: new handshake connected, page self-check ok over the private MessageChannel, an image batch ran with auto-send and 2 images were downloaded.
+- Upgrade: Chrome keeps the old extension until it is reloaded; the app now notices the old token offer and Kết nối tells the user to reload ToolFlow Connector.
+
