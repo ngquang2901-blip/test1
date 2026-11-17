@@ -101,7 +101,8 @@ chrome.runtime.onMessage.addListener((m, sender) => {
 // SW dies when the relay is gone; alarms + tab events wake it so it reconnects
 chrome.alarms.create('wake', { periodInMinutes: 0.5 });
 chrome.alarms.onAlarm.addListener(connect);
-chrome.tabs.onUpdated.addListener(() => connect(), { urls: SITES.map((s) => s + '*'), properties: ['status'] });
+// Chrome's onUpdated takes no filter argument (that is Firefox only: in Chrome it throws and the whole worker never starts) — filter here instead
+chrome.tabs.onUpdated.addListener((_id, info, tab) => { if (info.status === 'complete' && SITES.some((s) => tab?.url?.startsWith(s))) connect(); });
 chrome.runtime.onStartup.addListener(connect);
 connect();
 // keep SW alive while connected (Chrome 116+: WS activity extends lifetime)
