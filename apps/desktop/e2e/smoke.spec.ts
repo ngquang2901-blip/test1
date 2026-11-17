@@ -1642,6 +1642,7 @@ test('Hẹn giờ chạy: the queue shows the time with Huỷ hẹn giờ, then 
   await page.getByRole('button', { name: 'Tạo lô và hẹn giờ' }).click()
   await expect(page.getByTestId('schedule')).toContainText(`Hẹn chạy lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
   await expect(page.getByRole('button', { name: 'Huỷ hẹn giờ' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Tạm dừng' })).toHaveCount(0) /* the runner pauses only a running batch */
   await expect(items(page)).toHaveCount(1)
   await expect(items(page).first()).toContainText('Đang chờ')
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1, { timeout: 40_000 })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Draft, License, Session, TelegramState, UpdateState } from '../types'
 import { AccountBox } from './Account'
-import { codeIn, hintOf } from '../hints'
+import { codeIn, errText, hintOf } from '../hints'
 import type { Theme } from '../theme'
 import { Chip } from '../ui'
 
@@ -17,7 +17,7 @@ const updText = (u?: UpdateState | null): string => !u ? '' :
 export default function Settings({ lic, s, reload, theme = 'system', onTheme, upd, onUpd, onInstall }: { lic?: License; s: Session; reload(): void; theme?: Theme; onTheme?(t: Theme): void; upd?: UpdateState | null; onUpd?(u: UpdateState): void; onInstall?(): void }): React.JSX.Element {
   const [ack, setAck] = useState(false)
   const [msg, setMsg] = useState('')
-  const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(e.message))
+  const act = (f: () => Promise<unknown>): void => void f().then(() => { setMsg(''); reload() }, (e: Error) => setMsg(errText(e.message)))
   const speed = (v: Draft['speed']): void => act(() => window.api.saveDraft({ speed: v }))
   const box = (k: 'notifyApp' | 'notifyWindows' | 'notifyTelegram' | 'tray' | 'openAtLogin', label: string): React.JSX.Element => (
     <label><input type="checkbox" checked={s.draft[k]} onChange={(e) => act(() => window.api.saveDraft({ [k]: e.target.checked }))} /> {label}</label>
@@ -60,13 +60,13 @@ export default function Settings({ lic, s, reload, theme = 'system', onTheme, up
             ? <button className="small primary" onClick={() => onInstall?.()}>Khởi động lại để cập nhật</button>
             : <button className="small" disabled={!upd || ['off', 'checking', 'available', 'downloading'].includes(upd.state)} onClick={() => void window.api.checkUpdate().then((u: UpdateState) => onUpd?.(u))}>Kiểm tra bản mới</button>}
         </div>
-        <p className="hint">App tự kiểm tra khi mở và vài giờ một lần, tự tải bản mới trong nền. Bản đã tải sẽ tự cài khi bạn tắt app.</p>
+        <p className="hint">App tự kiểm tra khi mở và vài giờ một lần, tự tải bản mới trong nền. Bản đã tải sẽ tự cài khi bạn tắt hẳn app (đóng cửa sổ chỉ thu app xuống khay hệ thống; muốn tắt hẳn: bấm phải vào biểu tượng ToolFlow ở khay hệ thống → Thoát).</p>
       </fieldset>
       <fieldset>
         <legend>Tốc độ</legend>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'default'} onChange={() => speed('default')} /> Mặc định</label>
         <label><input type="radio" name="speed" checked={s.draft.speed === 'fast'} onChange={() => speed('fast')} /> Nhanh</label>
-        <p className="hint">Nhanh: tối đa 4 tab Flow cùng lúc (Mặc định: 1). Áp dụng từ lần mở app sau. Đang dùng: <span className="num">{s.speedInUse.tabs}</span> tab, ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
+        <p className="hint">Nhanh: tối đa 4 tab Flow cùng lúc (Mặc định: 1). Áp dụng từ lần mở app sau: tắt hẳn app (khay hệ thống → Thoát) rồi mở lại; đóng cửa sổ thôi chưa đủ. Đang dùng: <span className="num">{s.speedInUse.tabs}</span> tab, ảnh <span className="num">{s.speedInUse.image}</span> song song, video <span className="num">{s.speedInUse.video}</span> song song.</p>
       </fieldset>
       <fieldset aria-label="Thông báo">
         <legend>Thông báo</legend>
