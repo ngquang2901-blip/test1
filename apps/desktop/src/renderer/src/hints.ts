@@ -91,7 +91,7 @@ export const HINTS: Record<string, string> = {
   GPT_COMPOSER_NOT_EMPTY: 'Ô nhập của ChatGPT đang có chữ nên app không ghi đè. Xoá chữ trong ô nhập rồi bấm Tiếp tục',
   GPT_PROMPT_MISMATCH: 'Chữ trong ô nhập của ChatGPT không khớp prompt của lô. Xoá ô nhập, đừng gõ vào ChatGPT khi app đang chạy, rồi bấm Tiếp tục',
   GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
-  GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang không gửi: prompt vẫn nằm trong ô nhập, chưa có gì được gửi đi. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi có lượt, bấm Tiếp tục',
+  GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang chưa hiện câu trả lời. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi bấm Tiếp tục, app xem lại trang trước: câu trả lời đã hiện thì nhận luôn, không gửi lại',
   GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
   // workflow: Vòng lặp, Bảng CSV (the CSV lines are also read by Tạo lô; the row and column are put in front of them)
   WF_LOOP_INPUT: 'Node Vòng lặp cần đúng một node Tạo ảnh nối vào chấm bên trái',
