@@ -1,6 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, session as electronSession, shell, Tray } from 'electron'
 import { basename, dirname, join } from 'path'
-import { homedir } from 'os'
 import { randomUUID } from 'crypto'
 import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -182,14 +181,14 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   recoverDownloads(db) // an intent without a reply may or may not have started: needs_review, reconciled on the next request
   // The root is not user-configurable yet. The built-in test Flow never writes into the user's Downloads: its files go to
   // TOOLFLOW_DOWNLOAD_ROOT (e2e) or into the test's own user-data folder.
-  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(homedir(), 'Downloads', 'ToolFlow')
+  const downloadRoot = FAKE ? process.env.TOOLFLOW_DOWNLOAD_ROOT ?? join(userData, 'downloads') : join(app.getPath('downloads'), 'ToolFlow')
   const downloader = createDownloader({
     db, root: downloadRoot, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, now: Date.now, onChange: (b) => emit('batch', b),
     // an output is fetched from the tab of its own site: a ChatGPT image id is a message id + image number, a Flow one a plain uuid
     driver: { fetchMedia: (tab, p) => (isGptMedia(p.mediaId) ? gptRunner.fetchMedia(tab, p) : isGemMedia(p.mediaId) ? gemRunner.fetchMedia(tab, p) : driver.fetchMedia(tab, p)), downloads: (q) => driver.downloads(q) },
     async tab(b) {
       const site = siteOf(b)
-      if (!site) return grants.granted()[0] ?? null
+      if (!site) return grants.forProject((db.prepare('select target_project p from batch where id=?').get(b) as { p: string | null } | undefined)?.p ?? null)
       const t = await site.findTab()
       if (!t) throw Object.assign(new Error('NO_CHATGPT_TAB'), { code: 'NO_CHATGPT_TAB' })
       return t

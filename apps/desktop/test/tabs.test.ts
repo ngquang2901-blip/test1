@@ -119,3 +119,14 @@ test('the latest choice replaces the remembered set; un-granting forgets; "Quên
   await c.g.list();
   expect([c.g.granted(), c.g.remembered()]).toEqual([[], 0]);
 });
+
+test('B2: forProject picks the granted tab showing that project, else the first granted', async () => {
+  const V = '1b4d3c1e-1111-4222-8333-444455556666';
+  const r = rig([tab({ tabId: '1' }), tab({ tabId: '2', projectId: V })]);
+  expect(r.g.forProject(V)).toBeNull();
+  await r.g.list(); r.g.use(['1', '2']);
+  expect(r.g.forProject(V)).toBe('2');
+  expect(r.g.forProject(U)).toBe('1');
+  expect(r.g.forProject('nope')).toBe('1');
+  expect(r.g.forProject(null)).toBe('1');
+});

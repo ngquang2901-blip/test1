@@ -52,6 +52,8 @@ export function createGrants(driver: Pick<FlowDriver, 'listTabs'>, runner: Pick<
     projects: (): string[] => [...new Set(granted.map((id) => last.find((t) => t.tabId === id)?.projectId).filter((p): p is string => !!p))],
     has: (id: string): boolean => granted.includes(id),
     granted: (): string[] => [...granted],
+    /** The granted tab that shows this project (its outputs are only on that page), else the first granted one. */
+    forProject: (p: string | null): string | null => granted.find((id) => p !== null && last.find((t) => t.tabId === id)?.projectId === p) ?? granted[0] ?? null,
   };
 }
 export type Grants = ReturnType<typeof createGrants>;
