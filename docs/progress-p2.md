@@ -382,3 +382,8 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 - Branch gate (subagent): typecheck 0, unit 451/451, build 0, e2e 68/68. On main after the merge: typecheck, unit 451/451, extension 109/109, protocol 56/56, build 0; the e2e run was stopped and the packaged app was NOT started (owner: "phát hành đi không cần test nữa").
 - Released v0.16.0 (3 assets, sizes equal to dist); `releases/latest/download/latest.yml` reads 0.16.0. Self-update on this PC not run.
 - Known: Workflow e2e tests (Điều kiện, zoom, several tabs, uncertain) flake on main too (Điều kiện 3 of 12); top bar wraps to two lines at 1000 px on Hàng đợi / Kết quả.
+
+## Page-blocked pause and MCP resume (2026-11-17)
+- Live with Kaiser (a bot on this PC) over MCP: with TobyFlow on, a batch paused `TARGET_CHANGED` ("Tab Flow đã chuyển sang dự án khác") although the tab was on the right project. The real cause was the check before the click: TobyFlow holds the page hooks, so `ping`/`probe` fail. Those failures (and a check op that throws) now pause `PAGE_BLOCKED` with its own line: another extension may be blocking the page, turn it off, F5, Tiếp tục. `TARGET_CHANGED` is left to a real project change.
+- New MCP tool `toolflow_resume`: lifts only the pauses of the check before a click (`PAGE_BLOCKED`, `TARGET_CHANGED`, `COVERED`, `CREDIT_WARNING`, `BUTTON_DISABLED`, `CHIP_MISMATCH`): nothing was sent and the same check runs again. Any other pause (send uncertain, the user's own pause) answers `NEEDS_USER`; `NOT_PAUSED`, `NOT_FOUND`, `INVALID_ARGS` otherwise.
+- Checked: typecheck 0, unit 452/452, e2e (MCP + batch screens) 13/13.

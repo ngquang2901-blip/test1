@@ -94,7 +94,9 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 1. **Cài đặt → Trợ lý AI (MCP)**: tích **Cho trợ lý AI trên máy này điều khiển ToolFlow**. App hiện địa chỉ `http://127.0.0.1:47615/mcp`.
 2. Bấm **Mở thư mục chứa mã khoá**, mở file `mcp.json`, chép dòng `token`.
 3. Khai báo trong trợ lý. Ví dụ Claude Code: `claude mcp add --transport http toolflow http://127.0.0.1:47615/mcp --header "Authorization: Bearer <token>"`.
-- Trợ lý có 4 lệnh: xem trạng thái, tạo lô (ảnh hoặc video, dùng cài đặt mặc định của app), xem các lô, tải kết quả về máy.
+- Trợ lý có 5 lệnh: xem trạng thái, tạo lô (ảnh hoặc video, dùng cài đặt mặc định của app), xem các lô, tải kết quả về máy, và (từ bản 0.16.1) cho lô chạy tiếp.
+- Lệnh **cho lô chạy tiếp** chỉ dùng được với lô dừng vì trang Flow (có hộp thoại che nút Gửi, nút Gửi bị khoá, báo thiếu credit, sai dự án, hoặc ToolFlow không kiểm được trang). App kiểm lại trang trước khi bấm. Lô dừng vì lý do cần bạn xem (có thể đã gửi rồi, hoặc bạn tự bấm Tạm dừng) thì trợ lý không cho chạy tiếp được, bạn bấm **Tiếp tục** trong Hàng đợi.
+- Nếu Hàng đợi báo **ToolFlow không kiểm được trang Flow**: thường do một tiện ích khác (vd TobyFlow) đang chạy trên trang Flow. Tắt tiện ích đó trong `chrome://extensions`, tải lại tab Flow, rồi bấm Tiếp tục (hoặc bảo trợ lý cho lô chạy tiếp).
 - Từ bản 0.11.0, lệnh tạo lô nhận thêm nền tảng **ChatGPT** hoặc **Gemini** (chỉ ảnh; Gemini chọn được tỉ lệ và mô hình). Lô đó chạy trong tab chatgpt.com / gemini.google.com đang mở, app tự gửi và tự lưu, tốn lượt tạo ảnh của tài khoản đó chứ không tốn credit Flow.
 - Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được **Tự động gửi**: nếu bạn chưa bật, lô của nó chờ bạn bấm Gửi trong Flow.
 - Ai đọc được file `mcp.json` cũng điều khiển được app: đừng gửi file đó cho người khác. Muốn khoá lại thì bỏ tích.
