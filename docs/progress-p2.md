@@ -402,4 +402,5 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 - Owner turned TobyFlow off for good (disabled, not removed) and dropped Telegram remote control.
 - ChatGPT has no ratio control on the page; the ratio rides as one English sentence after each prompt (`withRatio` in gpt-driver.ts), chosen in Tạo lô, on a Workflow ChatGPT node and over MCP. Live on the owner's ChatGPT: 16:9 -> 1672x941, 9:16 -> 941x1672, 1:1 -> 1254x1254, 4:3 -> 1448x1086, 3:4 -> 1086x1448.
 - MCP `toolflow_list_batches` (and download/resume replies) carry `hint`, the Vietnamese line the app shows for a pause/error code, so an agent no longer guesses what PAGE_BLOCKED means.
+- 0.18.1: after the 0.18.0 update the extension was reloaded but the tabs not refreshed; every session read (screen and MCP `toolflow_status`) then failed with EXTENSION_REFUSED because the granted tab's ping threw. `pingCheck` (profile.ts) turns a throwing ping into the self-check `RELOAD_TAB`, used by the session and by the runner's check; MCP status adds `hint` ("reload ToolFlow Connector, then F5 the Flow / ChatGPT / Gemini tabs").
 
