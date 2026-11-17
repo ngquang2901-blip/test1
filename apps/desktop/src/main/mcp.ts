@@ -4,7 +4,7 @@
 import { createServer, type IncomingMessage } from 'node:http'
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs'
-import { hintOf } from '../renderer/src/hints' // the Vietnamese line the screens show for a code
+import { hintOf, checkHint } from '../renderer/src/hints' // the Vietnamese line the screens show for a code
 
 export type Tool = { description: string; inputSchema: object; run(args: Record<string, unknown>): Promise<unknown> }
 type Opts = { version: string; tools: Record<string, Tool> }
@@ -90,11 +90,12 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
   })) })
   return {
     toolflow_status: {
-      description: 'ToolFlow state: is Chrome connected, how many Flow tabs are in use, how many chatgpt.com / gemini.google.com tabs are open, did the self-check pass, is auto-send on (off = the user must click Send in Flow).',
+      description: 'ToolFlow state: is Chrome connected, how many Flow tabs are in use, how many chatgpt.com / gemini.google.com tabs are open, did the self-check pass, is auto-send on (off = the user must click Send in Flow). When the self-check fails, hint is the Vietnamese line telling the user what to do.',
       inputSchema: { type: 'object', properties: {} },
       async run() {
-        const s = (await d.list()).session as { connected: boolean | null; tabs: { granted: boolean }[]; gptTabs?: number; gemTabs?: number; autoEnabled: boolean; selfCheck: { ok: boolean } | null; email: string | null }
-        return { connected: s.connected !== false, /* null: the built-in test Flow, which has no Chrome to lose */ tabsInUse: s.tabs.filter((t) => t.granted).length, chatgptTabs: s.gptTabs ?? 0, geminiTabs: s.gemTabs ?? 0, selfCheckOk: !!s.selfCheck?.ok, autoSend: s.autoEnabled, account: s.email ? s.email.replace(/^(..)[^@]*/, '$1***') : null }
+        const s = (await d.list()).session as { connected: boolean | null; tabs: { granted: boolean }[]; gptTabs?: number; gemTabs?: number; autoEnabled: boolean; selfCheck: { ok: boolean; code?: string; reasons?: string[] } | null; email: string | null }
+        return { connected: s.connected !== false, /* null: the built-in test Flow, which has no Chrome to lose */ tabsInUse: s.tabs.filter((t) => t.granted).length, chatgptTabs: s.gptTabs ?? 0, geminiTabs: s.gemTabs ?? 0, selfCheckOk: !!s.selfCheck?.ok, autoSend: s.autoEnabled, account: s.email ? s.email.replace(/^(..)[^@]*/, '$1***') : null,
+          ...(s.selfCheck && !s.selfCheck.ok ? { hint: checkHint({ code: s.selfCheck.code ?? '', reasons: s.selfCheck.reasons ?? [] }) } : {}) } // what the user should do, in the app's own words
       },
     },
     toolflow_create_batch: {
