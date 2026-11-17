@@ -58,13 +58,17 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
   const granted = (tabId: string): void => {
     if (!o.allow?.(tabId)) throw new ConnectorError('tab not granted')
   }
+  const emails = new Map<string, string | null>() // last answered account per tab: a slow/failed reply must not look like a logout (that revokes the grant and fences a paid send)
   return {
     async listTabs() {
       const raw = (await server.send('tabs', {})) as Array<{ tabId: string; path: string; active: boolean }>
-      return Promise.all(raw.map(async (t): Promise<FlowTab> => ({
-        tabId: String(t.tabId), projectId: projectIdOf(t.path), active: !!t.active,
-        email: ((await server.send('account', { tabId: t.tabId }).catch(() => null)) as string | null) ?? null, // no content script ⇒ not logged in as far as we can tell
-      })))
+      const out = await Promise.all(raw.map(async (t): Promise<FlowTab> => {
+        const id = String(t.tabId)
+        try { emails.set(id, ((await server.send('account', { tabId: t.tabId })) as string | null) ?? null) } catch { /* keep the last known email */ }
+        return { tabId: id, projectId: projectIdOf(t.path), active: !!t.active, email: emails.get(id) ?? null } // no answer ever ⇒ not logged in as far as we can tell
+      }))
+      for (const k of [...emails.keys()]) if (!out.some((t) => t.tabId === k)) emails.delete(k) // a tab missing from `tabs` is the only revoke
+      return out
     },
     async ping(tabId) {
       const p = (await server.send('ping', tab(tabId))) as Omit<Ping, 'email'>
@@ -175,7 +179,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
     },
     // the runner's tab epoch rides in msg.epoch (sw.js copies it into args.epoch for 'trusted')
     click: async (tabId, epoch) => (granted(tabId), (await server.send('trusted', tab(tabId), epoch)) as ClickResult),
-    // shortcut: needs a separate read tab, live in P2
+    // shortcut: no automatic reconcile on the real Flow, every uncertain send waits for the user; build a read-only project read in P3
     readProject: async () => todo('readProject'),
     async arm(tabId, epoch) {
       granted(tabId)
