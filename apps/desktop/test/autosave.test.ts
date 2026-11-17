@@ -7,12 +7,12 @@ import { openDb } from '../src/main/db'
 import { enqueueBatch } from '../src/main/batch'
 import { createAutoSaver } from '../src/main/autosave'
 
-function rig(o: { on?: boolean } = {}) {
+function rig(o: { on?: boolean; fail?: () => boolean } = {}) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-as-')), 't.db'))
   const clock = { t: 1_800_000_000_000 }
   const calls: string[] = []
   let on = o.on ?? true
-  const saver = createAutoSaver({ db, now: () => clock.t, enabled: () => on, downloader: { batch: async (b) => { calls.push(b) } } })
+  const saver = createAutoSaver({ db, now: () => clock.t, enabled: () => on, downloader: { batch: async (b) => { calls.push(b); if (o.fail?.()) throw Object.assign(new Error('NO_PROJECT_TAB'), { code: 'NO_PROJECT_TAB' }) } } })
   const add = (provider: 'flow' | 'chatgpt' | 'gemini', id: string): string => enqueueBatch(db, { commandId: id, kind: 'image', provider, projectId: provider === 'flow' ? 'p1' : null, settings: { provider }, prompts: ['a', 'b'], refs: [[], []], mode: 'auto' }).batchId
   const attempts = (b: string): string[] => (db.prepare('select attempt_id a from item where batch_id=? order by ord').all(b) as { a: string }[]).map((r) => r.a)
   const ready = (a: string, media: string[], at = clock.t): void => { db.prepare('insert into journal_event(attempt_id,type,at,payload_json) values(?,?,?,?)').run(a, 'receipt', at, '{}'); const s = JSON.parse((db.prepare('select state_json j from attempt where id=?').get(a) as { j: string }).j) as AttemptState; db.prepare('update attempt set state_json=? where id=?').run(JSON.stringify({ ...s, item: 'ready', stage: 'outcome_known', outputs: media.map((mediaId) => ({ mediaId })) }), a) }
@@ -73,4 +73,15 @@ test('a save that failed is tried again by itself, 30 s later, twice at most; on
   t.dl(g1, 'x1', 'needs_review')
   await t.tick(120_000)
   expect(t.calls).toEqual([g, g]) // a save that needs a look is never retried here
+})
+
+test('B4: a save that found no project tab is asked again on a later pass', async () => {
+  let noTab = true
+  const t = rig({ fail: () => noTab })
+  const f = t.add('flow', 'f'); t.ready(t.attempts(f)[0], ['m1'])
+  await t.tick(); await t.tick()
+  expect(t.calls).toEqual([f, f]) // refused, so asked again (a plain failure with no row is not)
+  noTab = false
+  await t.tick(); await t.tick()
+  expect(t.calls).toEqual([f, f, f]) // goes through once, then not again
 })
