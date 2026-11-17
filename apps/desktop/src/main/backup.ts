@@ -53,6 +53,19 @@ export function stageRestore(userData: string, file: string, schema: number): vo
   }
 }
 
+/** A restored file is not trusted: nothing runs or sends by itself until the user says so, and no asset may point at a network share (UNC). */
+function distrust(file: string): void {
+  try {
+    const c = new Database(file)
+    try {
+      const has = (n: string): boolean => !!c.prepare("select 1 from sqlite_master where type='table' and name=?").get(n)
+      c.prepare("update batch set status='paused' where status in ('running','queued')").run()
+      if (has('account_setting')) c.prepare('update account_setting set auto_enabled=0').run()
+      if (has('asset')) c.prepare("delete from asset where path like '\\%' or path like '//%'").run()
+    } finally { c.close() }
+  } catch { /* checkBackup passed on this very file: a later failure leaves it as it is */ }
+}
+
 /**
  * At start, before openDb: a staged backup becomes toolflow.db. The current DB (with its -wal/-shm) is kept as
  * toolflow.db.before-restore-<time>, never deleted; the settings come back into draft.json. A staged file that is no longer
@@ -72,6 +85,7 @@ export function applyRestore(userData: string, now: number, schema = SCHEMA_VERS
     for (const s of moved.reverse()) try { renameSync(keep + s, db + s) } catch { /* left as before-restore: still on disk */ }
     return { ok: false, code: 'RESTORE_FAILED' }
   }
+  distrust(db)
   if (draft) writeFileSync(join(userData, 'draft.json'), JSON.stringify(draft))
   return { ok: true }
 }

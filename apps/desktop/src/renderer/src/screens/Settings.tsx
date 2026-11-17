@@ -38,7 +38,7 @@ export default function Settings({ lic, s, reload, theme = 'system', onTheme, up
   const [bak, setBak] = useState<{ ok: boolean; text: string } | null>(null)
   const bakErr = (e: Error): void => { const c = e.message.match(/\b[A-Z][A-Z_]{2,}\b/)?.[0]; setBak({ ok: false, text: hintOf(c) ?? e.message }) }
   const backup = (): void => { setBak(null); void window.api.backupData().then((r: { saved: boolean; name?: string }) => r.saved && setBak({ ok: true, text: `Đã sao lưu vào tệp ${r.name}` }), bakErr) }
-  const restore = (): void => { setBak(null); void window.api.restoreBackup().then((r: { staged: boolean }) => r.staged && setBak({ ok: true, text: 'Bản sao lưu hợp lệ. App đang tự đóng và mở lại để dùng nó…' }), bakErr) }
+  const restore = (): void => { setBak(null); void window.api.restoreBackup().then((r: { staged: boolean }) => r.staged && setBak({ ok: true, text: 'Bản sao lưu hợp lệ. App đang tự đóng và mở lại để dùng nó. Tự động gửi đã được tắt và các lô đang chạy được tạm dừng: bật lại khi bạn muốn…' }), bakErr) }
   const toggleMcp = (on: boolean): void => { setMcp((m) => m && { ...m, enabled: on, url: null }) /* shown at once; main's answer below is what counts */; void window.api.setMcp(on).then((m: typeof mcp) => { setMcp(m); setMsg('') }, (e: Error) => { void window.api.getMcp().then(setMcp); setMsg(Object.entries(MCP_ERR).find(([k]) => e.message.includes(k))?.[1] ?? e.message) }) }
   return (
     <section aria-label="Cài đặt">
