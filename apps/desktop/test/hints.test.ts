@@ -77,5 +77,6 @@ test('a rejected button shows the Vietnamese line, not the raw IPC message; an u
 test('a failed self-check shows its line; a heartbeat:hook reason means another extension holds the page', () => {
   expect(checkHint({ code: 'PROTOCOL_DRIFT', reasons: ['heartbeat:hook_xhr_send'] })).toBe(hintOf('PAGE_BLOCKED'))
   expect(checkHint({ code: 'PROTOCOL_DRIFT', reasons: ['other'] })).toBe(hintOf('PROTOCOL_DRIFT'))
-  expect(checkHint({ code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] })).toBe(hintOf('CONFIG_INCOMPLETE'))
+  expect(checkHint({ code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] })).toBe(hintOf('RELOAD_TAB'))
+  expect(hintOf('RELOAD_TAB')).toMatch(/ToolFlow Connector.*F5/)
 })

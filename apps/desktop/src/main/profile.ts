@@ -73,6 +73,14 @@ export function selfCheck(p: Probe, prof: typeof profile = profile): SelfCheck {
   return reasons.length ? { ok: false, code: 'PROTOCOL_DRIFT', reasons } : { ok: true };
 }
 
+/** Ping then judge one tab. A ping that throws is a content script left over from before an extension reload (the tab was not
+ *  refreshed): RELOAD_TAB, instead of failing the whole session read. */
+export async function pingCheck(driver: Pick<FlowDriver, 'probeTab'>, ping: (t: string) => Promise<Ping>, tab: string, extVersion: string): Promise<{ ping: Ping | null; check: SelfCheck }> {
+  let p: Ping;
+  try { p = await ping(tab); } catch { return { ping: null, check: { ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] } }; }
+  return { ping: p, check: await selfCheckTab(driver, p, tab, extVersion) };
+}
+
 /** Probe one tab (read-only) and judge it. A driver without probeTab, or one that throws, gives an empty probe ⇒ never ok. */
 export async function selfCheckTab(driver: Pick<FlowDriver, 'probeTab'>, ping: Ping, tab: string, extVersion: string): Promise<SelfCheck> {
   let probe: TabProbe = { present: {}, listeners: 0, sawProjectLoad: false };

@@ -10,7 +10,7 @@ import { applyRestore, backupTo, stageRestore } from './backup'
 import { createAssetStore, registerAsset } from './assets'
 import { batchStatus, createRunner } from './runner'
 import { autoAllowed, autoGate, enableAuto } from './account'
-import { selfCheckTab, validateProfile, profile, PROFILE_PATH } from './profile'
+import { pingCheck, validateProfile, profile, PROFILE_PATH } from './profile'
 import { createFakeDriver, type DownloadScript, type FakeScript } from './fake-driver'
 import { createDownloader, recoverDownloads } from './downloads'
 import { createAutoSaver } from './autosave'
@@ -121,7 +121,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const flowRunner = createRunner({ db, driver, clock, tabs: [], speed: draft.speed, autoAllowed: (e) => autoGate(db, e, validateProfile(profile)),
     projectOf: (t) => grants.projectOf(t), // each tab only takes batches of the project it shows
     onCredits: (t, n) => notifier.credits(grants.emailOf(t), n),
-    selfCheckOk: async (t) => (await selfCheckTab(driver, await rawPing(t), t, extVersion)).ok }) // wall-clock ping like session(); no probeTab ⇒ manual
+    selfCheckOk: async (t) => (await pingCheck(driver, rawPing, t, extVersion)).check.ok }) // wall-clock ping like session(); no probeTab ⇒ manual
   // ChatGPT batches have their own runner (one prompt at a time in the open chatgpt.com tab); each finished image is saved while it is still on the page
   const hands = { busy: false } // ChatGPT and Gemini tabs are worked one at a time
   const gptRunner = createGptRunner({ db, driver: gptDriver, assets, clock, hands, download: (b) => downloader.batch(b) })
@@ -245,9 +245,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
     },
     async session() {
-      const em = await email()
       const t0 = grants.granted()[0]
-      const ping = t0 ? await rawPing(t0) : null
+      const pc = t0 ? await pingCheck(driver, rawPing, t0, extVersion) : null // a stale tab reads RELOAD_TAB, never fails the whole read
+      const em = pc?.ping?.email ?? null
       const list = await grants.list().catch(() => []) // extension absent ⇒ empty list
       const tabs = list.map((t) => ({ ...t, status: tabStatus(t), granted: grants.has(t.tabId), auto: grants.isAuto(t.tabId) })) // auto: chosen again from memory
       const accts = [...new Set(tabs.filter((t) => t.granted).map((t) => t.email).filter((e): e is string => !!e))]
@@ -260,7 +260,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
         gemTabs: await gemDriver.tabs().then((t) => t.length, () => 0), // the same for gemini.google.com
         autoEnabled: accts.length ? accts.every((e) => autoAllowed(db, e)) : autoAllowed(db, em),
         credits: notifier.creditList(), // the last Flow balance read per account, with its time
-        selfCheck: t0 && ping ? await selfCheckTab(driver, ping, t0, extVersion) : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
+        selfCheck: pc ? pc.check : validateProfile(profile) ? { ok: false, code: 'CONFIG_INCOMPLETE', reasons: [`PROFILE_INVALID:${PROFILE_PATH}`] } : null,
       }
     },
   })

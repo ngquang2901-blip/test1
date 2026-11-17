@@ -3,7 +3,7 @@ import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/main/db';
-import { profile, selfCheck, selfCheckTab, type Probe } from '../src/main/profile';
+import { profile, selfCheck, selfCheckTab, pingCheck, type Probe } from '../src/main/profile';
 import { autoAllowed, autoGate, enableAuto, disableAuto } from '../src/main/account';
 
 const now = Date.now();
@@ -145,6 +145,16 @@ test('selfCheckTab: scripted driver.probeTab drives the verdict; absent or throw
   const tabs: string[] = [];
   await run(async (t) => (tabs.push(t), probe));
   expect(tabs).toEqual(['t1']);
+});
+
+// After the extension is reloaded, a Flow tab that was not refreshed keeps an orphaned content script: its ping throws. The
+// session must not fail as a whole (the screen and MCP status went blank with EXTENSION_REFUSED): the check says RELOAD_TAB.
+test('pingCheck: a tab whose ping throws reads RELOAD_TAB with a null ping; a working one is judged as before', async () => {
+  const probe = { present: { editor: true, submit: true }, listeners: 1, sawProjectLoad: true };
+  const drv = { probeTab: async () => probe };
+  expect(await pingCheck(drv, async () => { throw Object.assign(new Error('x'), { code: 'EXTENSION_REFUSED' }); }, 't1', '1.0')).toEqual({ ping: null, check: { ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] } });
+  const ping = good().ping;
+  expect(await pingCheck(drv, async () => ping, 't1', '1.0')).toEqual({ ping, check: { ok: true } });
 });
 
 // Per-model options (choices): a batch may run with the default combo or with any value of a listed model's options.

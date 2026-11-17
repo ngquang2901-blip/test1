@@ -53,6 +53,9 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
   })
   expect(Object.keys(t)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume'])
   expect(await t.toolflow_status.run({})).toEqual({ connected: true, tabsInUse: 1, chatgptTabs: 1, geminiTabs: 0, selfCheckOk: true, autoSend: true, account: 'so***@gmail.com' })
+  const stale = toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, file: () => '',
+    list: async () => ({ batches: [], session: { connected: true, tabs: [{ granted: true }], autoEnabled: false, selfCheck: { ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] }, email: null } }) })
+  expect(await stale.toolflow_status.run({})).toMatchObject({ selfCheckOk: false, hint: hintOf('RELOAD_TAB') }) // the agent can tell the user what to do
   expect(await t.toolflow_create_batch.run({ prompts: ['một con mèo', ' một con chó '], kind: 'video' })).toEqual({ batchIds: ['b1', 'b2'] })
   expect(calls[0]).toMatchObject({ kind: 'video', mode: 'auto', text: 'một con mèo\nmột con chó' })
   expect(Object.keys(calls[0] as object).sort()).toEqual(['commandId', 'kind', 'mode', 'text'])
