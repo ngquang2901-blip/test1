@@ -72,9 +72,11 @@ export function createMcpSwitch(o: Opts & { file: string; port: number }) {
   return { state, set, close, start: async () => { if (saved().enabled) await set(true) } }
 }
 
+/** Pauses from the check before a click: nothing was sent, and a resume runs the same check again. */
+const PAGE_PAUSES = ['PAGE_BLOCKED', 'TARGET_CHANGED', 'COVERED', 'CREDIT_WARNING', 'BUTTON_DISABLED', 'CHIP_MISMATCH']
 type Brief = { id: string; kind: string; status: string; pauseReason: string | null; items: { prompt: string; attempts: { id: string; item: string; error: { code?: string } | null; outputs: string[] }[] }[] }
 export type McpDeps = {
-  enqueue(a: object): Promise<{ batchId?: string; batchIds?: string[]; errors?: { code: string }[] }>; start(batchId: string): Promise<unknown>; download(batchId: string): Promise<unknown> // the handlers the screens call
+  enqueue(a: object): Promise<{ batchId?: string; batchIds?: string[]; errors?: { code: string }[] }>; start(batchId: string): Promise<unknown>; download(batchId: string): Promise<unknown>; resume(batchId: string): Promise<unknown> // the handlers the screens call
   list(): Promise<{ batches: unknown[]; session: unknown }>
   file(attemptId: string, mediaId: string): string // the saved file's path; throws when it is not saved
 }
@@ -117,6 +119,19 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
       description: 'Save every finished result of a batch to Downloads/ToolFlow, then return the batch with file paths. Generates nothing.',
       inputSchema: { type: 'object', required: ['batchId'], properties: { batchId: { type: 'string' } } },
       async run(a) { if (typeof a.batchId !== 'string' || !a.batchId) throw coded('INVALID_ARGS'); await d.download(a.batchId); return batches(a.batchId) },
+    },
+    toolflow_resume: {
+      description: `Resume a batch paused by the Flow page (${PAGE_PAUSES.join(', ')}) after the cause is fixed; the page is checked again before any click. Any other pause (a send that may have gone out, the user's own pause) is for the user: NEEDS_USER.`,
+      inputSchema: { type: 'object', required: ['batchId'], properties: { batchId: { type: 'string' } } },
+      async run(a) {
+        if (typeof a.batchId !== 'string' || !a.batchId) throw coded('INVALID_ARGS')
+        const b = ((await d.list()).batches as Brief[]).find((x) => x.id === a.batchId)
+        if (!b) throw coded('NOT_FOUND')
+        if (b.status !== 'paused') throw coded('NOT_PAUSED')
+        if (!PAGE_PAUSES.includes(b.pauseReason ?? '')) throw coded('NEEDS_USER')
+        await d.resume(b.id)
+        return batches(b.id)
+      },
     },
   }
 }

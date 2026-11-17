@@ -46,11 +46,11 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
     { prompt: 'p2', attempts: [{ id: 'a2', item: 'failed', error: { code: 'CONTENT_BLOCKED' }, outputs: [] }] }] }
   const t = toolsOf({
     enqueue: async (a) => { calls.push(a); return (a as { text: string }).text === 'bad' ? { errors: [{ code: 'EMPTY' }] } : { batchIds: ['b1', 'b2'] } },
-    start: async (id) => void calls.push(`start ${id}`), download: async (id) => void calls.push(`download ${id}`),
+    start: async (id) => void calls.push(`start ${id}`), download: async (id) => void calls.push(`download ${id}`), resume: async () => {},
     list: async () => ({ batches: [batch], session: { connected: true, tabs: [{ granted: true }, { granted: false }], gptTabs: 1, autoEnabled: true, selfCheck: { ok: true }, email: 'someone@gmail.com' } }),
     file: (a, m) => { if (m === 'm2') throw new Error('not saved'); return `/dl/${a}-${m}.mp4` },
   })
-  expect(Object.keys(t)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download'])
+  expect(Object.keys(t)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume'])
   expect(await t.toolflow_status.run({})).toEqual({ connected: true, tabsInUse: 1, chatgptTabs: 1, geminiTabs: 0, selfCheckOk: true, autoSend: true, account: 'so***@gmail.com' })
   expect(await t.toolflow_create_batch.run({ prompts: ['một con mèo', ' một con chó '], kind: 'video' })).toEqual({ batchIds: ['b1', 'b2'] })
   expect(calls[0]).toMatchObject({ kind: 'video', mode: 'auto', text: 'một con mèo\nmột con chó' })
@@ -74,6 +74,22 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
   expect(Object.keys(calls[n + 3] as object).sort()).toEqual(['commandId', 'kind', 'mode', 'provider', 'text'])
   await t.toolflow_create_batch.run({ prompts: ['x'], site: 'flow' })
   expect(Object.keys(calls[n + 6] as object).sort()).toEqual(['commandId', 'kind', 'mode', 'text'])
+})
+
+test('tools: resume lifts only a pause the page caused (re-checked before any click); a pause that needs a person stays for the user', async () => {
+  const resumed: string[] = []
+  const b = (id: string, status: string, pauseReason: string | null) => ({ id, kind: 'image', status, pauseReason, items: [] })
+  const t = toolsOf({
+    enqueue: async () => ({}), start: async () => {}, download: async () => {}, file: () => { throw new Error('x') },
+    resume: async (id) => void resumed.push(id),
+    list: async () => ({ batches: [b('p1', 'paused', 'PAGE_BLOCKED'), b('p2', 'paused', 'COVERED'), b('u1', 'paused', 'SUBMIT_UNCERTAIN'), b('u2', 'paused', null), b('r1', 'running', null)], session: {} }),
+  })
+  expect(await t.toolflow_resume.run({ batchId: 'p1' })).toEqual({ batches: [b('p1', 'paused', 'PAGE_BLOCKED')] })
+  await t.toolflow_resume.run({ batchId: 'p2' })
+  expect(resumed).toEqual(['p1', 'p2'])
+  for (const [a, code] of [[{ batchId: 'u1' }, 'NEEDS_USER'], [{ batchId: 'u2' }, 'NEEDS_USER'], [{ batchId: 'r1' }, 'NOT_PAUSED'], [{ batchId: 'nope' }, 'NOT_FOUND'], [{}, 'INVALID_ARGS']] as const)
+    await expect(t.toolflow_resume.run(a), JSON.stringify(a)).rejects.toMatchObject({ code })
+  expect(resumed).toEqual(['p1', 'p2']) // a send that may have gone out, or the user's own pause, is never lifted by an agent
 })
 
 test('switch: off by default; on writes address + token to a 0600 file and answers there; off closes it; the token and the choice survive a restart', async () => {

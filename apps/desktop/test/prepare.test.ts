@@ -129,11 +129,11 @@ test('decideCheck: table', () => {
     ['all good with 2 refs and 2 chips', mut((c) => { c.refMedia = ['x', 'y']; c.state!.chips = ['y', 'x'] }), null],
     ['other project', mut((c) => { c.tabProject = 'zzz' }), 'TARGET_CHANGED'],
     ['tab has no project', mut((c) => { c.tabProject = null }), 'TARGET_CHANGED'],
-    ['xhrSend dead', mut((c) => { c.ping!.xhrSend = false }), 'TARGET_CHANGED'],
-    ['fetch dead', mut((c) => { c.ping!.fetch = false }), 'TARGET_CHANGED'],
-    ['no ping', mut((c) => { c.ping = null }), 'TARGET_CHANGED'],
-    ['submit selector gone', mut((c) => { c.probe!.present.submit = false }), 'TARGET_CHANGED'],
-    ['no probe', mut((c) => { c.probe = null }), 'TARGET_CHANGED'],
+    ['xhrSend dead', mut((c) => { c.ping!.xhrSend = false }), 'PAGE_BLOCKED'],
+    ['fetch dead', mut((c) => { c.ping!.fetch = false }), 'PAGE_BLOCKED'],
+    ['no ping', mut((c) => { c.ping = null }), 'PAGE_BLOCKED'],
+    ['submit selector gone', mut((c) => { c.probe!.present.submit = false }), 'PAGE_BLOCKED'],
+    ['no probe', mut((c) => { c.probe = null }), 'PAGE_BLOCKED'],
     ['submit disabled', mut((c) => { c.state!.submitDisabled = true }), 'BUTTON_DISABLED'],
     ['submit missing (null)', mut((c) => { c.state!.submitDisabled = null }), 'BUTTON_DISABLED'],
     ['credit warning', mut((c) => { c.state!.creditWarning = true }), 'CREDIT_WARNING'],
@@ -145,7 +145,7 @@ test('decideCheck: table', () => {
   for (const [name, c, code] of rows) expect(decideCheck(c), name).toEqual(code ? { ok: false, code } : { ok: true })
 })
 
-test('checkBeforeClick: ops flow into the decision; any thrown op error but a lost connection ⇒ TARGET_CHANGED', async () => {
+test('checkBeforeClick: ops flow into the decision; any thrown op error but a lost connection ⇒ PAGE_BLOCKED (the page did not answer: often another extension on it)', async () => {
   const world = (over: Partial<Record<string, unknown>> = {}): Handler => (op) => (op in over ? over[op] : ({
     tabs: [{ tabId: '7', path: `/fx/tools/flow/project/${P}`, active: true }],
     ping: { xhrSend: true, xhrOpen: true, fetch: true }, probe: { present: { editor: true, submit: true } },
@@ -162,7 +162,7 @@ test('checkBeforeClick: ops flow into the decision; any thrown op error but a lo
   expect(await dr(world({ state: { submitDisabled: false, creditWarning: false, chips: ['c'] } })).checkBeforeClick('7', P, ['r1'])).toEqual({ ok: true })
   expect(await dr(world({ state: { submitDisabled: false, creditWarning: false, chips: ['other'] } })).checkBeforeClick('7', P, ['r1'])).toEqual({ ok: false, code: 'CHIP_MISMATCH' })
   expect(await d(world()).checkBeforeClick('7', P, ['r1'])).toEqual({ ok: false, code: 'CHIP_MISMATCH' })
-  for (const op of ['tabs', 'ping', 'probe', 'state', 'hit']) expect(await d(world({ [op]: new Error('x') })).checkBeforeClick('7', P), op).toEqual({ ok: false, code: 'TARGET_CHANGED' })
+  for (const op of ['tabs', 'ping', 'probe', 'state', 'hit']) expect(await d(world({ [op]: new Error('x') })).checkBeforeClick('7', P), op).toEqual({ ok: false, code: 'PAGE_BLOCKED' })
   const probe = stub(world())
   await createExtDriver(probe.server, OPEN).checkBeforeClick('7', P)
   expect(probe.seen.find((s) => s[0] === 'probe')![1]).toEqual({ tabId: '7', selectors: { editor: profile.selectors.editor, submit: profile.selectors.submit } })
@@ -237,7 +237,7 @@ test('fake driver scripted prepare failure ⇒ prep_failed (no click); check fai
     await t.runner.tick()
     expect([t.fake.ledger.clicks, t.state().error.code]).toEqual([0, code])
   }
-  for (const code of ['TARGET_CHANGED', 'COVERED', 'CREDIT_WARNING', 'BUTTON_DISABLED', 'CHIP_MISMATCH']) {
+  for (const code of ['TARGET_CHANGED', 'PAGE_BLOCKED', 'COVERED', 'CREDIT_WARNING', 'BUTTON_DISABLED', 'CHIP_MISMATCH']) {
     const t = rig({ combo: DEFAULT_COMBO }, { check: [code] })
     await t.runner.tick()
     expect([t.fake.ledger.clicks, t.runner.lastError(t.batchId)]).toEqual([0, code])

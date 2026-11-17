@@ -4,7 +4,7 @@ import { profile } from '../profile'
 import { uploadName, type AssetStore } from '../assets'
 import type { ConnectorServer } from './server'
 
-type CheckCode = 'COVERED' | 'CREDIT_WARNING' | 'BUTTON_DISABLED' | 'CHIP_MISMATCH' | 'TARGET_CHANGED'
+type CheckCode = 'COVERED' | 'CREDIT_WARNING' | 'BUTTON_DISABLED' | 'CHIP_MISMATCH' | 'TARGET_CHANGED' | 'PAGE_BLOCKED'
 /** Order-insensitive; a null in `want` (unbound ref) never matches; a chip listed twice never matches. */
 const sameSet = (chips: unknown, want: Array<string | null>): boolean => {
   const w = new Set(want)
@@ -23,8 +23,8 @@ export type CheckInput = {
 export function decideCheck(c: CheckInput, selfCheck: readonly string[] = profile.selfCheck): { ok: true } | { ok: false; code: CheckCode } {
   const no = (code: CheckCode) => ({ ok: false as const, code })
   if (c.tabProject !== c.projectId) return no('TARGET_CHANGED')
-  if (!c.ping || c.ping.xhrSend !== true || c.ping.xhrOpen !== true || c.ping.fetch !== true) return no('TARGET_CHANGED') // observer not alive: the page is not what we armed
-  if (!c.probe || selfCheck.some((k) => c.probe!.present?.[k] !== true)) return no('TARGET_CHANGED')
+  if (!c.ping || c.ping.xhrSend !== true || c.ping.xhrOpen !== true || c.ping.fetch !== true) return no('PAGE_BLOCKED') // observer not alive: something else (often another extension, e.g. TobyFlow) holds the page's hooks
+  if (!c.probe || selfCheck.some((k) => c.probe!.present?.[k] !== true)) return no('PAGE_BLOCKED')
   if (!c.state || c.state.submitDisabled !== false) return no('BUTTON_DISABLED')
   if (c.state.creditWarning !== false) return no('CREDIT_WARNING')
   if (!sameSet(c.state.chips, c.refMedia)) return no('CHIP_MISMATCH')
@@ -171,7 +171,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
         const selectors = selfSelectors()
         const [ping, probe, state, hit] = await Promise.all([server.send('ping', t), server.send('probe', { ...t, selectors }), server.send('state', t), server.send('hit', t)]) as never[]
         return decideCheck({ tabProject: projectIdOf(here.path), projectId, ping, probe, state, hit, refMedia })
-      } catch (e) { if (e instanceof ConnectorError) throw e; return { ok: false, code: 'TARGET_CHANGED' } } // either way nothing is clicked
+      } catch (e) { if (e instanceof ConnectorError) throw e; return { ok: false, code: 'PAGE_BLOCKED' } } // the page did not answer a check: nothing is clicked
     },
     // the runner's tab epoch rides in msg.epoch (sw.js copies it into args.epoch for 'trusted')
     click: async (tabId, epoch) => (granted(tabId), (await server.send('trusted', tab(tabId), epoch)) as ClickResult),

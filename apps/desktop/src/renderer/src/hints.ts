@@ -23,6 +23,7 @@ export const HINTS: Record<string, string> = {
   CREDIT_WARNING: 'Flow báo không đủ credit. Kiểm tra credit rồi bấm Tiếp tục',
   BUTTON_DISABLED: 'Nút Gửi của Flow đang bị khoá. Đợi hoặc kiểm tra ô nhập rồi bấm Tiếp tục',
   TARGET_CHANGED: 'Tab Flow đã chuyển sang dự án khác. Quay lại đúng dự án rồi bấm Tiếp tục',
+  PAGE_BLOCKED: 'ToolFlow không kiểm được trang Flow, thường do một tiện ích khác (vd TobyFlow) đang chạy trên trang. Tắt tiện ích đó, tải lại tab Flow (F5) rồi bấm Tiếp tục',
   CONFIG_INCOMPLETE: 'Trang Flow khác bản app đã kiểm. Tải lại tab Flow và kiểm tra ở màn Kết nối',
   PROTOCOL_DRIFT: 'Flow đổi định dạng dữ liệu. Dừng chạy tự động và báo người bảo trì',
   // Flow answers
