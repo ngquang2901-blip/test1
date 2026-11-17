@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openDb } from '../src/main/db'
@@ -437,4 +437,25 @@ test('a save that fails once right after the result is tried again before what n
   expect(t.calls.filter((c) => c === 'download b1')).toHaveLength(2)
   expect(t.calls.filter((c) => c.startsWith('frame'))).toEqual(['frame /dl/A.png', 'frame /dl/B.png'])
   expect((await t.wf.workflowRun(runId))!.nodes.m.state).toBe('done')
+})
+
+test('a run cut off by a quit is told at the next start; a run that ended is not', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tf-wfm-')), marker = join(dir, 'wf-running.json'), told: string[] = []
+  const mk = (status: () => string) => createWorkflows({
+    db: openDb(join(dir, 't.db')), now: () => 5, marker, attention: (_t, b) => told.push(b), sleep: () => new Promise((x) => setTimeout(x, 1)),
+    enqueue: async () => ({ batchIds: ['b1'] }), start: async () => {}, stop: async () => {}, status, download: async () => {}, outputs: () => ['/dl/a.png'], codes: () => [null],
+    register: (p) => p, lastFrame: async (p) => p, merge: async () => '', savePath: async () => null, openPath: async () => null,
+  })
+  const graph = parseGraph({ nodes: [N('t', 'text', 0, { text: 'x' }), N('g', 'generate', 300)], edges: [{ from: 't', to: 'g' }] })
+  const first = mk(() => 'running') // never finishes: the app "quits" here
+  const { runId: stuck } = await first.handlers.runWorkflow({ graph, mode: 'auto', name: 'Mèo' }) as { runId: string }
+  expect(existsSync(marker)).toBe(true)
+  const next = mk(() => 'completed'); next.interrupted()
+  expect(told).toEqual(['Workflow Mèo bị dừng giữa chừng vì app tắt — mở Workflow và chạy lại'])
+  expect(existsSync(marker)).toBe(false)
+  const done = mk(() => 'completed'), { runId } = await done.handlers.runWorkflow({ graph, mode: 'auto' }) as { runId: string }
+  for (let i = 0; i < 200 && (await done.handlers.workflowRun(runId))!.status === 'running'; i++) await new Promise((x) => setTimeout(x, 5))
+  await new Promise((x) => setTimeout(x, 10))
+  expect(existsSync(marker)).toBe(false); done.interrupted(); expect(told).toHaveLength(1)
+  await first.handlers.stopWorkflow(stuck)
 })

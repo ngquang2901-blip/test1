@@ -8,7 +8,7 @@ import { DEFAULT_COMBO } from '../src/main/profile';
 import { FAKE_COMBOS, createFakeDriver } from '../src/main/fake-driver';
 import { createRunner } from '../src/main/runner';
 import { autoAllowed, enableAuto } from '../src/main/account';
-import { createHandlers, revisioned, parseDraft, DEFAULT_DRAFT, type Draft } from '../src/main/ipc';
+import { createHandlers, registerIpc, revisioned, parseDraft, DEFAULT_DRAFT, type Draft } from '../src/main/ipc';
 import { clockFactor, errorCode } from '../src/main/boot-util';
 import { newer } from '../src/renderer/src/revision';
 
@@ -278,4 +278,14 @@ test('openChrome: the renderer names a page, main picks the address; anything el
   expect(opened).toHaveLength(2);
   await h.forgetTabs();
   expect(forgot).toBe(1);
+});
+
+test('registerIpc: a call from a frame the app did not approve is refused before the handler runs', async () => {
+  const on: Record<string, (e: unknown, a: unknown) => unknown> = {};
+  let ran = 0;
+  registerIpc({ handle: (ch, f) => { on[ch] = f as never; } }, { ping: () => { ran++; return 'pong'; } }, (e) => (e.senderFrame as unknown) === 'main');
+  expect(await on.ping({ senderFrame: 'main' }, 1)).toBe('pong');
+  expect(() => on.ping({ senderFrame: 'iframe' }, 1)).toThrow(/FORBIDDEN/);
+  expect(() => on.ping({ senderFrame: null }, 1)).toThrow(/FORBIDDEN/);
+  expect(ran).toBe(1);
 });

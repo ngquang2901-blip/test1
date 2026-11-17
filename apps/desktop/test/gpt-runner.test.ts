@@ -493,6 +493,7 @@ test('a pause before the click for a page that was not ready lifts by itself aft
   expect(c.status()).not.toBe('running'); // a stopped batch is left alone
 });
 
+<<<<<<< HEAD
 test('B5: a ChatGPT pause reason survives a restart and is cleared by resume', async () => {
   const t = rig([], ['a red kite'], { fake: { tabs: 0 } });
   await t.ticks(2);
@@ -503,4 +504,46 @@ test('B5: a ChatGPT pause reason survives a restart and is cleared by resume', a
   const g3 = createGptRunner({ db: t.db, driver: t.fake.driver, clock: t.clock, pollMs: 0, sleep: async () => undefined, download: async () => undefined });
   g3.recover();
   expect(g3.lastError(t.batch)).toBeNull();
+=======
+
+test('a click that showed no turn in time: a late turn is adopted, the prompt is not sent again', async () => {
+  const t = rig([], ['a red kite']);
+  const send = t.fake.driver.send;
+  t.fake.driver.send = async (...a) => { await send(...a); return { ok: false, code: 'SEND_NO_EFFECT' }; }; // the click worked, the page was just slow to show it
+  await t.ticks(1);
+  expect(items(t.states())).toBe('preparing');
+  expect(t.fake.ledger.sends).toEqual(['a red kite']);
+  t.fake.driver.send = send;
+  t.runner.resume(t.batch);
+  await t.ticks(1);
+  expect(items(t.states())).toBe('generating');
+  await t.ticks(5);
+  expect(items(t.states())).toBe('ready');
+  expect(t.fake.ledger.sends).toEqual(['a red kite']);
+});
+
+function parked(dup = false) { // the connector drops right after the click: the attempt lands in needs_review, then the page is seen again
+  const t = rig([], ['a red kite']);
+  const turns = t.fake.driver.turns; let down = false, twin = false;
+  t.fake.driver.turns = async (...a) => { if (down) throw new Error('lost'); const r = await turns(...a); return twin ? { ...r, turns: [...r.turns, ...r.turns.filter((x) => x.mine).map((x) => ({ ...x, key: x.key + '-2' }))] } : r; };
+  return { t, drop: async () => { down = true; await t.ticks(3, 20_000); down = false; twin = dup; } };
+}
+
+test('needs_review after a short drop: the turn is adopted once the page is seen again', async () => {
+  const { t, drop } = parked();
+  await t.ticks(1); await drop();
+  expect(items(t.states())).toBe('needs_review');
+  await t.ticks(1);
+  expect(items(t.states())).toBe('generating');
+  await t.ticks(5);
+  expect(items(t.states())).toBe('ready');
+  expect(t.fake.ledger.sends).toHaveLength(1);
+});
+
+test('needs_review with two candidate turns carrying the prompt stays needs_review', async () => {
+  const { t, drop } = parked(true);
+  await t.ticks(1); await drop();
+  await t.ticks(3);
+  expect(items(t.states())).toBe('needs_review');
+>>>>>>> fix-d-run
 });

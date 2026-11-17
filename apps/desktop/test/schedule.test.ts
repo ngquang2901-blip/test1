@@ -74,3 +74,15 @@ test('the new settings are validated like the old ones; a bad value on disk fall
     await expect(t.h.saveDraft(bad), JSON.stringify(bad)).rejects.toThrow(/INVALID_ARGS/);
   expect(parseDraft({ creditWarn: 'x' })).toEqual(DEFAULT_DRAFT);
 });
+
+test('a time missed by more than an hour is not started: start_at is cleared and the user is told; a failed start tells too', async () => {
+  const t = rig(), told: [string, string][] = [];
+  const sched = createScheduler({ db: t.db, now: () => t.clock.now(), start: (id) => { if (id === bad) throw new Error('x'); return t.h.startBatch(id); }, notify: () => {}, attention: (id, _title, body) => told.push([id, body]) });
+  const old = await make(t.h, T0 + 1_000), bad = await make(t.h, T0 + 2 * 3600_000 + 5_000), ok = await make(t.h, T0 + 2 * 3600_000 + 6_000);
+  t.clock.t = T0 + 2 * 3600_000 + 10_000; // the PC was off for two hours
+  await sched.tick();
+  expect(t.status(old)).toEqual({ status: 'queued', s: null });
+  expect(t.status(bad).s).toBe(null); expect(t.status(ok).status).toBe('running');
+  expect(told.map((x) => x[0])).toEqual([old, bad]);
+  expect(told[0][1]).toMatch(/lỡ/);
+});

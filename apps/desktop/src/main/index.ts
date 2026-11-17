@@ -18,7 +18,7 @@ import { createMcpSwitch, toolsOf } from './mcp'
 import { autoUpdater } from 'electron-updater'
 import { createFakeUpdater, createUpdates, type Updater } from './updates'
 import { createWorkflows } from './workflow'
-import { concatVideos, lastFrame } from './ffmpeg'
+import { concatVideos, lastFrame, pruneFrames } from './ffmpeg'
 import { TINY_PNG } from './fake-driver'
 import { createExtGpt, createFakeGpt, isGemMedia, isGptMedia, type GptDriver, type GptScript } from './gpt-driver'
 import { createGptRunner, routeRunner } from './gpt-runner'
@@ -285,7 +285,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     const o = { properties: ['openFile' as const], filters }
     return (await (w ? dialog.showOpenDialog(w, o) : dialog.showOpenDialog(o))).filePaths[0] ?? null
   }
+  pruneFrames(join(userData, 'frames'), clock.now())
   const wf = createWorkflows({
+    marker: join(userData, 'wf-running.json'), attention: (title, body) => notifier.notify({ kind: 'attention', batchId: null, title, body }),
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
     status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
@@ -300,6 +302,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     codes: (b) => (db.prepare("select json_extract(a.state_json,'$.error.code') c from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord").all(b) as { c: string | null }[]).map((r) => r.c),
   })
   wfActive = wf.active
+  wf.interrupted()
   // MCP: an AI agent on this machine drives the same handlers the screens call. Off until the user turns it on in Cài đặt.
   const mcp = createMcpSwitch({
     file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(), // a fixed port, so the agent's config survives restarts
@@ -356,9 +359,9 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async checkLicense() { await lic.check() },
     async signOut() { lic.signOut() },
   }
-  registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers })
+  registerIpc(ipcMain, { ...h, ...gated({ ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }), ...licenseHandlers }, (e) => { const f = win()?.webContents.mainFrame; return !!f && e.senderFrame?.processId === f.processId && e.senderFrame?.routingId === f.routingId }) // the app's own main frame only
   // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
-  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late) })
+  const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late), attention: (b, title, body) => notifier.notify({ kind: 'attention', batchId: b, title, body }) })
   const schedTick = (): void => void (lic.ok() ? sched.tick() : Promise.resolve()).catch((e) => console.error('schedule', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))
   schedTick()
   setInterval(schedTick, 5000)
