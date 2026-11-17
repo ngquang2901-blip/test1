@@ -392,3 +392,9 @@ Owner's call after 0.14.0: no sign-in for now. `LICENSE_REQUIRED = false` in `li
 ## 0.16.1 released (2026-11-17)
 - Gate on main: typecheck 0, unit 452/452, extension 109/109, protocol 56/56, build 0, e2e 68/68, package 0. Released v0.16.1 (3 assets, sizes equal to dist). The owner's app updated itself 0.16.0 → 0.16.1 (new window at ~51 s, responding); the MCP switch, its key and the remembered Flow tab came back by themselves.
 - Live with Kaiser on the real Flow tab (account `ng***`): TobyFlow on → Kaiser's batch paused `PAGE_BLOCKED` (Kaiser listed 5 tools and read the code); TobyFlow off + F5 → `selfCheckOk` true → Kaiser called `toolflow_resume` → item `awaiting_user` → Gửi clicked in Flow → `completed` → Kaiser's `toolflow_download` returned 2 saved JPEG files. TobyFlow turned back on afterwards.
+
+## 0.17.0 (2026-11-17): audit fixes
+- Audit (4 read-only reviewers + npm audit) → fixes A1–A9 (extension/protocol), B1–B10 (runner/connector/downloads), C1–C10 (UI), D1–D7 (ChatGPT/Gemini, ffmpeg, schedule, backup, IPC, CSV, workflow notice) in 4 worktrees, merged on fix-all. Plus: Electron 44.11.3 (GHSA-jr5w-w6x2-84p9), Veo 3.1 - Fast removed, the turned-off sign-in code deleted.
+- Live run on the owner's Chrome caught what unit tests could not: A7's `tabs.onUpdated` filter is Firefox-only and threw in Chrome, so the new worker never connected. Fixed (filter inside the listener), sw tests now use Chrome-strict event stand-ins. Then: new handshake connected, page self-check ok over the private MessageChannel, an image batch ran with auto-send and 2 images were downloaded.
+- Upgrade: Chrome keeps the old extension until it is reloaded; the app now notices the old token offer and Kết nối tells the user to reload ToolFlow Connector.
+
