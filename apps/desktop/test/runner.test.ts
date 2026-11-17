@@ -1067,3 +1067,16 @@ test('B5: the pause reason survives a restart: lastError is kept and CONNECTOR_L
   r3.recover();
   expect(r3.lastError(t.batchId)).toBeNull(); // cleared on resume, not stale
 });
+
+test('B6: a tick that arrives while the previous one is still running joins it instead of queueing another run', async () => {
+  const t = rig(['image-ok'], { n: 1, slowClick: true });
+  t.runner.start(t.batchId);
+  const first = t.runner.tick();
+  await flush();
+  const ticks = Array.from({ length: 50 }, () => t.runner.tick());
+  expect(ticks.every((p) => p === first)).toBe(true);
+  expect(t.driver.ledger.clicks).toBe(0);
+  t.openClick();
+  await first;
+  expect(t.runner.tick()).not.toBe(first); // free again
+});

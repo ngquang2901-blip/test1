@@ -288,7 +288,7 @@ export function createRunner(o: {
   }
 
 
-  let chain: Promise<unknown> = Promise.resolve();
+  let chain: Promise<unknown> = Promise.resolve(), pending: Promise<void> | null = null;
   async function run() {
     flush();
     const drain = () => {
@@ -362,7 +362,7 @@ export function createRunner(o: {
         paused.delete(b); setStatus(b, 'paused', 'running');
       }
     },
-    tick() { const p = chain.then(run); chain = p.catch(() => undefined); return p; },
+    tick() { if (pending) return pending; const p = chain.then(run).finally(() => { pending = null; }); chain = p.catch(() => undefined); return (pending = p); }, // a tick still running is joined, not queued behind (index.ts ticks every 200 ms)
     start(b) { paused.delete(b); unc.delete(b); setStatus(b, 'queued', 'running'); },
     pause(b) { setStatus(b, 'running', 'paused'); paused.set(b, null); unc.delete(b); },
     resume(b) { paused.delete(b); unc.delete(b); setStatus(b, 'paused', 'running'); },
