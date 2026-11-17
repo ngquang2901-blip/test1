@@ -189,8 +189,8 @@ function page({ text = '', panel = false, start = {}, doubled = false, clearWork
     querySelector: (s) => (SEL[s] ? SEL[s]() : null), querySelectorAll: (s) => (dom.menu && overlay[s] ? overlay[s]() : []),
     execCommand: (_c, _u, t) => { dom.text += doubled ? t + t : t; return true; },
   };
-  const ctx = vm.createContext({ document, chrome: { runtime: { getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set });
-  ctx.globalThis = ctx; ctx.window = ctx;
+  const ctx = vm.createContext({ document, chrome: { runtime: { getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set, MessageChannel, location: { origin: 'https://flow.google.com' } });
+  ctx.globalThis = ctx; ctx.window = ctx; ctx.postMessage = (_d, _o, ports) => ports[0].close(); // no main world here; a closed channel lets the test process end
   for (const f of ['../settings-logic.js', '../page-ops.js']) vm.runInContext(readFileSync(new URL(f, import.meta.url), 'utf8'), ctx);
   const call = (op, args) => new Promise((res) => listener({ tf: 'op', op, args }, null, (r) => res(JSON.parse(JSON.stringify(r)))));
   return { dom, call, w };

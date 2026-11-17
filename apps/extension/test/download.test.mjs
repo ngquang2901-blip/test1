@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -78,18 +78,18 @@ test('downloads op: by id or by tmp-folder prefix; results are shaped', async ()
 });
 
 // ---- page-ops.js: locate / src against a fake DOM ----
+const ports_ = []; after(() => ports_.forEach((p) => p.close())); // open ports keep the test process alive
 function page(imgs, videoSrc = {}) { // videoSrc: what the main world answers for a media id (it learnt it from Flow's own answers)
   let listener;
-  const on = {};
   const document = {
-    createElement: () => ({}), documentElement: { append() {} }, addEventListener(t, h) { on[t] = h; }, removeEventListener(t) { delete on[t]; }, body: { innerText: '' },
-    dispatchEvent(e) { if (e.type === 'toolflow:media') on['toolflow:media-result']?.({ detail: JSON.stringify({ src: videoSrc[JSON.parse(e.detail).mediaId] ?? null }) }); },
+    createElement: () => ({}), documentElement: { append() {} }, body: { innerText: '' },
     querySelector: () => null,
     querySelectorAll: (sel) => { const m = /^img\[data-media-id="([^"]*)"\]$/.exec(sel); return m ? imgs.filter((i) => i.id === m[1]) : []; },
   };
   const ctx = vm.createContext({ document, CSS: { escape: (s) => s }, chrome: { runtime: { id: 'me', getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set,
-    CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o?.detail; } } });
+    MessageChannel, location: { origin: 'https://flow.google.com' } });
   ctx.globalThis = ctx; ctx.window = ctx;
+  ctx.postMessage = (data, origin, ports) => { const p = ports[0]; ports_.push(p); p.onmessage = (e) => { if (e.data.name === 'toolflow:media') p.postMessage({ name: 'toolflow:media-result', id: e.data.id, detail: { src: videoSrc[e.data.detail.mediaId] ?? null } }); }; }; // the main world's end of the private channel
   vm.runInContext(readFileSync(new URL('../page-ops.js', import.meta.url), 'utf8'), ctx);
   const ask = (m, sender = { id: 'me' }) => new Promise((res) => { let done = false; const keep = listener(m, sender, (r) => { done = true; res(JSON.parse(JSON.stringify(r))); }); if (!keep && !done) setTimeout(() => res('no-reply'), 20); });
   return { op: (op, args) => ask({ tf: 'op', op, args }), src: (mediaId, sender) => ask({ tf: 'src', mediaId }, sender) };

@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -106,24 +106,24 @@ test('validate arm: integer epoch or explicit null', () => {
   for (const a of [{}, { epoch: '5' }, { epoch: 1.5 }, { epoch: undefined }, { tabId: 1 }]) assert.ok(validate(ok('arm', a)), JSON.stringify(a));
 });
 
-function loadMain(fetchImpl) {
-  class ET { addEventListener(t, l) { (this.h ??= {})[t] = l; } removeEventListener() {} dispatchEvent(e) { this.h?.[e.type]?.(e); } }
+const chans = []; after(() => chans.forEach((p) => p.close())); // open ports keep the test process alive
+function loadMain(fetchImpl, { late = false } = {}) { // late: the port reaches the main world only on m.connect()
+  class ET { addEventListener(t, l) { (this.h ??= {})[t] = l; } removeEventListener(t, l) { if (this.h?.[t] === l) delete this.h[t]; } dispatchEvent(e) { this.h?.[e.type]?.(e); } }
   class HB extends ET {} // a button the registry will record listeners on
   const btn = new HB(); btn.disabled = false; let shown = false;
   const document = new ET(); document.querySelector = () => (shown ? btn : null);
-  const win = { fetch: fetchImpl };
+  const win = new ET(); win.fetch = fetchImpl; win.postMessage = (data, origin, ports) => win.dispatchEvent({ type: 'message', source: win, data, ports });
   const ctx = vm.createContext({ window: win, document, EventTarget: ET, HTMLButtonElement: HB, XMLHttpRequest: class { open() {} send() {} },
-    crypto: { randomUUID: () => 'u' }, CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o?.detail; } }, globalThis: undefined });
+    crypto: { randomUUID: () => 'u' }, globalThis: undefined });
   ctx.globalThis = ctx;
   for (const f of JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8')).content_scripts.find((c) => c.world === 'MAIN').js) vm.runInContext(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), ctx); // the files and the order the browser loads
-  const events = []; let ping;
-  let breakEmit = false; // the test ET keeps one handler per type, so the collector doubles as the thrower
-  document.addEventListener('toolflow:event', (e) => { if (breakEmit) throw new Error('emit failed'); events.push(JSON.parse(e.detail)); });
-  document.addEventListener('toolflow:ping-result', (e) => { ping = JSON.parse(e.detail); });
-  const fire = (type, detail) => document.dispatchEvent({ type, detail: detail && JSON.stringify(detail) });
-  let lis; document.addEventListener('toolflow:listeners-result', (e) => { lis = JSON.parse(e.detail); });
-  let media; document.addEventListener('toolflow:media-result', (e) => { media = JSON.parse(e.detail); });
-  return { win, events, btn, media: (mediaId) => { media = undefined; fire('toolflow:media', { mediaId }); return media; }, show: (v) => { shown = v; }, listeners: () => { lis = undefined; fire('toolflow:listeners'); return lis; }, ping: () => { fire('toolflow:ping'); return ping; }, breakEmit: (v) => { breakEmit = v; }, arm: (epoch) => fire('toolflow:arm', { epoch }), gen: () => { fire('toolflow:ping'); return ping.gen; } };
+  const events = []; const waiting = new Map(); let n = 0;
+  const ch = new MessageChannel(); chans.push(ch.port1, ch.port2);
+  ch.port1.onmessage = (e) => { const m = e.data; if (m.name === 'toolflow:event') events.push(m.detail); else waiting.get(m.id)?.(m.detail); };
+  const connect = () => { win.postMessage('toolflow:port', 'https://flow.google.com', [ch.port2]); };
+  if (!late) connect();
+  const ask = (name, detail) => new Promise((res) => { const id = ++n; waiting.set(id, res); ch.port1.postMessage({ name, id, detail }); });
+  return { raw: (x) => ch.port1.postMessage(x), win, document, events, btn, connect, ask, media: (mediaId) => ask('toolflow:media', { mediaId }), show: (v) => { shown = v; }, listeners: () => ask('toolflow:listeners'), ping: () => ask('toolflow:ping'), arm: (epoch) => ask('toolflow:arm', { epoch }), gen: async () => (await ask('toolflow:ping')).gen };
 }
 const flush = () => new Promise((r) => setTimeout(r, 5));
 const okResp = (text = '') => async () => ({ status: 200, clone: () => ({ text: async () => text }) });
@@ -131,10 +131,10 @@ const URLG = 'https://x/batchexecute?rpcids=ogiZ0b';
 
 test('main-world fetch hook counts generate RPCs in gen (and only those)', async () => {
   const m = loadMain(okResp());
-  assert.equal(m.gen(), 0);
-  await m.win.fetch(URLG); assert.equal(m.gen(), 1, 'fetch generate');
-  await m.win.fetch('https://x/batchexecute?rpcids=MZZa6b'); assert.equal(m.gen(), 2);
-  await m.win.fetch('https://x/batchexecute?rpcids=jwpduf'); assert.equal(m.gen(), 2, 'non-generate rpc');
+  assert.equal((await m.gen()), 0);
+  await m.win.fetch(URLG); assert.equal((await m.gen()), 1, 'fetch generate');
+  await m.win.fetch('https://x/batchexecute?rpcids=MZZa6b'); assert.equal((await m.gen()), 2);
+  await m.win.fetch('https://x/batchexecute?rpcids=jwpduf'); assert.equal((await m.gen()), 2, 'non-generate rpc');
 });
 
 test('a poll answer (jwpduf) is handed on as a poll event; other watched rpcs are not events', async () => {
@@ -142,27 +142,27 @@ test('a poll answer (jwpduf) is handed on as a poll event; other watched rpcs ar
   await m.win.fetch('https://x/batchexecute?rpcids=jwpduf', { method: 'POST', body: 'f.req=P' }); await flush();
   await m.win.fetch('https://x/batchexecute?rpcids=nzlxg'); await flush();
   assert.deepEqual(m.events, [{ type: 'poll', text: 'POLL' }]);
-  assert.equal(m.gen(), 0, 'a poll is not a generate send');
+  assert.equal((await m.gen()), 0, 'a poll is not a generate send');
 });
 
 test('video media: Flow\'s own answers (as29s, the project listing) say which token is whose; the page then knows the MP4 address of that media only', async () => {
   const VID = '3f2b9c1e-1111-4222-8333-444455556666', TOKEN = 'AbCdEfGh_ijklmnop-QRSTUVWXYZ0123456789', entry = [VID, 'p', 'w', null, null, [[1, 2], 'x', null, null, null, `https://lh3.googleusercontent.com/asb/${TOKEN}`], null, [[null, 99]]];
   const body = (rpc, p) => `)]}'\n\n9\n${JSON.stringify([['wrb.fr', rpc, JSON.stringify(p)]])}\n`;
   const m = loadMain(okResp(body('as29s', entry)));
-  assert.deepEqual(m.media(VID), { src: null }, 'nothing learnt yet');
+  assert.deepEqual((await m.media(VID)), { src: null }, 'nothing learnt yet');
   await m.win.fetch('https://x/batchexecute?rpcids=as29s'); await flush();
-  assert.deepEqual(m.media(VID), { src: `https://flow.google.com/asb/${TOKEN}=mm,22,15` });
-  assert.deepEqual(m.media('aaaaaaaa-1111-4222-8333-444455556666'), { src: null });
+  assert.deepEqual((await m.media(VID)), { src: `https://flow.google.com/asb/${TOKEN}=mm,22,15` });
+  assert.deepEqual((await m.media('aaaaaaaa-1111-4222-8333-444455556666')), { src: null });
   assert.deepEqual(m.events, [], 'the address never travels as an event');
   const l = loadMain(okResp(body('Zzl0ze', [null, [], [entry]])));
   await l.win.fetch('https://x/batchexecute?rpcids=Zzl0ze'); await flush();
-  assert.deepEqual(l.media(VID.toUpperCase()), { src: `https://flow.google.com/asb/${TOKEN}=mm,22,15` });
+  assert.deepEqual(await l.media(VID.toUpperCase()), { src: `https://flow.google.com/asb/${TOKEN}=mm,22,15` });
 });
 
 // Live finding 2026-11-08: Flow sends generate (ogiZ0b) with fetch, not XHR. Events must flow from the fetch path too.
 test('fetch generate emits sent then response with the armed epoch and its own request body', async () => {
   const m = loadMain(okResp('RESP'));
-  m.arm(7);
+  await m.arm(7);
   await m.win.fetch(URLG, { method: 'POST', body: 'f.req=A' }); await flush();
   assert.deepEqual(m.events, [
     { type: 'sent', epoch: 7, request: 'f.req=A' },
@@ -173,7 +173,7 @@ test('fetch with a Request object: body is read from a clone, before the real fe
   let cloned = false, consumed = false;
   const req = { url: URLG, clone() { cloned = true; return { text: async () => 'f.req=B' }; } };
   const m = loadMain(async (r) => { assert.ok(cloned, 'cloned before the page fetch ran'); consumed = true; return { status: 200, clone: () => ({ text: async () => 'R2' }) }; });
-  m.arm(9);
+  await m.arm(9);
   await m.win.fetch(req); await flush();
   assert.ok(consumed);
   assert.equal(m.events[0].request, 'f.req=B'); assert.equal(m.events[1].epoch, 9);
@@ -205,28 +205,54 @@ test('net ring overflow is normal: 201 non-generate records never count as dropp
   const m = loadMain(okResp());
   for (let i = 0; i < 201; i++) await m.win.fetch('https://x/batchexecute?rpcids=jwpduf');
   await flush();
-  assert.equal(m.ping().dropped, 0);
-  assert.equal(m.ping().seq, 201);
+  assert.equal((await m.ping()).dropped, 0);
+  assert.equal((await m.ping()).seq, 201);
 });
 
-test('dropped counts real observer failures: an emit that throws', async () => {
-  const m = loadMain(okResp('R'));
-  m.breakEmit(true);
+test('dropped counts real observer failures: events that could not leave (no port yet)', async () => {
+  const m = loadMain(okResp('R'), { late: true });
   await m.win.fetch(URLG, { method: 'POST', body: 'f.req=A' }); await flush();
-  assert.equal(m.ping().dropped, 2, 'sent and response both failed to emit');
-  m.breakEmit(false);
+  m.connect();
+  assert.equal((await m.ping()).dropped, 2, 'sent and response both failed to emit');
   await m.win.fetch(URLG, { method: 'POST', body: 'f.req=B' }); await flush();
-  assert.equal(m.ping().dropped, 2);
+  assert.equal((await m.ping()).dropped, 2);
+  assert.equal(m.events.length, 2);
+});
+
+test('the channel is private: CustomEvents on document no longer submit, arm or relay; a foreign port message and malformed requests are ignored', async () => {
+  const m = loadMain(okResp('R'));
+  let called = 0; m.show(true); m.btn.addEventListener('click', () => { called++; });
+  for (const type of ['toolflow:submit', 'toolflow:arm', 'toolflow:ping', 'toolflow:net']) m.document.dispatchEvent({ type, detail: '{"epoch":1}' });
+  await flush();
+  assert.equal(called, 0, 'no trusted click from a page script');
+  assert.equal(await m.gen(), 0, 'nothing armed');
+  await m.win.fetch(URLG, { body: 'f.req=A' }); await flush();
+  assert.ok(m.events.every((e) => e.epoch === undefined), 'no epoch from a forged arm');
+  for (const bad of [null, 5, 'x', { name: 1 }, { name: 'constructor', id: 1 }, { name: 'toolflow:media', id: 1, detail: null }, { name: 'toolflow:submit', id: 1, detail: 'x' }]) m.raw(bad); // never throws, never answers
+  assert.equal(typeof (await m.ping()).seq, 'number', 'still alive after malformed requests');
+  const late = loadMain(okResp('R'), { late: true });
+  const evil = new MessageChannel(); chans.push(evil.port1, evil.port2);
+  let got = false; evil.port1.onmessage = () => { got = true; };
+  late.win.dispatchEvent({ type: 'message', source: {}, data: 'toolflow:port', ports: [evil.port2] }); // not from the page's own window
+  late.win.dispatchEvent({ type: 'message', source: late.win, data: 'other', ports: [evil.port2] });
+  late.win.dispatchEvent({ type: 'message', source: late.win, data: 'toolflow:port', ports: [] });
+  evil.port1.postMessage({ name: 'toolflow:ping', id: 1 }); await flush();
+  assert.equal(got, false, 'a port from a stranger is never taken');
+  late.connect(); assert.equal(typeof (await late.ping()).seq, 'number'); // the real one still works afterwards
+  const again = new MessageChannel(); chans.push(again.port1, again.port2); got = false; again.port1.onmessage = () => { got = true; };
+  late.win.dispatchEvent({ type: 'message', source: late.win, data: 'toolflow:port', ports: [again.port2] });
+  again.port1.postMessage({ name: 'toolflow:ping', id: 1 }); await flush();
+  assert.equal(got, false, 'one-time: a second port is not taken');
 });
 
 test('listeners op is read-only: reports found/disabled/count, never calls the listener, never arms', async () => {
   const m = loadMain(okResp('R'));
-  assert.deepEqual(m.listeners(), { found: false, disabled: null, listeners: 0 });
+  assert.deepEqual((await m.listeners()), { found: false, disabled: null, listeners: 0 });
   m.show(true);
-  assert.deepEqual(m.listeners(), { found: true, disabled: false, listeners: 0 });
+  assert.deepEqual((await m.listeners()), { found: true, disabled: false, listeners: 0 });
   let called = 0; m.btn.addEventListener('click', () => { called++; });
   m.btn.disabled = true;
-  assert.deepEqual(m.listeners(), { found: true, disabled: true, listeners: 1 });
+  assert.deepEqual((await m.listeners()), { found: true, disabled: true, listeners: 1 });
   assert.equal(called, 0, 'the page listener must not run');
   await m.win.fetch(URLG, { body: 'f.req=A' }); await flush();
   assert.ok(m.events.every((e) => e.epoch === undefined), 'listeners must not arm an epoch');
@@ -234,11 +260,11 @@ test('listeners op is read-only: reports found/disabled/count, never calls the l
 
 test('ping reports the rpc names seen complete since load, names only', async () => {
   const m = loadMain(okResp('SECRET-BODY'));
-  assert.deepEqual(m.ping().seen, []);
+  assert.deepEqual((await m.ping()).seen, []);
   await m.win.fetch('https://x/batchexecute?rpcids=Zzl0ze&sig=SECRET', { body: 'f.req=SECRET' }); await flush();
   await m.win.fetch(URLG, { body: 'x' }); await flush();
-  assert.deepEqual([...m.ping().seen].sort(), ['Zzl0ze', 'ogiZ0b']);
-  assert.ok(!JSON.stringify(m.ping()).includes('SECRET'));
+  assert.deepEqual([...(await m.ping()).seen].sort(), ['Zzl0ze', 'ogiZ0b']);
+  assert.ok(!JSON.stringify((await m.ping())).includes('SECRET'));
 });
 
 test('attach: a slot, when named, is the start or the end frame; any other slot is refused', () => {
@@ -247,4 +273,13 @@ test('attach: a slot, when named, is the start or the end frame; any other slot 
   assert.equal(validate(msg({ tabId: 1, name: 'tf-a.png' })), null);
   assert.equal(validate(msg({ tabId: 1, name: 'tf-a.png', slot: 'end' })), null);
   for (const slot of ['middle', '', 1]) assert.match(validate(msg({ tabId: 1, name: 'tf-a.png', slot })), /slot/);
+});
+
+test('the net ring stays empty until a net op has asked once (no 3 MB records kept for nobody)', async () => {
+  const m = loadMain(okResp('BODY'));
+  await m.win.fetch('https://x/batchexecute?rpcids=jwpduf'); await flush();
+  assert.deepEqual(await m.ask('toolflow:net'), []);
+  await m.win.fetch('https://x/batchexecute?rpcids=jwpduf'); await flush();
+  const r = await m.ask('toolflow:net');
+  assert.equal(r.length, 1); assert.equal(r[0].res, 'BODY');
 });
