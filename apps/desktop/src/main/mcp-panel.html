@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>ToolFlow</title>
+<!-- ToolFlow's panel inside an MCP Apps host (Kaiser): speaks the io.modelcontextprotocol/ui bridge over postMessage, asks ToolFlow for state
+     through the panel-only tools, never reaches the network itself (the host's CSP allows none). -->
+<style>
+  :root { --bg: #ffffff; --fg: #1d1d1f; --mute: #6e6e73; --line: #e5e5ea; --card: #f5f5f7; --acc: #0a84ff; --ok: #1f9d55; --warn: #c27c0e; --bad: #d64545; color-scheme: light; }
+  :root[data-theme=dark] { --bg: #1c1c1e; --fg: #f2f2f7; --mute: #a1a1a6; --line: #38383a; --card: #2c2c2e; --acc: #64a8ff; --ok: #4cc27c; --warn: #e2a33a; --bad: #ff6b6b; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: transparent; color: var(--fg); font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { padding: 10px 12px 12px; }
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  header b { font-size: 14px; }
+  header .sp { flex: 1; }
+  .muted { color: var(--mute); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 7px; padding: 3px 10px; cursor: pointer; }
+  button:hover { border-color: var(--acc); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.pri { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .batch { border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; margin-bottom: 8px; background: var(--bg); }
+  .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pill { font-size: 11.5px; padding: 1px 8px; border-radius: 99px; border: 1px solid currentColor; }
+  .run { color: var(--acc); } .wait { color: var(--warn); } .done { color: var(--ok); } .bad { color: var(--bad); } .idle { color: var(--mute); }
+  .bar { height: 4px; border-radius: 4px; background: var(--line); margin: 7px 0 2px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--acc); }
+  .hint { margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: var(--card); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; margin-top: 8px; }
+  .tile { position: relative; aspect-ratio: 1; border-radius: 7px; overflow: hidden; background: var(--card); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11.5px; color: var(--mute); padding: 4px; }
+  .tile img, .tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile img { cursor: zoom-in; }
+  .tile.wide { grid-column: 1 / -1; aspect-ratio: auto; padding: 0; }
+  .tile.wide img, .tile.wide video { height: auto; max-height: 460px; object-fit: contain; cursor: zoom-out; }
+  .err { margin-top: 6px; font-size: 12px; }
+  .err div { margin-top: 2px; }
+  .note { margin-top: 6px; font-size: 12px; color: var(--bad); }
+</style>
+</head>
+<body>
+<div id="app"><div class="muted">Đang mở ToolFlow…</div></div>
+<script>
+(function () {
+  var LABEL = { queued: ['Đang chờ', 'idle'], running: ['Đang chạy', 'run'], paused: ['Tạm dừng', 'wait'], needs_review: ['Cần xem lại', 'wait'], completed: ['Xong', 'done'], partial_failed: ['Xong một phần', 'bad'], failed: ['Lỗi', 'bad'], stopped: ['Đã dừng', 'idle'] };
+  var SITE = { flow: 'Flow', chatgpt: 'ChatGPT', gemini: 'Gemini' };
+  var ACTIVE = { queued: 1, running: 1, paused: 1, needs_review: 1 };
+  var seq = 0, pending = {}, ids = null, state = null, shots = {}, asked = {}, open = null, busy = {}, notes = {}, timer = null, lastErr = '';
+  var root = document.documentElement, app = document.getElementById('app');
+
+  function post(m) { parent.postMessage(m, '*'); }
+  function request(method, params) {
+    var id = 'tf' + (++seq);
+    post({ jsonrpc: '2.0', id: id, method: method, params: params || {} });
+    return new Promise(function (ok, fail) { pending[id] = { ok: ok, fail: fail }; });
+  }
+  function textOf(result) { var c = result && result.content && result.content[0]; return c && typeof c.text === 'string' ? c.text : ''; }
+  function call(name, args) { // a tool answers JSON text; an error answers the app's code
+    return request('tools/call', { name: name, arguments: args || {} }).then(function (r) {
+      if (r && r.isError) throw new Error(textOf(r) || 'INTERNAL_ERROR');
+      return JSON.parse(textOf(r) || '{}');
+    });
+  }
+  function theme(ctx) { if (ctx && (ctx.theme === 'dark' || ctx.theme === 'light')) root.setAttribute('data-theme', ctx.theme); }
+  window.addEventListener('message', function (e) {
+    if (e.source !== parent) return;
+    var m = e.data;
+    if (!m || m.jsonrpc !== '2.0') return;
+    if (m.method === undefined) { var w = pending[m.id]; if (!w) return; delete pending[m.id]; if (m.error) w.fail(new Error(m.error.message || 'refused')); else w.ok(m.result); return; }
+    if (m.method === 'ui/notifications/tool-result') fromTool(m.params);
+    else if (m.method === 'ui/notifications/host-context-changed') theme(m.params);
+    else if (m.method === 'ui/resource-teardown' && m.id !== undefined) post({ jsonrpc: '2.0', id: m.id, result: {} });
+  });
+
+  function fromTool(result) { // what the agent's call returned: a batch list (toolflow_panel) or new batch ids (toolflow_create_batch)
+    var d = {};
+    try { d = JSON.parse(textOf(result) || '{}'); } catch (x) { d = {}; }
+    if (result && result.isError) { lastErr = textOf(result); render(); return; }
+    if (d.batchIds) { ids = d.batchIds; refresh(); }
+    else if (d.batches) { ids = d.batches.map(function (b) { return b.id; }); show(d); }
+    else if (d.errors) { lastErr = 'ToolFlow không nhận lô này: ' + d.errors.map(function (x) { return x.code; }).join(', '); render(); }
+  }
+  function refresh() {
+    return call('toolflow_app_state', ids ? { batchIds: ids } : {}).then(show, function (e) { lastErr = say(e); render(); schedule(); });
+  }
+  function show(d) { state = d; lastErr = ''; render(); thumbs(); schedule(); }
+  function schedule() { // the host allows ~10 calls per 10 s and 120 per 10 min: poll only while something is still moving
+    clearTimeout(timer);
+    var moving = state && state.batches.some(function (b) { return ACTIVE[b.status]; });
+    if (moving || lastErr) timer = setTimeout(refresh, moving ? 10000 : 30000);
+  }
+  function thumbs() { // ask once for each saved output not shown yet, up to 12 per call
+    var want = [];
+    (state ? state.batches : []).forEach(function (b) { b.items.forEach(function (it) { it.outputs.forEach(function (o) { var k = o.attemptId + '|' + o.mediaId; if (o.saved && !asked[k]) want.push(o); }); }); });
+    if (!want.length) return;
+    want = want.slice(0, 12);
+    want.forEach(function (o) { asked[o.attemptId + '|' + o.mediaId] = 1; });
+    call('toolflow_app_preview', { outputs: want.map(function (o) { return { attemptId: o.attemptId, mediaId: o.mediaId }; }) }).then(function (r) {
+      r.previews.forEach(function (p) { shots[p.attemptId + '|' + p.mediaId] = p; });
+      render(); thumbs();
+    }, function () { want.forEach(function (o) { delete asked[o.attemptId + '|' + o.mediaId]; }); });
+  }
+  function act(b, action) {
+    busy[b.id] = 1; notes[b.id] = ''; render();
+    call('toolflow_app_control', { batchId: b.id, action: action }).then(function (d) {
+      busy[b.id] = 0;
+      var nb = d.batches[0];
+      if (nb) state.batches = state.batches.map(function (x) { return x.id === nb.id ? nb : x; });
+      render(); thumbs(); schedule();
+    }, function (e) { busy[b.id] = 0; notes[b.id] = say(e); render(); });
+  }
+  function play(o) {
+    var k = o.attemptId + '|' + o.mediaId;
+    shots[k] = { url: null, video: true, loading: true }; render();
+    call('toolflow_app_preview', { outputs: [{ attemptId: o.attemptId, mediaId: o.mediaId }], play: true }).then(function (r) {
+      var p = r.previews[0]; shots[k] = { url: p.url, video: true, playing: !!p.url, failed: !p.url }; open = p.url ? k : open; render();
+    }, function () { shots[k] = { url: null, video: true, failed: true }; render(); });
+  }
+  function say(e) {
+    var c = String(e && e.message || e);
+    var known = { NOT_RUNNING: 'Lô này không còn chạy.', NOT_PAUSED: 'Lô này không ở trạng thái tạm dừng.', NOT_FOUND: 'Không còn thấy lô này trong ToolFlow.', INVALID_ARGS: 'Yêu cầu không hợp lệ.' };
+    return known[c] || (/^[A-Z_]+$/.test(c) ? 'ToolFlow báo lỗi ' + c + '.' : 'Không gọi được ToolFlow (app đã tắt, hoặc MCP đang tắt trong Cài đặt). ' + c);
+  }
+
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+  function btn(text, fn, pri, off) { var n = el('button', pri ? 'pri' : '', text); n.onclick = fn; n.disabled = !!off; return n; }
+  function render() {
+    app.textContent = '';
+    var h = el('header');
+    h.appendChild(el('b', '', 'ToolFlow'));
+    h.appendChild(el('span', 'muted', state ? state.batches.length + ' lô' : ''));
+    h.appendChild(el('span', 'sp'));
+    h.appendChild(btn('Làm mới', function () { refresh(); }));
+    app.appendChild(h);
+    if (lastErr) app.appendChild(el('div', 'note', lastErr));
+    if (!state) return;
+    if (!state.batches.length) app.appendChild(el('div', 'muted', 'Chưa có lô nào.'));
+    state.batches.forEach(function (b) { app.appendChild(card(b)); });
+  }
+  function card(b) {
+    var c = el('div', 'batch'), lab = LABEL[b.status] || [b.status, 'idle'];
+    var items = b.items, ready = items.filter(function (i) { return i.state === 'ready'; }).length, failed = items.filter(function (i) { return i.error; }).length;
+    var outs = []; items.forEach(function (i) { i.outputs.forEach(function (o) { outs.push(o); }); });
+    var unsaved = outs.filter(function (o) { return !o.saved; }).length;
+    var top = el('div', 'top');
+    top.appendChild(el('b', '', 'Lô ' + b.id.slice(0, 8)));
+    top.appendChild(el('span', 'muted', (SITE[b.site] || b.site) + ' · ' + (b.kind === 'video' ? 'Video' : 'Ảnh') + ' · ' + ready + '/' + items.length + ' có kết quả' + (failed ? ' · ' + failed + ' lỗi' : '')));
+    top.appendChild(el('span', 'pill ' + lab[1], lab[0]));
+    top.appendChild(el('span', 'sp'));
+    var sp = top.lastChild; sp.style.flex = '1';
+    if (b.status === 'running' || b.status === 'queued') top.appendChild(btn('Tạm dừng', function () { act(b, 'pause'); }, false, busy[b.id]));
+    if (b.status === 'paused') top.appendChild(btn('Tiếp tục', function () { act(b, 'resume'); }, true, busy[b.id]));
+    if (unsaved && !ACTIVE[b.status]) top.appendChild(btn('Tải về (' + unsaved + ')', function () { act(b, 'download'); }, false, busy[b.id]));
+    c.appendChild(top);
+    var bar = el('div', 'bar'), fill = el('i'); fill.style.width = (items.length ? Math.round(100 * (ready + failed) / items.length) : 0) + '%'; bar.appendChild(fill); c.appendChild(bar);
+    if (b.status === 'paused' && b.hint) c.appendChild(el('div', 'hint', b.hint));
+    if (notes[b.id]) c.appendChild(el('div', 'note', notes[b.id]));
+    if (outs.length) {
+      var g = el('div', 'grid');
+      outs.forEach(function (o) { g.appendChild(tile(b, o)); });
+      c.appendChild(g);
+    }
+    var errs = items.filter(function (i) { return i.error; });
+    if (errs.length) {
+      var e = el('div', 'err');
+      errs.slice(0, 5).forEach(function (i) { e.appendChild(el('div', 'bad', '#' + i.n + ': ' + (i.hint || i.error))); });
+      c.appendChild(e);
+    }
+    return c;
+  }
+  function tile(b, o) {
+    var k = o.attemptId + '|' + o.mediaId, s = shots[k], t = el('div', 'tile' + (open === k ? ' wide' : ''));
+    if (!o.saved) { t.textContent = 'Chưa lưu về máy'; return t; }
+    if (!s) { t.textContent = '…'; return t; }
+    if (s.video) {
+      if (s.playing) { var v = el('video'); v.src = s.url; v.controls = true; v.autoplay = true; v.playsInline = true; t.appendChild(v); t.className = 'tile wide'; return t; }
+      if (s.loading) { t.textContent = 'Đang mở video…'; return t; }
+      if (s.failed) { t.textContent = 'Video quá lớn để xem ở đây: mở trong ToolFlow'; return t; }
+      t.appendChild(btn('▶ Xem video', function () { play(o); }));
+      return t;
+    }
+    if (!s.url) { t.textContent = 'Không đọc được tệp'; return t; }
+    var im = el('img'); im.src = s.url; im.alt = 'Kết quả lô ' + b.id.slice(0, 8); im.onclick = function () { open = open === k ? null : k; render(); };
+    t.appendChild(im);
+    return t;
+  }
+
+  if (typeof ResizeObserver === 'function') new ResizeObserver(function () { post({ jsonrpc: '2.0', method: 'ui/notifications/size-changed', params: { height: Math.ceil(app.getBoundingClientRect().height) } }); }).observe(app); // the content's own height: the document's is at least the frame's
+  request('ui/initialize', { protocolVersion: '2026-01-26', appInfo: { name: 'toolflow-panel', version: '1' }, appCapabilities: {} }).then(function (r) {
+    theme(r && r.hostContext);
+    post({ jsonrpc: '2.0', method: 'ui/notifications/initialized', params: {} });
+    setTimeout(function () { if (!state && !lastErr) refresh(); }, 1500); // no tool result came (a host that sends none): ask for the newest batches
+  }, function () { app.textContent = 'Khung này cần một ứng dụng chat hỗ trợ MCP Apps.'; });
+})();
+</script>
+</body>
+</html>

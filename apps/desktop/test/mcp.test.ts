@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest'
 import { hintOf } from '../src/renderer/src/hints'
-import { createMcpSwitch, rpc, startMcp, toolsOf, type Tool } from '../src/main/mcp'
+import { createMcpSwitch, rpc, startMcp, toolsOf, PANEL_URI, type Tool } from '../src/main/mcp'
 
 const echo: Record<string, Tool> = {
   echo: { description: 'd', inputSchema: { type: 'object' }, run: async (a) => ({ got: a }) },
@@ -10,7 +10,7 @@ const O = { version: '9.9.9', tools: echo }
 const call = (method: string, params?: object, id: number | 'none' = 1) => rpc({ jsonrpc: '2.0', ...(id === 'none' ? {} : { id }), method, ...(params ? { params } : {}) }, O)
 
 test('rpc: initialize, ping, tools/list and tools/call answer in MCP shapes; a notification gets no answer; anything else is a JSON-RPC error', async () => {
-  expect(await call('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'x', version: '1' } })).toEqual({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'toolflow', version: '9.9.9' } } })
+  expect(await call('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'x', version: '1' } })).toEqual({ jsonrpc: '2.0', id: 1, result: { protocolVersion: '2025-03-26', capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'toolflow', version: '9.9.9' } } })
   expect(((await call('initialize', { protocolVersion: '1999-01-01' })) as { result: { protocolVersion: string } }).result.protocolVersion).toBe('2025-06-18') // unknown version: ours
   expect(await call('ping')).toEqual({ jsonrpc: '2.0', id: 1, result: {} })
   expect(await call('notifications/initialized', undefined, 'none')).toBeNull()
@@ -18,7 +18,7 @@ test('rpc: initialize, ping, tools/list and tools/call answer in MCP shapes; a n
   expect(await call('tools/call', { name: 'echo', arguments: { a: 1 } })).toEqual({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: '{"got":{"a":1}}' }] } })
   expect(await call('tools/call', { name: 'boom' })).toEqual({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'NO_PROJECT_TAB' }], isError: true } }) // the code only, never the message
   expect(await call('tools/call', { name: 'nope' })).toMatchObject({ error: { code: -32602 } })
-  expect(await call('resources/list')).toMatchObject({ id: 1, error: { code: -32601 } })
+  expect(await call('prompts/list')).toMatchObject({ id: 1, error: { code: -32601 } })
   expect(await rpc('junk', O)).toMatchObject({ id: null, error: { code: -32600 } })
 })
 
@@ -47,13 +47,13 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
     { prompt: 'p2', attempts: [{ id: 'a2', item: 'failed', error: { code: 'CONTENT_BLOCKED' }, outputs: [] }] }] }
   const t = toolsOf({
     enqueue: async (a) => { calls.push(a); return (a as { text: string }).text === 'bad' ? { errors: [{ code: 'EMPTY' }] } : { batchIds: ['b1', 'b2'] } },
-    start: async (id) => void calls.push(`start ${id}`), download: async (id) => void calls.push(`download ${id}`), resume: async () => {},
+    start: async (id) => void calls.push(`start ${id}`), download: async (id) => void calls.push(`download ${id}`), resume: async () => {}, pause: async () => {}, preview: async () => ({ url: null }),
     list: async () => ({ batches: [batch], session: { connected: true, tabs: [{ granted: true }, { granted: false }], gptTabs: 1, autoEnabled: true, selfCheck: { ok: true }, email: 'someone@gmail.com' } }),
     file: (a, m) => { if (m === 'm2') throw new Error('not saved'); return `/dl/${a}-${m}.mp4` },
   })
-  expect(Object.keys(t)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume'])
+  expect(Object.keys(t)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume', 'toolflow_panel', 'toolflow_app_state', 'toolflow_app_preview', 'toolflow_app_control'])
   expect(await t.toolflow_status.run({})).toEqual({ connected: true, tabsInUse: 1, chatgptTabs: 1, geminiTabs: 0, selfCheckOk: true, autoSend: true, account: 'so***@gmail.com' })
-  const stale = toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, file: () => '',
+  const stale = toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, pause: async () => {}, preview: async () => ({ url: null }), file: () => '',
     list: async () => ({ batches: [], session: { connected: true, tabs: [{ granted: true }], autoEnabled: false, selfCheck: { ok: false, code: 'CONFIG_INCOMPLETE', reasons: ['RELOAD_TAB'] }, email: null } }) })
   expect(await stale.toolflow_status.run({})).toMatchObject({ selfCheckOk: false, hint: hintOf('RELOAD_TAB') }) // the agent can tell the user what to do
   expect(await t.toolflow_create_batch.run({ prompts: ['một con mèo', ' một con chó '], kind: 'video' })).toEqual({ batchIds: ['b1', 'b2'] })
@@ -68,7 +68,7 @@ test('tools: create_batch goes through the app\'s own enqueue + start in auto mo
   expect(await t.toolflow_list_batches.run({})).toEqual({ batches: [brief] })
   expect(await t.toolflow_list_batches.run({ batchId: 'nope' })).toEqual({ batches: [] })
   // the Vietnamese line the app shows for a code rides along as `hint` (batch pause and item error), worded for the batch's site
-  const hinted = await toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, file: () => '', list: async () => ({ session: {}, batches: [{ id: 'h1', kind: 'image', provider: 'gemini', status: 'paused', pauseReason: 'GPT_NO_PLUS', items: [{ prompt: 'p', attempts: [{ id: 'a', item: 'failed', error: { code: 'PAGE_BLOCKED' }, outputs: [] }] }] }, { id: 'h2', kind: 'image', status: 'paused', pauseReason: 'PAGE_BLOCKED', items: [] }] }) }).toolflow_list_batches.run({}) as { batches: { hint?: string; items: { hint?: string }[] }[] }
+  const hinted = await toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, pause: async () => {}, preview: async () => ({ url: null }), file: () => '', list: async () => ({ session: {}, batches: [{ id: 'h1', kind: 'image', provider: 'gemini', status: 'paused', pauseReason: 'GPT_NO_PLUS', items: [{ prompt: 'p', attempts: [{ id: 'a', item: 'failed', error: { code: 'PAGE_BLOCKED' }, outputs: [] }] }] }, { id: 'h2', kind: 'image', status: 'paused', pauseReason: 'PAGE_BLOCKED', items: [] }] }) }).toolflow_list_batches.run({}) as { batches: { hint?: string; items: { hint?: string }[] }[] }
   expect(hinted.batches[0].hint).toContain('Gemini')
   expect(hinted.batches[0].items[0].hint).toMatch(/tiện ích khác/)
   expect(hinted.batches[1].hint).toMatch(/tiện ích khác/)
@@ -91,7 +91,7 @@ test('tools: resume lifts only a pause the page caused (re-checked before any cl
   const b = (id: string, status: string, pauseReason: string | null) => ({ id, kind: 'image', status, pauseReason, items: [] })
   const t = toolsOf({
     enqueue: async () => ({}), start: async () => {}, download: async () => {}, file: () => { throw new Error('x') },
-    resume: async (id) => void resumed.push(id),
+    resume: async (id) => void resumed.push(id), pause: async () => {}, preview: async () => ({ url: null }),
     list: async () => ({ batches: [b('p1', 'paused', 'PAGE_BLOCKED'), b('p2', 'paused', 'COVERED'), b('u1', 'paused', 'SUBMIT_UNCERTAIN'), b('u2', 'paused', null), b('r1', 'running', null)], session: {} }),
   })
   expect(await t.toolflow_resume.run({ batchId: 'p1' })).toEqual({ batches: [{ ...b('p1', 'paused', 'PAGE_BLOCKED'), hint: hintOf('PAGE_BLOCKED') }] })
@@ -127,3 +127,79 @@ test('switch: off by default; on writes address + token to a 0600 file and answe
   await b.close()
   expect(read().enabled).toBe(true) // closing the app is not the user turning it off
 })
+
+// MCP Apps (io.modelcontextprotocol/ui): Kaiser shows ToolFlow's own panel in the chat. Tools only the panel calls (the user's clicks) are
+// listed and callable only on a connection that announced the UI extension, so no other agent can reach them.
+const UI = { capabilities: { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } } }
+const appTools: Record<string, Tool> = {
+  shown: { description: 'd', inputSchema: { type: 'object' }, meta: { ui: { resourceUri: PANEL_URI } }, readOnly: true, run: async () => ({}) },
+  clicked: { description: 'd', inputSchema: { type: 'object' }, app: true, run: async () => ({ done: 1 }) },
+}
+test('apps: an app-only tool is hidden and refused without the UI extension; a UI tool carries _meta; the panel is a resource', async () => {
+  const A = { version: '1', tools: appTools }
+  const list = async (apps: boolean) => ((await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, A, { apps })) as { result: { tools: { name: string; _meta?: object; annotations?: object }[] } }).result.tools
+  expect((await list(false)).map((x) => x.name)).toEqual(['shown'])
+  expect((await list(false))[0]).toMatchObject({ _meta: { ui: { resourceUri: PANEL_URI } }, annotations: { readOnlyHint: true } })
+  expect((await list(true))[1]).toMatchObject({ name: 'clicked', _meta: { ui: { visibility: ['app'] } }, annotations: { readOnlyHint: false, destructiveHint: false } })
+  expect(await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'clicked' } }, A, { apps: false })).toMatchObject({ error: { code: -32602 } })
+  expect(await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'clicked' } }, A, { apps: true })).toMatchObject({ result: { content: [{ text: '{"done":1}' }] } })
+  expect(await rpc({ jsonrpc: '2.0', id: 1, method: 'resources/list' }, A)).toMatchObject({ result: { resources: [{ uri: PANEL_URI, mimeType: 'text/html;profile=mcp-app' }] } })
+  const read = (await rpc({ jsonrpc: '2.0', id: 1, method: 'resources/read', params: { uri: PANEL_URI } }, A)) as { result: { contents: { uri: string; mimeType: string; text: string }[] } }
+  expect(read.result.contents[0]).toMatchObject({ uri: PANEL_URI, mimeType: 'text/html;profile=mcp-app' })
+  expect([/'ui\/initialize'/, /'toolflow_app_state'/, /'toolflow_app_control'/].every((r) => r.test(read.result.contents[0].text))).toBe(true) // the panel speaks the bridge and asks ToolFlow for its state
+  expect(await rpc({ jsonrpc: '2.0', id: 1, method: 'resources/read', params: { uri: 'ui://other' } }, A)).toMatchObject({ error: { code: -32002 } })
+})
+
+test('apps over http: only an initialize that announces the UI extension gets the session id that opens the panel tools', async () => {
+  const s = await startMcp({ token: 'tok-9', port: 0, version: '1', tools: appTools }), url = `http://127.0.0.1:${s.port}/mcp`
+  const post = (body: object, sid?: string) => fetch(url, { method: 'POST', headers: { authorization: 'Bearer tok-9', 'content-type': 'application/json', ...(sid ? { 'mcp-session-id': sid } : {}) }, body: JSON.stringify(body) })
+  const names = async (sid?: string) => ((await (await post({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, sid)).json()) as { result: { tools: { name: string }[] } }).result.tools.map((x) => x.name)
+  try {
+    const plain = await post({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {} } })
+    expect(plain.headers.get('mcp-session-id')).toBeNull()
+    const ui = await post({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', ...UI } })
+    const sid = ui.headers.get('mcp-session-id')!
+    expect(sid).toMatch(/^[0-9a-f]{64}$/)
+    expect(await names()).toEqual(['shown'])
+    expect(await names('0'.repeat(64))).toEqual(['shown']) // a guessed id is no key
+    expect(await names(sid)).toEqual(['shown', 'clicked'])
+  } finally { await s.close() }
+  const again = await startMcp({ token: 'tok-9', port: 0, version: '1', tools: appTools }) // the id is derived from the token: it survives an app restart
+  try {
+    const r = await fetch(`http://127.0.0.1:${again.port}/mcp`, { method: 'POST', headers: { authorization: 'Bearer tok-9' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: UI }) })
+    expect(r.headers.get('mcp-session-id')).toBeTruthy()
+  } finally { await again.close() }
+})
+
+test('panel tools: state lists each output and whether it is saved; preview and control go to the screens\' own handlers, within limits', async () => {
+  const calls: string[] = []
+  const mk = (id: string, status: string, pauseReason: string | null = null) => ({ id, kind: 'image', status, pauseReason, items: [{ prompt: 'p', attempts: [{ id: `a-${id}`, item: 'ready', error: null, outputs: ['m1', 'm2'] }] }] })
+  const t = toolsOf({
+    enqueue: async () => ({}), start: async () => {}, download: async (id) => void calls.push(`download ${id}`), resume: async (id) => void calls.push(`resume ${id}`), pause: async (id) => void calls.push(`pause ${id}`),
+    list: async () => ({ batches: [mk('b1', 'running'), mk('b2', 'paused', 'SUBMIT_UNCERTAIN'), ...['c', 'd', 'e', 'f', 'g'].map((x) => mk(x, 'completed'))], session: {} }),
+    file: (a, m) => { if (m === 'm2') throw new Error('not saved'); return `/dl/${a}-${m}.png` },
+    preview: async (a, m, play) => { calls.push(`preview ${a} ${m} ${play}`); return { url: `data:image/jpeg;base64,${m}` } },
+  })
+  const st = await t.toolflow_app_state.run({}) as { batches: { id: string; site: string; items: { outputs: object[] }[] }[] }
+  expect(st.batches.map((b) => b.id)).toEqual(['b1', 'b2', 'c', 'd', 'e']) // the newest five
+  expect(st.batches[0]).toMatchObject({ site: 'flow', status: 'running', items: [{ n: 1, prompt: 'p', state: 'ready', outputs: [{ attemptId: 'a-b1', mediaId: 'm1', saved: true }, { attemptId: 'a-b1', mediaId: 'm2', saved: false }] }] })
+  expect((await t.toolflow_app_state.run({ batchIds: ['b2', 'zz'] }) as { batches: { id: string; hint: string }[] }).batches).toMatchObject([{ id: 'b2', hint: hintOf('SUBMIT_UNCERTAIN') }])
+  expect(await t.toolflow_panel.run({ batchId: 'b1' })).toEqual(await t.toolflow_app_state.run({ batchIds: ['b1'] }))
+  expect(await t.toolflow_app_preview.run({ outputs: [{ attemptId: 'a-b1', mediaId: 'm1' }] })).toEqual({ previews: [{ attemptId: 'a-b1', mediaId: 'm1', url: 'data:image/jpeg;base64,m1' }] })
+  await t.toolflow_app_preview.run({ outputs: [{ attemptId: 'a-b1', mediaId: 'm1' }], play: true })
+  expect(calls).toEqual(['preview a-b1 m1 false', 'preview a-b1 m1 true'])
+  for (const bad of [{}, { outputs: [] }, { outputs: Array(13).fill({ attemptId: 'a', mediaId: 'm' }) }, { outputs: [{ attemptId: 'a', mediaId: 'm' }, { attemptId: 'a', mediaId: 'n' }], play: true }, { outputs: [{ attemptId: 7, mediaId: 'm' }] }])
+    await expect(t.toolflow_app_preview.run(bad), JSON.stringify(bad).slice(0, 50)).rejects.toMatchObject({ code: 'INVALID_ARGS' })
+  const gone = toolsOf({ enqueue: async () => ({}), start: async () => {}, download: async () => {}, resume: async () => {}, pause: async () => {}, list: async () => ({ batches: [], session: {} }), file: () => '', preview: async () => { throw new Error('/secret/path') } })
+  expect(await gone.toolflow_app_preview.run({ outputs: [{ attemptId: 'a', mediaId: 'm' }] })).toEqual({ previews: [{ attemptId: 'a', mediaId: 'm', url: null }] }) // a file not on disk: no tile, no path
+  calls.length = 0
+  await t.toolflow_app_control.run({ batchId: 'b1', action: 'pause' })
+  await t.toolflow_app_control.run({ batchId: 'b2', action: 'resume' }) // the user's own Tiếp tục, as in the app
+  expect(await t.toolflow_app_control.run({ batchId: 'c', action: 'download' })).toMatchObject({ batches: [{ id: 'c' }] })
+  expect(calls).toEqual(['pause b1', 'resume b2', 'download c'])
+  for (const [a, code] of [[{ batchId: 'b1', action: 'resume' }, 'NOT_PAUSED'], [{ batchId: 'b2', action: 'pause' }, 'NOT_RUNNING'], [{ batchId: 'nope', action: 'pause' }, 'NOT_FOUND'], [{ batchId: 'b1', action: 'stop' }, 'INVALID_ARGS'], [{ action: 'pause' }, 'INVALID_ARGS']] as const)
+    await expect(t.toolflow_app_control.run(a), JSON.stringify(a)).rejects.toMatchObject({ code })
+  expect(t.toolflow_create_batch.meta).toEqual({ ui: { resourceUri: PANEL_URI } }) // a batch the agent starts opens the panel in the chat
+  expect([t.toolflow_panel.meta, t.toolflow_panel.readOnly, t.toolflow_app_state.app, t.toolflow_app_control.app, t.toolflow_list_batches.meta]).toEqual([{ ui: { resourceUri: PANEL_URI } }, true, true, true, undefined])
+})
+
