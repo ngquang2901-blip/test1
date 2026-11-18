@@ -103,6 +103,13 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 - Trợ lý gửi prompt sẽ tốn credit Flow như khi bạn tự chạy. Nó không bật được **Tự động gửi**: nếu bạn chưa bật, lô của nó chờ bạn bấm Gửi trong Flow.
 - Ai đọc được file `mcp.json` cũng điều khiển được app: đừng gửi file đó cho người khác. Muốn khoá lại thì bỏ tích.
 
+### Bảng ToolFlow trong khung chat (từ bản 0.19.0)
+Ứng dụng chat hỗ trợ **MCP Apps** (vd Kaiser) hiện được bảng ToolFlow ngay trong cuộc trò chuyện: mỗi lô có thanh tiến độ, trạng thái, lý do dừng bằng tiếng Việt, ảnh thu nhỏ (bấm để phóng to), nút **▶ Xem video**, và các nút **Tạm dừng**, **Tiếp tục**, **Tải về** (giống hệt các nút trong app). Bảng tự làm mới 10 giây một lần khi còn lô đang chạy.
+- Bảng hiện khi trợ lý tạo lô, hoặc khi bạn nhắn kiểu "mở bảng ToolFlow".
+- Ảnh hiện khi đã lưu về máy: lô ChatGPT/Gemini tự lưu; lô Flow thì bật **Tự lưu kết quả** trong Cài đặt, hoặc bấm **Tải về** trên bảng.
+- Các nút trên bảng là thao tác của chính bạn: trợ lý không tự bấm được chúng (các lệnh đó chỉ mở cho bảng, không mở cho trợ lý).
+- Trong Kaiser: sau khi cập nhật ToolFlow, vào **Cài đặt → Ứng dụng → Máy chủ MCP**, bấm **Kiểm tra** ở dòng `toolflow` để Kaiser nhận bảng.
+
 ## Dữ liệu nằm ở đâu
 - Ảnh và video tải về: thư mục `Downloads/ToolFlow`.
 - Dữ liệu app (lô, mẫu, extension): `%APPDATA%\ToolFlow`. Gỡ app không xoá thư mục này.

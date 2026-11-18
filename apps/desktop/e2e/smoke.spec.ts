@@ -1054,7 +1054,7 @@ test('MCP: off until turned on in Cài đặt; then an agent with the key create
   const tool = async (name: string, args: object = {}) => JSON.parse((await ask('tools/call', { name, arguments: args })).body!.content![0].text)
   expect((await ask('tools/list', undefined, 'wrong')).status).toBe(401)
   expect((await ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } })).status).toBe(200)
-  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume'])
+  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume', 'toolflow_panel']) // the panel's own tools only for a chat app that shows panels
   expect(await tool('toolflow_status')).toMatchObject({ connected: true, tabsInUse: 1, selfCheckOk: true })
   const { batchIds } = await tool('toolflow_create_batch', { prompts: ['một con mèo', 'một con chó'] }) as { batchIds: string[] }
   expect(batchIds).toHaveLength(1)
@@ -1062,6 +1062,15 @@ test('MCP: off until turned on in Cài đặt; then an agent with the key create
   const done = await tool('toolflow_download', { batchId: batchIds[0] }) as { batches: { items: { prompt: string; state: string; files: string[] }[] }[] }
   expect(done.batches[0].items.map((i) => [i.prompt, i.state, i.files.length])).toEqual([['một con mèo', 'ready', 1], ['một con chó', 'ready', 1]])
   for (const f of done.batches[0].items.flatMap((i) => i.files)) expect([f.startsWith(root), readFileSync(f).subarray(0, 4).toString('hex')]).toEqual([true, '89504e47'])
+  // a chat app that shows MCP Apps (Kaiser): its initialize gets the session that opens the panel's tools; the panel reads the batch and its thumbnails
+  const ui = await fetch(url, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: JSON.stringify({ jsonrpc: '2.0', id: 90, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: { extensions: { 'io.modelcontextprotocol/ui': {} } } } }) })
+  const sid = ui.headers.get('mcp-session-id')!
+  const appCall = async (name: string, args: object) => JSON.parse(((await (await fetch(url, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'mcp-session-id': sid }, body: JSON.stringify({ jsonrpc: '2.0', id: 91, method: 'tools/call', params: { name, arguments: args } }) })).json()) as { result: { content: { text: string }[] } }).result.content[0].text)
+  const st = await appCall('toolflow_app_state', { batchIds }) as { batches: { status: string; items: { outputs: { attemptId: string; mediaId: string; saved: boolean }[] }[] }[] }
+  const outs = st.batches[0].items.flatMap((i) => i.outputs)
+  expect([st.batches[0].status, outs.length, outs.every((o) => o.saved)]).toEqual(['completed', 2, true])
+  const pv = await appCall('toolflow_app_preview', { outputs: outs }) as { previews: { url: string }[] }
+  expect(pv.previews.map((x) => x.url.slice(0, 22))).toEqual(['data:image/png;base64,', 'data:image/png;base64,'])
   // the same tool sends to a chat site: the app's own door takes the Gemini choices and refuses a wrong mix
   expect(await tool('toolflow_status')).toMatchObject({ chatgptTabs: 1, geminiTabs: 1 })
   const g = await tool('toolflow_create_batch', { prompts: ['một con cá'], site: 'gemini', aspect: '9:16', model: 'Pro' }) as { batchIds: string[] }

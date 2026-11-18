@@ -294,7 +294,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   // MCP: an AI agent on this machine drives the same handlers the screens call. Off until the user turns it on in Cài đặt.
   const mcp = createMcpSwitch({
     file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(), // a fixed port, so the agent's config survives restarts
-    tools: toolsOf({ enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), download: (b) => h.downloadBatch(b), resume: (b) => h.resumeBatch(b), list: () => h.listBatches(), file: (a, m) => downloader.file(a, m) }),
+    tools: toolsOf({ enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), download: (b) => h.downloadBatch(b), resume: (b) => h.resumeBatch(b), pause: (b) => h.pauseBatch(b), preview: (attemptId, mediaId, play) => h.previewOutput({ attemptId, mediaId, play }), list: () => h.listBatches(), file: (a, m) => downloader.file(a, m) }),
   })
   mcp.start().catch((e) => console.error('mcp', (e as { code?: string })?.code ?? 'INTERNAL_ERROR'))
   const mcpHandlers = {

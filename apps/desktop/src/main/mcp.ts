@@ -2,28 +2,38 @@
 // their results through the same handlers the screens call. Off unless the user turns it on in Cài đặt. Trust boundary: 127.0.0.1 only,
 // a bearer token from a 0600 file, no browser Origin, small bodies; a tool can never enable auto-send, pick settings or touch files.
 import { createServer, type IncomingMessage } from 'node:http'
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs'
 import { hintOf, checkHint } from '../renderer/src/hints' // the Vietnamese line the screens show for a code
+import PANEL_HTML from './mcp-panel.html?raw'
 
-export type Tool = { description: string; inputSchema: object; run(args: Record<string, unknown>): Promise<unknown> }
+/** meta: `_meta` as listed (a UI tool names the panel); app: only the panel calls it, i.e. the user's click in a chat that shows ToolFlow's panel. */
+export type Tool = { description: string; inputSchema: object; meta?: object; readOnly?: boolean; app?: true; run(args: Record<string, unknown>): Promise<unknown> }
 type Opts = { version: string; tools: Record<string, Tool> }
+type Ctx = { apps?: boolean } // apps: the client announced MCP Apps (io.modelcontextprotocol/ui) on this connection
+export const PANEL_URI = 'ui://toolflow/panel'
+const APP_MIME = 'text/html;profile=mcp-app'
+const UI_EXT = 'io.modelcontextprotocol/ui'
 const VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05']
 const coded = (code: string): Error => Object.assign(new Error(code), { code })
 
 /** One JSON-RPC message in, its answer out (null for a notification). */
-export async function rpc(msg: unknown, o: Opts): Promise<object | null> {
+export async function rpc(msg: unknown, o: Opts, ctx: Ctx = {}): Promise<object | null> {
   const m = msg as { jsonrpc?: unknown; id?: unknown; method?: unknown; params?: Record<string, unknown> } | null
   if (!m || typeof m !== 'object' || m.jsonrpc !== '2.0' || typeof m.method !== 'string') return { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid Request' } }
   if (m.id === undefined) return null
   const ok = (result: object): object => ({ jsonrpc: '2.0', id: m.id, result })
   const err = (code: number, message: string): object => ({ jsonrpc: '2.0', id: m.id, error: { code, message } })
-  if (m.method === 'initialize') return ok({ protocolVersion: VERSIONS.includes(m.params?.protocolVersion as string) ? m.params!.protocolVersion : VERSIONS[0], capabilities: { tools: {} }, serverInfo: { name: 'toolflow', version: o.version } })
+  if (m.method === 'initialize') return ok({ protocolVersion: VERSIONS.includes(m.params?.protocolVersion as string) ? m.params!.protocolVersion : VERSIONS[0], capabilities: { tools: {}, resources: {} }, serverInfo: { name: 'toolflow', version: o.version } })
   if (m.method === 'ping') return ok({})
-  if (m.method === 'tools/list') return ok({ tools: Object.entries(o.tools).map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema })) })
+  const open = (t: Tool | undefined): t is Tool => !!t && (!t.app || !!ctx.apps) // a panel-only tool does not exist for any other client
+  if (m.method === 'tools/list') return ok({ tools: Object.entries(o.tools).filter(([, t]) => open(t)).map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema,
+    ...(t.app ? { _meta: { ui: { visibility: ['app'] } }, annotations: { readOnlyHint: !!t.readOnly, destructiveHint: false } } : t.meta ? { _meta: t.meta, annotations: { readOnlyHint: !!t.readOnly } } : {}) })) })
+  if (m.method === 'resources/list') return ok({ resources: [{ uri: PANEL_URI, name: 'ToolFlow', mimeType: APP_MIME }] })
+  if (m.method === 'resources/read') return m.params?.uri === PANEL_URI ? ok({ contents: [{ uri: PANEL_URI, mimeType: APP_MIME, text: PANEL_HTML }] }) : err(-32002, 'Resource not found')
   if (m.method !== 'tools/call') return err(-32601, 'Method not found')
   const tool = o.tools[m.params?.name as string], args = m.params?.arguments ?? {}
-  if (!tool || typeof args !== 'object' || Array.isArray(args)) return err(-32602, 'Unknown tool or bad arguments')
+  if (!open(tool) || typeof args !== 'object' || Array.isArray(args)) return err(-32602, 'Unknown tool or bad arguments')
   try { return ok({ content: [{ type: 'text', text: JSON.stringify(await tool.run(args as Record<string, unknown>)) }] }) }
   catch (e) { return ok({ content: [{ type: 'text', text: (e as { code?: string })?.code ?? 'INTERNAL_ERROR' }], isError: true }) } // the app's error code only: a message could carry a path
 }
@@ -37,6 +47,7 @@ const body = (req: IncomingMessage, max: number): Promise<string | null> => new 
 
 export async function startMcp(o: Opts & { token: string; port: number }): Promise<{ port: number; close(): Promise<void> }> {
   const want = createHash('sha256').update(`Bearer ${o.token}`).digest()
+  const appsSid = createHmac('sha256', o.token).update('mcp-apps').digest('hex') // handed only to a client that announced the UI extension; from the token, so it outlives a restart
   const server = createServer((req, res) => {
     const end = (status: number, json?: object): void => { res.writeHead(status, json ? { 'content-type': 'application/json' } : {}); res.end(json ? JSON.stringify(json) : undefined) }
     void (async () => {
@@ -48,7 +59,10 @@ export async function startMcp(o: Opts & { token: string; port: number }): Promi
       if (text === null) return end(413)
       let msg: unknown
       try { msg = JSON.parse(text) } catch { return end(400) }
-      const out = Array.isArray(msg) ? (await Promise.all(msg.map((x) => rpc(x, o)))).filter(Boolean) : await rpc(msg, o)
+      const sid = req.headers['mcp-session-id'], ctx = { apps: typeof sid === 'string' && sid.length === 64 && timingSafeEqual(Buffer.from(sid), Buffer.from(appsSid)) }
+      const m = msg as { method?: unknown; params?: { capabilities?: { extensions?: Record<string, unknown> } } } | null
+      if (m?.method === 'initialize' && m.params?.capabilities?.extensions?.[UI_EXT]) res.setHeader('mcp-session-id', appsSid)
+      const out = Array.isArray(msg) ? (await Promise.all(msg.map((x) => rpc(x, o, ctx)))).filter(Boolean) : await rpc(msg, o, ctx)
       return out === null || (Array.isArray(out) && !out.length) ? end(202) : end(200, out as object)
     })().catch(() => end(500))
   })
@@ -77,7 +91,8 @@ export function createMcpSwitch(o: Opts & { file: string; port: number }) {
 const PAGE_PAUSES = ['PAGE_BLOCKED', 'TARGET_CHANGED', 'COVERED', 'CREDIT_WARNING', 'BUTTON_DISABLED', 'CHIP_MISMATCH']
 type Brief = { id: string; kind: string; provider?: string; status: string; pauseReason: string | null; items: { prompt: string; attempts: { id: string; item: string; error: { code?: string } | null; outputs: string[] }[] }[] }
 export type McpDeps = {
-  enqueue(a: object): Promise<{ batchId?: string; batchIds?: string[]; errors?: { code: string }[] }>; start(batchId: string): Promise<unknown>; download(batchId: string): Promise<unknown>; resume(batchId: string): Promise<unknown> // the handlers the screens call
+  enqueue(a: object): Promise<{ batchId?: string; batchIds?: string[]; errors?: { code: string }[] }>; start(batchId: string): Promise<unknown>; download(batchId: string): Promise<unknown>; resume(batchId: string): Promise<unknown>; pause(batchId: string): Promise<unknown> // the handlers the screens call
+  preview(attemptId: string, mediaId: string, play: boolean): Promise<{ url: string | null; video?: boolean }> // the Kết quả screen's thumbnail (a video's data only on play)
   list(): Promise<{ batches: unknown[]; session: unknown }>
   file(attemptId: string, mediaId: string): string // the saved file's path; throws when it is not saved
 }
@@ -88,6 +103,17 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
     id: b.id, kind: b.kind, status: b.status, pauseReason: b.pauseReason ?? null, hint: hintOf(b.pauseReason, b.provider),
     items: b.items.map((it, i) => { const a = it.attempts.at(-1); return { n: i + 1, prompt: it.prompt, state: a?.item ?? null, error: a?.error?.code ?? null, hint: hintOf(a?.error?.code, b.provider), files: (a?.outputs ?? []).flatMap((m) => { try { return [d.file(a!.id, m)] } catch { return [] } }) } }),
   })) })
+  const str = (x: unknown): string => { if (typeof x !== 'string' || !x || x.length > 200) throw coded('INVALID_ARGS'); return x }
+  const find = async (id: string): Promise<Brief> => { const b = ((await d.list()).batches as Brief[]).find((x) => x.id === id); if (!b) throw coded('NOT_FOUND'); return b }
+  /** The panel's view: the newest five batches (or the named ones), each output with whether it is on disk. */
+  const appState = async (ids?: unknown): Promise<object> => {
+    if (ids !== undefined && (!Array.isArray(ids) || ids.length > 20)) throw coded('INVALID_ARGS')
+    const all = (await d.list()).batches as Brief[], picked = ids === undefined ? all.slice(0, 5) : all.filter((b) => (ids as unknown[]).includes(b.id))
+    return { batches: picked.map((b) => ({ id: b.id, kind: b.kind, site: b.provider ?? 'flow', status: b.status, pauseReason: b.pauseReason ?? null, hint: hintOf(b.pauseReason, b.provider),
+      items: b.items.map((it, i) => { const a = it.attempts.at(-1); return { n: i + 1, prompt: it.prompt, state: a?.item ?? null, error: a?.error?.code ?? null, hint: hintOf(a?.error?.code, b.provider),
+        outputs: (a?.outputs ?? []).map((m) => { let saved = true; try { d.file(a!.id, m) } catch { saved = false } return { attemptId: a!.id, mediaId: m, saved } }) } }) })) }
+  }
+  const PANEL = { ui: { resourceUri: PANEL_URI } }
   return {
     toolflow_status: {
       description: 'ToolFlow state: is Chrome connected, how many Flow tabs are in use, how many chatgpt.com / gemini.google.com tabs are open, did the self-check pass, is auto-send on (off = the user must click Send in Flow). When the self-check fails, hint is the Vietnamese line telling the user what to do.',
@@ -99,6 +125,7 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
       },
     },
     toolflow_create_batch: {
+      meta: PANEL,
       description: 'Send prompts to Google Flow (or, with site, to the ChatGPT / Gemini tab) through ToolFlow, one result set per prompt, with the app\'s default settings (image: 2 images per prompt; video: one 8 s video, 10 Flow credits each). Spends the user\'s Flow credits. Returns batch ids; poll toolflow_list_batches.',
       inputSchema: { type: 'object', required: ['prompts'], properties: { prompts: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'string', maxLength: 5000 }, description: 'One prompt per entry, no line breaks.' }, kind: { type: 'string', enum: ['image', 'video'], default: 'image' }, site: { type: 'string', enum: ['flow', 'chatgpt', 'gemini'], default: 'flow', description: 'chatgpt / gemini: images only, one per prompt, sent in the open chatgpt.com / gemini.google.com tab and saved by the app; uses that account\'s image quota, not Flow credits.' }, aspect: { type: 'string', enum: ['1:1', '9:16', '3:4', '4:3', '16:9'], description: 'site only (gemini: its ratio menu; chatgpt: one sentence added at the end of each prompt).' }, model: { type: 'string', enum: ['Flash-Lite', 'Flash', 'Pro'], description: 'gemini only; also changes the model in the user\'s Gemini tab.' } } },
       async run(a) {
@@ -133,6 +160,36 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
         if (!PAGE_PAUSES.includes(b.pauseReason ?? '')) throw coded('NEEDS_USER')
         await d.resume(b.id)
         return batches(b.id)
+      },
+    },
+    toolflow_panel: {
+      meta: PANEL, readOnly: true,
+      description: 'Show the ToolFlow panel in this chat: live progress of the newest batches (or batchId), their images and videos, and Pause / Resume / Save buttons the user can press. Use it when the user wants to see or follow their batches.',
+      inputSchema: { type: 'object', properties: { batchId: { type: 'string' } } },
+      run: (a) => appState(a.batchId === undefined ? undefined : [str(a.batchId)]),
+    },
+    toolflow_app_state: { app: true, readOnly: true, description: 'Panel: batches and their outputs.', inputSchema: { type: 'object', properties: { batchIds: { type: 'array', items: { type: 'string' }, maxItems: 20 } } }, run: (a) => appState(a.batchIds) },
+    toolflow_app_preview: {
+      app: true, readOnly: true, description: 'Panel: thumbnails of saved outputs; play: the one video itself.',
+      inputSchema: { type: 'object', required: ['outputs'], properties: { outputs: { type: 'array', minItems: 1, maxItems: 12, items: { type: 'object', required: ['attemptId', 'mediaId'], properties: { attemptId: { type: 'string' }, mediaId: { type: 'string' } } } }, play: { type: 'boolean' } } },
+      async run(a) {
+        const outs = a.outputs, play = a.play === true
+        if (!Array.isArray(outs) || !outs.length || outs.length > 12 || (play && outs.length !== 1)) throw coded('INVALID_ARGS')
+        const want = outs.map((x) => ({ attemptId: str((x as Record<string, unknown>)?.attemptId), mediaId: str((x as Record<string, unknown>)?.mediaId) }))
+        return { previews: await Promise.all(want.map(async (w) => { try { return { ...w, ...(await d.preview(w.attemptId, w.mediaId, play)) } } catch { return { ...w, url: null } } })) } // not on disk (or not readable): no tile; a message could carry a path
+      },
+    },
+    toolflow_app_control: {
+      app: true, description: 'Panel: the user pressed Pause, Resume or Save on a batch (as the same buttons in the app).',
+      inputSchema: { type: 'object', required: ['batchId', 'action'], properties: { batchId: { type: 'string' }, action: { type: 'string', enum: ['pause', 'resume', 'download'] } } },
+      async run(a) {
+        const id = str(a.batchId), act = a.action
+        if (act !== 'pause' && act !== 'resume' && act !== 'download') throw coded('INVALID_ARGS')
+        const b = await find(id)
+        if (act === 'pause') { if (b.status !== 'running' && b.status !== 'queued') throw coded('NOT_RUNNING'); await d.pause(id) }
+        else if (act === 'resume') { if (b.status !== 'paused') throw coded('NOT_PAUSED'); await d.resume(id) } // the app's own Tiếp tục: any pause, the runner re-checks the page before a click
+        else await d.download(id)
+        return appState([id])
       },
     },
   }
