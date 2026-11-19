@@ -80,8 +80,12 @@
     else if (d.batches) { ids = d.batches.map(function (b) { return b.id; }); show(d); }
     else if (d.errors) { lastErr = 'ToolFlow không nhận lô này: ' + d.errors.map(function (x) { return x.code; }).join(', '); render(); }
   }
-  function refresh() {
-    return call('toolflow_app_state', bulk ? { bulkId: bulk } : ids ? { batchIds: ids } : {}).then(show, function (e) { lastErr = say(e); render(); schedule(); });
+  var polls = 0;
+  function refresh() { // only the newest poll counts; one that has not answered in 20 s no longer holds the polling up
+    var n = ++polls, guard = setTimeout(function () { if (n === polls) schedule(); }, 20000);
+    return call('toolflow_app_state', bulk ? { bulkId: bulk } : ids ? { batchIds: ids } : {}).then(function (d) {
+      clearTimeout(guard); if (n === polls) show(d);
+    }, function (e) { clearTimeout(guard); if (n === polls) { lastErr = say(e); render(); schedule(); } });
   }
   function show(d) { state = d; lastErr = ''; render(); thumbs(); schedule(); }
   function schedule() { // the host allows ~10 calls per 10 s and 120 per 10 min: poll only while something is still moving
