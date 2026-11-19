@@ -16,7 +16,7 @@ test('rpc: initialize, ping, tools/list and tools/call answer in MCP shapes; a n
   expect(await call('notifications/initialized', undefined, 'none')).toBeNull()
   expect(await call('tools/list')).toEqual({ jsonrpc: '2.0', id: 1, result: { tools: [{ name: 'echo', description: 'd', inputSchema: { type: 'object' } }, { name: 'boom', description: 'd', inputSchema: { type: 'object' } }] } })
   expect(await call('tools/call', { name: 'echo', arguments: { a: 1 } })).toEqual({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: '{"got":{"a":1}}' }] } })
-  expect(await call('tools/call', { name: 'boom' })).toEqual({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'NO_PROJECT_TAB' }], isError: true } }) // the code only, never the message
+  expect(await call('tools/call', { name: 'boom' })).toEqual({ jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: 'NO_PROJECT_TAB: Chưa có tab dự án Flow được cấp quyền. Mở dự án Flow, vào màn Kết nối và bấm “Dùng tab này”' }], isError: true } }) // the code and the app's own line for it, never the message
   expect(await call('tools/call', { name: 'nope' })).toMatchObject({ error: { code: -32602 } })
   expect(await call('prompts/list')).toMatchObject({ id: 1, error: { code: -32601 } })
   expect(await rpc('junk', O)).toMatchObject({ id: null, error: { code: -32600 } })
@@ -203,3 +203,11 @@ test('panel tools: state lists each output and whether it is saved; preview and 
   expect([t.toolflow_panel.meta, t.toolflow_panel.readOnly, t.toolflow_app_state.app, t.toolflow_app_control.app, t.toolflow_list_batches.meta]).toEqual([{ ui: { resourceUri: PANEL_URI } }, true, true, true, undefined])
 })
 
+
+test('create_batch with no Flow tab says whether Chrome is not connected at all, or only no tab was picked', async () => {
+  const dep = (connected: boolean) => ({ enqueue: async () => { throw Object.assign(new Error('x'), { code: 'NO_PROJECT_TAB' }) }, start: async () => ({}), download: async () => ({}), resume: async () => ({}), pause: async () => ({}),
+    preview: async () => ({ url: null }), list: async () => ({ batches: [], session: { connected, tabs: [], autoEnabled: false, selfCheck: null, email: null } }), file: () => { throw new Error('x') } })
+  const run = async (connected: boolean) => (await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'toolflow_create_batch', arguments: { prompts: ['a'] } } }, { version: '1', tools: toolsOf(dep(connected) as never) })) as { result: { content: { text: string }[] } }
+  expect((await run(false)).result.content[0].text).toMatch(/^CHROME_NOT_CONNECTED: /)
+  expect((await run(true)).result.content[0].text).toMatch(/^NO_PROJECT_TAB: .*Dùng tab này/)
+})

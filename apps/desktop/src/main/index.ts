@@ -35,6 +35,7 @@ import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
 import { findChrome, launchChrome } from './chrome'
+import { createWebUi } from './web-ui'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
 
@@ -102,7 +103,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     driver = { onEvent: () => () => {} } as unknown as FlowDriver // connector failed: no tabs, so the runner never calls it
     try {
       const token = readOrCreateToken(userData)
-      const server = await startConnectorServer({ token, extensionId: EXT_ID, onConnect: () => void grants?.list().catch(() => {}) }) // a Chrome profile came (back): pick its remembered tabs at once
+      const server = await startConnectorServer({ token, extensionId: EXT_ID, version: app.getVersion(), onConnect: () => void grants?.list().catch(() => {}) }) // a Chrome profile came (back): pick its remembered tabs at once
       // packaged: electron-builder copies apps/extension to resources/extension (extraResources)
       const ext = installExtension(process.env.TOOLFLOW_EXT_DIR ?? (app.isPackaged ? join(process.resourcesPath, 'extension') : join(app.getAppPath(), '../extension')), userData, server.port, app.getVersion())
       extVersion = ext.version || extVersion // what the page must report; a mismatch means Chrome still runs an older copy
@@ -147,12 +148,15 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   }
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
-  const emit = revisioned((e) => win()?.webContents.send('state', e))
+  // ToolFlow's screens inside another app (web-ui.ts): the same handlers and events as the window, while MCP is on.
+  let webUi: ReturnType<typeof createWebUi> | null = null
+  const uiHandlers: Record<string, (a: never) => unknown> = {}
+  const emit = revisioned((e) => { win()?.webContents.send('state', e); webUi?.push('state', e) })
   // Notices. Telegram is called from main only (the renderer's no-network check stays true); its base URL is a test fake in e2e.
   const telegram = createTelegram({ file: join(userData, 'telegram.json'), base: FAKE ? process.env.TOOLFLOW_TELEGRAM_API : undefined })
   const toasts = new Set<Notification>() // shortcut: kept until closed so a click still reaches us; a toast left in the Action Center past that is not followed
   const notifier = createNotifier({
-    db, seen: bootStatus, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => win()?.webContents.send('notice'),
+    db, seen: bootStatus, now: () => clock.now(), prefs: () => draft, lastError: (b) => runner.lastError(b), changed: () => { win()?.webContents.send('notice'); webUi?.push('notice') },
     channels: {
       windows: (n) => {
         if (!Notification.isSupported()) return
@@ -198,7 +202,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   // only an attempt between prepare and its result is at risk from a restart (update, restore); queued ones simply go on after it
   const busy = (): boolean => wfActive() || (inFlight.all() as { j: string }[]).some((r) => ['preparing', 'submitting', 'awaiting_user', 'generating'].includes(JSON.parse(r.j).item)) // a workflow between two nodes would lose its later nodes
   const updates = createUpdates({
-    updater, current: app.getVersion(), emit: (s) => win()?.webContents.send('update', s), busy,
+    updater, current: app.getVersion(), emit: (s) => { win()?.webContents.send('update', s); webUi?.push('update', s) }, busy,
     // Reported on Windows: after the click the window read "Not responding". Measured: Defender scans the new installer ~22 s while
     // electron-updater starts it from this process, so the window is hidden first (the bar has said what comes); update.log keeps the times.
     beforeInstall: () => {
@@ -293,7 +297,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   wf.interrupted()
   // MCP: an AI agent on this machine drives the same handlers the screens call. Off until the user turns it on in Cài đặt.
   const mcp = createMcpSwitch({
-    file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(), // a fixed port, so the agent's config survives restarts
+    file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(),
+    ui: (token) => { webUi?.close(); webUi = createWebUi({ token, rendererDir: join(__dirname, '../renderer'), handlers: uiHandlers }); return webUi.handle }, // a fixed port, so the agent's config survives restarts
     tools: toolsOf({ enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), download: (b) => h.downloadBatch(b), resume: (b) => h.resumeBatch(b), pause: (b) => h.pauseBatch(b), preview: (attemptId, mediaId, play) => h.previewOutput({ attemptId, mediaId, play }), list: () => h.listBatches(), file: (a, m) => downloader.file(a, m) }),
   })
   mcp.start().catch((e) => console.error('mcp', (e as { code?: string })?.code ?? 'INTERNAL_ERROR'))
@@ -341,6 +346,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     async connectTelegram() { return telegram.connect() },
     async testTelegram() { await telegram.send('ToolFlow: tin thử. Bạn sẽ nhận tin ở đây khi một lô xong, cần bạn xem, bắt đầu theo hẹn giờ hoặc khi credit Flow sắp hết.') },
   }
+  Object.assign(uiHandlers, h, wf.handlers, mcpHandlers, backupHandlers, noticeHandlers)
   registerIpc(ipcMain, { ...h, ...wf.handlers, ...mcpHandlers, ...backupHandlers, ...noticeHandlers }, (e) => { const f = win()?.webContents.mainFrame; return !!f && e.senderFrame?.processId === f.processId && e.senderFrame?.routingId === f.routingId }) // the app's own main frame only
   // Hẹn giờ chạy: due batches start through the button's own start; the first tick (now) catches times missed while the app was closed
   const sched = createScheduler({ db, now: () => clock.now(), start: (b) => h.startBatch(b), notify: (b, at, late) => notifier.scheduled(b, at, late), attention: (b, title, body) => notifier.notify({ kind: 'attention', batchId: b, title, body }) })

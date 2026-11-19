@@ -1,7 +1,7 @@
 // MCP endpoint (Model Context Protocol, "Streamable HTTP" without a stream): lets an AI agent on THIS machine create batches and read
 // their results through the same handlers the screens call. Off unless the user turns it on in Cài đặt. Trust boundary: 127.0.0.1 only,
 // a bearer token from a 0600 file, no browser Origin, small bodies; a tool can never enable auto-send, pick settings or touch files.
-import { createServer, type IncomingMessage } from 'node:http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs'
 import { hintOf, checkHint } from '../renderer/src/hints' // the Vietnamese line the screens show for a code
@@ -35,7 +35,10 @@ export async function rpc(msg: unknown, o: Opts, ctx: Ctx = {}): Promise<object 
   const tool = o.tools[m.params?.name as string], args = m.params?.arguments ?? {}
   if (!open(tool) || typeof args !== 'object' || Array.isArray(args)) return err(-32602, 'Unknown tool or bad arguments')
   try { return ok({ content: [{ type: 'text', text: JSON.stringify(await tool.run(args as Record<string, unknown>)) }] }) }
-  catch (e) { return ok({ content: [{ type: 'text', text: (e as { code?: string })?.code ?? 'INTERNAL_ERROR' }], isError: true }) } // the app's error code only: a message could carry a path
+  catch (e) { // the app's error code and its own line for the user (what an agent should tell them): a message could carry a path
+    const code = (e as { code?: string })?.code ?? 'INTERNAL_ERROR', hint = hintOf(code)
+    return ok({ content: [{ type: 'text', text: hint ? `${code}: ${hint}` : code }], isError: true })
+  }
 }
 
 const body = (req: IncomingMessage, max: number): Promise<string | null> => new Promise((done) => {
@@ -45,12 +48,14 @@ const body = (req: IncomingMessage, max: number): Promise<string | null> => new 
   req.on('error', () => done(null))
 })
 
-export async function startMcp(o: Opts & { token: string; port: number }): Promise<{ port: number; close(): Promise<void> }> {
+/** ui: ToolFlow's own screens under /app (web-ui.ts), answered before the MCP checks: they are a browser page by design. */
+export async function startMcp(o: Opts & { token: string; port: number; ui?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean> }): Promise<{ port: number; close(): Promise<void> }> {
   const want = createHash('sha256').update(`Bearer ${o.token}`).digest()
   const appsSid = createHmac('sha256', o.token).update('mcp-apps').digest('hex') // handed only to a client that announced the UI extension; from the token, so it outlives a restart
   const server = createServer((req, res) => {
     const end = (status: number, json?: object): void => { res.writeHead(status, json ? { 'content-type': 'application/json' } : {}); res.end(json ? JSON.stringify(json) : undefined) }
     void (async () => {
+      if (o.ui && await o.ui(req, res)) return
       if (req.headers.origin !== undefined) return end(403) // a web page (or a DNS-rebound one) can reach 127.0.0.1; an MCP client is not a page
       if (!timingSafeEqual(createHash('sha256').update(req.headers.authorization ?? '').digest(), want)) return end(401)
       if (req.url !== '/mcp') return end(404)
@@ -71,7 +76,7 @@ export async function startMcp(o: Opts & { token: string; port: number }): Promi
 }
 
 /** The user's on/off. `file` (0600) holds the choice, the address and the token: it is what the user points an agent at, and the token never goes to the renderer. */
-export function createMcpSwitch(o: Opts & { file: string; port: number }) {
+export function createMcpSwitch(o: Opts & { file: string; port: number; ui?: (token: string) => (req: IncomingMessage, res: ServerResponse) => Promise<boolean> }) {
   let live: Awaited<ReturnType<typeof startMcp>> | null = null
   const saved = (): { enabled?: boolean; token?: string } => { try { return JSON.parse(readFileSync(o.file, 'utf8')) } catch { return {} } }
   const state = () => ({ enabled: !!live, url: live ? `http://127.0.0.1:${live.port}/mcp` : null, file: o.file })
@@ -79,7 +84,7 @@ export function createMcpSwitch(o: Opts & { file: string; port: number }) {
   async function set(on: boolean) {
     const token = saved().token ?? randomBytes(32).toString('hex')
     await close()
-    if (on) live = await startMcp({ ...o, token }) // a busy port throws EADDRINUSE: nothing is written, the switch stays off
+    if (on) live = await startMcp({ ...o, token, ui: o.ui?.(token) }) // a busy port throws EADDRINUSE: nothing is written, the switch stays off
     writeFileSync(o.file, JSON.stringify({ enabled: on, url: state().url, token, note: 'Send the token as the HTTP header  Authorization: Bearer <token>. Anyone who can read this file can spend Flow credits through ToolFlow.' }, null, 2), { mode: 0o600 })
     chmodSync(o.file, 0o600) // the mode above only applies when the file is created
     return state()
@@ -131,12 +136,18 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
       async run(a) {
         const kind = a.kind ?? 'image', p = a.prompts, site = a.site ?? 'flow'
         if (!['flow', 'chatgpt', 'gemini'].includes(site as string) || (kind !== 'image' && kind !== 'video') || !Array.isArray(p) || !p.length || p.length > 100 || p.some((x) => typeof x !== 'string' || !x.trim() || x.length > 5000 || /[\r\n]/.test(x))) throw coded('INVALID_ARGS')
-        const r = await d.enqueue({ commandId: `mcp:${randomUUID()}`, kind, mode: 'auto', text: (p as string[]).map((x) => x.trim()).join('\n'),
-          ...(site !== 'flow' ? { provider: site, ...(a.aspect !== undefined ? { aspect: a.aspect } : {}), ...(a.model !== undefined ? { model: a.model } : {}) } : {}) }) // enqueue refuses a wrong mix (a video, a ratio for ChatGPT)
-        if (r.errors?.length) return { errors: r.errors }
-        const batchIds = r.batchIds ?? [r.batchId!]
-        for (const id of batchIds) await d.start(id)
-        return { batchIds }
+        try {
+          const r = await d.enqueue({ commandId: `mcp:${randomUUID()}`, kind, mode: 'auto', text: (p as string[]).map((x) => x.trim()).join('\n'),
+            ...(site !== 'flow' ? { provider: site, ...(a.aspect !== undefined ? { aspect: a.aspect } : {}), ...(a.model !== undefined ? { model: a.model } : {}) } : {}) }) // enqueue refuses a wrong mix (a video, a ratio for ChatGPT)
+          if (r.errors?.length) return { errors: r.errors }
+          const batchIds = r.batchIds ?? [r.batchId!]
+          for (const id of batchIds) await d.start(id)
+          return { batchIds }
+        } catch (e) {
+          // No tab, because Chrome's extension is not even connected (an old extension, Chrome closed): say that, not "pick a tab".
+          if ((e as { code?: string })?.code === 'NO_PROJECT_TAB' && ((await d.list()).session as { connected: boolean | null }).connected === false) throw coded('CHROME_NOT_CONNECTED')
+          throw e
+        }
       },
     },
     toolflow_list_batches: {

@@ -19,6 +19,7 @@ export const HINTS: Record<string, string> = {
   COMBO_NOT_QUALIFIED: 'Tổ hợp mô hình/cài đặt chưa được qualify nên app không chạy. Chọn chế độ đã qualify rồi tạo lại lô',
   UNEXPECTED_GENERATE: 'Flow vừa tạo thứ app không gửi. Xem Flow có đang tạo ảnh/video không, đợi xong rồi bấm Tiếp tục',
   NO_PROJECT_TAB: 'Chưa có tab dự án Flow được cấp quyền. Mở dự án Flow, vào màn Kết nối và bấm “Dùng tab này”',
+  CHROME_NOT_CONNECTED: 'ToolFlow chưa nối được với Chrome. Mở Chrome; nếu Chrome đang mở thì vào chrome://extensions, bấm tải lại (↻) ở thẻ ToolFlow Connector, F5 tab Flow, rồi vào màn Kết nối bấm “Dùng tab này”',
   COVERED: 'Có hộp thoại che nút Gửi trong Flow. Đóng nó rồi bấm Tiếp tục',
   CREDIT_WARNING: 'Flow báo không đủ credit. Kiểm tra credit rồi bấm Tiếp tục',
   BUTTON_DISABLED: 'Nút Gửi của Flow đang bị khoá. Đợi hoặc kiểm tra ô nhập rồi bấm Tiếp tục',
