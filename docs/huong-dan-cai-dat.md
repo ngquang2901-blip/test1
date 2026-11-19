@@ -110,6 +110,12 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 - Các nút trên bảng là thao tác của chính bạn: trợ lý không tự bấm được chúng (các lệnh đó chỉ mở cho bảng, không mở cho trợ lý).
 - Trong Kaiser: sau khi cập nhật ToolFlow, vào **Cài đặt → Ứng dụng → Máy chủ MCP**, bấm **Kiểm tra** ở dòng `toolflow` để Kaiser nhận bảng.
 
+### ToolFlow ngay trong VVO (từ bản 0.20.0)
+VVO bản mới có dòng **ToolFlow** trên thanh trái, phía trên danh sách bot. Bấm vào là mở đúng giao diện ToolFlow của bạn, dùng y như trong app.
+- Máy chưa có ToolFlow: VVO hiện nút **Cài ToolFlow**, tự tải bản mới nhất và cài (khoảng 2 phút). ToolFlow đã cài mà chưa mở: bấm **Bật ToolFlow**.
+- Lần đầu mở, VVO tự thêm ToolFlow vào các máy chủ MCP, nên bot trong VVO gọi được công cụ ToolFlow. **Tự bấm** vẫn chỉ bạn bật được.
+- Bot báo "ToolFlow chưa nối được với Chrome": mở Chrome; nếu Chrome đang mở thì tải lại thẻ ToolFlow Connector ở `chrome://extensions` rồi F5 tab Flow. Bot báo "chưa có tab dự án": vào màn **Kết nối** bấm **Dùng tab này**.
+
 ## Dữ liệu nằm ở đâu
 - Ảnh và video tải về: thư mục `Downloads/ToolFlow`.
 - Dữ liệu app (lô, mẫu, extension): `%APPDATA%\ToolFlow`. Gỡ app không xoá thư mục này.
@@ -117,5 +123,6 @@ MCP là cổng để một trợ lý AI chạy trên cùng máy (Claude Code, He
 ## Cập nhật bản mới
 - App tự kiểm tra bản mới khi mở và vài giờ một lần, tự tải về trong nền (thanh trên cùng hiện "Đang tải bản …"). Tải xong, một dải xanh hiện **Khởi động lại để cập nhật**: bấm là app tự cài rồi mở lại; bấm **Để sau** thì bản mới tự cài khi bạn tắt hẳn app (khay hệ thống → Thoát; đóng cửa sổ thôi chưa tắt). Đang có lượt chờ kết quả thì app không khởi động lại.
 - Xem phiên bản, kiểm tra tay: **Cài đặt → Cập nhật → Kiểm tra bản mới**.
+- Từ bản 0.20.0, tiện ích trong Chrome tự tải lại và tự F5 các tab Flow, ChatGPT, Gemini sau mỗi lần app cập nhật. Lần lên 0.20.0 (và khi dùng bản cũ hơn) vẫn phải làm tay một lần như sau.
 - Sau mỗi lần cập nhật, màn Kết nối có thể báo **Extension cần tải lại**: vào `chrome://extensions`, bấm nút tải lại (mũi tên vòng) ở thẻ **ToolFlow Connector**, rồi tải lại tab Flow (làm ở từng hồ sơ Chrome). Trong lúc báo, app không tự bấm Gửi.
 - Cũng có thể cài đè bản mới lên bản cũ bằng file cài; dữ liệu được giữ nguyên.
