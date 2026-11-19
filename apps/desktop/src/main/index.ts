@@ -279,6 +279,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   }
   pruneFrames(join(userData, 'frames'), clock.now())
   const wf = createWorkflows({
+    // the owner's folder for workflow files; tests and the built-in test Flow keep theirs in the app data, never in his Documents
+    dir: process.env.TOOLFLOW_WF_DIR ?? (FAKE || process.env.TOOLFLOW_USER_DATA ? join(userData, 'workflows') : join(app.getPath('documents'), 'ToolFlow', 'workflows')),
     marker: join(userData, 'wf-running.json'), attention: (title, body) => notifier.notify({ kind: 'attention', batchId: null, title, body }),
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
@@ -299,7 +301,8 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   const mcp = createMcpSwitch({
     file: join(userData, 'mcp.json'), port: Number(process.env.TOOLFLOW_MCP_PORT ?? 47615), version: app.getVersion(),
     ui: (token) => { webUi?.close(); webUi = createWebUi({ token, rendererDir: join(__dirname, '../renderer'), handlers: uiHandlers }); return webUi.handle }, // a fixed port, so the agent's config survives restarts
-    tools: toolsOf({ enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), download: (b) => h.downloadBatch(b), resume: (b) => h.resumeBatch(b), pause: (b) => h.pauseBatch(b), preview: (attemptId, mediaId, play) => h.previewOutput({ attemptId, mediaId, play }), list: () => h.listBatches(), file: (a, m) => downloader.file(a, m) }),
+    tools: toolsOf({ enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), download: (b) => h.downloadBatch(b), resume: (b) => h.resumeBatch(b), pause: (b) => h.pauseBatch(b), preview: (attemptId, mediaId, play) => h.previewOutput({ attemptId, mediaId, play }), list: () => h.listBatches(), file: (a, m) => downloader.file(a, m),
+      workflows: { list: () => wf.handlers.listWorkflows(), bulk: (a) => wf.handlers.runWorkflowBulk(a), bulkStatus: (id) => wf.handlers.workflowBulk(id), stopBulk: (id) => wf.handlers.stopWorkflowBulk(id), autoSend: async () => ((await h.listBatches()).session as { autoEnabled: boolean }).autoEnabled } }),
   })
   mcp.start().catch((e) => console.error('mcp', (e as { code?: string })?.code ?? 'INTERNAL_ERROR'))
   const mcpHandlers = {

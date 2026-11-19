@@ -60,6 +60,7 @@ const outPort = (type: Kind, d: Data): PortKind => (type === 'text' || type === 
 const outLabel = (type: Kind, d: Data): string => (type === 'text' || type === 'csv' ? 'Prompt' : type === 'frame' ? 'Khung hình cuối' : type === 'image' ? 'Ảnh đã chọn' : isVideo(d) ? 'Video kết quả' : 'Ảnh kết quả')
 const STATE: Record<string, [Tone, string]> = { waiting: ['idle', 'Chờ lượt'], running: ['run', 'Đang chạy'], done: ['done', 'Xong'], failed: ['attn', 'Lỗi'], skipped: ['attn', 'Bỏ qua'], bypassed: ['idle', 'Không chạy'], stopped: ['idle', 'Đã dừng'] }
 const WHY: Record<string, string> = {
+  EMPTY_VAR: 'Có ô trống: mỗi cột tên biến cần có giá trị ở mọi dòng',
   WF_NO_GENERATE: 'Chưa có node Tạo ảnh Flow nào. Thêm một node rồi nối Text vào nó',
   WF_NO_PROMPT: 'Node này chưa có prompt. Nối một node Text có chữ vào chấm bên trái',
   WF_CYCLE: 'Các node Tạo ảnh đang nối thành vòng tròn. Bỏ bớt một dây nối',
@@ -315,6 +316,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const [saved, setSaved] = useState<Saved[]>([])
   const [mode, setMode] = useState<'auto' | 'manual'>(s.autoEnabled ? 'auto' : 'manual')
   const [msg, setMsg] = useState('')
+  const [bulk, setBulk] = useState<{ id: string; status: string; total: number; done: number; failed: number; runId: string | null } | null>(null)
   const [preview, setPreview] = useState<Plan | null>(null)
   const [picker, setPicker] = useState<PickAt | null>(null)
   const [wide, setWide] = useState<string | null>(null) // a Tạo ảnh node whose form was moved from the popup to the right panel
@@ -324,6 +326,15 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   useEffect(() => { keep = { nodes, edges, vars, name, runId, hist: hist.current } })
   const list = (): Promise<void> => window.api.listWorkflows().then(setSaved)
   useEffect(() => { void list() }, [])
+  useEffect(() => { // a bulk run: its counts, and the canvas follows the run in flight
+    if (bulk?.status !== 'running') return
+    const t = setInterval(() => void window.api.workflowBulk(bulk.id).then((b: Omit<NonNullable<typeof bulk>, 'id'> | null) => {
+      if (!b) return
+      setBulk({ ...b, id: bulk.id })
+      if (b.runId) setRunId((cur) => { if (cur !== b.runId) setRun(null); return b.runId })
+    }), 1500)
+    return () => clearInterval(t)
+  }, [bulk?.id, bulk?.status])
   useEffect(() => {
     if (!runId) return
     let t: ReturnType<typeof setInterval> | undefined, live = true
@@ -509,6 +520,18 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   }, [])
   const running = run?.status === 'running' || (!!runId && !run)
   const id = saved.find((w) => w.name === name.trim())?.id
+  /** Chạy hàng loạt: the SAVED workflow once per CSV row, the header naming its {biến}; main checks every row before sending. */
+  const bulkCsv = (file?: File): void => call(async () => {
+    if (!file || !id) return
+    const r = readCsv(await file.arrayBuffer())
+    if ('error' in r) return setMsg(csvMsg(r.error))
+    const [head, ...body] = r.rows
+    const rows = body.map((c) => Object.fromEntries(head.map((h, i) => [h.trim(), c[i] ?? '']).filter(([h]) => h)))
+    if (!rows.length) return setMsg('File CSV chưa có dòng nào dưới dòng tên cột')
+    const out = await window.api.runWorkflowBulk({ name: name.trim(), rows, mode }) as { bulkId?: string; total?: number; errors?: { row: number; code: string }[] }
+    if (out.errors) return setMsg(`Chưa chạy: dòng ${out.errors[0].row} của file — ${why(out.errors[0].code)}`)
+    setBulk({ id: out.bulkId!, status: 'running', total: out.total!, done: 0, failed: 0, runId: null })
+  })
   const h = hist.current
   const missing = [...new Set(nodes.flatMap((n) => (n.type === 'text' ? varsOf(n.data.text ?? '') : [])))].filter((n) => !(n in table))
   const setVar = (i: number, p: Partial<Var>): void => setVars((vs) => vs.map((v, j) => (j === i ? { ...v, ...p } : v)))
@@ -680,6 +703,9 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
         <button className="small" disabled={!id} onClick={() => call(() => window.api.deleteWorkflow(id).then(list).then(() => setMsg('Đã xoá bản lưu. Các node vẫn còn trên màn hình, bấm Lưu nếu muốn giữ lại')))}>Xoá</button>
         <button className="small" disabled={!nodes.length} onClick={() => open(undefined)}>Mới</button>
         <button className="primary small" disabled={!name.trim() || !nodes.length} onClick={() => call(() => window.api.saveWorkflow({ name, graph: raw() }).then(list).then(() => setMsg('Đã lưu')))}>Lưu</button>
+        {bulk?.status === 'running'
+          ? <button className="small" onClick={() => call(() => window.api.stopWorkflowBulk(bulk.id))}>Dừng hàng loạt</button>
+          : <label className={`filebtn small${id ? '' : ' disabled'}`} title={id ? 'Chạy bản đã lưu một lượt cho mỗi dòng của file CSV; dòng đầu là tên các biến' : 'Lưu workflow trước rồi mới chạy hàng loạt'}>Chạy hàng loạt (CSV)<input type="file" accept=".csv,text/csv" disabled={!id} aria-label="Chạy hàng loạt từ file CSV" onChange={(e) => { bulkCsv(e.target.files?.[0]); e.target.value = '' }} /></label>}
         <button className="small" aria-pressed={!panel} onClick={() => { setPanel(!panel); fit() }}>{panel ? 'Ẩn bảng bên phải' : 'Hiện bảng bên phải'}</button>
       </header>
       <div className="wf-body">
@@ -732,7 +758,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
             )}
           </div>
           <p className="wf-foot" role="status" data-testid="wf-status">
-            {msg || (run ? { running: 'Đang chạy, theo dõi từng lượt ở Hàng đợi', done: 'Workflow đã chạy xong', failed: 'Workflow chạy xong, có node lỗi (xem dòng đỏ)', stopped: 'Workflow đã dừng' }[run.status] : !s.autoEnabled ? 'Tự bấm đang tắt (bật ở Cài đặt): bạn bấm Gửi trong Flow cho từng prompt' : '')}
+            {msg || (bulk ? `Hàng loạt: ${bulk.done + bulk.failed} / ${bulk.total} lượt${bulk.failed ? `, ${bulk.failed} lượt lỗi` : ''}${{ running: ' · đang chạy', done: ' · đã xong', stopped: ' · đã dừng' }[bulk.status] ?? ''}` : run ? { running: 'Đang chạy, theo dõi từng lượt ở Hàng đợi', done: 'Workflow đã chạy xong', failed: 'Workflow chạy xong, có node lỗi (xem dòng đỏ)', stopped: 'Workflow đã dừng' }[run.status] : !s.autoEnabled ? 'Tự bấm đang tắt (bật ở Cài đặt): bạn bấm Gửi trong Flow cho từng prompt' : '')}
           </p>
         </div>
         <aside className="wf-side nokey" aria-label="Cấu hình" hidden={!panel}>{side()}</aside>

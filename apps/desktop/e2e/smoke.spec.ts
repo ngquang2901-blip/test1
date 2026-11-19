@@ -1478,3 +1478,23 @@ test('the app opens on Tổng quan, whose numbers follow the batches', async () 
   await expect(ov.getByRole('listitem')).toHaveCount(1)
   for (const gone of ['Tạo lô', 'Lô mới']) await expect(page.getByRole('button', { name: gone })).toHaveCount(0) // the Tạo lô screen and its buttons are gone
 })
+
+test('Workflow files: a .json copied into the workflows folder is listed; Chạy hàng loạt (CSV) runs the saved workflow once per row, each row filling its {biến}', async () => {
+  const ud = tmp(), dir = join(ud, 'workflows')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'san-pham.json'), JSON.stringify({ toolflow: 1, name: 'Sản phẩm', vars: { sp: 'cốc' }, nodes: [{ id: 't', type: 'text', x: 0, y: 0, text: 'ảnh {sp} nền trắng' }, { id: 'g', type: 'generate', x: 300, y: 0 }], edges: [{ from: 't', to: 'g' }] }))
+  const { page } = await launch(ud)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByLabel('Workflow đã lưu').selectOption({ label: 'Sản phẩm' })
+  await expect(page.locator('.react-flow__node')).toHaveCount(2)
+  const csv = join(tmp(), 'sp.csv')
+  writeFileSync(csv, 'sp,ghi chú\nghế gỗ,x\nấm trà,y\n')
+  await page.getByLabel('Chạy hàng loạt từ file CSV').setInputFiles(csv)
+  await expect(page.getByTestId('wf-status')).toHaveText('Hàng loạt: 2 / 2 lượt · đã xong', { timeout: 60_000 })
+  const prompts = await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string }[] }[] }) => r.batches.map((b) => b.items.map((i) => i.prompt))))
+  expect(prompts).toEqual([['ảnh ấm trà nền trắng'], ['ảnh ghế gỗ nền trắng']]) // newest first
+  await page.getByLabel('Tên workflow').fill('Bản thứ hai')
+  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Đã lưu')
+  expect(readdirSync(dir).sort()).toEqual(['Bản thứ hai.json', 'san-pham.json'])
+})
