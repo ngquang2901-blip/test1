@@ -885,7 +885,7 @@ test('MCP: off until turned on in Cài đặt; then an agent with the key create
   const tool = async (name: string, args: object = {}) => JSON.parse((await ask('tools/call', { name, arguments: args })).body!.content![0].text)
   expect((await ask('tools/list', undefined, 'wrong')).status).toBe(401)
   expect((await ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } })).status).toBe(200)
-  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume', 'toolflow_panel']) // the panel's own tools only for a chat app that shows panels
+  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_list_workflows', 'toolflow_run_workflow', 'toolflow_workflow_status', 'toolflow_stop_workflow', 'toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume', 'toolflow_panel']) // the panel's own tools only for a chat app that shows panels
   expect(await tool('toolflow_status')).toMatchObject({ connected: true, tabsInUse: 1, selfCheckOk: true })
   const { batchIds } = await tool('toolflow_create_batch', { prompts: ['một con mèo', 'một con chó'] }) as { batchIds: string[] }
   expect(batchIds).toHaveLength(1)
