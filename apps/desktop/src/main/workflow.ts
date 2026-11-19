@@ -2,8 +2,10 @@
 // path: every "generate" node becomes one batch through the same enqueue the Tạo lô screen uses, so each send keeps every
 // guarantee of a batch (intent first, never sent twice, refs checked). Nothing here talks to Flow directly.
 import { randomUUID } from 'node:crypto'
-import { readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { basename } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
+import { fillLines, varsOf } from '../renderer/src/template'
+import { fillRows } from '../renderer/src/csv'
 import type { Db } from './db'
 import { safeComponent } from './downloads'
 import { comboQualified, type Combo } from './profile'
@@ -21,6 +23,20 @@ export type Step = { node: string; kind: 'image' | 'video'; prompts: string; ima
 export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean; file?: string } // file: a Ghép video node's saved video
 /** A Ghép video node: the video steps wired into it, in wire order (their clips are joined in that order, each step's prompts in order). */
 export type Merge = { node: string; inputs: string[] }
+type Bulk = { id: string; name: string; status: 'running' | 'done' | 'stopped'; stop: boolean; total: number; done: number; failed: number; runId: string | null }
+
+/** What runs, as the canvas makes it: every Text node with its {biến} filled in, every Bảng CSV with its template filled per
+ * row (one prompt per line). A node that cannot be filled keeps the error code of the filler (EMPTY_VAR, CSV_EMPTY_CELL...). */
+export function fillGraph(g: Graph, vars: Record<string, string>): Graph & { fillErrors: { node: string; code: string }[] } {
+  const fillErrors: { node: string; code: string }[] = []
+  const nodes = g.nodes.map((n) => {
+    if (n.type !== 'text' && n.type !== 'csv') return n
+    const r = n.type === 'csv' ? fillRows(n.text ?? '', n.rows ?? []) : fillLines(n.text ?? '', vars)
+    if ('error' in r) { fillErrors.push({ node: n.id, code: r.error.code }); return { ...n, text: '', rows: undefined } }
+    return { ...n, text: r.prompts.join('\n'), rows: undefined }
+  })
+  return { nodes, edges: g.edges, fillErrors }
+}
 export type Run = { id: string; status: 'running' | 'done' | 'failed' | 'stopped'; stop: boolean; nodes: Record<string, NodeRun>; loops: Record<string, string[]> } // loops: a Vòng lặp node's steps, round 1 first
 
 const TYPES = ['text', 'image', 'generate', 'download', 'note', 'branch', 'loop', 'csv', 'frame', 'merge']
@@ -155,6 +171,7 @@ function take(dp: Dep, u: NodeRun): 'run' | 'bypassed' | 'skipped' {
 
 type Enqueued = { batchId?: string; batchIds?: string[]; errors?: { code: string }[] }
 export type WfDeps = {
+  dir: string // the workflows folder: one <name>.json per workflow, read on every list (a file copied in shows up)
   db: Db; now(): number; sleep?(ms: number): Promise<void>
   enqueue(a: object): Promise<Enqueued>; start(batchId: string): Promise<unknown>; stop(batchId: string): Promise<unknown> // the same handlers the Tạo lô / Hàng đợi screens call
   status(batchId: string): string; download(batchId: string): Promise<unknown>
@@ -171,6 +188,7 @@ export type WfDeps = {
 export function createWorkflows(d: WfDeps) {
   const sleep = d.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const runs = new Map<string, Run>()
+  const bulks = new Map<string, Bulk>()
   const marks = (): Record<string, string> => { try { return JSON.parse(readFileSync(d.marker!, 'utf8')) as Record<string, string> } catch { return {} } }
   const mark = (id: string, name: string | null): void => { if (!d.marker) return; const m = marks(); if (name === null) delete m[id]; else m[id] = name; try { if (Object.keys(m).length) writeFileSync(d.marker, JSON.stringify(m)); else rmSync(d.marker, { force: true }) } catch { /* the notice is best effort */ } }
   const code = (e: unknown): string => (e as { code?: string })?.code ?? 'INTERNAL_ERROR'
@@ -214,7 +232,46 @@ export function createWorkflows(d: WfDeps) {
     run.status = run.stop ? 'stopped' : states.every((x) => x === 'done' || x === 'bypassed') ? 'done' : 'failed'
   }
 
+  // Workflows live as files; ones an older version kept in the database move into the folder once.
+  const fileOf = (stem: string): string => join(d.dir, `${stem}.json`)
+  const stemOf = (name: string): string => safeComponent(name, 60)
+  const write = (name: string, g: Graph): string => { mkdirSync(d.dir, { recursive: true }); const stem = stemOf(name); writeFileSync(fileOf(stem), JSON.stringify({ toolflow: 1, name, ...g }, null, 2)); return stem }
+  try {
+    for (const r of d.db.prepare('select name, json from workflow').all() as { name: string; json: string }[]) if (!existsSync(fileOf(stemOf(r.name)))) write(r.name, parseGraph(JSON.parse(r.json)))
+    d.db.prepare('delete from workflow').run()
+  } catch (e) { console.error('workflow move', code(e)) } // rows stay in the database until every one is written
+  /** Every readable workflow of the folder; a file that is not one (broken JSON, too big, bad graph) is skipped. */
+  const readAll = (): { id: string; name: string; g: Graph; at: number }[] => {
+    let files: string[] = []
+    try { files = readdirSync(d.dir).filter((f) => f.toLowerCase().endsWith('.json')) } catch { return [] }
+    return files.flatMap((f) => {
+      try {
+        const p = join(d.dir, f), st = statSync(p)
+        if (st.size > 2_000_000) return []
+        const v = JSON.parse(readFileSync(p, 'utf8')) as { name?: unknown }, id = f.slice(0, -5)
+        return [{ id, name: typeof v?.name === 'string' && v.name.trim() ? v.name.trim().slice(0, 60) : id, g: parseGraph(v), at: st.mtimeMs }]
+      } catch { return [] }
+    }).sort((a, b) => b.at - a.at)
+  }
   const assetOf = d.db.prepare('select id, name, bytes from asset where id=?')
+  /** The plan of a graph, plus a reference image no longer on this machine as an error of its node. */
+  const checked = (g: Graph): ReturnType<typeof plan> => {
+    const p = plan(g), fe = (g as { fillErrors?: { node: string; code: string }[] }).fillErrors ?? []
+    if (fe.length) return { steps: [], merges: [], errors: fe } // the filler's own code names what is wrong, before the plan's
+    for (const s of p.steps) if (s.images.some((id) => !assetOf.get(id))) p.errors.push({ node: s.node, code: 'REF_ASSET_MISSING' })
+    return p
+  }
+  /** Starts a planned run; done settles when it ends. */
+  const launch = (p: ReturnType<typeof plan>, mode: 'auto' | 'manual', name: string): { run: Run; done: Promise<void> } => {
+    const { steps, merges } = p, loops: Record<string, string[]> = {}
+    for (const s of steps) if (s.round) (loops[s.node.split('#')[0]] ??= [s.deps[0].node]).push(s.node)
+    const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries([...steps, ...merges].map((s) => [s.node, { state: 'waiting', batchIds: [] }])), loops }
+    for (const [id, r] of runs) if (r.status !== 'running' && runs.size >= 20) runs.delete(id) // finished runs are only kept for the canvas that started them
+    runs.set(run.id, run)
+    mark(run.id, name)
+    const done = exec(run, steps, merges, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) }).finally(() => mark(run.id, null))
+    return { run, done }
+  }
   // for the canvas: image nodes carry names and sizes, never paths; a file not registered on this machine is marked missing
   const forCanvas = (g: Graph) => ({ edges: g.edges, vars: g.vars ?? {}, nodes: g.nodes.map((n) => ({ ...n, ...(n.assetIds ? { assets: n.assetIds.map((id) => assetOf.get(id) ?? { id, name: '', bytes: 0, missing: true }) } : {}) })) })
   return {
@@ -223,20 +280,20 @@ export function createWorkflows(d: WfDeps) {
       for (const n of Object.values(marks())) d.attention?.('Workflow bị dừng giữa chừng', `Workflow ${n ? `${n} ` : ''}bị dừng giữa chừng vì app tắt — mở Workflow và chạy lại`)
       if (d.marker) rmSync(d.marker, { force: true })
     },
-    active: (): boolean => [...runs.values()].some((r) => r.status === 'running'), // not an IPC handler: main asks before restarting for an update
+    active: (): boolean => [...runs.values()].some((r) => r.status === 'running') || [...bulks.values()].some((b) => b.status === 'running'), // not an IPC handler: main asks before restarting for an update
     handlers: {
       async listWorkflows() {
-        return (d.db.prepare('select id, name, json from workflow order by updated_at desc').all() as { id: string; name: string; json: string }[]).map((r) => ({ id: r.id, name: r.name, ...forCanvas(JSON.parse(r.json) as Graph) }))
+        return readAll().map((w) => ({ id: w.id, name: w.name, ...forCanvas(w.g) }))
       },
       async saveWorkflow(a: unknown) { // same name = update
         const o = a as { name?: unknown; graph?: unknown } | null, name = typeof o?.name === 'string' ? o.name.trim() : ''
         if (!name || name.length > 60) bad()
-        const g = parseGraph(o!.graph)
-        const id = (d.db.prepare('select id from workflow where name=?').get(name) as { id: string } | undefined)?.id ?? randomUUID()
-        d.db.prepare('insert into workflow(id,name,json,updated_at) values(?,?,?,?) on conflict(name) do update set json=excluded.json, updated_at=excluded.updated_at').run(id, name, JSON.stringify(g), d.now())
-        return { id }
+        return { id: write(name, parseGraph(o!.graph)) }
       },
-      async deleteWorkflow(a: unknown) { d.db.prepare('delete from workflow where id=?').run(typeof a === 'string' ? a : bad()) },
+      async deleteWorkflow(a: unknown) { // a file of the folder, named by its id (the file name): never a path
+        if (typeof a !== 'string' || !a || a !== safeComponent(a, 60) || !readAll().some((w) => w.id === a)) bad()
+        rmSync(fileOf(a as string), { force: true })
+      },
       /** The canvas as a .json file the user can keep or copy to another machine (image nodes keep ids only: files are picked again there). */
       async exportWorkflow(a: unknown) {
         const o = a as { name?: unknown; graph?: unknown } | null, g = parseGraph(o?.graph)
@@ -260,19 +317,57 @@ export function createWorkflows(d: WfDeps) {
       async runWorkflow(a: unknown) {
         const o = a as { graph?: unknown; mode?: unknown; dryRun?: unknown; name?: unknown } | null
         const mode = o?.mode === 'auto' || o?.mode === 'manual' ? o.mode : bad()
-        const g = parseGraph(o!.graph), { steps, merges, errors } = plan(g)
-        for (const s of steps) if (s.images.some((id) => !assetOf.get(id))) errors.push({ node: s.node, code: 'REF_ASSET_MISSING' })
-        if (o!.dryRun === true) return { steps, merges, errors }
+        const g = parseGraph(o!.graph), p = checked(g)
+        if (o!.dryRun === true) return p
+        if (p.errors.length) return { errors: p.errors }
+        return { runId: launch(p, mode, typeof o!.name === 'string' ? o!.name.trim() : '').run.id }
+      },
+      /** Many whole runs of one saved workflow, one after another: each row fills the workflow's {biến} (prompts: the bot's
+       * shortcut for a workflow with one {biến}). Every row is checked before anything is sent; a bad row names itself. */
+      async runWorkflowBulk(a: unknown) {
+        const o = a as { name?: unknown; rows?: unknown; prompts?: unknown; mode?: unknown } | null
+        const mode = o?.mode === 'auto' || o?.mode === 'manual' ? o.mode : bad()
+        const w = readAll().find((x) => typeof o!.name === 'string' && x.name === o!.name.trim())
+        if (!w) throw coded('WF_NOT_FOUND')
+        const vals = (r: unknown): Record<string, string> => { // one row = one run: a line break in a value would split it into several prompts
+          if (!r || typeof r !== 'object' || Array.isArray(r)) bad()
+          return Object.fromEntries(Object.entries(r as object).map(([k, v]) => [k, typeof v === 'string' && v.length <= 5000 ? v.replace(/\s*\n\s*/g, ' ').trim() : bad()]))
+        }
+        let rows: Record<string, string>[]
+        if (o!.prompts !== undefined) {
+          const names = [...new Set([...Object.keys(w.g.vars ?? {}), ...w.g.nodes.flatMap((n) => (n.type === 'text' ? varsOf(n.text ?? '') : []))])]
+          if (names.length !== 1) throw coded('WF_PROMPTS_NEED_ONE_VAR')
+          rows = Array.isArray(o!.prompts) ? o!.prompts.map((x) => vals({ [names[0]]: x })) : bad()
+        } else rows = Array.isArray(o!.rows) ? o!.rows.map(vals) : bad()
+        if (!rows.length || rows.length > 500) bad()
+        const plans = rows.map((r) => checked(fillGraph(w.g, { ...(w.g.vars ?? {}), ...r })))
+        const errors = plans.flatMap((p, i) => p.errors.map((e) => ({ row: i + 1, ...e })))
         if (errors.length) return { errors }
-        const loops: Record<string, string[]> = {}
-        for (const s of steps) if (s.round) (loops[s.node.split('#')[0]] ??= [s.deps[0].node]).push(s.node)
-        const run: Run = { id: randomUUID(), status: 'running', stop: false, nodes: Object.fromEntries([...steps, ...merges].map((s) => [s.node, { state: 'waiting', batchIds: [] }])), loops }
-        for (const [id, r] of runs) if (r.status !== 'running' && runs.size >= 20) runs.delete(id) // finished runs are only kept for the canvas that started them
-        runs.set(run.id, run)
-        const saved = d.db.prepare('select name from workflow where json=?').get(JSON.stringify(g)) as { name: string } | undefined
-        mark(run.id, (typeof o!.name === 'string' && o!.name.trim()) || saved?.name || '')
-        void exec(run, steps, merges, mode).catch((e) => { run.status = 'failed'; console.error('workflow', code(e)) }).finally(() => mark(run.id, null))
-        return { runId: run.id }
+        const bulk: Bulk = { id: randomUUID(), name: w.name, status: 'running', stop: false, total: rows.length, done: 0, failed: 0, runId: null }
+        for (const [id, b] of bulks) if (b.status !== 'running' && bulks.size >= 20) bulks.delete(id)
+        bulks.set(bulk.id, bulk)
+        void (async () => {
+          for (const p of plans) {
+            if (bulk.stop) break
+            const { run, done } = launch(p, mode, w.name)
+            bulk.runId = run.id
+            await done
+            if (run.status === 'done') bulk.done++; else if (run.status === 'failed') bulk.failed++
+          }
+          bulk.status = bulk.stop ? 'stopped' : 'done'
+        })()
+        return { bulkId: bulk.id, total: bulk.total }
+      },
+      async workflowBulk(a: unknown) { // progress: runs done / failed of the total, and the run in flight (for its nodes)
+        const b = bulks.get(a as string)
+        return b ? { status: b.status, name: b.name, total: b.total, done: b.done, failed: b.failed, runId: b.runId } : null
+      },
+      async stopWorkflowBulk(a: unknown) { // no new run starts; the run in flight is stopped like the canvas's Dừng
+        const b = bulks.get(a as string)
+        if (!b || b.status !== 'running') return
+        b.stop = true
+        const run = b.runId ? runs.get(b.runId) : undefined
+        if (run?.status === 'running') { run.stop = true; for (const n of Object.values(run.nodes)) if (n.state === 'running') for (const id of n.batchIds) await d.stop(id) }
       },
       async stopWorkflow(a: unknown) { // no new node starts; the node that is running has its batches stopped like the Dừng button
         const run = runs.get(a as string)

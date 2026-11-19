@@ -211,3 +211,20 @@ test('create_batch with no Flow tab says whether Chrome is not connected at all,
   expect((await run(false)).result.content[0].text).toMatch(/^CHROME_NOT_CONNECTED: /)
   expect((await run(true)).result.content[0].text).toMatch(/^NO_PROJECT_TAB: .*Dùng tab này/)
 })
+
+test('workflow tools: list names with their {variables}; run needs exactly one of rows / prompts and sends with auto only when the user turned auto-send on', async () => {
+  const calls: object[] = []
+  let auto = false
+  const dep = { enqueue: async () => ({}), start: async () => ({}), download: async () => ({}), resume: async () => ({}), pause: async () => ({}), preview: async () => ({ url: null }), list: async () => ({ batches: [], session: {} }), file: () => { throw new Error('x') },
+    workflows: { list: async () => [{ name: 'SP', vars: { sp: 'cốc' }, nodes: [{ type: 'text', text: 'ảnh {sp} trên {nền}' }, { type: 'generate' }] }], bulk: async (a: object) => { calls.push(a); return { bulkId: 'k1', total: 2 } }, bulkStatus: async (id: string) => (id === 'k1' ? { status: 'running', total: 2, done: 1, failed: 0 } : null), stopBulk: async () => {}, autoSend: async () => auto } }
+  const tools = toolsOf(dep as never)
+  expect(await tools.toolflow_list_workflows.run({})).toEqual({ workflows: [{ name: 'SP', variables: ['sp', 'nền'], defaults: { sp: 'cốc' } }] })
+  await expect(tools.toolflow_run_workflow.run({ name: 'SP' })).rejects.toThrow(/INVALID_ARGS/)
+  await expect(tools.toolflow_run_workflow.run({ name: 'SP', rows: [{}], prompts: ['a'] })).rejects.toThrow(/INVALID_ARGS/)
+  expect(await tools.toolflow_run_workflow.run({ name: 'SP', prompts: ['a', 'b'] })).toEqual({ bulkId: 'k1', total: 2 })
+  auto = true
+  await tools.toolflow_run_workflow.run({ name: 'SP', rows: [{ sp: 'x', 'nền': 'y' }] })
+  expect(calls).toEqual([{ name: 'SP', prompts: ['a', 'b'], mode: 'manual' }, { name: 'SP', rows: [{ sp: 'x', 'nền': 'y' }], mode: 'auto' }])
+  expect(await tools.toolflow_workflow_status.run({ bulkId: 'k1' })).toMatchObject({ done: 1 })
+  await expect(tools.toolflow_workflow_status.run({ bulkId: 'nope' })).rejects.toThrow(/NOT_FOUND/)
+})

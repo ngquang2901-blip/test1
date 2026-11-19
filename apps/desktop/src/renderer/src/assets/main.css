@@ -195,7 +195,9 @@ input[type='radio'], input[type='checkbox'] { accent-color: var(--ink); width: 1
 .filebtn { position: relative; display: inline-flex; align-items: center; padding: 4px 12px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: var(--ink); }
 .filebtn:hover { background: var(--hover); }
 .filebtn:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
-.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.filebtn.disabled { opacity: .5; }
+.filebtn.disabled input { cursor: not-allowed; }
 label { cursor: pointer; }
 .field-label { display: block; font-size: 16px; font-weight: 500; margin-bottom: 10px; }
 

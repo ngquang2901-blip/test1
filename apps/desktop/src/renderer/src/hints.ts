@@ -110,6 +110,8 @@ export const HINTS: Record<string, string> = {
   CLICK_IN_FLIGHT: 'App đang bấm Gửi lượt này nên chưa làm được việc này. Đợi vài giây rồi bấm lại',
   ALREADY_RERUN: 'Lượt này đã được chạy lại rồi (mỗi lượt chỉ chạy lại một lần để khỏi tốn credit hai lần). Xem lượt mới trong lô',
   BATCH_ARCHIVED: 'Lô này đã lưu trữ nên không gửi thêm được. Tạo lô mới',
+  WF_NOT_FOUND: 'Không có workflow tên này trong thư mục Documents\\ToolFlow\\workflows. Xem tên đúng bằng danh sách workflow',
+  WF_PROMPTS_NEED_ONE_VAR: 'Workflow này không có đúng một {biến} nên không nhận danh sách prompt. Gửi từng dòng theo tên biến (rows)',
   NOT_RERUNNABLE: 'Chỉ chạy lại được lượt đã báo lỗi. Lượt này không ở trạng thái đó',
   COST_NOT_CONFIRMED: 'Chạy lại sẽ tốn thêm credit nên app cần bạn xác nhận trước. Bấm lại và chọn xác nhận',
   NO_ACCOUNT: 'Chưa đọc được tài khoản Google nào từ Chrome. Mở Flow trong Chrome đã đăng nhập rồi thử lại',
