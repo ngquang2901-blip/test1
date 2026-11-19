@@ -1,4 +1,4 @@
-// Generation settings (model / aspect / thinking level / count) as the user picks them in Tạo lô and on a Workflow's Tạo ảnh node:
+// Generation settings (model / aspect / thinking level / count) as the user picks them on a Workflow's Tạo ảnh node:
 // only what the profile has qualified (profiles/flow.json "choices"), nothing typed by hand.
 import flow from '../../../profiles/flow.json'
 

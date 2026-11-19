@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ACTIVE, BATCH_LABEL, KIND_LABEL, current, itemLabel, siteLabel, type Batch, type Notice, type Session } from '../types'
 import { Icon, batchTone, itemTone, type Tone } from '../ui'
 
-type Go = (screen: 'Tạo lô' | 'Hàng đợi' | 'Kết quả' | 'Kết nối') => void
+type Go = (screen: 'Workflow' | 'Hàng đợi' | 'Kết quả' | 'Kết nối') => void
 const DAY = 86_400_000
 const dayKey = (t: number): string => new Date(t).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
 const weekday = (t: number): string => ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(t).getDay()]
@@ -174,7 +174,7 @@ export default function Overview({ batches, s, go }: { batches: Batch[]; s: Sess
         <div className="ov-card ov-recent">
           <div className="ov-card-head"><h3 className="ov-title">Lô gần đây</h3><button className="ov-ghost" onClick={() => go('Hàng đợi')}>Xem tất cả</button></div>
           {recent.length === 0 ? (
-            <div className="ov-empty"><p>Chưa có lô nào.</p><button className="primary" onClick={() => go('Tạo lô')}><Icon name="plus" />Tạo lô đầu tiên</button></div>
+            <div className="ov-empty"><p>Chưa có lô nào. Nhờ bot trong VVO tạo ảnh, hoặc chạy một Workflow.</p><button className="primary" onClick={() => go('Workflow')}>Mở Workflow</button></div>
           ) : (
             <table className="ov-table">
               <thead><tr><th>Lô</th><th>Loại</th><th>Tạo lúc</th><th>Trạng thái</th><th>Tiến độ</th></tr></thead>

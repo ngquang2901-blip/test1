@@ -95,7 +95,7 @@ export const HINTS: Record<string, string> = {
   GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
   GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang chưa hiện câu trả lời. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi bấm Tiếp tục, app xem lại trang trước: câu trả lời đã hiện thì nhận luôn, không gửi lại',
   GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
-  // workflow: Vòng lặp, Bảng CSV (the CSV lines are also read by Tạo lô; the row and column are put in front of them)
+  // workflow: Vòng lặp, Bảng CSV (the row and column are put in front of them)
   WF_LOOP_INPUT: 'Node Vòng lặp cần đúng một node Tạo ảnh nối vào chấm bên trái',
   WF_LOOP_VIDEO: 'Vòng lặp chỉ dùng được sau node tạo ảnh: video không làm ảnh tham chiếu cho vòng sau được. Nối Vòng lặp sau một node Tạo ảnh',
   CSV_NOT_UTF8: 'File CSV không phải dạng UTF-8 nên chữ có dấu sẽ bị lỗi. Trong Excel bấm Lưu thành, chọn kiểu “CSV UTF-8 (Comma delimited)” rồi nạp lại file đó',
