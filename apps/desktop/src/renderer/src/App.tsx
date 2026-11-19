@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ACTIVE, BATCH_LABEL, current, type Batch, type Draft, type Notices, type Preset, type Session, type UpdateState } from './types'
+import { ACTIVE, BATCH_LABEL, current, type Batch, type Notices, type Session, type UpdateState } from './types'
 import SessionScreen from './screens/Session'
-import NewBatch from './screens/NewBatch'
 import Queue from './screens/Queue'
 import Results from './screens/Results'
 import Workflow from './screens/Workflow'
@@ -12,8 +11,8 @@ import { checkHint, errText } from './hints'
 import { Chip, Icon, batchTone, itemTone } from './ui'
 import { getTheme, isDark, setTheme, type Theme } from './theme'
 
-const SCREENS = ['Tổng quan', 'Kết nối', 'Tạo lô', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
-const ICON = { 'Tổng quan': 'grid', 'Kết nối': 'plug', 'Tạo lô': 'plus', Workflow: 'nodes', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
+const SCREENS = ['Tổng quan', 'Kết nối', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt'] as const
+const ICON = { 'Tổng quan': 'grid', 'Kết nối': 'plug', Workflow: 'nodes', 'Hàng đợi': 'list', 'Kết quả': 'image', 'Cài đặt': 'sliders' } as const
 const run = (f: () => Promise<unknown>): void => void f().catch((e: Error) => alert(errText(e.message)))
 
 /** Session facts in the top bar. Wording differs from S1 on purpose (tests and pair-check read S1's exact phrases). */
@@ -86,10 +85,7 @@ function App(): React.JSX.Element {
     return () => m.removeEventListener('change', f)
   }, [])
   const dark = isDark(theme)
-  const [preset, setPreset] = useState<Preset | null>(null) // a saved setup picked on Hàng đợi, applied once by Tạo lô
   const reload = useCallback(() => window.api.listBatches().then((r: { batches: Batch[]; session: Session }) => { setBatches(r.batches); setSession(r.session) }), [])
-  // quick start: the preset lands in the saved draft first, so Tạo lô opens with it (NewBatch reads session.draft once)
-  const start = (p: Pick<Draft, 'kind' | 'mode'>): void => run(() => window.api.saveDraft(p).then(reload).then(() => setScreen('Tạo lô')))
 
   useEffect(() => {
     void reload()
@@ -134,9 +130,8 @@ function App(): React.JSX.Element {
     <div className="shell">
       <aside className="rail">
         <div className="brand"><h1>ToolFlow</h1></div>
-        <button className="rail-new" onClick={() => setScreen('Tạo lô')}><Icon name="plus" />Lô mới</button>
         <nav aria-label="Màn hình">
-          {SCREENS.slice(0, 6).map(navItem)}
+          {SCREENS.slice(0, 5).map(navItem)}
         </nav>
         {active.length > 0 && (
           <section aria-label="Đang chạy" className="running">
@@ -185,9 +180,8 @@ function App(): React.JSX.Element {
         <main className={screen === 'Workflow' ? 'page flush' : 'page'} key={screen}>{/* a new screen starts at the top, not at the last one's scroll */}
           {screen === 'Tổng quan' && <Overview batches={batches} s={session} go={setScreen} />}
           {screen === 'Kết nối' && <SessionScreen s={session} reload={() => void reload()} />}
-          {screen === 'Tạo lô' && session && <NewBatch initial={session.draft} preset={preset} onDraft={(dr) => setSession((x) => x && { ...x, draft: dr })} onCreated={() => { setPreset(null); setScreen('Hàng đợi'); void reload() }} />}
           {screen === 'Workflow' && session && <Workflow s={session} />}
-          {screen === 'Hàng đợi' && <Queue batches={batches} q={q} onNew={() => setScreen('Tạo lô')} onStart={start} onPreset={(p) => { setPreset(p); setScreen('Tạo lô') }} />}
+          {screen === 'Hàng đợi' && <Queue batches={batches} q={q} />}
           {screen === 'Kết quả' && <Results batches={batches} q={q} />}
           {screen === 'Cài đặt' && session && <Settings s={session} reload={() => void reload()} theme={theme} onTheme={pickTheme} upd={upd} onUpd={setUpd} onInstall={install} />}
         </main>

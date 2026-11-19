@@ -100,6 +100,7 @@ export type McpDeps = {
   preview(attemptId: string, mediaId: string, play: boolean): Promise<{ url: string | null; video?: boolean }> // the Kết quả screen's thumbnail (a video's data only on play)
   list(): Promise<{ batches: unknown[]; session: unknown }>
   file(attemptId: string, mediaId: string): string // the saved file's path; throws when it is not saved
+  workflows?: { list(): Promise<{ name: string; vars: Record<string, string>; nodes: { type: string; text?: string }[] }[]>; bulk(a: object): Promise<unknown>; bulkStatus(id: string): Promise<unknown>; stopBulk(id: string): Promise<unknown>; autoSend(): Promise<boolean> } // the Workflow screen's handlers
 }
 
 /** What an agent may do: read the state, send a list of prompts with the app's default settings, read results, save them. */
@@ -119,7 +120,38 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
         outputs: (a?.outputs ?? []).map((m) => { let saved = true; try { d.file(a!.id, m) } catch { saved = false } return { attemptId: a!.id, mediaId: m, saved } }) } }) })) }
   }
   const PANEL = { ui: { resourceUri: PANEL_URI } }
+  const wf = d.workflows
+  const wfTools: Record<string, Tool> = !wf ? {} : {
+    toolflow_list_workflows: {
+      readOnly: true,
+      description: 'The workflows the user saved in ToolFlow (each is one .json file in Documents\\ToolFlow\\workflows): name and the {variables} its Text nodes use, with their saved default values. Run one with toolflow_run_workflow.',
+      inputSchema: { type: 'object', properties: {} },
+      async run() {
+        return { workflows: (await wf.list()).map((w) => ({ name: w.name, variables: [...new Set([...Object.keys(w.vars ?? {}), ...w.nodes.flatMap((n) => (n.type === 'text' ? [...(n.text ?? '').matchAll(/\{([^{}\n]+)\}/g)].map((m) => m[1].trim()) : []))])], defaults: w.vars ?? {} })) }
+      },
+    },
+    toolflow_run_workflow: {
+      description: 'Run one saved workflow many times, one whole run per input, one after another (large jobs). Give rows (each an object of {variable: value}) or, for a workflow with exactly one variable, prompts (one value per run). Every input is checked first; nothing is sent when one cannot run (errors name the row). Uses the settings saved on the workflow\'s nodes and spends the user\'s credits; when auto-send is off the user clicks Send in Flow. Returns bulkId; poll toolflow_workflow_status.',
+      inputSchema: { type: 'object', required: ['name'], properties: { name: { type: 'string', maxLength: 60 }, rows: { type: 'array', minItems: 1, maxItems: 500, items: { type: 'object', additionalProperties: { type: 'string', maxLength: 5000 } } }, prompts: { type: 'array', minItems: 1, maxItems: 500, items: { type: 'string', maxLength: 5000 } } } },
+      async run(a) {
+        if ((a.rows === undefined) === (a.prompts === undefined)) throw coded('INVALID_ARGS') // exactly one of them
+        return wf.bulk({ name: str(a.name), ...(a.rows !== undefined ? { rows: a.rows } : { prompts: a.prompts }), mode: (await wf.autoSend()) ? 'auto' : 'manual' })
+      },
+    },
+    toolflow_workflow_status: {
+      readOnly: true,
+      description: 'Progress of a toolflow_run_workflow job: status (running / done / stopped), total runs, done, failed. The images of each run are listed by toolflow_list_batches like any batch.',
+      inputSchema: { type: 'object', required: ['bulkId'], properties: { bulkId: { type: 'string' } } },
+      async run(a) { const s = await wf.bulkStatus(str(a.bulkId)); if (!s) throw coded('NOT_FOUND'); return s },
+    },
+    toolflow_stop_workflow: {
+      description: 'Stop a toolflow_run_workflow job: no new run starts and the run in flight is stopped like the Dừng button.',
+      inputSchema: { type: 'object', required: ['bulkId'], properties: { bulkId: { type: 'string' } } },
+      async run(a) { await wf.stopBulk(str(a.bulkId)); return { stopped: true } },
+    },
+  }
   return {
+    ...wfTools,
     toolflow_status: {
       description: 'ToolFlow state: is Chrome connected, how many Flow tabs are in use, how many chatgpt.com / gemini.google.com tabs are open, did the self-check pass, is auto-send on (off = the user must click Send in Flow). When the self-check fails, hint is the Vietnamese line telling the user what to do.',
       inputSchema: { type: 'object', properties: {} },

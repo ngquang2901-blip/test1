@@ -95,7 +95,7 @@ export const HINTS: Record<string, string> = {
   GPT_NO_SEND: 'Không thấy nút Gửi của ChatGPT. Xoá chữ trong ô nhập, tải lại tab ChatGPT (F5) rồi bấm Tiếp tục',
   GPT_SEND_NO_EFFECT: 'Đã bấm Gửi nhưng trang chưa hiện câu trả lời. Thường là tài khoản đã hết lượt tạo ảnh (rê chuột lên nút Gửi để xem khi nào có lại). Khi bấm Tiếp tục, app xem lại trang trước: câu trả lời đã hiện thì nhận luôn, không gửi lại',
   GPT_SEND_DISABLED: 'Nút Gửi của ChatGPT đang bị khoá. Xoá chữ trong ô nhập, đợi ChatGPT trả lời xong rồi bấm Tiếp tục',
-  // workflow: Vòng lặp, Bảng CSV (the CSV lines are also read by Tạo lô; the row and column are put in front of them)
+  // workflow: Vòng lặp, Bảng CSV (the row and column are put in front of them)
   WF_LOOP_INPUT: 'Node Vòng lặp cần đúng một node Tạo ảnh nối vào chấm bên trái',
   WF_LOOP_VIDEO: 'Vòng lặp chỉ dùng được sau node tạo ảnh: video không làm ảnh tham chiếu cho vòng sau được. Nối Vòng lặp sau một node Tạo ảnh',
   CSV_NOT_UTF8: 'File CSV không phải dạng UTF-8 nên chữ có dấu sẽ bị lỗi. Trong Excel bấm Lưu thành, chọn kiểu “CSV UTF-8 (Comma delimited)” rồi nạp lại file đó',
@@ -109,7 +109,9 @@ export const HINTS: Record<string, string> = {
   TARGET_BLOCKED: 'Dự án Flow này còn một lượt chưa rõ đã gửi hay chưa. Mở Flow kiểm tra, chọn “Đã gửi” hoặc “Chưa gửi” cho lượt đó rồi mới chạy lại',
   CLICK_IN_FLIGHT: 'App đang bấm Gửi lượt này nên chưa làm được việc này. Đợi vài giây rồi bấm lại',
   ALREADY_RERUN: 'Lượt này đã được chạy lại rồi (mỗi lượt chỉ chạy lại một lần để khỏi tốn credit hai lần). Xem lượt mới trong lô',
-  BATCH_ARCHIVED: 'Lô này đã lưu trữ nên không gửi thêm được. Tạo lô mới',
+  BATCH_ARCHIVED: 'Lô này đã lưu trữ nên không gửi thêm được. Nhờ bot tạo lô mới hoặc chạy lại workflow',
+  WF_NOT_FOUND: 'Không có workflow tên này trong thư mục Documents\\ToolFlow\\workflows. Xem tên đúng bằng danh sách workflow',
+  WF_PROMPTS_NEED_ONE_VAR: 'Workflow này không có đúng một {biến} nên không nhận danh sách prompt. Gửi từng dòng theo tên biến (rows)',
   NOT_RERUNNABLE: 'Chỉ chạy lại được lượt đã báo lỗi. Lượt này không ở trạng thái đó',
   COST_NOT_CONFIRMED: 'Chạy lại sẽ tốn thêm credit nên app cần bạn xác nhận trước. Bấm lại và chọn xác nhận',
   NO_ACCOUNT: 'Chưa đọc được tài khoản Google nào từ Chrome. Mở Flow trong Chrome đã đăng nhập rồi thử lại',

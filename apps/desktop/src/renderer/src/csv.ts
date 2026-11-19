@@ -1,4 +1,4 @@
-// CSV files (RFC 4180) for Tạo lô and the workflow's Bảng CSV node: one parser and one row filler for both. Pure, no dependency.
+// CSV files (RFC 4180) for the workflow's Bảng CSV node. Pure, no dependency.
 import { VAR, varsOf } from './template'
 import { hintOf } from './hints'
 

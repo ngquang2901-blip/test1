@@ -26,12 +26,20 @@ async function launch(userData: string, script = '', extra: Record<string, strin
 test.afterEach(async () => { await Promise.all(apps.splice(0).map((a) => a.close().catch(() => {}))) })
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'tf-e2e-'))
-async function create(page: Page, lines: string[]): Promise<void> {
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Danh sách prompt').fill(lines.join('\n'))
-  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(lines.length)
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+type Bridge = { enqueueBatch(a: object): Promise<{ batchIds?: string[] }>; startBatch(id: string): Promise<void>; pickRefs(): Promise<{ assets: { id: string }[] }> }
+// A batch the way the bot (MCP) or a workflow makes one: through the renderer bridge, then Hàng đợi. start=false leaves it waiting (a scheduled one).
+async function create(page: Page, lines: string[], o: object = {}, start = true): Promise<string[]> {
+  const ids = await page.evaluate(async ({ lines, o, start }) => {
+    const api = (window as unknown as { api: Bridge }).api
+    const r = await api.enqueueBatch({ commandId: crypto.randomUUID(), kind: 'image', mode: 'auto', text: lines.join('\n'), ...o })
+    const ids = r.batchIds ?? []
+    if (start) for (const id of ids) await api.startBatch(id)
+    return ids
+  }, { lines, o, start })
+  await page.getByRole('button', { name: 'Hàng đợi', exact: true }).click()
+  return ids
 }
+const pick = (page: Page) => page.evaluate(() => (window as unknown as { api: Bridge }).api.pickRefs().then((r) => r.assets.map((a) => a.id))) // the asset ids of TOOLFLOW_PICK_REFS's files
 async function tabTo(page: Page, name: string): Promise<void> {
   for (let i = 0; i < 40; i++) {
     await page.keyboard.press('Tab')
@@ -193,7 +201,7 @@ test('no outbound network', async () => {
   const { app, page } = await launch(tmp())
   await create(page, ['x'])
   await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1)
-  for (const t of ['Kết nối', 'Tạo lô', 'Hàng đợi', 'Kết quả', 'Cài đặt']) await page.getByRole('button', { name: t, exact: true }).click()
+  for (const t of ['Kết nối', 'Workflow', 'Hàng đợi', 'Kết quả', 'Cài đặt']) await page.getByRole('button', { name: t, exact: true }).click()
   const urls = await app.evaluate(() => (globalThis as unknown as { __toolflowRequests: string[] }).__toolflowRequests)
   expect(urls.length).toBeGreaterThan(0)
   expect(urls.filter((u) => !/^(file:|devtools:|ws:\/\/127\.0\.0\.1)/.test(u))).toEqual([])
@@ -201,12 +209,7 @@ test('no outbound network', async () => {
 
 test('keyboard only', async () => {
   const { page } = await launch(tmp(), 'no-request,image-ok,image-ok')
-  await tabTo(page, 'Tạo lô')
-  await page.keyboard.press('Enter')
-  await tabTo(page, 'Danh sách prompt')
-  await page.keyboard.type('một\nhai\nba')
-  await tabTo(page, 'Tạo lô và chạy')
-  await page.keyboard.press('Enter')
+  await create(page, ['một', 'hai', 'ba'])
   await expect(items(page).first()).toContainText('Không rõ')
   // AC-27: Dừng is reachable by keyboard while the batch is active, from any screen
   await tabTo(page, 'Dừng')
@@ -229,16 +232,15 @@ test('S1 lists the Flow tab; an ungranted tab runs nothing until "Dùng tab này
   const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0' })
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.locator('[data-testid=flow-tab]')).toHaveCount(1)
-  await create(page, ['một con mèo'])
-  await expect(page.getByRole('alert')).toContainText('Chưa có tab Flow nào được cấp quyền') // no tab granted: no batch, nothing sent (same as real mode)
+  const err = await page.evaluate(() => (window as unknown as { api: Bridge }).api.enqueueBatch({ commandId: 'x1', kind: 'image', mode: 'auto', text: 'một con mèo' }).then(() => 'ok', (e: Error) => e.message))
+  expect(err).toContain('NO_PROJECT_TAB') // no tab granted: no batch, nothing sent (same as real mode)
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await expect(items(page)).toHaveCount(0)
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await tabTo(page, 'Dùng tab này') // keyboard reachable
   await page.keyboard.press('Enter')
   await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con mèo'])
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(1)
 })
 
@@ -252,136 +254,16 @@ function pngs(names: string[]): { list: string; dir: string } {
   return { list, dir }
 }
 const ledger = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { __toolflowFake: { uploads: string[]; refs: string[][]; clicks: number; prepares: number; arms: number; fetches: number } }).__toolflowFake)
-const row = (page: Page, i: number) => page.locator('[data-testid=preview] tbody tr').nth(i)
 
-test('sequential refs: preview shows names, the batch runs, two uploads and one ref per item', async () => {
+test('sequential refs: the batch runs, two uploads and one ref per item', async () => {
   const { list } = pngs(['a.png', 'b.png'])
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
-  await expect(page.getByTestId('pool')).toContainText('a.png')
-  await expect(page.locator('body')).not.toContainText(list) // names only, never paths
-  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
-  await expect(row(page, 0)).toContainText('a.png')
-  await expect(row(page, 1)).toContainText('b.png')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con mèo', 'một con chó'], { refs: { assetIds: await pick(page), mode: 'sequential', perItem: 1 } })
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
   const l = await ledger(app)
   expect(l.uploads).toHaveLength(2)
   expect(l.refs.map((r) => r.length)).toEqual([1, 1])
   expect(new Set(l.refs.flat()).size).toBe(2)
-})
-
-test('3 prompts and 2 refs sequential: the error is shown and Tạo lô và chạy is disabled; Không dùng frees it', async () => {
-  const { list } = pngs(['a.png', 'b.png'])
-  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Danh sách prompt').fill('một\nhai\nba')
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
-  await expect(page.getByTestId('map-errors')).toContainText('Thiếu ảnh cho prompt nào')
-  await expect(page.getByTestId('map-errors')).toContainText('#3')
-  await expect(row(page, 2)).toContainText('Thiếu ảnh')
-  await expect(row(page, 2)).not.toContainText('a.png') // no rotation back to the first image
-  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
-  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
-  await expect(page.getByTestId('map-errors')).toContainText('Quá nhiều ảnh')
-  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
-  await page.getByLabel('Không dùng').check()
-  await expect(page.getByTestId('map-errors')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeEnabled()
-  expect((await ledger(app)).uploads).toHaveLength(0) // nothing uploads before a batch runs
-})
-
-test('refs are reachable and operable by keyboard alone (AC-27)', async () => {
-  const { list } = pngs(['a.png', 'b.png'])
-  const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
-  await tabTo(page, 'Tạo lô')
-  await page.keyboard.press('Enter')
-  await tabTo(page, 'Danh sách prompt')
-  await page.keyboard.type('một\nhai')
-  await tabTo(page, 'Chọn ảnh…')
-  await page.keyboard.press('Enter')
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
-  await tabTo(page, 'Không dùng')
-  await page.keyboard.press('ArrowDown') // radio group: arrows pick the next mode
-  await expect(page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự')).toBeChecked()
-  await tabTo(page, 'Số ảnh tham chiếu mỗi prompt')
-  await tabTo(page, 'Bỏ ảnh b.png')
-  await page.keyboard.press('Enter')
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
-  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toBeFocused() // focus is not lost with the removed button
-  await expect(page.getByTestId('map-errors')).toContainText('Thiếu ảnh cho prompt nào')
-  await expect(page.getByRole('button', { name: 'Tạo lô và chạy' })).toBeDisabled()
-  await page.keyboard.press('Enter') // pick again: b.png is back
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
-  await tabTo(page, 'Tạo lô và chạy')
-  await page.keyboard.press('Enter')
-  await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
-  expect((await ledger(app)).refs.map((r) => r.length)).toEqual([1, 1])
-})
-
-test('Mẫu lô: save kind, mode, refs and template; apply it in Tạo lô and from Hàng đợi; delete it', async () => {
-  const { list } = pngs(['a.png', 'b.png'])
-  const { page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)').check()
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
-  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
-  await page.getByText('Ghép prompt từ mẫu').click()
-  await page.getByLabel(/Mẫu prompt/).fill('{món} ở chợ')
-  await page.getByRole('button', { name: 'Lưu làm mẫu…' }).click()
-  await page.getByLabel('Tên mẫu').fill('Chợ quê')
-  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Chợ quê', exact: true })).toBeVisible()
-  // change everything, then the preset brings it back
-  await page.getByLabel('Tự động', { exact: true }).check()
-  await page.getByLabel('Không dùng').check()
-  await page.getByRole('button', { name: 'Bỏ ảnh a.png' }).click()
-  await page.getByLabel(/Mẫu prompt/).fill('')
-  await page.getByRole('button', { name: 'Chợ quê', exact: true }).click()
-  await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
-  await expect(page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự')).toBeChecked()
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
-  await expect(page.getByLabel(/Mẫu prompt/)).toHaveValue('{món} ở chợ')
-  // from Hàng đợi: the saved card opens Tạo lô with it
-  await page.getByLabel('Tự động', { exact: true }).check()
-  await page.getByRole('button', { name: 'Hàng đợi' }).click()
-  await page.getByRole('button', { name: /Chợ quê/ }).click()
-  await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
-  await page.getByRole('button', { name: 'Xoá mẫu Chợ quê' }).click()
-  await expect(page.getByRole('button', { name: 'Chợ quê', exact: true })).toHaveCount(0)
-})
-
-test('Tạo lô: the chosen model / aspect / count go into the batch; options follow the model; kept across screens and in a Mẫu lô', async () => {
-  const { page } = await launch(tmp())
-  const PRO = { kind: 'image', mode: 'Image', model: 'Nano Banana Pro', aspect: '9:16', count: 3 }
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  const set = page.getByTestId('batch-settings'), label = page.getByTestId('combo')
-  await expect(label).toContainText('Nano Banana 2.1 · 16:9 · Cao · x2') // the app default
-  await set.getByLabel('Mô hình').selectOption('Nano Banana Pro')
-  await expect(set.getByLabel('Mức suy nghĩ (Thinking level)')).toHaveCount(0) // this model has no such option, so none is offered or sent
-  await set.getByLabel('Tỉ lệ khung hình').selectOption('9:16')
-  await set.getByLabel('Số ảnh mỗi prompt').selectOption('3')
-  await expect(label).toContainText('Nano Banana Pro · 9:16 · x3')
-  await page.getByRole('button', { name: 'Lưu làm mẫu…' }).click()
-  await page.getByLabel('Tên mẫu').fill('Dọc Pro')
-  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
-  await set.getByLabel('Mô hình').selectOption('Nano Banana 2 Lite')
-  await expect(label).toContainText('Nano Banana 2 Lite · 9:16 · x3')
-  await page.getByRole('button', { name: 'Dọc Pro', exact: true }).click() // the saved setup brings the settings back
-  await expect(label).toContainText('Nano Banana Pro · 9:16 · x3')
-  await page.getByRole('button', { name: 'Hàng đợi' }).click() // and they survive a visit to another screen
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await expect(label).toContainText('Nano Banana Pro · 9:16 · x3')
-  await page.getByLabel('Danh sách prompt').fill('một quả cam')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
-  await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1, { timeout: 60_000 })
-  const combos = await page.evaluate(() => window.api.listBatches().then((r: { batches: { settings: { combo: object } }[] }) => r.batches.map((b) => b.settings.combo)))
-  expect(combos).toEqual([PRO]) // what the runner hands to the page for this batch
 })
 
 test('several tabs (speed Nhanh): grant two projects, a new list is split into two parts that both finish; the cap and Thôi dùng work', async () => {
@@ -441,10 +323,7 @@ test('auto-update: a new version downloads by itself; the bar offers a restart; 
   await page.getByRole('button', { name: 'Cài đặt' }).click()
   await expect(page.getByTestId('update-state')).toHaveText('Bản 9.9.9 đã tải xong')
   // an attempt waiting for the user's Gửi in Flow is in flight: no restart
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)').check()
-  await page.getByLabel('Danh sách prompt').fill('một con mèo')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con mèo'], { mode: 'manual' })
   await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(1, { timeout: 10_000 })
   await bar.getByRole('button', { name: 'Khởi động lại để cập nhật' }).click()
   await expect(bar.getByRole('alert')).toContainText('Đang có lượt đang gửi')
@@ -768,36 +647,19 @@ test('Workflow: Điều kiện "Có prompt bị Flow lọc" — Flow refuses the
 
 // ---- downloads (AC-07, AC-15, AC-16, AC-26) ----
 // '/'-separated like the names the app shows: readdir gives '\\' on Windows
-test('video from a start frame: one image per prompt in Tạo lô, each video is sent with its own frame', async () => {
+test('video from a start frame: one image per prompt, each video is sent with its own frame', async () => {
   const { list } = pngs(['a.png', 'b.png'])
   const { app, page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_PICK_REFS: list })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Video', exact: true }).check()
-  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
-  await expect(page.getByRole('group', { name: 'Khung hình đầu' })).toBeVisible()
-  await expect(page.getByLabel('Số ảnh tham chiếu mỗi prompt')).toHaveCount(0) // a video takes exactly one
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await page.getByLabel('Mỗi prompt một ảnh theo thứ tự').check()
-  await expect(row(page, 0)).toContainText('a.png')
-  await expect(row(page, 1)).toContainText('b.png')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con mèo', 'một con chó'], { kind: 'video', refs: { assetIds: await pick(page), mode: 'sequential', perItem: 1 } })
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
   const l = await ledger(app)
   expect([l.uploads.length, l.refs.map((r) => r.length), new Set(l.refs.flat()).size]).toEqual([2, [1, 1], 2])
 })
 
-test('video from a start and an end frame: the box in Tạo lô gives each prompt two images in order, the first opens the video and the second ends it', async () => {
+test('video from a start and an end frame: two images per prompt give each prompt two images in order, the first opens the video and the second ends it', async () => {
   const { list } = pngs(['a.png', 'b.png', 'c.png', 'd.png'])
   const { app, page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_PICK_REFS: list })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Video', exact: true }).check()
-  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await page.getByLabel('Có khung hình cuối (ảnh thứ hai của mỗi prompt)').check()
-  await page.getByLabel('Mỗi prompt hai ảnh theo thứ tự').check()
-  await expect(row(page, 0)).toContainText('a.png'); await expect(row(page, 0)).toContainText('b.png')
-  await expect(row(page, 1)).toContainText('c.png'); await expect(row(page, 1)).toContainText('d.png')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con mèo', 'một con chó'], { kind: 'video', refs: { assetIds: await pick(page), mode: 'sequential', perItem: 2 } })
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
   expect((await ledger(app)).refs.map((r) => r.length)).toEqual([2, 2])
 })
@@ -825,13 +687,10 @@ test('Tải tất cả: 3 files on disk with PNG magic, S4 shows Đã lưu only 
   await expect(outputs(page).locator('img[src^="data:image/png;base64,"]')).toHaveCount(3) // the thumbnail is the saved file, read back from disk
 })
 
-test('video batch: chosen in Tạo lô, runs to ready on Flow\'s polls, Tải tất cả saves MP4 files and Kết quả shows them as saved videos', async () => {
+test('video batch: runs to ready on Flow\'s polls, Tải tất cả saves MP4 files and Kết quả shows them as saved videos', async () => {
   const root = join(tmp(), 'dl')
   const { page } = await launch(tmp(), 'video-ok,video-ok', { TOOLFLOW_DOWNLOAD_ROOT: root })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Video', exact: true }).check()
-  await expect(page.getByTestId('combo')).toContainText('Video · Veo 3.1 - Lite')
-  await create(page, ['một con mèo', 'một con chó'])
+  await create(page, ['một con mèo', 'một con chó'], { kind: 'video' })
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await page.getByRole('button', { name: 'Tải tất cả kết quả' }).click()
@@ -846,12 +705,8 @@ test('video batch: chosen in Tạo lô, runs to ready on Flow\'s polls, Tải t�
   await expect(page.locator('body')).not.toContainText('Không thấy tệp trên máy')
 })
 
-test('Bắt đầu nhanh opens Tạo lô with the preset; search narrows the queue and the results', async () => {
+test('search narrows the queue and the results', async () => {
   const { page } = await launch(tmp())
-  await page.getByRole('button', { name: 'Hàng đợi' }).click()
-  await page.getByRole('button', { name: /Ảnh, tôi tự bấm Gửi/ }).click()
-  await expect(page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)')).toBeChecked()
-  await page.getByLabel('Tự động').check()
   await create(page, ['một con mèo', 'một con chó'])
   await expect(items(page)).toHaveCount(2)
   await page.getByLabel('Tìm prompt hoặc lô').fill('CHÓ')
@@ -860,25 +715,6 @@ test('Bắt đầu nhanh opens Tạo lô with the preset; search narrows the que
   await page.getByLabel('Tìm prompt hoặc lô').fill('không có')
   await expect(items(page)).toHaveCount(0)
   await expect(page.locator('body')).toContainText('Không có prompt hay lô nào khớp')
-})
-
-test('Ghép prompt từ mẫu: variables fill the prompt list, every combination or line by line, errors shown', async () => {
-  const { page } = await launch(tmp())
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByText('Ghép prompt từ mẫu').click()
-  await page.getByLabel(/Mẫu prompt/).fill('{món ăn} ở {nơi}, ảnh đời thường')
-  await page.getByLabel('Giá trị cho món ăn').fill('phở\nbún chả')
-  await expect(page.getByRole('status').filter({ hasText: 'Biến {nơi} chưa có giá trị nào.' })).toBeVisible()
-  await page.getByLabel('Giá trị cho nơi').fill('Hà Nội\nHuế\nSài Gòn')
-  await page.getByRole('button', { name: 'Tạo 6 prompt' }).click()
-  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(6)
-  await expect(page.locator('[data-testid=preview] tbody tr').nth(1)).toContainText('phở ở Huế, ảnh đời thường')
-  await page.getByLabel('Ghép theo dòng').check()
-  await expect(page.getByRole('status').filter({ hasText: 'Ghép theo dòng cần mọi danh sách dài bằng nhau' })).toBeVisible()
-  await page.getByLabel('Giá trị cho nơi').fill('Hà Nội\nHuế')
-  await page.getByRole('button', { name: 'Thay danh sách bằng 2 prompt' }).click()
-  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(2)
-  await expect(page.getByLabel('Danh sách prompt')).toHaveValue('phở ở Hà Nội, ảnh đời thường\nbún chả ở Huế, ảnh đời thường')
 })
 
 test('Flow results save themselves as they get ready, and a save that failed is tried again by itself; with the box in Cài đặt unticked they wait for Tải', async () => {
@@ -989,12 +825,7 @@ test('I4b: a batch paused on REF_UPLOAD_UNCERTAIN offers an inline two-step rese
   const { page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list, TOOLFLOW_FAKE_PREPARE: 'REF_UPLOAD_UNCERTAIN' })
   const dialogs: string[] = []
   page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(1)
-  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con mèo', 'một con chó'], { refs: { assetIds: await pick(page), mode: 'all', perItem: 1 } })
   await expect(page.getByTestId('pause-reason')).toBeVisible()
   const ask = 'Xoá trạng thái tải lên cũ và cho phép tải lại ảnh này? Chỉ làm khi đã kiểm tra thư viện Flow không có ảnh này.'
   await page.getByRole('button', { name: 'Cho phép tải lại ảnh tham chiếu 1' }).click()
@@ -1054,7 +885,7 @@ test('MCP: off until turned on in Cài đặt; then an agent with the key create
   const tool = async (name: string, args: object = {}) => JSON.parse((await ask('tools/call', { name, arguments: args })).body!.content![0].text)
   expect((await ask('tools/list', undefined, 'wrong')).status).toBe(401)
   expect((await ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } })).status).toBe(200)
-  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume', 'toolflow_panel']) // the panel's own tools only for a chat app that shows panels
+  expect((await ask('tools/list')).body!.tools!.map((t) => t.name)).toEqual(['toolflow_list_workflows', 'toolflow_run_workflow', 'toolflow_workflow_status', 'toolflow_stop_workflow', 'toolflow_status', 'toolflow_create_batch', 'toolflow_list_batches', 'toolflow_download', 'toolflow_resume', 'toolflow_panel']) // the panel's own tools only for a chat app that shows panels
   expect(await tool('toolflow_status')).toMatchObject({ connected: true, tabsInUse: 1, selfCheckOk: true })
   const { batchIds } = await tool('toolflow_create_batch', { prompts: ['một con mèo', 'một con chó'] }) as { batchIds: string[] }
   expect(batchIds).toHaveLength(1)
@@ -1153,30 +984,6 @@ test('Workflow: Nối cảnh video — Text → Tạo video → Khung cuối →
   await expect(node('generate').locator('header b')).toHaveText('Tạo video Flow')
 })
 
-test('Tạo lô: Nạp file CSV fills the prompt list from a column, or from the template box with the columns as {variables}; an empty cell is named, not dropped', async () => {
-  const { page } = await launch(tmp())
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  const input = page.locator('label.filebtn', { hasText: 'Nạp file CSV' }).locator('input')
-  const list = page.getByLabel('Danh sách prompt')
-  await input.setInputFiles({ name: 'con vật.csv', mimeType: 'text/csv', buffer: Buffer.from('\uFEFFTên;Nơi\r\n"mèo, cam";sân\r\n\r\nchó;"nhà ""gỗ"""\r\n') }) // Excel in Vietnamese: ';', BOM, CRLF
-  await expect(list).toHaveValue('mèo, cam\nchó') // the first column at once
-  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(2)
-  await page.getByLabel('Lấy prompt từ cột').selectOption({ label: 'Cột “Nơi”' })
-  await expect(list).toHaveValue('sân\nnhà "gỗ"')
-  await page.getByLabel('Lấy prompt từ cột').selectOption({ label: 'Ghép nhiều cột bằng mẫu ở trên' })
-  await expect(page.getByTestId('csv-cols')).toContainText('{Tên} {Nơi}')
-  await page.getByLabel(/Mẫu prompt/).fill('{Tên} nằm ở {Nơi}, ảnh đời thường')
-  await page.getByRole('button', { name: 'Thay danh sách bằng 2 prompt' }).click()
-  await expect(list).toHaveValue('mèo, cam nằm ở sân, ảnh đời thường\nchó nằm ở nhà "gỗ", ảnh đời thường')
-  await page.getByLabel(/Mẫu prompt/).fill('{Màu}')
-  await expect(page.getByRole('alert')).toContainText('Cột “Màu”: File CSV không có cột này')
-  await input.setInputFiles({ name: 'thiếu.csv', mimeType: 'text/csv', buffer: Buffer.from('Tên,Nơi\nmèo,sân\n,nhà\n') })
-  await expect(page.getByTestId('csv-error')).toContainText('Dòng 3, cột “Tên”: Ô này đang trống')
-  await expect(list).toHaveValue('mèo, cam nằm ở sân, ảnh đời thường\nchó nằm ở nhà "gỗ", ảnh đời thường') // the list is left as it was
-  await page.getByRole('button', { name: 'Bỏ file CSV' }).click()
-  await expect(page.getByTestId('csv-error')).toHaveCount(0)
-})
-
 test('Workflow: Text → Tạo ảnh → Vòng lặp (3) → Tự tải về runs three batches in order, each round sent with the image the round before saved; only then saved', async () => {
   const ud = tmp(), root = join(tmp(), 'dl')
   const { app, page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root })
@@ -1249,20 +1056,13 @@ test('Workflow: + Tạo video Flow adds a node already set to video, titled so; 
 })
 
 type FakeGpt = { __toolflowFakeGpt: { ledger: { sends: string[]; newChats: number; opens: string[] } } }
-test('ChatGPT batch: chosen in Tạo lô, sent one prompt after another, each image saved by itself; a tab moved to another chat pauses the batch and Tiếp tục reopens its conversation', async () => {
+test('ChatGPT batch: sent one prompt after another, each image saved by itself; a tab moved to another chat pauses the batch and Tiếp tục reopens its conversation', async () => {
   const root = join(tmp(), 'dl')
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_FAKE_GPT: 'leave' }) // after the first image the "user" moves the ChatGPT tab to another chat
   const ledger = () => app.evaluate(() => (globalThis as unknown as FakeGpt).__toolflowFakeGpt.ledger)
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.getByTestId('gpt-tabs')).toContainText('Đã thấy 1 tab chatgpt.com')
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
-  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: ChatGPT · Create image · tự động')
-  await expect(page.getByTestId('gpt-note')).toContainText('cuộc trò chuyện mới')
-  await expect(page.getByRole('radio', { name: 'Video', exact: true })).toHaveCount(0) // ChatGPT: images only, no Flow settings
-  await expect(page.getByTestId('batch-settings')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Chọn ảnh…' })).toHaveCount(1) // reference images: yes
-  await create(page, ['một con mèo', 'một con chó', 'một con chim'])
+  await create(page, ['một con mèo', 'một con chó', 'một con chim'], { provider: 'chatgpt' })
   await expect(page.getByRole('heading', { name: /ChatGPT · Ảnh/ })).toBeVisible()
   await expect(page.getByTestId('pause-reason')).toContainText('Tab ChatGPT đã chuyển sang cuộc trò chuyện khác')
   expect((await ledger()).sends).toEqual(['một con mèo']) // nothing was typed into the other chat
@@ -1284,31 +1084,20 @@ test('ChatGPT batch without a ChatGPT tab: it pauses and says what to open; a Fl
   const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GPT_TABS: '0' })
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.getByTestId('gpt-tabs')).toContainText('Chưa thấy tab chatgpt.com')
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
-  await create(page, ['một con mèo'])
+  await create(page, ['một con mèo'], { provider: 'chatgpt' })
   await expect(page.getByTestId('pause-reason')).toContainText('Chưa thấy tab ChatGPT nào')
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Google Flow' }).check()
   await create(page, ['một con chó'])
   await expect(items(page).filter({ hasText: 'Có kết quả' })).toHaveCount(1)
 })
 
-test('Gemini batch: chosen in Tạo lô, runs in the Gemini tab next to a ChatGPT batch; each image is saved by itself and shown under its own site', async () => {
+test('Gemini batch: runs in the Gemini tab next to a ChatGPT batch; each image is saved by itself and shown under its own site', async () => {
   const root = join(tmp(), 'dl')
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_DOWNLOAD_ROOT: root })
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.getByTestId('gem-tabs')).toContainText('Đã thấy 1 tab gemini.google.com')
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
-  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: Gemini · Tạo hình ảnh · tự động')
-  await expect(page.getByTestId('gpt-note')).toContainText('gemini.google.com')
-  await expect(page.getByTestId('batch-settings')).toHaveCount(0)
-  await create(page, ['một con mèo', 'một con chó'])
+  await create(page, ['một con mèo', 'một con chó'], { provider: 'gemini' })
   await expect(page.getByRole('heading', { name: /Gemini · Ảnh/ })).toBeVisible()
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
-  await create(page, ['một con chim'])
+  await create(page, ['một con chim'], { provider: 'chatgpt' })
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await expect(outputs(page).filter({ hasText: 'Gemini · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(2, { timeout: 30_000 })
   await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 })
@@ -1319,27 +1108,15 @@ test('Gemini batch: chosen in Tạo lô, runs in the Gemini tab next to a ChatGP
 
 test('Gemini batch without a Gemini tab: it pauses and names gemini.google.com', async () => {
   const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GEM_TABS: '0' })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
-  await create(page, ['một con mèo'])
+  await create(page, ['một con mèo'], { provider: 'gemini' })
   await expect(page.getByTestId('pause-reason')).toContainText('Chưa thấy tab Gemini nào. Mở gemini.google.com')
 })
 
-test('Gemini batch with an aspect ratio and reference images: both chosen in Tạo lô, each prompt sent with its own image and the ratio; a ChatGPT batch takes the images too', async () => {
+test('Gemini batch with an aspect ratio and reference images: each prompt sent with its own image and the ratio; a ChatGPT batch takes the images too', async () => {
   const { list } = pngs(['a.png', 'b.png'])
   const { app, page } = await launch(tmp(), '', { TOOLFLOW_PICK_REFS: list })
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Gemini (tạo ảnh)' }).check()
-  await page.getByTestId('gem-aspect').selectOption('9:16')
-  await page.getByTestId('gem-model').selectOption('Pro')
-  await expect(page.getByTestId('combo')).toHaveText('Sẽ gửi: Gemini · Tạo hình ảnh · Pro · 9:16 · tự động')
-  await page.getByLabel('Danh sách prompt').fill('một con mèo\nmột con chó')
-  await page.getByRole('button', { name: 'Chọn ảnh…' }).click()
-  await expect(page.getByTestId('pool').locator('li')).toHaveCount(2)
-  await page.getByLabel('Mỗi prompt một nhóm ảnh theo thứ tự').check()
-  await expect(row(page, 0)).toContainText('a.png')
-  await expect(row(page, 1)).toContainText('b.png')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  const assetIds = await pick(page)
+  await create(page, ['một con mèo', 'một con chó'], { provider: 'gemini', aspect: '9:16', model: 'Pro', refs: { assetIds, mode: 'sequential', perItem: 1 } })
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await expect(outputs(page).filter({ hasText: 'Gemini · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(2, { timeout: 30_000 })
   const l = await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGem: { ledger: { aspects: (string | null)[]; models: (string | null)[]; refs: string[][]; attached: { bytes: number; clear: boolean }[] } } }).__toolflowFakeGem.ledger)
@@ -1349,15 +1126,7 @@ test('Gemini batch with an aspect ratio and reference images: both chosen in T�
   expect(l.attached.map((x) => x.clear)).toEqual([true, true])
   expect(l.attached.every((x) => x.bytes > 0)).toBe(true)
   // ChatGPT: the same images; its ratio has no menu on the page, so it rides at the end of the prompt
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
-  await page.getByTestId('gem-aspect').selectOption('16:9')
-  await expect(page.getByTestId('combo')).toContainText('ChatGPT · Create image · 16:9')
-  await page.getByLabel('Danh sách prompt').fill('một con chim')
-  await page.getByLabel('Dùng chung tất cả ảnh cho mọi prompt').check()
-  await page.getByLabel('Số ảnh tham chiếu mỗi prompt').fill('2')
-  await expect(row(page, 0)).toContainText('a.png, b.png')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con chim'], { provider: 'chatgpt', aspect: '16:9', refs: { assetIds, mode: 'all', perItem: 2 } })
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 })
   const g = await app.evaluate(() => (globalThis as unknown as { __toolflowFakeGpt: { ledger: { refs: string[][]; sends: string[] } } }).__toolflowFakeGpt.ledger)
@@ -1407,9 +1176,7 @@ test('Kết quả: filters by save state, site, kind and tag combine with the se
   const { page } = await launch(ud, '', { TOOLFLOW_DOWNLOAD_ROOT: root, TOOLFLOW_EXPORT_DIR: exp })
   await create(page, ['một con mèo', 'một con chó', 'một con cá'])
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3)
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'ChatGPT (tạo ảnh)' }).check()
-  await create(page, ['một con chim'])
+  await create(page, ['một con chim'], { provider: 'chatgpt' })
   await page.getByRole('button', { name: 'Kết quả', exact: true }).click()
   await expect(outputs(page).filter({ hasText: 'ChatGPT · Ảnh' }).filter({ hasText: 'Đã lưu' })).toHaveCount(1, { timeout: 30_000 }) // a chat site saves by itself
   await expect(outputs(page)).toHaveCount(4)
@@ -1499,10 +1266,7 @@ test('Sao lưu / khôi phục in Cài đặt: the backup is one valid SQLite fil
   expect(existsSync(join(ud, 'restore.db'))).toBe(false)
   copyFileSync(good, bak)
   // a prompt waiting for the user's Gửi is in flight: no restore
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Thủ công (bạn bấm Gửi trong Flow)').check()
-  await page.getByLabel('Danh sách prompt').fill('một con chó')
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await create(page, ['một con chó'], { mode: 'manual' })
   await expect(items(page).filter({ hasText: /Chờ bạn|bấm Gửi/ })).toHaveCount(1, { timeout: 10_000 })
   await page.getByRole('button', { name: 'Cài đặt' }).click()
   await box.getByRole('button', { name: 'Khôi phục từ bản sao lưu' }).click()
@@ -1641,17 +1405,11 @@ test('notices: a finished batch rings the bell and the Telegram bot gets a conte
 })
 
 const pad = (n: number): string => String(n).padStart(2, '0')
-test('Hẹn giờ chạy: the queue shows the time with Huỷ hẹn giờ, then the batch starts by itself at that time and the bell says so', async () => {
+test('Hẹn giờ chạy: a batch made with a start time; the queue shows the time with Huỷ hẹn giờ, then the batch starts by itself at that time and the bell says so', async () => {
   const { app, page } = await launch(tmp())
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByLabel('Danh sách prompt').fill('một con mèo hẹn giờ')
-  await expect(page.locator('[data-testid=preview] tbody tr')).toHaveCount(1)
-  await page.getByLabel('Hẹn giờ chạy').check()
-  await expect(page.getByRole('button', { name: 'Tạo lô và hẹn giờ' })).toBeDisabled() // no time picked yet
   const now = await app.evaluate(() => (globalThis as unknown as { __toolflowClock: { now(): number } }).__toolflowClock.now())
   const at = new Date(Math.ceil(now / 60_000) * 60_000 + 6 * 60_000) // whole minutes (the field has none smaller); the test clock runs 30x: 12-14 s from now
-  await page.getByLabel('Giờ chạy', { exact: true }).fill(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`)
-  await page.getByRole('button', { name: 'Tạo lô và hẹn giờ' }).click()
+  await create(page, ['một con mèo hẹn giờ'], { startAt: at.getTime() }, false) // a scheduled batch is not started: it waits for its time
   await expect(page.getByTestId('schedule')).toContainText(`Hẹn chạy lúc ${pad(at.getHours())}:${pad(at.getMinutes())}`)
   await expect(page.getByRole('button', { name: 'Huỷ hẹn giờ' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Tạm dừng' })).toHaveCount(0) /* the runner pauses only a running batch */
@@ -1694,9 +1452,7 @@ test('credit: Flow\'s balance shows in Kết nối with its time; falling under 
   await expect(th).toHaveValue('50')
   await th.fill('1000') // the fake Flow reports 958 with each video receipt, then 948 in its poll
   await expect.poll(() => page.evaluate(() => (window as unknown as { api: { listBatches(): Promise<{ session: { draft: { creditWarn: number } } }> } }).api.listBatches().then((r) => r.session.draft.creditWarn))).toBe(1000)
-  await page.getByRole('button', { name: 'Tạo lô', exact: true }).click()
-  await page.getByRole('radio', { name: 'Video', exact: true }).check()
-  await create(page, ['video một', 'video hai'])
+  await create(page, ['video một', 'video hai'], { kind: 'video' })
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(2)
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.getByTestId('credits')).toHaveText(/^Credit Flow còn: 9[45]8, đọc lúc \d\d:\d\d$/)
@@ -1710,18 +1466,35 @@ test('the app opens on Tổng quan, whose numbers follow the batches', async () 
   const ov = page.getByRole('region', { name: 'Tổng quan' })
   await expect(page.getByRole('button', { name: 'Tổng quan', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(ov.getByText('Chưa có lô nào.')).toBeVisible()
-  await ov.getByRole('button', { name: 'Tạo lô đầu tiên' }).click()
-  await expect(async () => { // the form loads its saved draft right after it opens; fill again if that wiped the text
-    await page.getByLabel('Danh sách prompt').fill('một\nhai\nba')
-    await expect(page.getByText('3 prompt')).toBeVisible({ timeout: 1000 })
-  }).toPass({ timeout: 10_000 })
-  await page.getByRole('button', { name: 'Tạo lô và chạy' }).click()
+  await ov.getByRole('button', { name: 'Mở Workflow' }).click() // no batch yet: the way on is a Workflow (the bot makes single images)
+  await expect(page.getByRole('button', { name: 'Thêm khối', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Tổng quan', exact: true }).click()
+  await create(page, ['một', 'hai', 'ba'])
   await expect(page.getByRole('heading', { name: /Xong một phần/ })).toBeVisible({ timeout: 20_000 }) // 'blocked': Flow refuses row 2, rows 1 and 3 get results
   await page.getByRole('button', { name: 'Tổng quan', exact: true }).click()
   await expect(ov.getByRole('row')).toHaveCount(2) // header + the batch
   await expect(ov.getByText('Tỉ lệ thành công')).toHaveCount(0)
   await expect(ov.getByText('Cần bạn xem').locator('..').getByText('1', { exact: true })).toBeVisible()
   await expect(ov.getByRole('listitem')).toHaveCount(1)
-  await page.getByRole('button', { name: 'Lô mới' }).first().click()
-  await expect(page.getByLabel('Danh sách prompt')).toBeVisible()
+  for (const gone of ['Tạo lô', 'Lô mới']) await expect(page.getByRole('button', { name: gone })).toHaveCount(0) // the Tạo lô screen and its buttons are gone
+})
+
+test('Workflow files: a .json copied into the workflows folder is listed; Chạy hàng loạt (CSV) runs the saved workflow once per row, each row filling its {biến}', async () => {
+  const ud = tmp(), dir = join(ud, 'workflows')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'san-pham.json'), JSON.stringify({ toolflow: 1, name: 'Sản phẩm', vars: { sp: 'cốc' }, nodes: [{ id: 't', type: 'text', x: 0, y: 0, text: 'ảnh {sp} nền trắng' }, { id: 'g', type: 'generate', x: 300, y: 0 }], edges: [{ from: 't', to: 'g' }] }))
+  const { page } = await launch(ud)
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await page.getByLabel('Workflow đã lưu').selectOption({ label: 'Sản phẩm' })
+  await expect(page.locator('.react-flow__node')).toHaveCount(2)
+  const csv = join(tmp(), 'sp.csv')
+  writeFileSync(csv, 'sp,ghi chú\nghế gỗ,x\nấm trà,y\n')
+  await page.getByLabel('Chạy hàng loạt từ file CSV').setInputFiles(csv)
+  await expect(page.getByTestId('wf-status')).toHaveText('Hàng loạt: 2 / 2 lượt · đã xong', { timeout: 60_000 })
+  const prompts = await page.evaluate(() => window.api.listBatches().then((r: { batches: { items: { prompt: string }[] }[] }) => r.batches.map((b) => b.items.map((i) => i.prompt))))
+  expect(prompts).toEqual([['ảnh ấm trà nền trắng'], ['ảnh ghế gỗ nền trắng']]) // newest first
+  await page.getByLabel('Tên workflow').fill('Bản thứ hai')
+  await page.getByRole('button', { name: 'Lưu', exact: true }).click()
+  await expect(page.getByTestId('wf-status')).toHaveText('Đã lưu')
+  expect(readdirSync(dir).sort()).toEqual(['Bản thứ hai.json', 'san-pham.json'])
 })

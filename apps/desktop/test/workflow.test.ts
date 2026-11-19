@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openDb } from '../src/main/db'
@@ -19,7 +19,7 @@ function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; fr
   const calls: string[] = [], enq: { commandId: string; text: string; mode: string; combo?: object; refs: { assetIds: string[]; mode: string } }[] = []
   const gone = (k: string) => (o.missing ?? []).includes(k) || (!!o.late && k === 'B' && calls.filter((c) => c === 'download b1').length < 2) // late: B is saved only by the second try
   const all = createWorkflows({
-    db, now: () => 5, sleep: () => new Promise((r) => setTimeout(r, 1)), // a real macrotask: an instant sleep would starve the timers while a batch is "running"
+    dir: join(dir, 'wf'), db, now: () => 5, sleep: () => new Promise((r) => setTimeout(r, 1)), // a real macrotask: an instant sleep would starve the timers while a batch is "running"
     enqueue: async (a) => { enq.push(a as (typeof enq)[number]); return { batchIds: [`b${enq.length}`] } },
     start: async (b) => void calls.push(`start ${b}`), stop: async (b) => void calls.push(`stop ${b}`),
     status: o.statusOf ?? (() => 'completed'), download: async (b) => { calls.push(`download ${b}`); if (o.saveFails && b === 'b1') throw Object.assign(new Error('DOWNLOAD_ROOT_UNAVAILABLE'), { code: 'DOWNLOAD_ROOT_UNAVAILABLE' }) },
@@ -32,7 +32,7 @@ function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; fr
   })
   const wf = all.handlers
   const wait = async (runId: string): Promise<string> => { for (let i = 0; i < 200; i++) { const r = await wf.workflowRun(runId); if (r!.status !== 'running') return r!.status; await new Promise((r) => setTimeout(r, 5)) } return 'timeout' }
-  return { db, wf, calls, enq, wait, active: all.active, file, dialogs }
+  return { db, wf, calls, enq, wait, active: all.active, file, dialogs, dir: join(dir, 'wf') }
 }
 
 test('parseGraph: only meaningful wires, unique ids, bounded sizes', () => {
@@ -341,7 +341,7 @@ test('Vòng lặp, plan errors: no Tạo ảnh or two of them wired in; a video 
 test('Vòng lặp, run: one batch per round in order; round n sends prompt i with the saved result of prompt i of round n-1; only the last round is wired to Tự tải về; the run shows which round', async () => {
   const r = rig()
   const all = createWorkflows({
-    db: r.db, now: () => 5, sleep: () => new Promise((x) => setTimeout(x, 1)),
+    dir: r.dir, db: r.db, now: () => 5, sleep: () => new Promise((x) => setTimeout(x, 1)),
     enqueue: async (a) => { r.enq.push(a as (typeof r.enq)[number]); return { batchIds: [`b${r.enq.length}`] } },
     start: async () => {}, stop: async () => {}, status: () => 'completed', download: async (b) => void r.calls.push(`download ${b}`),
     outputs: (b) => [`/dl/${b}-1.png`, `/dl/${b}-2.png`], codes: () => [null, null], register: (p) => `asset:${p}`, lastFrame: async (p) => p, merge: async () => '', savePath: async () => null, openPath: async () => null,
@@ -442,7 +442,7 @@ test('a save that fails once right after the result is tried again before what n
 test('a run cut off by a quit is told at the next start; a run that ended is not', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'tf-wfm-')), marker = join(dir, 'wf-running.json'), told: string[] = []
   const mk = (status: () => string) => createWorkflows({
-    db: openDb(join(dir, 't.db')), now: () => 5, marker, attention: (_t, b) => told.push(b), sleep: () => new Promise((x) => setTimeout(x, 1)),
+    dir: join(dir, 'wf'), db: openDb(join(dir, 't.db')), now: () => 5, marker, attention: (_t, b) => told.push(b), sleep: () => new Promise((x) => setTimeout(x, 1)),
     enqueue: async () => ({ batchIds: ['b1'] }), start: async () => {}, stop: async () => {}, status, download: async () => {}, outputs: () => ['/dl/a.png'], codes: () => [null],
     register: (p) => p, lastFrame: async (p) => p, merge: async () => '', savePath: async () => null, openPath: async () => null,
   })
@@ -458,4 +458,73 @@ test('a run cut off by a quit is told at the next start; a run that ended is not
   await new Promise((x) => setTimeout(x, 10))
   expect(existsSync(marker)).toBe(false); done.interrupted(); expect(told).toHaveLength(1)
   await first.handlers.stopWorkflow(stuck)
+})
+
+test('each workflow is one .json file in the workflows folder: saved there, listed from there, a file copied in shows up, delete removes the file', async () => {
+  const r = rig()
+  const { id } = await r.wf.saveWorkflow({ name: 'Ảnh sản phẩm', graph: CHAIN })
+  expect(readdirSync(r.dir)).toEqual([`${id}.json`])
+  const onDisk = JSON.parse(readFileSync(join(r.dir, `${id}.json`), 'utf8'))
+  expect([onDisk.toolflow, onDisk.name, onDisk.nodes.length]).toEqual([1, 'Ảnh sản phẩm', 7])
+  writeFileSync(join(r.dir, 'chep-tu-may-khac.json'), JSON.stringify({ toolflow: 1, name: 'Chép từ máy khác', nodes: [N('t', 'text', 0, { text: 'a' }), N('g', 'generate', 300)], edges: [{ from: 't', to: 'g' }] }))
+  writeFileSync(join(r.dir, 'hong.json'), '{ not json') // a broken file is skipped, not fatal
+  expect((await r.wf.listWorkflows()).map((w: { name: string }) => w.name).sort()).toEqual(['Chép từ máy khác', 'Ảnh sản phẩm'])
+  await r.wf.deleteWorkflow(id)
+  expect(readdirSync(r.dir).sort()).toEqual(['chep-tu-may-khac.json', 'hong.json'])
+  await expect(r.wf.deleteWorkflow('../t')).rejects.toThrow(/INVALID_ARGS/) // only a file of the folder, by its name
+})
+
+test('workflows kept in the database move into the folder once, then the database holds none', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tf-wfmig-')), db = openDb(join(dir, 't.db'))
+  db.prepare('insert into workflow(id,name,json,updated_at) values(?,?,?,?)').run('old1', 'Cũ', JSON.stringify(CHAIN), 1)
+  const mk = () => createWorkflows({ dir: join(dir, 'wf'), db, now: () => 5, enqueue: async () => ({ batchIds: ['b1'] }), start: async () => {}, stop: async () => {}, status: () => 'completed', download: async () => {}, outputs: () => [], codes: () => [], register: (p) => p, lastFrame: async (p) => p, merge: async () => '', savePath: async () => null, openPath: async () => null })
+  const [w] = await mk().handlers.listWorkflows()
+  expect([w.name, w.nodes.length]).toEqual(['Cũ', 7])
+  expect((db.prepare('select count(*) n from workflow').get() as { n: number }).n).toBe(0)
+  expect(await mk().handlers.listWorkflows()).toHaveLength(1) // a second start does not duplicate it
+})
+
+// Text {sp} → Tạo ảnh → Tự tải về, saved with a default for {sp}
+const VARS: Graph = parseGraph({ nodes: [N('t', 'text', 0, { text: 'ảnh {sp} trên nền trắng' }), N('g', 'generate', 300), N('dl', 'download', 600)], edges: [{ from: 't', to: 'g' }, { from: 'g', to: 'dl' }], vars: { sp: 'cốc' } })
+const bulkDone = async (r: ReturnType<typeof rig>, id: string | undefined) => { for (let i = 0; i < 400; i++) { const b = await r.wf.workflowBulk(id!); if (b!.status !== 'running') return b; await new Promise((x) => setTimeout(x, 5)) } throw new Error('bulk did not end') }
+
+test('bulk run: one whole run of the saved workflow per row, one after another, each row filling the {biến}; the bulk counts runs', async () => {
+  const r = rig()
+  await r.wf.saveWorkflow({ name: 'SP', graph: VARS })
+  const { bulkId, total } = await r.wf.runWorkflowBulk({ name: 'SP', rows: [{ sp: 'bình hoa' }, { sp: 'đèn bàn\nxanh' }, {}], mode: 'auto' })
+  expect(total).toBe(3)
+  expect(await bulkDone(r, bulkId)).toMatchObject({ status: 'done', total: 3, done: 3, failed: 0 })
+  expect(r.enq.map((e) => e.text)).toEqual(['ảnh bình hoa trên nền trắng', 'ảnh đèn bàn xanh trên nền trắng', 'ảnh cốc trên nền trắng']) // a line break in a value does not split the row
+  expect(r.enq.every((e) => e.mode === 'auto')).toBe(true)
+})
+
+test('bulk run from a bot: a list of prompts fills the workflow\'s only {biến}; a workflow with two cannot take bare prompts; an unknown name and empty rows are refused; nothing is sent then', async () => {
+  const r = rig()
+  await r.wf.saveWorkflow({ name: 'SP', graph: VARS })
+  const { bulkId } = await r.wf.runWorkflowBulk({ name: 'SP', prompts: ['ghế gỗ', 'ấm trà'], mode: 'manual' })
+  await bulkDone(r, bulkId)
+  expect(r.enq.map((e) => [e.text, e.mode])).toEqual([['ảnh ghế gỗ trên nền trắng', 'manual'], ['ảnh ấm trà trên nền trắng', 'manual']])
+  await r.wf.saveWorkflow({ name: 'Hai', graph: parseGraph({ nodes: [N('t', 'text', 0, { text: '{a} và {b}' }), N('g', 'generate', 300)], edges: [{ from: 't', to: 'g' }] }) })
+  await expect(r.wf.runWorkflowBulk({ name: 'Hai', prompts: ['x'], mode: 'auto' })).rejects.toThrow(/WF_PROMPTS_NEED_ONE_VAR/)
+  await expect(r.wf.runWorkflowBulk({ name: 'Không có', prompts: ['x'], mode: 'auto' })).rejects.toThrow(/WF_NOT_FOUND/)
+  await expect(r.wf.runWorkflowBulk({ name: 'SP', rows: [], mode: 'auto' })).rejects.toThrow(/INVALID_ARGS/)
+  expect(r.enq).toHaveLength(2)
+})
+
+test('bulk run: a row that cannot become a prompt is named before anything is sent; Dừng stops the bulk after the run in flight', async () => {
+  const r = rig()
+  await r.wf.saveWorkflow({ name: 'Hai', graph: parseGraph({ nodes: [N('t', 'text', 0, { text: '{a} và {b}' }), N('g', 'generate', 300)], edges: [{ from: 't', to: 'g' }] }) })
+  expect(await r.wf.runWorkflowBulk({ name: 'Hai', rows: [{ a: '1', b: '2' }, { a: '1' }], mode: 'auto' })).toEqual({ errors: [{ row: 2, node: 't', code: 'EMPTY_VAR' }] })
+  expect(r.enq).toHaveLength(0)
+  let status = 'running'
+  const s = rig({ statusOf: () => status })
+  await s.wf.saveWorkflow({ name: 'SP', graph: VARS })
+  const { bulkId } = await s.wf.runWorkflowBulk({ name: 'SP', prompts: ['a', 'b', 'c'], mode: 'auto' })
+  await new Promise((x) => setTimeout(x, 20))
+  expect(s.active()).toBe(true)
+  await s.wf.stopWorkflowBulk(bulkId!)
+  status = 'completed'
+  expect(await bulkDone(s, bulkId)).toMatchObject({ status: 'stopped', total: 3 })
+  expect(s.enq).toHaveLength(1)
+  expect(s.calls).toContain('stop b1')
 })
