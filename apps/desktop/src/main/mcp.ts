@@ -121,6 +121,11 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
   }
   const PANEL = { ui: { resourceUri: PANEL_URI } }
   const wf = d.workflows
+  const bulkState = async (id: unknown): Promise<object> => { // a workflow job's batches so far (the newest 20, the panel's cap)
+    const s = (await wf?.bulkStatus(str(id))) as { status: string; batchIds: string[] } | null | undefined
+    if (!s) throw coded('NOT_FOUND')
+    return { ...(await appState(s.batchIds.slice(-20))), bulkId: id, bulkRunning: s.status === 'running' }
+  }
   const wfTools: Record<string, Tool> = !wf ? {} : {
     toolflow_list_workflows: {
       readOnly: true,
@@ -131,7 +136,7 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
       },
     },
     toolflow_run_workflow: {
-      description: 'Run one saved workflow many times, one whole run per input, one after another (large jobs). Give rows (each an object of {variable: value}) or, for a workflow with exactly one variable, prompts (one value per run). Every input is checked first; nothing is sent when one cannot run (errors name the row). Uses the settings saved on the workflow\'s nodes and spends the user\'s credits; when auto-send is off the user clicks Send in Flow. Returns bulkId; poll toolflow_workflow_status.',
+      description: 'Run one saved workflow many times, one whole run per input, one after another (large jobs). Give rows (each an object of {variable: value}) or, for a workflow with exactly one variable, prompts (one value per run). Every input is checked first; nothing is sent when one cannot run (errors name the row). Uses the settings saved on the workflow\'s nodes and spends the user\'s credits; when auto-send is off the user clicks Send in Flow. Returns bulkId (the job, not a batch id); poll toolflow_workflow_status and show it with toolflow_panel { bulkId }.',
       inputSchema: { type: 'object', required: ['name'], properties: { name: { type: 'string', maxLength: 60 }, rows: { type: 'array', minItems: 1, maxItems: 500, items: { type: 'object', additionalProperties: { type: 'string', maxLength: 5000 } } }, prompts: { type: 'array', minItems: 1, maxItems: 500, items: { type: 'string', maxLength: 5000 } } } },
       async run(a) {
         if ((a.rows === undefined) === (a.prompts === undefined)) throw coded('INVALID_ARGS') // exactly one of them
@@ -140,7 +145,7 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
     },
     toolflow_workflow_status: {
       readOnly: true,
-      description: 'Progress of a toolflow_run_workflow job: status (running / done / stopped), total runs, done, failed. The images of each run are listed by toolflow_list_batches like any batch.',
+      description: 'Progress of a toolflow_run_workflow job: status (running / done / stopped), total runs, done, failed, and batchIds (the batches its runs made so far). Show them to the user with toolflow_panel { bulkId }.',
       inputSchema: { type: 'object', required: ['bulkId'], properties: { bulkId: { type: 'string' } } },
       async run(a) { const s = await wf.bulkStatus(str(a.bulkId)); if (!s) throw coded('NOT_FOUND'); return s },
     },
@@ -207,11 +212,13 @@ export function toolsOf(d: McpDeps): Record<string, Tool> {
     },
     toolflow_panel: {
       meta: PANEL, readOnly: true,
-      description: 'Show the ToolFlow panel in this chat: live progress of the newest batches (or batchId), their images and videos, and Pause / Resume / Save buttons the user can press. Use it when the user wants to see or follow their batches.',
-      inputSchema: { type: 'object', properties: { batchId: { type: 'string' } } },
-      run: (a) => appState(a.batchId === undefined ? undefined : [str(a.batchId)]),
+      description: 'Show the ToolFlow panel in this chat: live progress of the newest batches (or batchId, or the batches of a toolflow_run_workflow job by its bulkId), their images and videos, and Pause / Resume / Save buttons the user can press. Use it when the user wants to see or follow their batches.',
+      inputSchema: { type: 'object', properties: { batchId: { type: 'string' }, bulkId: { type: 'string' } } },
+      async run(a) {
+        return a.bulkId === undefined ? appState(a.batchId === undefined ? undefined : [str(a.batchId)]) : bulkState(a.bulkId)
+      },
     },
-    toolflow_app_state: { app: true, readOnly: true, description: 'Panel: batches and their outputs.', inputSchema: { type: 'object', properties: { batchIds: { type: 'array', items: { type: 'string' }, maxItems: 20 } } }, run: (a) => appState(a.batchIds) },
+    toolflow_app_state: { app: true, readOnly: true, description: 'Panel: batches and their outputs.', inputSchema: { type: 'object', properties: { batchIds: { type: 'array', items: { type: 'string' }, maxItems: 20 }, bulkId: { type: 'string' } } }, run: (a) => (a.bulkId === undefined ? appState(a.batchIds) : bulkState(a.bulkId)) },
     toolflow_app_preview: {
       app: true, readOnly: true, description: 'Panel: thumbnails of saved outputs; play: the one video itself.',
       inputSchema: { type: 'object', required: ['outputs'], properties: { outputs: { type: 'array', minItems: 1, maxItems: 12, items: { type: 'object', required: ['attemptId', 'mediaId'], properties: { attemptId: { type: 'string' }, mediaId: { type: 'string' } } } }, play: { type: 'boolean' } } },

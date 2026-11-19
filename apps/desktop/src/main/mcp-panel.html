@@ -44,7 +44,7 @@
   var LABEL = { queued: ['Đang chờ', 'idle'], running: ['Đang chạy', 'run'], paused: ['Tạm dừng', 'wait'], needs_review: ['Cần xem lại', 'wait'], completed: ['Xong', 'done'], partial_failed: ['Xong một phần', 'bad'], failed: ['Lỗi', 'bad'], stopped: ['Đã dừng', 'idle'] };
   var SITE = { flow: 'Flow', chatgpt: 'ChatGPT', gemini: 'Gemini' };
   var ACTIVE = { queued: 1, running: 1, paused: 1, needs_review: 1 };
-  var seq = 0, pending = {}, ids = null, state = null, shots = {}, asked = {}, open = null, busy = {}, notes = {}, timer = null, lastErr = '';
+  var seq = 0, pending = {}, ids = null, bulk = null, state = null, shots = {}, asked = {}, open = null, busy = {}, notes = {}, timer = null, lastErr = '';
   var root = document.documentElement, app = document.getElementById('app');
 
   function post(m) { parent.postMessage(m, '*'); }
@@ -75,17 +75,18 @@
     var d = {};
     try { d = JSON.parse(textOf(result) || '{}'); } catch (x) { d = {}; }
     if (result && result.isError) { lastErr = textOf(result); render(); return; }
+    if (d.bulkId) bulk = d.bulkId; // a workflow job: later runs add batches, so keep asking by the job
     if (d.batchIds) { ids = d.batchIds; refresh(); }
     else if (d.batches) { ids = d.batches.map(function (b) { return b.id; }); show(d); }
     else if (d.errors) { lastErr = 'ToolFlow không nhận lô này: ' + d.errors.map(function (x) { return x.code; }).join(', '); render(); }
   }
   function refresh() {
-    return call('toolflow_app_state', ids ? { batchIds: ids } : {}).then(show, function (e) { lastErr = say(e); render(); schedule(); });
+    return call('toolflow_app_state', bulk ? { bulkId: bulk } : ids ? { batchIds: ids } : {}).then(show, function (e) { lastErr = say(e); render(); schedule(); });
   }
   function show(d) { state = d; lastErr = ''; render(); thumbs(); schedule(); }
   function schedule() { // the host allows ~10 calls per 10 s and 120 per 10 min: poll only while something is still moving
     clearTimeout(timer);
-    var moving = state && state.batches.some(function (b) { return ACTIVE[b.status]; });
+    var moving = state && (state.bulkRunning || state.batches.some(function (b) { return ACTIVE[b.status]; })); // a running job also saves its files after a batch ends
     if (moving || lastErr) timer = setTimeout(refresh, moving ? 10000 : 30000);
   }
   function thumbs() { // ask once for each saved output not shown yet, up to 12 per call

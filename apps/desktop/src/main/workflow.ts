@@ -23,7 +23,7 @@ export type Step = { node: string; kind: 'image' | 'video'; prompts: string; ima
 export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean; file?: string } // file: a Ghép video node's saved video
 /** A Ghép video node: the video steps wired into it, in wire order (their clips are joined in that order, each step's prompts in order). */
 export type Merge = { node: string; inputs: string[] }
-type Bulk = { id: string; name: string; status: 'running' | 'done' | 'stopped'; stop: boolean; total: number; done: number; failed: number; runId: string | null }
+type Bulk = { id: string; name: string; status: 'running' | 'done' | 'stopped'; stop: boolean; total: number; done: number; failed: number; runId: string | null; batchIds: string[] }
 
 /** What runs, as the canvas makes it: every Text node with its {biến} filled in, every Bảng CSV with its template filled per
  * row (one prompt per line). A node that cannot be filled keeps the error code of the filler (EMPTY_VAR, CSV_EMPTY_CELL...). */
@@ -343,7 +343,7 @@ export function createWorkflows(d: WfDeps) {
         const plans = rows.map((r) => checked(fillGraph(w.g, { ...(w.g.vars ?? {}), ...r })))
         const errors = plans.flatMap((p, i) => p.errors.map((e) => ({ row: i + 1, ...e })))
         if (errors.length) return { errors }
-        const bulk: Bulk = { id: randomUUID(), name: w.name, status: 'running', stop: false, total: rows.length, done: 0, failed: 0, runId: null }
+        const bulk: Bulk = { id: randomUUID(), name: w.name, status: 'running', stop: false, total: rows.length, done: 0, failed: 0, runId: null, batchIds: [] }
         for (const [id, b] of bulks) if (b.status !== 'running' && bulks.size >= 20) bulks.delete(id)
         bulks.set(bulk.id, bulk)
         void (async () => {
@@ -352,6 +352,7 @@ export function createWorkflows(d: WfDeps) {
             const { run, done } = launch(p, mode, w.name)
             bulk.runId = run.id
             await done
+            bulk.batchIds.push(...Object.values(run.nodes).flatMap((n) => n.batchIds)) // kept here: finished runs get pruned from runs
             if (run.status === 'done') bulk.done++; else if (run.status === 'failed') bulk.failed++
           }
           bulk.status = bulk.stop ? 'stopped' : 'done'
@@ -360,7 +361,8 @@ export function createWorkflows(d: WfDeps) {
       },
       async workflowBulk(a: unknown) { // progress: runs done / failed of the total, and the run in flight (for its nodes)
         const b = bulks.get(a as string)
-        return b ? { status: b.status, name: b.name, total: b.total, done: b.done, failed: b.failed, runId: b.runId } : null
+        const live = b?.status === 'running' && b.runId ? Object.values(runs.get(b.runId)?.nodes ?? {}).flatMap((n) => n.batchIds) : []
+        return b ? { status: b.status, name: b.name, total: b.total, done: b.done, failed: b.failed, runId: b.runId, batchIds: [...b.batchIds, ...live] } : null
       },
       async stopWorkflowBulk(a: unknown) { // no new run starts; the run in flight is stopped like the canvas's Dừng
         const b = bulks.get(a as string)

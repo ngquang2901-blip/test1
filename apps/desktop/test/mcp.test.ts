@@ -216,7 +216,7 @@ test('workflow tools: list names with their {variables}; run needs exactly one o
   const calls: object[] = []
   let auto = false
   const dep = { enqueue: async () => ({}), start: async () => ({}), download: async () => ({}), resume: async () => ({}), pause: async () => ({}), preview: async () => ({ url: null }), list: async () => ({ batches: [], session: {} }), file: () => { throw new Error('x') },
-    workflows: { list: async () => [{ name: 'SP', vars: { sp: 'cốc' }, nodes: [{ type: 'text', text: 'ảnh {sp} trên {nền}' }, { type: 'generate' }] }], bulk: async (a: object) => { calls.push(a); return { bulkId: 'k1', total: 2 } }, bulkStatus: async (id: string) => (id === 'k1' ? { status: 'running', total: 2, done: 1, failed: 0 } : null), stopBulk: async () => {}, autoSend: async () => auto } }
+    workflows: { list: async () => [{ name: 'SP', vars: { sp: 'cốc' }, nodes: [{ type: 'text', text: 'ảnh {sp} trên {nền}' }, { type: 'generate' }] }], bulk: async (a: object) => { calls.push(a); return { bulkId: 'k1', total: 2 } }, bulkStatus: async (id: string) => (id === 'k1' ? { status: 'running', total: 2, done: 1, failed: 0, batchIds: ['b1', 'b2'] } : null), stopBulk: async () => {}, autoSend: async () => auto } }
   const tools = toolsOf(dep as never)
   expect(await tools.toolflow_list_workflows.run({})).toEqual({ workflows: [{ name: 'SP', variables: ['sp', 'nền'], defaults: { sp: 'cốc' } }] })
   await expect(tools.toolflow_run_workflow.run({ name: 'SP' })).rejects.toThrow(/INVALID_ARGS/)
@@ -227,4 +227,8 @@ test('workflow tools: list names with their {variables}; run needs exactly one o
   expect(calls).toEqual([{ name: 'SP', prompts: ['a', 'b'], mode: 'manual' }, { name: 'SP', rows: [{ sp: 'x', 'nền': 'y' }], mode: 'auto' }])
   expect(await tools.toolflow_workflow_status.run({ bulkId: 'k1' })).toMatchObject({ done: 1 })
   await expect(tools.toolflow_workflow_status.run({ bulkId: 'nope' })).rejects.toThrow(/NOT_FOUND/)
+  // the panel follows the job: its batches so far, and while it runs the panel keeps asking by bulkId (later runs add batches)
+  expect(await tools.toolflow_panel.run({ bulkId: 'k1' })).toEqual({ ...((await tools.toolflow_app_state.run({ batchIds: ['b1', 'b2'] })) as object), bulkId: 'k1', bulkRunning: true })
+  expect(await tools.toolflow_app_state.run({ bulkId: 'k1' })).toEqual(await tools.toolflow_panel.run({ bulkId: 'k1' }))
+  await expect(tools.toolflow_panel.run({ bulkId: 'nope' })).rejects.toThrow(/NOT_FOUND/)
 })

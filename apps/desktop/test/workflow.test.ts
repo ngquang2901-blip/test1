@@ -493,7 +493,9 @@ test('bulk run: one whole run of the saved workflow per row, one after another, 
   await r.wf.saveWorkflow({ name: 'SP', graph: VARS })
   const { bulkId, total } = await r.wf.runWorkflowBulk({ name: 'SP', rows: [{ sp: 'bình hoa' }, { sp: 'đèn bàn\nxanh' }, {}], mode: 'auto' })
   expect(total).toBe(3)
-  expect(await bulkDone(r, bulkId)).toMatchObject({ status: 'done', total: 3, done: 3, failed: 0 })
+  const b = await bulkDone(r, bulkId)
+  expect(b).toMatchObject({ status: 'done', total: 3, done: 3, failed: 0 })
+  expect(new Set(b!.batchIds).size).toBe(3) // one batch per run, so the bot can show them all in toolflow_panel
   expect(r.enq.map((e) => e.text)).toEqual(['ảnh bình hoa trên nền trắng', 'ảnh đèn bàn xanh trên nền trắng', 'ảnh cốc trên nền trắng']) // a line break in a value does not split the row
   expect(r.enq.every((e) => e.mode === 'auto')).toBe(true)
 })
