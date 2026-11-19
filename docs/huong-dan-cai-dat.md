@@ -26,8 +26,14 @@ Từ bản 0.13.0:
 - Màn Kết nối có danh sách các bước, bước nào xong thì được đánh dấu. Nút **Mở trang tiện ích trong Chrome** và **Mở Google Flow** mở thẳng Chrome đúng trang cần dùng.
 - App nhớ tab bạn đã chọn theo tài khoản + dự án. Lần sau mở lại app hoặc Chrome, tab của đúng dự án đó được chọn lại tự động (hiện chữ **Tự chọn lại**) và lô đang dở chạy tiếp. Lượt nào chưa rõ đã gửi hay chưa vẫn chờ bạn xem. Bấm **Quên các tab đã nhớ** để tắt.
 
+## Tạo ảnh và video: nhờ bot hoặc dùng Workflow
+App không còn màn **Tạo lô**. Muốn có ảnh hay video:
+- **Một vài ảnh**: nhờ bot trong VVO (xem mục MCP bên dưới), ví dụ "tạo cho tôi 3 ảnh con mèo". Bot tạo lô và chạy giúp bạn.
+- **Nhiều ảnh, hoặc cần chia prompt từ danh sách / file CSV**: mở màn **Workflow**, chọn mẫu **Ảnh hàng loạt từ danh sách prompt** rồi bấm **Chạy workflow**.
+- Lô do bot hoặc Workflow tạo đều hiện ở **Hàng đợi** và **Kết quả** như trước.
+
 ## Hẹn giờ, thông báo, khay hệ thống (từ bản 0.13.0)
-- **Hẹn giờ chạy**: ở Tạo lô, tích **Hẹn giờ chạy**, chọn ngày giờ, bấm **Tạo lô và hẹn giờ**. Hàng đợi hiện giờ chạy, có nút **Huỷ hẹn giờ**. Nếu app tắt đúng lúc đó, lô chạy ngay khi bạn mở app lại.
+- **Hẹn giờ chạy**: nhờ bot tạo lô với giờ bắt đầu. Lô hẹn giờ hiện trong Hàng đợi cùng giờ chạy, có nút **Huỷ hẹn giờ**, hoặc **Chạy ngay** nếu bạn muốn chạy sớm. Nếu app tắt đúng lúc đó, lô chạy ngay khi bạn mở app lại.
 - Đóng cửa sổ thì app thu xuống khay (biểu tượng góc phải thanh taskbar) để lịch vẫn chạy. Thoát hẳn: chuột phải vào biểu tượng → **Thoát**. **Cài đặt** có tuỳ chọn **Tự mở cùng Windows**.
 - **Thông báo**: chuông ở thanh trên cùng báo khi lô xong, khi lô cần bạn xem, khi lô chạy theo hẹn giờ và khi credit Flow sắp hết. Mất nối với tab quá 2 phút mới báo.
   - Muốn có thông báo ở góc màn hình: mở Cài đặt Windows → Hệ thống → Thông báo, bật thông báo.
@@ -43,7 +49,7 @@ Từ bản 0.13.0:
 ## Workflow: video, vòng lặp, CSV (từ bản 0.13.0)
 - **+ Tạo video Flow** thêm một node tạo video.
 - Node **Vòng lặp** (2–10 vòng): chạy lại node tạo ảnh nối vào nó, vòng sau lấy ảnh của vòng trước làm ảnh tham chiếu. Có mẫu **Ảnh tinh chỉnh 3 vòng**.
-- Node **Bảng CSV** và nút **Nạp file CSV** ở Tạo lô: mỗi dòng của file thành một prompt; chọn một cột, hoặc ghép nhiều cột bằng mẫu có `{Tên cột}`. Trong Excel, lưu file bằng kiểu **CSV UTF-8** để giữ dấu tiếng Việt.
+- Node **Bảng CSV**: mỗi dòng của file thành một prompt; chọn một cột, hoặc ghép nhiều cột bằng mẫu có `{Tên cột}`. Trong Excel, lưu file bằng kiểu **CSV UTF-8** để giữ dấu tiếng Việt.
 
 ## Kết quả: lọc, thẻ, xoá, xuất file (từ bản 0.13.0)
 - Lọc theo trạng thái, nền tảng, loại và thẻ; kết hợp được với ô tìm kiếm.
@@ -54,9 +60,9 @@ Từ bản 0.13.0:
 - **Khôi phục từ bản sao lưu**: chọn tệp, app tự đóng rồi mở lại với dữ liệu đó. Dữ liệu trước khi khôi phục vẫn được giữ trong `%APPDATA%\ToolFlow` (tệp `toolflow.db.before-restore-…`). Đang có lượt gửi thì app không cho khôi phục.
 
 ## Tạo video (từ bản 0.6.0)
-- Màn **Tạo lô**: chọn **Video**, mỗi dòng một prompt. Mô hình Veo 3.1 - Lite, tỉ lệ 16:9 hoặc 9:16, mỗi prompt một video (10 credit Flow mỗi video, khoảng 1 phút).
-- Muốn video bắt đầu từ một ảnh: ở mục **Khung hình đầu** bấm **Chọn ảnh…**, rồi chọn dùng chung một ảnh hoặc mỗi prompt một ảnh theo thứ tự.
-- **Khung hình cuối** (từ bản 0.12.0): tích **Có khung hình cuối**. Mỗi prompt dùng hai ảnh: ảnh thứ nhất mở đầu video, ảnh thứ hai là cảnh kết thúc.
+- Nhờ bot tạo video, hoặc đổi node Tạo ảnh Flow sang Video trong **Workflow**. Mô hình Veo 3.1 - Lite, tỉ lệ 16:9 hoặc 9:16, mỗi prompt một video (10 credit Flow mỗi video, khoảng 1 phút).
+- Muốn video bắt đầu từ một ảnh: trong **Workflow**, nối node ảnh (hoặc node Text với ảnh bạn chọn) vào node video; ảnh nối vào là khung hình đầu.
+- **Khung hình cuối** (từ bản 0.12.0): dùng node **Khung cuối** trong Workflow, nó lấy khung hình cuối của một video làm khung đầu cho video sau.
 - Từ bản 0.12.0: **2 video mỗi prompt** với Veo 3.1 - Lite (20 credit). Mô hình Veo 3.1 - Fast không còn trong danh sách vì Google cho ngừng hoạt động ngày 5/12.
 - Màn **Kết quả**: từ bản 0.12.0 kết quả tự lưu về máy khi tạo xong (tắt được trong **Cài đặt → Lưu kết quả**); bấm **Tải tất cả kết quả** nếu đã tắt. Bấm **Xem video** để xem ngay trong app.
 - Lượt lưu bị lỗi được app tự thử lại 2 lần, cách nhau 30 giây. Lô ChatGPT / Gemini bị dừng vì trang chưa sẵn sàng (menu chưa hiện, ảnh tải lên chưa xong) được app tự cho chạy lại một lần sau 30 giây; chưa có gì được gửi đi trong trường hợp đó.
@@ -67,22 +73,22 @@ Từ bản 0.13.0:
 ## Tạo ảnh bằng ChatGPT (từ bản 0.7.0)
 1. Trong Chrome đã cài extension ToolFlow, mở https://chatgpt.com/ và đăng nhập. ChatGPT cần ở **giao diện tiếng Anh** (app tìm nút theo chữ tiếng Anh).
 2. Sau khi cập nhật app: vào `chrome://extensions`, bấm mũi tên tải lại ở thẻ **ToolFlow Connector**, rồi F5 tab ChatGPT. Màn **Kết nối** của app sẽ ghi "Đã thấy 1 tab chatgpt.com".
-3. Màn **Tạo lô** → **Nền tảng** chọn **ChatGPT (tạo ảnh)** → dán danh sách prompt → **Tạo lô và chạy**.
+3. Nhờ bot tạo ảnh bằng **ChatGPT**, hoặc trong **Workflow** chọn node Tạo ảnh rồi đặt **Nền tảng** là ChatGPT và bấm **Chạy workflow**.
 - Mỗi lô mở một cuộc trò chuyện mới trong tab ChatGPT, app tự bật "Create image", gửi lần lượt từng prompt và tự lưu ảnh vào `Downloads/ToolFlow` (không cần bấm Tải).
 - Khi lô chạy, app đưa tab ChatGPT lên trước trong cửa sổ Chrome của nó. Đừng thu nhỏ cửa sổ Chrome đó và đừng gõ vào ChatGPT lúc lô đang chạy.
 - Nếu bạn chuyển tab ChatGPT sang cuộc trò chuyện khác, lô tạm dừng; bấm **Tiếp tục** thì app mở lại đúng cuộc trò chuyện của lô.
 - ChatGPT trả lời mà không có ảnh (hết lượt tạo ảnh, hoặc prompt bị từ chối): dòng đó báo lỗi, lô tạm dừng để bạn đọc câu trả lời trong ChatGPT.
-- **Ảnh tham chiếu** (từ bản 0.10.0): bấm **Chọn ảnh…** rồi chọn cách chia như với Flow. App tự dán ảnh vào ô nhập của ChatGPT trước khi gửi. Tài khoản miễn phí bị ChatGPT giới hạn số ảnh tải lên mỗi ngày.
-- **Tỉ lệ khung hình** (từ bản 0.18.0): ô **Tỉ lệ khung hình** chọn 1:1, 16:9, 9:16, 4:3 hoặc 3:4. ChatGPT không có nút chọn tỉ lệ, nên app thêm một câu tiếng Anh vào cuối mỗi prompt (ví dụ "Make the image a wide landscape in 16:9 aspect ratio."); câu đó hiện trong Hàng đợi cùng prompt. Để "ChatGPT tự chọn" thì prompt giữ nguyên.
+- **Ảnh tham chiếu** (từ bản 0.10.0): chọn ảnh ở node Workflow, hoặc nối ảnh của node trước sang. App tự dán ảnh vào ô nhập của ChatGPT trước khi gửi. Tài khoản miễn phí bị ChatGPT giới hạn số ảnh tải lên mỗi ngày.
+- **Tỉ lệ khung hình** (từ bản 0.18.0): ô **Tỉ lệ khung hình** của node Tạo ảnh chọn 1:1, 16:9, 9:16, 4:3 hoặc 3:4. ChatGPT không có nút chọn tỉ lệ, nên app thêm một câu tiếng Anh vào cuối mỗi prompt (ví dụ "Make the image a wide landscape in 16:9 aspect ratio."); câu đó hiện trong Hàng đợi cùng prompt. Để "ChatGPT tự chọn" thì prompt giữ nguyên.
 
 ## Tạo ảnh bằng Gemini (từ bản 0.8.0)
 1. Trong Chrome đã cài extension ToolFlow, mở https://gemini.google.com/app và đăng nhập. Gemini để ngôn ngữ nào cũng được.
 2. Sau khi cập nhật app: vào `chrome://extensions`, bấm mũi tên tải lại ở thẻ **ToolFlow Connector**, rồi F5 tab Gemini. Màn **Kết nối** của app sẽ ghi "Đã thấy 1 tab gemini.google.com".
-3. Màn **Tạo lô** → **Nền tảng** chọn **Gemini (tạo ảnh)** → dán danh sách prompt → **Tạo lô và chạy**.
+3. Nhờ bot tạo ảnh bằng **Gemini**, hoặc trong **Workflow** chọn node Tạo ảnh rồi đặt **Nền tảng** là Gemini và bấm **Chạy workflow**.
 - Mỗi lô mở một cuộc trò chuyện mới trong tab Gemini, app tự bật công cụ tạo hình ảnh, gửi lần lượt từng prompt và tự lưu ảnh **cỡ đầy đủ** vào `Downloads/ToolFlow` (không cần bấm Tải). Mỗi ảnh mất khoảng 25–40 giây.
-- **Tỉ lệ khung hình** (từ bản 0.9.0): chọn 1:1, 9:16, 3:4, 4:3 hoặc 16:9 ngay trong màn Tạo lô; để **Theo Gemini** thì lô dùng cái đang chọn trong tab.
-- **Mô hình** (từ bản 0.10.0): chọn Flash-Lite, Flash hoặc Pro trong màn Tạo lô; để **Theo Gemini** thì giữ cái đang chọn. Lưu ý: chọn ở đây thì tab Gemini của bạn cũng chuyển sang mô hình đó.
-- **Ảnh tham chiếu** (từ bản 0.9.0): bấm **Chọn ảnh…** rồi chọn cách chia như với Flow (mỗi prompt một nhóm ảnh theo thứ tự, hoặc dùng chung tất cả ảnh), tối đa 10 ảnh mỗi prompt. App tự dán ảnh vào ô nhập của Gemini trước khi gửi.
+- **Tỉ lệ khung hình** (từ bản 0.9.0): chọn 1:1, 9:16, 3:4, 4:3 hoặc 16:9 ở node Tạo ảnh (hoặc nói với bot); để **Theo Gemini** thì lô dùng cái đang chọn trong tab.
+- **Mô hình** (từ bản 0.10.0): chọn Flash-Lite, Flash hoặc Pro ở node Tạo ảnh (hoặc nói với bot); để **Theo Gemini** thì giữ cái đang chọn. Lưu ý: chọn ở đây thì tab Gemini của bạn cũng chuyển sang mô hình đó.
+- **Ảnh tham chiếu** (từ bản 0.9.0): chọn ảnh ở node Workflow, tối đa 10 ảnh mỗi prompt. App tự dán ảnh vào ô nhập của Gemini trước khi gửi.
 - Gemini trả lời mà không có ảnh, hoặc để trống câu trả lời: dòng đó báo lỗi sau khoảng 20 giây và lô tạm dừng để bạn xem trong Gemini; bấm **Tiếp tục** để gửi các prompt còn lại.
 - Khi lô chạy, app đưa tab Gemini lên trước. Đừng thu nhỏ cửa sổ Chrome đó, đừng gõ vào Gemini và đừng để sẵn chữ trong ô nhập của Gemini (app không gõ đè lên chữ có sẵn, lô sẽ tạm dừng).
 - Lúc lấy ảnh cỡ đầy đủ, app bấm nút tải của Gemini; bản tải riêng của Gemini (tên `Gemini_Generated_Image_…`) nếu có sẽ bị app huỷ để không lưu trùng. Trong lúc lô chạy, đừng tự bấm tải ảnh trong Gemini.

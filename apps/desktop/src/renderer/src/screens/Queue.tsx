@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { codeIn, errText, hintOf } from '../hints'
-import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, siteLabel, time, type Attempt, type Batch, type Draft, type Preset } from '../types'
-import { Chip, Icon, TwoStep, itemTone } from '../ui'
+import { ACTIVE, BATCH_LABEL, KIND_LABEL, MODE_LABEL, current, itemLabel, siteLabel, time, type Attempt, type Batch } from '../types'
+import { Chip, TwoStep, itemTone } from '../ui'
 
 const reasons = (a: Attempt): string => [a.error?.code, a.error?.why, ...(a.error?.reasons ?? [])].filter(Boolean).join(' · ')
 const Hint = ({ a, provider }: { a: Attempt; provider?: string }): React.JSX.Element | null => { const h = hintOf(a.error?.code, provider); return h ? <div className="hint" data-testid="hint">{h}</div> : null } // what to do, next to the raw code
@@ -65,60 +65,22 @@ function NextStep({ batches }: { batches: Batch[] }): React.JSX.Element | null {
   return null
 }
 
-type Quick = { kind: Draft['kind']; mode: Draft['mode']; title: string; sub: string; art: 'wide' | 'hand' | 'video' }
-const PRESETS: Quick[] = [
-  { kind: 'image', mode: 'auto', title: 'Ảnh từ danh sách prompt', sub: 'App tự bấm Gửi từng dòng', art: 'wide' },
-  { kind: 'image', mode: 'manual', title: 'Ảnh, tôi tự bấm Gửi', sub: 'App điền sẵn, bạn bấm trong Flow', art: 'hand' },
-  { kind: 'video', mode: 'auto', title: 'Video từ prompt', sub: 'Cần tài khoản có credit video', art: 'video' },
-]
-
-/** Shortcuts into Tạo lô with the kind and mode already chosen (the owner's "Bắt đầu nhanh"). */
-function QuickStart({ onStart, onPreset }: { onStart: (p: Pick<Draft, 'kind' | 'mode'>) => void; onPreset: (p: Preset) => void }): React.JSX.Element {
-  const [saved, setSaved] = useState<Preset[]>([])
-  useEffect(() => { void window.api.listPresets().then(setSaved, () => setSaved([])) }, [])
-  return (
-    <div className="quick">
-      <p className="quick-title">Bắt đầu nhanh</p>
-      <ul>{PRESETS.map((p) => (
-        <li key={p.title}>
-          <button className="card" onClick={() => onStart({ kind: p.kind, mode: p.mode })}>
-            <span className="art" data-art={p.art} aria-hidden="true"><i /><i /><i /></span>
-            <span className="card-title">{p.title}</span>
-            <span className="muted small-text">{p.sub}</span>
-          </button>
-        </li>
-      ))}
-      {saved.slice(0, 6).map((p) => ( // the user's own saved setups next to the built-in ones
-        <li key={p.id}>
-          <button className="card" onClick={() => onPreset(p)}>
-            <span className="art" data-art="saved" aria-hidden="true"><i /><i /><i /></span>
-            <span className="card-title">{p.name}</span>
-            <span className="muted small-text">Mẫu đã lưu · {KIND_LABEL[p.kind]} · {MODE_LABEL[p.mode]}{p.refs.assets.length ? ` · ${p.refs.assets.length} ảnh tham chiếu` : ''}</span>
-          </button>
-        </li>
-      ))}</ul>
-    </div>
-  )
-}
-
-export default function Queue({ batches, q = '', onNew, onStart, onPreset }: { batches: Batch[]; q?: string; onNew: () => void; onStart: (p: Pick<Draft, 'kind' | 'mode'>) => void; onPreset: (p: Preset) => void }): React.JSX.Element {
+export default function Queue({ batches, q = '' }: { batches: Batch[]; q?: string }): React.JSX.Element {
   const [open, setOpen] = useState<string | null>(null)
-  const head = <div className="head"><h2>Hàng đợi</h2><button className="primary" onClick={onNew}><Icon name="plus" />Lô mới</button></div>
+  const head = <div className="head"><h2>Hàng đợi</h2></div>
   const needle = q.trim().toLowerCase()
   const hit = (b: Batch, prompt: string): boolean => !needle || b.id.startsWith(needle) || prompt.toLowerCase().includes(needle)
   const shown = batches.filter((b) => b.items.some((it) => hit(b, it.prompt)))
   if (!batches.length) return (
     <section aria-label="Hàng đợi">
       {head}
-      <QuickStart onStart={onStart} onPreset={onPreset} />
-      <p className="empty">Chưa có lô nào. Vào <b>Tạo lô</b>, dán danh sách prompt rồi bấm <b>Tạo lô và chạy</b>; các lượt sẽ hiện ở đây.</p>
+      <p className="empty">Chưa có lô nào. Nhờ bot trong VVO tạo ảnh, hoặc chạy một Workflow.</p>
     </section>
   )
   return (
     <section aria-label="Hàng đợi">
       {head}
       <NextStep batches={batches} />
-      {!needle && <QuickStart onStart={onStart} onPreset={onPreset} />}
       {shown.length === 0 && <p className="empty">Không có prompt hay lô nào khớp “{q}”.</p>}
       {shown.map((b) => {
         const done = b.items.filter((it) => current(it).item === 'ready').length
