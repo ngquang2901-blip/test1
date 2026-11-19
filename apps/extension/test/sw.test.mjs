@@ -118,3 +118,50 @@ test('a Flow tab that finishes loading wakes the connection; other tabs and othe
   await settle();
   assert.equal(open(made), true);
 });
+
+// The app's side of the handshake, naming its version as the app does.
+function appSocket(version) {
+  return class { constructor(url, protos) { this.readyState = 0; const nonce = protos.find((p) => p.startsWith('tfn.')).slice(4);
+    queueMicrotask(() => { this.readyState = 1; this.onmessage?.({ data: JSON.stringify({ hello: createHmac('sha256', 'x').update('s' + nonce).digest('hex'), v: version }) }); }); }
+    close() {} send() {} };
+}
+function chromeWith(store, running, reloaded, tabReloads = []) {
+  return {
+    storage: { local: { get: async (k) => ({ [k]: store[k] }), set: async (o) => { Object.assign(store, o); } } },
+    alarms: { create() {}, onAlarm: ev() },
+    tabs: { onUpdated: ev(), query: async (q) => (q.url.length === 3 ? [{ id: 7 }, { id: 9 }] : []), reload: async (id) => { tabReloads.push(id); } },
+    runtime: { onStartup: ev(), onMessage: ev(), getURL: (p) => p, getManifest: () => ({ version: running }), reload: () => { reloaded.push(1); } },
+  };
+}
+
+test('the app updated: its hello names a newer version, the extension reloads itself once for it, then reloads the site tabs', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const store = { tfInstance: '0123abcd' }, reloaded = [], tabReloads = [];
+  globalThis.fetch = async () => ({ json: async () => ({ port: 1, token: 'x' }) });
+  globalThis.WebSocket = appSocket('0.20.0');
+  globalThis.chrome = chromeWith(store, '0.19.0', reloaded, tabReloads);
+  await import(new URL(`../sw.js?load=${++loads}`, import.meta.url));
+  await settle();
+  assert.equal(reloaded.length, 1);
+  assert.equal(store.tfReloadedFor, '0.20.0');
+  // Chrome came back with the new code: the site tabs reload once so their pages run it too.
+  globalThis.chrome = chromeWith(store, '0.20.0', reloaded, tabReloads);
+  await import(new URL(`../sw.js?load=${++loads}`, import.meta.url));
+  await settle();
+  assert.deepEqual(tabReloads, [7, 9]);
+  assert.equal(reloaded.length, 1);
+  await import(new URL(`../sw.js?load=${++loads}`, import.meta.url));
+  await settle();
+  assert.deepEqual(tabReloads, [7, 9]);
+});
+
+test('a version Chrome does not load (it runs another folder) does not reload in a loop', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const store = { tfInstance: '0123abcd', tfReloadedFor: '0.20.0' }, reloaded = [];
+  globalThis.fetch = async () => ({ json: async () => ({ port: 1, token: 'x' }) });
+  globalThis.WebSocket = appSocket('0.20.0');
+  globalThis.chrome = chromeWith(store, '0.19.0', reloaded);
+  await import(new URL(`../sw.js?load=${++loads}`, import.meta.url));
+  await settle();
+  assert.equal(reloaded.length, 0);
+});

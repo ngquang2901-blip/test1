@@ -27,7 +27,8 @@ const parse = (id: string | number): [string, number] => {
   return i < 0 ? ['', Number(s)] : [s.slice(0, i), Number(s.slice(i + 1))]
 }
 
-export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number>; onConnect?: () => void }) {
+/** version: the app's, sent in the hello so an extension still running an older copy reloads itself (sw.js selfUpdate). */
+export async function startConnectorServer(o: { token: string; extensionId: string; port?: number; budgets?: Record<string, number>; onConnect?: () => void; version?: string }) {
   const budgets = { ...OP_TIMEOUT_MS, ...o.budgets } // injectable so tests need no real 20 s waits
   // the proof rides in a subprotocol (`tfp.<hmac>`), not the URL: Chrome prints failed WebSocket URLs in the extension's Errors page
   const wss = new WebSocketServer({ host: '127.0.0.1', port: o.port ?? 0, handleProtocols: (ps) => (ps.has(PROTO) ? PROTO : false) })
@@ -69,7 +70,7 @@ export async function startConnectorServer(o: { token: string; extensionId: stri
       return void ws.close(4401, 'unauthorized')
     }
     oldAt = 0
-    ws.send(JSON.stringify({ hello: mac(o.token, 's', nonce) })) // first frame: proves to the extension that this is the app and not whatever listens on that port
+    ws.send(JSON.stringify({ hello: mac(o.token, 's', nonce), ...(o.version ? { v: o.version } : {}) })) // first frame: proves to the extension that this is the app and not whatever listens on that port
     const inst = protos.find((p) => /^tfi\.[0-9a-f]{8}$/.test(p))?.slice(4) ?? ''
     const conn: Conn = { ws, inst, tabs: new Set() }
     const old = conns.get(inst)

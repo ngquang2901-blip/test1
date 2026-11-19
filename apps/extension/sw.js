@@ -26,6 +26,29 @@ function later() {
   retryMs = Math.min(retryMs * 2, 30000);
 }
 
+// The app rewrites this folder when it updates (to its own version), but Chrome keeps running the code it loaded. The
+// app's hello names its version: a different one reloads the extension, once per version (a folder Chrome does not load
+// from cannot loop); then the site tabs reload, so their pages run the new content scripts too. The app updates only
+// while nothing runs, so no tab is mid-way through a lot.
+async function selfUpdate(appVersion) {
+  try {
+    if (typeof appVersion !== 'string' || !appVersion || appVersion === chrome.runtime.getManifest().version) return;
+    const { tfReloadedFor } = await chrome.storage.local.get('tfReloadedFor');
+    if (tfReloadedFor === appVersion) return;
+    await chrome.storage.local.set({ tfReloadedFor: appVersion, tfReloadTabs: true });
+    chrome.runtime.reload();
+  } catch { /* the self-check still asks for a reload */ }
+}
+
+async function reloadSiteTabs() {
+  try {
+    const { tfReloadTabs } = await chrome.storage.local.get('tfReloadTabs');
+    if (!tfReloadTabs) return;
+    await chrome.storage.local.set({ tfReloadTabs: false });
+    for (const t of await chrome.tabs.query({ url: SITES.map((s) => `${s}*`) })) await chrome.tabs.reload(t.id).catch(() => {});
+  } catch { /* an older Chrome without the call: the self-check asks for F5 instead */ }
+}
+
 async function connect() {
   if (connecting || (ws && ws.readyState <= 1)) return;
   connecting = true;
@@ -37,8 +60,8 @@ async function connect() {
     // no op is run and nothing is sent until the first frame proves the listener knows the token
     s.onmessage = (m) => {
       if (s.ready) return onCommand(s, m.data);
-      let h; try { h = JSON.parse(m.data).hello; } catch { /* not json: not the app */ }
-      if (h === want) { s.ready = true; retryMs = 1000; } else s.close(); // a wrong hello keeps the backoff growing
+      let h, v; try { ({ hello: h, v } = JSON.parse(m.data)); } catch { /* not json: not the app */ }
+      if (h === want) { s.ready = true; retryMs = 1000; void selfUpdate(v); } else s.close(); // a wrong hello keeps the backoff growing
     };
     s.onclose = (e) => { if (ws === s) { ws = undefined; if (e.code === 4401) retryMs = 30000; /* wrong token: a 1 s loop helps nobody */ later(); } };
     s.onerror = () => {};
@@ -104,6 +127,7 @@ chrome.alarms.onAlarm.addListener(connect);
 // Chrome's onUpdated takes no filter argument (that is Firefox only: in Chrome it throws and the whole worker never starts) — filter here instead
 chrome.tabs.onUpdated.addListener((_id, info, tab) => { if (info.status === 'complete' && SITES.some((s) => tab?.url?.startsWith(s))) connect(); });
 chrome.runtime.onStartup.addListener(connect);
+void reloadSiteTabs();
 connect();
 // keep SW alive while connected (Chrome 116+: WS activity extends lifetime)
 setInterval(() => ws?.ready && ws.readyState === 1 && ws.send(JSON.stringify({ keepalive: Date.now() })), 20000);
