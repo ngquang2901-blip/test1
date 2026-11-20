@@ -461,6 +461,20 @@ test('disconnect fences the epoch while awaiting_user: the user\'s send is dropp
   uncertainNoCancel(t.states()[0]);
 });
 
+test('stop while the user\'s tab is gone (Chrome quit, a new tab granted): the stop settles on the tab in use, uncertain, instead of pinging the dead tab forever', async () => {
+  const t = rig([], { n: 1, mode: 'manual' })
+  t.runner.start(t.batchId)
+  await t.step(2)
+  expect(t.states()[0].item).toBe('awaiting_user')
+  t.driver.hidden.add('t1') // Chrome quit: the old tab never answers again
+  t.runner.setTabs(['t2']) // Chrome back: a new tab of the project is in use
+  const ping = t.driver.ping
+  t.driver.ping = async (tab) => ({ ...(await ping(tab)), id: `page-${tab}` }) // as on Flow: every page has its own observer id
+  t.runner.stop(t.batchId)
+  await t.step(2)
+  uncertainNoCancel(t.states()[0]) // another page cannot prove nothing was sent: Cần xem lại, never "cancelled"
+})
+
 test('stale arm then new arm: the tracker is ambiguous, the user\'s send is dropped, stop → skip is uncertain', async () => {
   const t = rig([], { n: 1, mode: 'manual' });
   t.runner.start(t.batchId);

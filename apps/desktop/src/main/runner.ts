@@ -303,7 +303,8 @@ export function createRunner(o: {
     const stopped = db.prepare('select id from batch where stop_requested=1').all() as { id: string }[];
     for (const b of stopped) for (const a of attempts(b.id)) {
       if ((JSON.parse(a.j) as AttemptState).item !== 'awaiting_user') continue;
-      const tab = [...slot].find(([, v]) => v === a.id)?.[0] ?? tabs[0];
+      const own = [...slot].find(([, v]) => v === a.id)?.[0], tab = own && tabs.includes(own) ? own : tabs[0] // the user's tab was dropped (Chrome quit): ask the tab in use, a page that proves nothing about the old one
+      if (!tab) continue // no tab at all: settle once one is granted
       try {
         const ping = await driver.ping(tab);
         drain(); // R18: events that arrived during the ping come first; a late sent means it is no longer a skip

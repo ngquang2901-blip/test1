@@ -37,3 +37,18 @@ test('panel: a poll that never answers does not stop the panel; it asks again by
     expect(h.calls('toolflow_app_state').length).toBeGreaterThan(1)
   } finally { vi.useRealTimers() }
 })
+
+test('panel: once the app restarted the job is gone (NOT_FOUND by bulkId); the panel goes on with the batches it already shows', async () => {
+  vi.useFakeTimers()
+  try {
+    const h = host()
+    h.from({ id: h.sent[0].id, result: {} })
+    await vi.advanceTimersByTimeAsync(0)
+    h.from({ method: 'ui/notifications/tool-result', params: text({ batches: [{ id: 'b1', kind: 'image', site: 'flow', status: 'running', items: [] }], bulkId: 'k1', bulkRunning: true }) })
+    await vi.advanceTimersByTimeAsync(10_000)
+    const first = h.calls('toolflow_app_state').at(-1)!
+    h.from({ id: first.id, result: { isError: true, content: [{ type: 'text', text: 'NOT_FOUND: x' }] } })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(h.calls('toolflow_app_state').at(-1)!.params!.arguments).toEqual({ batchIds: ['b1'] })
+  } finally { vi.useRealTimers() }
+})
