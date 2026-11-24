@@ -127,7 +127,7 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       if (!st) return { ok: false, code: 'CHIP_MISMATCH' }
       // Chips that are not ours, or text that prep would clear (which drops chips too): clear first, then prove the chips are gone.
       const ours = new Set(refs.map((id) => mediaOf(id, project!)))
-      if (st.chips.some((c) => !ours.has(c)) || st.text?.trim()) {
+      if (st.chips.some((c) => !ours.has(c)) || st.text) { // spaces count as text: the page op clears them too
         await call('click', { sel: profile.selectors.clear, idx: 0 }, 'COMPOSER_NOT_CLEAR')
         st = null
         for (let k = 0; k < 10; k++) { // chips can take a moment to go

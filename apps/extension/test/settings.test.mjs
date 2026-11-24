@@ -167,7 +167,7 @@ test('ops: settings is an allowed op with the same validate rules', () => {
 });
 
 // ---- page-ops.js against a fake DOM ----
-function page({ text = '', panel = false, start = {}, doubled = false, clearWorks = true, model = 'Nano Banana 2.1', models = MODELS } = {}) {
+function page({ text = '', panel = false, start = {}, doubled = false, lead, clearWorks = true, model = 'Nano Banana 2.1', models = MODELS } = {}) {
   const w = world(start);
   const dom = { open: panel, submitClicks: 0, text, w, model, menu: false, menuOpened: 0 };
   const el = (o) => ({ getAttribute: (n) => ({ role: o.role, 'aria-checked': o.checked })[n === 'aria-checked' ? 'aria-checked' : n] ?? null, innerText: o.text, click: o.click });
@@ -187,7 +187,7 @@ function page({ text = '', panel = false, start = {}, doubled = false, clearWork
   const document = {
     createElement: () => ({}), documentElement: { append() {} }, addEventListener() {}, removeEventListener() {}, dispatchEvent() {}, body: { innerText: '' },
     querySelector: (s) => (SEL[s] ? SEL[s]() : null), querySelectorAll: (s) => (dom.menu && overlay[s] ? overlay[s]() : []),
-    execCommand: (_c, _u, t) => { dom.text += doubled ? t + t : t; return true; },
+    execCommand: (c, _u, t) => { if (c === 'selectAll') { dom.sel = true; return true; } if (c === 'delete') { if (dom.sel) dom.text = ''; dom.sel = false; return true; } dom.text += (lead ?? '') + (doubled ? t + t : t); return true; },
   };
   const ctx = vm.createContext({ document, chrome: { runtime: { getManifest: () => ({ version: 't' }), onMessage: { addListener: (f) => { listener = f; } }, sendMessage: async () => {} } }, setTimeout, clearTimeout, Date, JSON, Promise, Set, MessageChannel, location: { origin: 'https://flow.google.com' } });
   ctx.globalThis = ctx; ctx.window = ctx; ctx.postMessage = (_d, _o, ports) => ports[0].close(); // no main world here; a closed channel lets the test process end
@@ -236,6 +236,25 @@ test('prep: clear failure ⇒ {ok:false, log:[clear failed]} and nothing typed',
   const r = (await p.call('prep', { prompt: 'nova prompt' })).result;
   assert.deepEqual([r.ok, r.log], [false, ['clear failed']]);
   assert.equal(p.dom.text, 'old');
+});
+
+// Measured live (2026-11-24): a composer holding only spaces read as empty (trimmed), the prompt was typed after them and went out with
+// 4 leading spaces (the runner caught it as USER_INTERFERENCE after the send). Spaces are content: cleared first, compared exactly.
+test('prep: a composer holding only spaces is cleared before typing (no clear button then), and the typed text is compared exactly', async () => {
+  const p = page({ text: '    ' });
+  const r = (await p.call('prep', { prompt: 'nova prompt' })).result;
+  assert.deepEqual([r.ok, r.textMatches, p.dom.text], [true, true, 'nova prompt']);
+});
+
+test('prep: text that reads back with extra leading spaces does not match', async () => {
+  const p = page({ text: '', lead: '  ' });
+  const r = (await p.call('prep', { prompt: 'nova prompt' })).result;
+  assert.deepEqual([r.ok, r.textMatches], [false, false]);
+});
+
+test('state: the composer text keeps its leading spaces (only the paragraph\'s trailing line break is dropped)', async () => {
+  const p = page({ text: '  x\n' });
+  assert.equal((await p.call('state', {})).result.text, '  x');
 });
 
 test('prep: doubled typing ⇒ textMatches false and ok false', async () => {
