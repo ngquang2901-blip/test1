@@ -147,6 +147,20 @@ export async function siteTab(c, tabId) {
   if (!SITES.some((s) => url.startsWith(s))) throw new Error('NOT_SITE_TAB');
 }
 
+// gptFront (any site tab): the tab becomes the active one of its window, which leaves the user's other windows alone. raise: only when that
+// was not enough (the page still hidden), the window comes forward. A window that is merely covered by another app stays behind it on
+// focused:true on Windows (measured: the OS refuses a background app the foreground), so it is minimised first and put back in its own state.
+export async function frontOp(c, a) {
+  await siteTab(c, a.tabId);
+  const t = await c.tabs.update(a.tabId, { active: true });
+  if (a.raise === true) {
+    const w = await c.windows.get(t.windowId);
+    if (w.state === 'minimized') await c.windows.update(t.windowId, { state: 'normal', focused: true });
+    else { await c.windows.update(t.windowId, { state: 'minimized' }); await c.windows.update(t.windowId, { state: w.state, focused: true }); }
+  }
+  return true;
+}
+
 export async function downloadsOp(c, a) {
   const q = Number.isInteger(a.id) ? { id: a.id } : { filenameRegex: 'ToolFlow-tmp[\\\\/]' + a.filenamePrefix.replace(/[.]/g, '\\.'), limit: 20 };
   return (await c.downloads.search(q)).filter((d) => d.byExtensionId === c.runtime.id).map(shapeDownload); // only our own: the profile's other downloads are not for the app

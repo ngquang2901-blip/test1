@@ -180,7 +180,10 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     driver: { fetchMedia: (tab, p) => (isGptMedia(p.mediaId) ? gptRunner.fetchMedia(tab, p) : isGemMedia(p.mediaId) ? gemRunner.fetchMedia(tab, p) : driver.fetchMedia(tab, p)), downloads: (q) => driver.downloads(q) },
     async tab(b) {
       const site = siteOf(b)
-      if (!site) return grants.forProject((db.prepare('select target_project p from batch where id=?').get(b) as { p: string | null } | undefined)?.p ?? null)
+      if (!site) { // the batch's own tab first, then every other granted tab of its project (a video can only be fetched from the page that made it)
+        const p = (db.prepare('select target_project p from batch where id=?').get(b) as { p: string | null } | undefined)?.p ?? null, first = grants.forProject(p)
+        return first ? [first, ...grants.granted().filter((t) => t !== first && p !== null && grants.projectOf(t) === p)] : null
+      }
       const t = await site.findTab()
       if (!t) throw Object.assign(new Error('NO_CHATGPT_TAB'), { code: 'NO_CHATGPT_TAB' })
       return t

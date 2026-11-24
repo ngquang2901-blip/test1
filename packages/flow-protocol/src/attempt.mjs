@@ -97,7 +97,7 @@ export function next(s, ev) {
 
     case 'poll': { // parsed poll: operations of any attempt; only ours count
       if (!s.operations || !(s.item === 'generating' || (s.item === 'needs_review' && s.stage === 'accepted'))) bad();
-      const mine = s.operations.map((o) => ev.operations.find((p) => p.operationId === o.operationId) || o);
+      const mine = s.operations.map((o) => { const p = ev.operations.find((x) => x.operationId === o.operationId); return p ? { ...o, ...Object.fromEntries(Object.entries(p).filter(([, v]) => v !== null)) } : o; }); // what a poll left empty keeps the receipt's value
       if (mine.some((o) => o.status === 'accepted' || o.status === 'running')) return { ...s, operations: mine };
       const ok = mine.filter((o) => o.status === 'succeeded');
       if (ok.length) return { ...s, item: 'ready', stage: 'outcome_known', operations: mine, outputs: ok.map((o) => ({ ...o, mediaId: o.operationId })) }; // a finished video is the media with its operation's id

@@ -27,6 +27,9 @@
   });
   const until = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = fn(); if (v) return v; await sleep(150); } return null; };
 
+  // What the composer holds: spaces are content (a composer of spaces once read as empty and the prompt went out after them, measured);
+  // only the line break ending a ProseMirror paragraph is not.
+  const composerText = (ed) => ed.innerText.replace(/\n+$/, '');
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   // The one result tile of a media uuid; anything but exactly one is a code, never a guess.
   const tile = (id) => {
@@ -40,11 +43,12 @@
     locate(a) { const t = tile(a.mediaId); return t.img ? { ok: true, w: t.img.naturalWidth, h: t.img.naturalHeight, complete: t.img.complete } : { ok: false, code: t.code }; },
     state() {
       const ed = $('flow-prompt-box .ProseMirror[contenteditable="true"]'); const s = $(SUBMIT);
-      return { text: ed && ed.innerText.trim(), submitDisabled: s && s.disabled,
+      return { text: ed && composerText(ed), submitDisabled: s && s.disabled,
         chips: [...document.querySelectorAll('flow-prompt-box flow-image-ingredient-chip img')].map((i) => i.src.split('/image/')[1]?.split('?')[0]),
         settings: ($('flow-prompt-box button.settings-trigger-button') || {}).innerText,
         banner: /cookies/i.test(document.body.innerText.slice(-3000)),
-        creditWarning: !!$('flow-prompt-box button.prompt-warning-button') };
+        creditWarning: !!$('flow-prompt-box button.prompt-warning-button'),
+        visible: document.visibilityState === 'visible' }; // a hidden page (Chrome covered or minimised) draws no frame and its settings panel does not open (measured)
     },
     radios() {
       const p = $('flow-prompt-box-settings'); if (!p) return 'no panel';
@@ -136,16 +140,17 @@
       }
       const ed = $('flow-prompt-box .ProseMirror[contenteditable="true"]');
       if (!ed) return { ok: false, log: ['composer not found'] };
-      if (ed.innerText.trim()) { // stale text: clear it, and prove it is empty before typing (no doubled prompt)
-        const clear = $(CLEAR); if (clear) clear.click();
-        if (!(await until(() => !ed.innerText.trim(), 2000))) return { ok: false, log: ['clear failed'] };
+      if (composerText(ed)) { // stale text (spaces too): clear it, and prove it is empty before typing (no doubled prompt)
+        const clear = $(CLEAR);
+        if (clear) clear.click(); else { ed.focus(); document.execCommand('selectAll'); document.execCommand('delete'); } // Flow shows no clear button for spaces only
+        if (!(await until(() => !composerText(ed), 2000))) return { ok: false, log: ['clear failed'] };
       }
       ed.focus();
       const typed = document.execCommand('insertText', false, prompt);
       await sleep(400);
       const sub = $(SUBMIT);
-      const textMatches = ed.innerText.trim() === prompt;
-      return { ok: typed && textMatches, text: ed.innerText.trim(), textMatches, submitDisabled: sub ? sub.disabled : null, log };
+      const textMatches = composerText(ed) === prompt; // exact: a leading space is a different prompt
+      return { ok: typed && textMatches, text: composerText(ed), textMatches, submitDisabled: sub ? sub.disabled : null, log };
     },
   };
 

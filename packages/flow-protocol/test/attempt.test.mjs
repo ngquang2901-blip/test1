@@ -44,6 +44,14 @@ test('a receipt from another request (same prompt text) is not ours → needs_re
   assert.deepEqual([s.item, s.error.code, s.error.why], ['needs_review', 'RESULT_OWNERSHIP_AMBIGUOUS', 'batch_mismatch']);
 });
 
+test('a poll that left the ids and model empty finishes the video and keeps the receipt\'s values', () => {
+  const s0 = next(toSent(vidReq), { type: 'receipt', receipt: vidRec });
+  const done = pollDone.operations.map((o) => ({ ...o, projectId: null, workflowId: null, model: null }));
+  const s = next(s0, { type: 'poll', operations: done });
+  assert.equal(s.item, 'ready');
+  assert.deepEqual([s.outputs[0].model, s.outputs[0].workflowId, s.outputs[0].status], [vidRec.operations[0].model, vidRec.operations[0].workflowId, 'succeeded']);
+});
+
 test('video on real traffic: accepted → running → poll that also lists another attempt → ready', () => {
   let s = next(toSent(vidReq), { type: 'receipt', receipt: vidRec });
   assert.deepEqual([s.item, s.stage], ['generating', 'accepted']);

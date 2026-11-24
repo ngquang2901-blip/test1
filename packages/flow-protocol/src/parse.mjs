@@ -171,7 +171,7 @@ export function parseImageReceipt(payload) {
 // Operation status codes seen: 6 at receipt, 2 while rendering, 3 done, 4 failed (lượt 17/21).
 const STATUS = { 6: 'accepted', 2: 'running', 3: 'succeeded', 4: 'failed' };
 
-function parseOps(list, where) {
+function parseOps(list, where, loose = false) { // loose (polls): only the id and the status are needed; with several videos in flight Flow left op [1] empty (seen live)
   return at(list, [], isArr, where).map((op, i) => {
     const w = `${where} op ${i}`;
     const code = at(op, [5, 8, 0], isInt, w);
@@ -179,9 +179,9 @@ function parseOps(list, where) {
     if (!status) throw new ProtocolDrift(w, [5, 8, 0], code);
     const out = {
       operationId: at(op, [0], isUuid, w),
-      projectId: at(op, [1], isUuid, w),
-      workflowId: at(op, [2], isUuid, w),
-      model: at(op, [5, 6, 1, 0, 0], isStr, w),
+      projectId: loose ? opt(op, [1], isUuid) : at(op, [1], isUuid, w),
+      workflowId: loose ? opt(op, [2], isUuid) : at(op, [2], isUuid, w),
+      model: loose ? opt(op, [5, 6, 1, 0, 0], isStr) : at(op, [5, 6, 1, 0, 0], isStr, w),
       status,
       prompt: opt(op, [5, 1], isStr),
       refIds: (opt(op, [5, 6, 1, 1], isArr) || []).map((r, j) => at(r, [2], isUuid, `${w} ref ${j}`)),
@@ -214,7 +214,14 @@ export function parseVideoReceipt(payload) {
 
 /** Video poll (jwpduf) payload. */
 export function parsePoll(payload) {
-  return { credits: credits(payload, 'poll'), operations: parseOps(at(payload, [2], isArr, 'poll'), 'poll') };
+  const operations = [], unreadable = []; // a poll lists every video the page watches, the user's own too: one it cannot read is set aside, and the caller decides whether it was one of ours
+  at(payload, [2], isArr, 'poll').forEach((op, i) => {
+    try { operations.push(parseOps([op], `poll[${i}]`, true)[0]); } catch (e) {
+      if (!(e instanceof ProtocolDrift)) throw e;
+      unreadable.push({ operationId: opt(op, [0], isUuid), where: e.where, path: e.path });
+    }
+  });
+  return { credits: credits(payload, 'poll'), operations, unreadable };
 }
 
 /**

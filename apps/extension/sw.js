@@ -1,4 +1,4 @@
-import { validate, forwardEvent, siteTab, SITES, fetchMediaOp, gptFetchOp, gemFetchOp, downloadsOp } from './ops.js';
+import { validate, forwardEvent, siteTab, SITES, fetchMediaOp, gptFetchOp, gemFetchOp, downloadsOp, frontOp } from './ops.js';
 
 // pair.json = { port, token } written by the desktop app into this folder. Never logged, never committed.
 let ws; let connecting = false;
@@ -97,12 +97,7 @@ async function handle(op, a, epoch) {
       for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 250)); if ((await chrome.tabs.get(a.tabId)).status === 'complete') return true; }
       return false;
     }
-    case 'gptFront': { // ChatGPT's "+" menu does not open while the page is hidden (measured). First the tab becomes the active one of its window, which leaves the user's other windows alone;
-      await siteTab(chrome, a.tabId);
-      const t = await chrome.tabs.update(a.tabId, { active: true }); // raise: only when that was not enough (window minimised, or covered where the OS reports it), the window itself comes forward
-      if (a.raise === true) { const w = await chrome.windows.get(t.windowId); await chrome.windows.update(t.windowId, w.state === 'minimized' ? { state: 'normal', focused: true } : { focused: true }); }
-      return true;
-    }
+    case 'gptFront': return frontOp(chrome, a); // a hidden page (ChatGPT's "+" menu, Flow's settings panel) does not open its menus (measured)
     case 'gemFetch': return gemFetchOp(chrome, a); // tab presses its own full-size download and says where the page got the file -> downloaded here into ToolFlow-tmp
     case 'gptFetch': return gptFetchOp(chrome, a); // tab -> image bytes (internal message) -> chrome.downloads
     case 'focus': { if (!Number.isInteger(a.tabId)) throw new Error('tabId required'); await siteTab(chrome, a.tabId); const t = await chrome.tabs.update(a.tabId, { active: true }); await chrome.windows.update(t.windowId, { focused: true }); return true; }

@@ -148,6 +148,34 @@ test('video: an unreadable poll pauses the batches that wait on one (PROTOCOL_DR
   expect([t.states()[0].item, batchRow(t.db, t.batchId).status, t.runner.lastError(t.batchId)]).toEqual(['generating', 'paused', 'PROTOCOL_DRIFT']);
 });
 
+// Rewrites the jwpduf payload of a poll answer (as Flow's page hands it over) with fn.
+const editPoll = (text: string, fn: (ops: unknown[][]) => void) => text.split('\n').map((l) => {
+  if (!l.startsWith('[')) return l;
+  const fr = JSON.parse(l) as unknown[][];
+  for (const f of fr) if (f[0] === 'wrb.fr' && f[1] === 'jwpduf') { const p = JSON.parse(f[2] as string) as unknown[][][]; fn(p[2]); f[2] = JSON.stringify(p); }
+  return JSON.stringify(fr);
+}).join('\n');
+
+test('video: a poll that also lists someone else\'s video in a shape we cannot read (2 tabs live: a failed op without its error code) still finishes ours; nothing pauses', async () => {
+  const t = rig(['video-ok'], { n: 1, kind: 'video' });
+  t.runner.start(t.batchId);
+  await t.step(4);
+  const mine = t.states()[0].operations![0].operationId;
+  for (const e of t.driver.videoPolls()) t.deliver({ tabId: e.tabId, type: 'poll', text: editPoll((e as { text: string }).text, (ops) => { for (const o of ops) if (o[0] !== mine) { o[1] = null; (o[5] as unknown[])[8] = [4]; } }) });
+  await t.step();
+  expect([t.states()[0].item, batchStatus(t.db, t.batchId), t.runner.lastError(t.batchId)]).toEqual(['ready', 'completed', null]);
+});
+
+test('video: our own video in a shape we cannot read still pauses (PROTOCOL_DRIFT), never a guess', async () => {
+  const t = rig(['video-ok'], { n: 1, kind: 'video' });
+  t.runner.start(t.batchId);
+  await t.step(4);
+  const mine = t.states()[0].operations![0].operationId;
+  for (const e of t.driver.videoPolls()) t.deliver({ tabId: e.tabId, type: 'poll', text: editPoll((e as { text: string }).text, (ops) => { for (const o of ops) if (o[0] === mine) (o[5] as unknown[])[8] = [4]; }) });
+  await t.step();
+  expect([t.states()[0].item, batchRow(t.db, t.batchId).status, t.runner.lastError(t.batchId)]).toEqual(['generating', 'paused', 'PROTOCOL_DRIFT']);
+});
+
 test('fast mode uses 4 tabs and caps 20/30', async () => {
   const f = rig(Array(6).fill('image-ok'), { n: 6, speed: 'fast', tabs: ['t1', 't2', 't3', 't4', 't5'], hold: true });
   f.runner.start(f.batchId);
