@@ -260,7 +260,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
       const accts = [...new Set(tabs.filter((t) => t.granted).map((t) => t.email).filter((e): e is string => !!e))]
       return {
         extDir: FAKE ? null : join(userData, 'extension'), // shown in S1 so the user can paste it into Chrome's folder dialog (not secret: pair.json inside is)
-        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : connected ? connected() : null, oldExt: oldExt(), connectorError, // '0': e2e of the setup panel
+        fake: FAKE, connected: FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '0' ? false : FAKE && process.env.TOOLFLOW_FAKE_CONNECTED === '1' ? true : connected ? connected() : null, oldExt: oldExt(), connectorError, // '0'/'1': e2e of the setup guide
         chromeFound: chromeExe !== null, remembered: grants.remembered(), tabs, email: em, draft, speedInUse: runner.caps(),
         accounts: accts.map((e) => ({ email: e, auto: autoAllowed(db, e) })), // auto is per account; the runner checks each tab's own
         gptTabs: await gptDriver.tabs().then((t) => t.length, () => 0), // how many chatgpt.com tabs the extension sees (a ChatGPT batch uses one)

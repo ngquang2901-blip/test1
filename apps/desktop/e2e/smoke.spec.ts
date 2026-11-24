@@ -1324,7 +1324,7 @@ test('Kết nối: the chosen tab is remembered by account + project; after a re
   ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '2' }))
   await page.waitForTimeout(6000) // longer than one round of the main-process loop
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await expect(page.getByRole('button', { name: 'Dùng tab này' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Dùng tab này' }).first()).toBeVisible()
   await expect(page.getByText('Đang dùng', { exact: true })).toHaveCount(0)
 })
 
@@ -1340,7 +1340,7 @@ test('Kết nối: the guide shows one step at a time; the extension step copies
   await guide.getByRole('button', { name: 'Chép địa chỉ trang tiện ích' }).click()
   await expect(guide.getByRole('button', { name: 'Đã chép' })).toBeVisible()
   await app.close()
-  ;({ app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_TABS: '0' })) // connected, no Flow tab yet
+  ;({ app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '1', TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '0' })) // connected, no Flow tab yet
   await page.getByRole('button', { name: 'Kết nối' }).click()
   await expect(page.getByTestId('setup').getByRole('heading', { name: /Bước 3/ })).toBeVisible()
   await page.getByRole('button', { name: 'Mở Google Flow' }).click()
@@ -1354,9 +1354,9 @@ test('Kết nối: the guide shows one step at a time; the extension step copies
 })
 
 test('Kết nối: with the extension linked and a single Flow tab the guide is done and the tab is used without a click', async () => {
-  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0' })
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_CONNECTED: '1' })
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await expect(page.getByTestId('setup')).toContainText('Đã sẵn sàng — ToolFlow đã nối với Google Flow')
+  await expect(page.getByTestId('setup')).toContainText('Đã sẵn sàng — ToolFlow đã nối với Google Flow', { timeout: 15_000 }) // the app's tab loop picks the tab
   await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Dùng tab này' })).toHaveCount(0)
 })
