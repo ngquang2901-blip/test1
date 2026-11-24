@@ -58,8 +58,8 @@ test('prepare: a video from a prompt goes in as mode Video with the input type I
 })
 
 test.each([
-  ['settings mismatch', (op: string) => (op === 'settings' ? { ok: false, mismatches: ['model'] } : PREP_OK), 'SETTINGS_MISMATCH', ['settings']],
-  ['settings op throws', (op: string) => (op === 'settings' ? new Error('no panel') : PREP_OK), 'SETTINGS_MISMATCH', ['settings']],
+  ['settings mismatch', (op: string) => (op === 'settings' ? { ok: false, mismatches: ['model'] } : PREP_OK), 'SETTINGS_MISMATCH', ['settings', 'state']],
+  ['settings op throws', (op: string) => (op === 'settings' ? new Error('no panel') : PREP_OK), 'SETTINGS_MISMATCH', ['settings', 'state']],
   ['prompt does not read back', (op: string) => (op === 'settings' ? SETTINGS_OK : { ok: false, textMatches: false, log: [] }), 'PROMPT_MISMATCH', ['settings', 'state', 'prep']],
   ['ok true but textMatches missing', (op: string) => (op === 'settings' ? SETTINGS_OK : { ok: true }), 'PROMPT_MISMATCH', ['settings', 'state', 'prep']],
   ['textMatches true but ok false', (op: string) => (op === 'settings' ? SETTINGS_OK : { ok: false, textMatches: true }), 'PROMPT_MISMATCH', ['settings', 'state', 'prep']],
@@ -71,6 +71,51 @@ test.each([
   expect(r).toEqual({ ok: false, code })
   expect(seen.map((s) => s[0])).toEqual(['tabs', ...ops])
   expect(JSON.stringify(r)).not.toContain('SECRET')
+})
+
+// Measured live (2026-11-24): with Chrome covered by another window, the Flow page is hidden, draws no frame and its settings panel
+// does not open (not even after 27 s). The tab is brought forward only then, never on a normal prepare.
+const hidden = (shownAfter: number) => { // the page reads hidden until `shownAfter` fronts were sent (Infinity: never)
+  let fronts = 0
+  const h: Handler = (op) => {
+    if (op === 'tabs') return here()
+    if (op === 'gptFront') { fronts++; return true }
+    if (op === 'state') return { text: '', chips: [], visible: fronts >= shownAfter }
+    if (op === 'settings') return fronts >= shownAfter ? SETTINGS_OK : { ok: false, current: null, mismatches: ['panel'] }
+    return PREP_OK
+  }
+  return h
+}
+test('prepare on a hidden Flow page: the tab becomes the active one first; it goes on as soon as the page shows', async () => {
+  const { server, seen } = stub(hidden(1))
+  expect(await createExtDriver(server, { ...OPEN, sleep: async () => {} }).prepare('7', prep)).toEqual({ ok: true })
+  expect(seen.filter((x) => x[0] === 'gptFront')).toEqual([['gptFront', { tabId: '7' }]])
+  expect(seen.filter((x) => x[0] === 'settings').length).toBe(2)
+})
+test('prepare on a hidden Flow page: when the active tab is not enough the window is raised; still hidden ⇒ FLOW_TAB_HIDDEN, nothing typed', async () => {
+  const two = stub(hidden(2))
+  expect(await createExtDriver(two.server, { ...OPEN, sleep: async () => {} }).prepare('7', prep)).toEqual({ ok: true })
+  expect(two.seen.filter((x) => x[0] === 'gptFront')).toEqual([['gptFront', { tabId: '7' }], ['gptFront', { tabId: '7', raise: true }]])
+  const never = stub(hidden(Infinity))
+  expect(await createExtDriver(never.server, { ...OPEN, sleep: async () => {} }).prepare('7', prep)).toEqual({ ok: false, code: 'FLOW_TAB_HIDDEN' })
+  expect(never.seen.map((x) => x[0])).not.toContain('prep')
+})
+// Measured live: the last video of a run with Chrome covered failed DOWNLOAD_NOT_FOUND (the hidden page polled once a minute and had not
+// learnt the file's address yet); saved fine later. A save the page cannot find while hidden shows the tab and asks once more.
+test('fetchMedia: NOT_FOUND on a hidden page ⇒ the tab is shown and asked once more; on a shown page nothing is brought forward', async () => {
+  let fronts = 0
+  const h: Handler = (op) => op === 'gptFront' ? (fronts++, true) : op === 'state' ? { text: '', chips: [], visible: fronts > 0 } : op === 'fetchMedia' ? (fronts ? { ok: true, downloadId: 9 } : { ok: false, code: 'NOT_FOUND' }) : null
+  const a = stub(h)
+  expect(await createExtDriver(a.server, { ...OPEN, sleep: async () => {} }).fetchMedia('7', { mediaId: 'm', filename: 'f.bin' })).toEqual({ ok: true, downloadId: 9 })
+  expect(a.seen.map((x) => x[0])).toEqual(['fetchMedia', 'state', 'gptFront', 'state', 'fetchMedia'])
+  const shown = stub((op) => op === 'state' ? { text: '', chips: [], visible: true } : op === 'fetchMedia' ? { ok: false, code: 'NOT_FOUND' } : null)
+  expect(await createExtDriver(shown.server, { ...OPEN, sleep: async () => {} }).fetchMedia('7', { mediaId: 'm', filename: 'f.bin' })).toEqual({ ok: false, code: 'NOT_FOUND' })
+  expect(shown.seen.map((x) => x[0])).toEqual(['fetchMedia', 'state'])
+})
+test('a settings mismatch on a page that is shown is not a visibility problem: nothing is brought forward', async () => {
+  const { server, seen } = stub(clean((op) => (op === 'settings' ? { ok: false, mismatches: ['model'] } : PREP_OK)))
+  expect(await createExtDriver(server, { ...OPEN, sleep: async () => {} }).prepare('7', prep)).toEqual({ ok: false, code: 'SETTINGS_MISMATCH' })
+  expect(seen.map((x) => x[0])).not.toContain('gptFront')
 })
 
 test('prepare: no combo in settings ⇒ SETTINGS_MISMATCH without touching the page; a lost connector propagates', async () => {
@@ -256,6 +301,13 @@ test('settings Flow does not take: prepared once more 10 s later, then the batch
   t.runner.resume(t.batchId); await t.runner.tick()
   expect([t.fake.ledger.prepares, t.fake.ledger.clicks]).toEqual([3, 1])
   vi.useRealTimers()
+})
+
+test('a Flow tab that stays hidden pauses the batch at once with the prompt kept (never failed, nothing sent)', async () => {
+  const t = rig({ combo: DEFAULT_COMBO }, { prepare: ['FLOW_TAB_HIDDEN'] })
+  await t.runner.tick()
+  expect([t.state().item, t.runner.lastError(t.batchId), t.fake.ledger.clicks]).toEqual(['preparing', 'FLOW_TAB_HIDDEN', 0])
+  expect((t.db.prepare('select status from batch').get() as { status: string }).status).toBe('paused')
 })
 
 test('settings that take on the second try go on by themselves', async () => {

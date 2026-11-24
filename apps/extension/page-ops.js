@@ -44,7 +44,8 @@
         chips: [...document.querySelectorAll('flow-prompt-box flow-image-ingredient-chip img')].map((i) => i.src.split('/image/')[1]?.split('?')[0]),
         settings: ($('flow-prompt-box button.settings-trigger-button') || {}).innerText,
         banner: /cookies/i.test(document.body.innerText.slice(-3000)),
-        creditWarning: !!$('flow-prompt-box button.prompt-warning-button') };
+        creditWarning: !!$('flow-prompt-box button.prompt-warning-button'),
+        visible: document.visibilityState === 'visible' }; // a hidden page (Chrome covered or minimised) draws no frame and its settings panel does not open (measured)
     },
     radios() {
       const p = $('flow-prompt-box-settings'); if (!p) return 'no panel';

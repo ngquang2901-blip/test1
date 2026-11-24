@@ -232,6 +232,7 @@ export function createRunner(o: {
     };
     const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs), projectId: i.project });
     if (gone()) return;
+    if (!p.ok && p.code === 'FLOW_TAB_HIDDEN') { pause(i.batch, p.code); return; } // nothing typed or sent: the user brings Chrome forward and presses Tiếp tục
     if (!p.ok && p.code === 'SETTINGS_MISMATCH') { // nothing typed or sent yet: one more try a moment later (seen live: a transient refusal failed two CSV rows), then the batch pauses with the prompt kept
       if (prepAgain.has(id)) { prepAgain.delete(id); pause(i.batch, p.code); } else prepAgain.set(id, clock.now() + PREP_AGAIN_MS);
       return;

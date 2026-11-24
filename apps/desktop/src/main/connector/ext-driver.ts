@@ -55,6 +55,20 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const mediaOf = (assetId: string, projectId: string): string | null => { const b = o.assets?.binding(assetId, projectId); return b?.state === 'bound' ? b.mediaId : null }
   const tab = (tabId: string): { tabId: string } => ({ tabId }) // the server routes it to the Chrome profile that owns it
+  const visible = async (tabId: string): Promise<boolean | null> => { // null: the page does not say (an older extension)
+    try { const v = ((await server.send('state', tab(tabId))) as { visible?: unknown } | null)?.visible; return typeof v === 'boolean' ? v : null } catch (e) { if (e instanceof ConnectorError) throw e; return null }
+  }
+  // 'visible': it was not hidden (the failure has another cause); 'shown': it was hidden and shows now; 'hidden': still hidden after the window was raised.
+  // Like the ChatGPT runner: the tab becomes the active one of its window first, which leaves the user's other windows alone; only when that
+  // is not enough (window minimised or covered) does the Chrome window come forward.
+  const show = async (tabId: string): Promise<'visible' | 'shown' | 'hidden'> => {
+    if ((await visible(tabId)) !== false) return 'visible'
+    for (const raise of [false, true]) {
+      await server.send('gptFront', { ...tab(tabId), ...(raise ? { raise: true } : {}) }).catch((e) => { if (e instanceof ConnectorError) throw e })
+      for (let k = 0; k < (raise ? 20 : 13); k++) { if (await visible(tabId)) return 'shown'; await sleep(300) }
+    }
+    return 'hidden'
+  }
   const granted = (tabId: string): void => {
     if (!o.allow?.(tabId)) throw new ConnectorError('tab not granted')
   }
@@ -98,9 +112,15 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
       if (!project || projectIdOf(here.path) !== project) return { ok: false, code: 'TARGET_CHANGED' }
       // A video names its input type: Frames when it has a start frame, else Ingredients (without refs that is text-to-video; Flow has no separate text mode). An image panel has no such group.
       const slotOf = (k: number) => (p.kind === 'video' ? { slot: k === 0 ? 'start' : 'end' } : {}) // a video's first image goes into the Start slot of the Frames composer, a second one into End
-      const s = await call<{ ok: boolean }>('settings', { mode: combo.mode, ...(p.kind === 'video' ? { input: refs.length ? 'Frames' : 'Ingredients' } : {}), aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }, 'SETTINGS_MISMATCH')
+      const want = { mode: combo.mode, ...(p.kind === 'video' ? { input: refs.length ? 'Frames' : 'Ingredients' } : {}), aspect: combo.aspect, quality: combo.quality ?? null, count: combo.count === undefined ? undefined : `x${combo.count}`, model: combo.model }
+      let s = await call<{ ok: boolean }>('settings', want, 'SETTINGS_MISMATCH')
+      if ('fail' in s || s?.ok !== true) { // measured live: a Flow page hidden behind another window draws no frame and its settings panel does not open, so it is shown first, only now
+        const shown = await show(tabId)
+        if (shown === 'hidden') return { ok: false, code: 'FLOW_TAB_HIDDEN' }
+        if (shown === 'shown') s = await call<{ ok: boolean }>('settings', want, 'SETTINGS_MISMATCH')
+      }
       if ('fail' in s) return { ok: false, code: s.fail }
-      if (s?.ok !== true) return { ok: false, code: 'SETTINGS_MISMATCH' }
+      if (s?.ok !== true) { console.error('prepare: settings not taken', JSON.stringify((s as { mismatches?: unknown })?.mismatches ?? null).slice(0, 120)); return { ok: false, code: 'SETTINGS_MISMATCH' } } // group labels only
       const live = (x: unknown): x is { text?: string; chips: string[] } => !!x && typeof x === 'object' && !('fail' in x) && Array.isArray((x as { chips?: unknown }).chips)
       const readState = async () => { const r = await call<{ text?: string; chips: string[] }>('state', {}, 'CHIP_MISMATCH'); return live(r) ? r : null }
       let st = await readState()
@@ -191,9 +211,13 @@ export function createExtDriver(server: ConnectorServer, o: ExtDriverOptions = {
     // The extension reads the tile's src itself (locate/src never leave the page) and starts chrome.downloads; only an id or a code comes back.
     async fetchMedia(tabId, p) {
       granted(tabId)
-      const r = (await server.send('fetchMedia', { ...tab(tabId), mediaId: p.mediaId, filename: p.filename })) as { ok?: unknown; downloadId?: unknown; code?: unknown } | null
-      if (r?.ok === true && Number.isInteger(r.downloadId)) return { ok: true, downloadId: r.downloadId as number }
-      return { ok: false, code: typeof r?.code === 'string' ? r.code : 'DOWNLOAD_REFUSED' }
+      const ask = async (): Promise<{ ok: true; downloadId: number } | { ok: false; code: string }> => {
+        const r = (await server.send('fetchMedia', { ...tab(tabId), mediaId: p.mediaId, filename: p.filename })) as { ok?: unknown; downloadId?: unknown; code?: unknown } | null
+        if (r?.ok === true && Number.isInteger(r.downloadId)) return { ok: true, downloadId: r.downloadId as number }
+        return { ok: false, code: typeof r?.code === 'string' ? r.code : 'DOWNLOAD_REFUSED' }
+      }
+      const r = await ask() // measured: a hidden page polls about once a minute and may not know a new video's address yet; shown, it does
+      return !r.ok && r.code === 'NOT_FOUND' && (await show(tabId)) === 'shown' ? ask() : r
     },
     async downloads(q) {
       const r = await server.send('downloads', q.id !== undefined ? { id: q.id } : { filenamePrefix: q.filenamePrefix })
