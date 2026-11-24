@@ -111,6 +111,29 @@ test('poll: running and succeeded operations are told apart and keep their ids',
   assert.ok(finished.operations.some((o) => o.operationId === t2v.operationId && o.workflowId === t2v.workflowId));
 });
 
+test('poll with several videos in flight: an operation without its project/workflow ids or model still reads (seen live with 2 tabs, op 0 [1]); a receipt stays strict', () => {
+  const p = payload(fx('poll-succeeded-2.json')[0]);
+  p[2][0][1] = null; p[2][0][2] = null; p[2][0][5][6] = null;
+  const ops = parsePoll(p).operations;
+  assert.deepEqual(ops.map((o) => o.status), ['succeeded', 'succeeded']);
+  assert.equal(ops[0].operationId, payload(fx('poll-succeeded-2.json')[0])[2][0][0]);
+  assert.deepEqual([ops[0].projectId, ops[0].workflowId, ops[0].model], [null, null, null]);
+  const r = payload(done(fx('video-t2v.json'))[0]);
+  r[3][0][1] = null;
+  assert.throws(() => parseVideoReceipt(r), ProtocolDrift);
+});
+
+test('poll: an operation that cannot be read is set aside with its id (when readable), the others still read', () => {
+  const p = payload(fx('poll-succeeded-2.json')[0]);
+  const [a, b] = [p[2][0][0], p[2][1][0]];
+  p[2][0][5][8] = [4];                                                   // failed without its error code (seen live)
+  const r = parsePoll(p);
+  assert.deepEqual(r.operations.map((o) => o.operationId), [b]);
+  assert.deepEqual(r.unreadable.map((u) => u.operationId), [a]);
+  p[2][1] = 'junk';
+  assert.deepEqual(parsePoll(p).unreadable.map((u) => u.operationId), [a, null]);
+});
+
 test('poll: failed operation exposes the gRPC code (shape seen in lượt 21)', () => {
   // No raw failed poll was stored; this applies the status tuple printed in lượt 21 to a real poll.
   const rec = fx('poll-running.json')[0];
@@ -177,7 +200,9 @@ test('drift: unexpected shapes throw ProtocolDrift instead of guessing', () => {
 
   const poll = payload(fx('poll-running.json')[0]);
   poll[2][0][5][8] = [9];                                               // unknown status code
-  drift(() => parsePoll(poll));
+  assert.deepEqual(parsePoll(poll).unreadable.map((u) => u.operationId), [poll[2][0][0]]); // set aside, never guessed
+  poll[2] = 'x';
+  drift(() => parsePoll(poll));                                         // the list itself is gone
 });
 
 test('harmless additions do not break parsing', () => {

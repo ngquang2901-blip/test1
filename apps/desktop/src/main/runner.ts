@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { canClick, initial, type AttemptEvent, type AttemptState, type ItemState } from '@toolflow/flow-protocol/attempt';
 import { classifyGenerateError } from '@toolflow/flow-protocol/errors';
-import { parseGenerateRequest, parseImageReceipt, parsePoll, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
+import { ProtocolDrift, parseGenerateRequest, parseImageReceipt, parsePoll, parseRpcResponse, parseVideoReceipt, readFReq } from '@toolflow/flow-protocol/parse';
 import type { Db } from './db';
 import type { DriverEvent, FlowDriver } from './driver';
 import { applyEvent } from './journal';
@@ -168,7 +168,10 @@ export function createRunner(o: {
     try {
       const r = parseRpcResponse(text, 'jwpduf') as { error?: unknown; payload?: unknown };
       if (r.error) return; // the poll itself was refused: says nothing about a video, the next one will
-      const p = parsePoll(r.payload) as { credits: number | null; operations: { operationId: string }[] };
+      const p = parsePoll(r.payload) as { credits: number | null; operations: { operationId: string }[]; unreadable: { operationId: string | null; where: string; path: (string | number)[] }[] };
+      const ours = new Set(waiting.flatMap((a) => (a.s.operations as { operationId: string }[]).map((o) => o.operationId)));
+      const bad = p.unreadable.find((u) => !u.operationId || ours.has(u.operationId)); // someone else's odd video says nothing about ours (seen live with 2 tabs); one of ours is never guessed
+      if (bad) throw new ProtocolDrift(bad.where, bad.path);
       ops = p.operations; credit(tab, p.credits);
     } catch (err) { for (const b of new Set(waiting.map((a) => info(a.id).batch))) fail(b, err); return; } // unreadable: every batch that waits on a poll stops (PROTOCOL_DRIFT)
     for (const a of waiting) if ((a.s.operations as { operationId: string }[]).some((o) => ops.some((p) => p.operationId === o.operationId))) apply(a.id, { type: 'poll', operations: ops } as AttemptEvent);

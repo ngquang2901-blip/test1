@@ -25,13 +25,13 @@ export type ImageReceipt = { batchId: string; outputs: ImageOutput[] };
 export function parseImageReceipt(payload: unknown): ImageReceipt;
 export type OperationStatus = 'accepted' | 'running' | 'succeeded' | 'failed';
 export type Operation = {
-  operationId: string; projectId: string; workflowId: string; model: string; status: OperationStatus;
+  operationId: string; projectId: string | null; workflowId: string | null; model: string | null; status: OperationStatus; // null only in a poll
   prompt: string | null; refIds: string[]; seed: number | null;
   failure?: RpcError; title?: string | null;
 };
 export type VideoReceipt = { batchId: string; credits: number | null; operations: Operation[] };
 export function parseVideoReceipt(payload: unknown): VideoReceipt;
-export function parsePoll(payload: unknown): { credits: number | null; operations: Operation[] };
+export function parsePoll(payload: unknown): { credits: number | null; operations: Operation[]; unreadable: { operationId: string | null; where: string; path: (string | number)[] }[] };
 export function correlate(request: GenerateRequest, receipt: ImageReceipt | VideoReceipt):
   | { owned: false; reason: 'batch_mismatch' | 'seed_mismatch' | 'count_mismatch' }
   | { owned: true; outputs: (ImageOutput & { item: number })[]; operations?: undefined }
