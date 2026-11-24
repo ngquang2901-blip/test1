@@ -429,6 +429,7 @@ test('Workflow: variables fill the prompts and the side panel shows what will be
   await expect(page.getByTestId('wf-preview')).toContainText('Kết quả sẽ được tải về máy')
 
   // undo / redo: an added node, then a deleted node with its text and wires
+  await page.waitForTimeout(400) // edits become one undo step after 300 ms of quiet; without the pause a busy PC merged the template, the text and the note into one step
   await page.getByRole('button', { name: 'Thêm ghi chú' }).click()
   await expect(boxes).toHaveCount(4)
   await page.getByRole('button', { name: 'Hoàn tác' }).click()
