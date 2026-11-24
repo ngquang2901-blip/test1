@@ -24,9 +24,13 @@ export function findChrome(o: { platform: string; env: Record<string, string | u
   return null
 }
 
+/** Measured: without it a Chrome window covered by another app counts as hidden (Flow draws nothing, its settings panel does not open).
+ *  Chrome reads it only when it starts; a running Chrome ignores it. */
+export const CHROME_FLAGS = ['--disable-features=CalculateNativeWinOcclusion']
+
 /** Starts Chrome on one page (a running Chrome opens it in a new tab). Detached: closing the app leaves Chrome open. */
-export function launchChrome(exe: string, url: string): void {
-  const c = spawn(exe, [url], { detached: true, stdio: 'ignore' })
+export function launchChrome(exe: string, url: string, run = spawn): void {
+  const c = run(exe, [...CHROME_FLAGS, url], { detached: true, stdio: 'ignore' })
   c.on('error', (e) => console.error('chrome launch', (e as { code?: string }).code ?? 'ERROR')) // an unhandled spawn error would end the main process
   c.unref()
 }
