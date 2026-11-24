@@ -229,15 +229,15 @@ test('real mode survives a connector failure: window opens, S1 shows the error c
 })
 
 test('S1 lists the Flow tab; an ungranted tab runs nothing until "Dùng tab này" (AC-01, AC-27)', async () => {
-  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0' })
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '2' }) // one tab would be picked by the app itself
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await expect(page.locator('[data-testid=flow-tab]')).toHaveCount(1)
+  await expect(page.locator('[data-testid=flow-tab]')).toHaveCount(2)
   const err = await page.evaluate(() => (window as unknown as { api: Bridge }).api.enqueueBatch({ commandId: 'x1', kind: 'image', mode: 'auto', text: 'một con mèo' }).then(() => 'ok', (e: Error) => e.message))
   expect(err).toContain('NO_PROJECT_TAB') // no tab granted: no batch, nothing sent (same as real mode)
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await expect(items(page)).toHaveCount(0)
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await tabTo(page, 'Dùng tab này') // keyboard reachable
+  await tabTo(page, 'Dùng tab này') // first of two, keyboard reachable
   await page.keyboard.press('Enter')
   await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
   await create(page, ['một con mèo'])
@@ -1298,9 +1298,9 @@ test('Sao lưu / khôi phục in Cài đặt: the backup is one valid SQLite fil
 
 test('Kết nối: the chosen tab is remembered by account + project; after a restart it is chosen again by itself (Tự chọn lại) and an unfinished batch goes on; Quên các tab đã nhớ stops that', async () => {
   const ud = tmp()
-  let { app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' })
+  let { app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '2' }) // two tabs: the app does not choose
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await page.getByRole('button', { name: 'Dùng tab này' }).click()
+  await page.getByRole('button', { name: 'Dùng tab này' }).first().click()
   await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
   await expect(page.getByText('Tự chọn lại', { exact: true })).toHaveCount(0) // the user's own click
   await expect(page.getByRole('button', { name: 'Quên các tab đã nhớ' })).toBeVisible()
@@ -1312,7 +1312,7 @@ test('Kết nối: the chosen tab is remembered by account + project; after a re
   const { batchId } = enqueueBatch(db, { commandId: 'left', kind: 'image', projectId: done.p, settings: JSON.parse(done.s), prompts: ['dở một', 'dở hai'], refs: [[], []], mode: 'auto' })
   db.prepare("update batch set status='running' where id=?").run(batchId)
   db.close()
-  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' })) // Chrome and the app restarted: nobody clicks anything
+  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '2' })) // Chrome and the app restarted: nobody clicks anything
   await page.getByRole('button', { name: 'Hàng đợi' }).click()
   await expect(items(page).filter({ hasText: 'Có kết quả (chưa tải)' })).toHaveCount(3, { timeout: 20_000 })
   await page.getByRole('button', { name: 'Kết nối' }).click()
@@ -1321,33 +1321,44 @@ test('Kết nối: the chosen tab is remembered by account + project; after a re
   await page.getByRole('button', { name: 'Quên các tab đã nhớ' }).click()
   await expect(page.getByRole('button', { name: 'Quên các tab đã nhớ' })).toHaveCount(0)
   await app.close()
-  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0' }))
+  ;({ app, page } = await launch(ud, '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '2' }))
   await page.waitForTimeout(6000) // longer than one round of the main-process loop
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await expect(page.getByRole('button', { name: 'Dùng tab này' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Dùng tab này' }).first()).toBeVisible()
   await expect(page.getByText('Đang dùng', { exact: true })).toHaveCount(0)
 })
 
-test('Kết nối: the setup panel ticks what is done and opens Chrome on the extensions page or Flow (the app starts Chrome, not the page); without Chrome it says so inline', async () => {
+test('Kết nối: the guide shows one step at a time; the extension step copies the page address; Flow opens through the app; without Chrome step 1 says so', async () => {
   let { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0' })
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  const step = (name: string) => page.getByRole('list', { name: 'Các bước kết nối' }).locator('li').filter({ hasText: name })
-  await expect(step('Chrome tìm thấy')).toHaveAttribute('data-done', 'true')
-  await expect(step('Extension đã nối')).toHaveAttribute('data-done', 'false')
-  await expect(step('Có tab Flow')).toHaveAttribute('data-done', 'true')
-  await expect(step('Đã mở dự án')).toHaveAttribute('data-done', 'true')
-  await expect(step('Đã chọn tab')).toHaveAttribute('data-done', 'true')
-  await page.getByRole('button', { name: 'Mở trang tiện ích trong Chrome' }).click()
+  const guide = page.getByTestId('setup')
+  await expect(guide).toContainText('✓ Cài Google Chrome')
+  await expect(guide.getByRole('heading', { name: /Bước 2/ })).toBeVisible()
+  await expect(guide.getByRole('button', { name: 'Mở trang tiện ích trong Chrome' })).toHaveCount(0)
+  await expect(guide.getByRole('button', { name: 'Mở Google Flow' })).toHaveCount(0) // a later step
+  await app.evaluate(({ clipboard }) => clipboard.clear())
+  await guide.getByRole('button', { name: 'Chép địa chỉ trang tiện ích' }).click()
+  await expect(guide.getByRole('button', { name: 'Đã chép' })).toBeVisible()
+  await app.close()
+  ;({ app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '1', TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_TABS: '0' })) // connected, no Flow tab yet
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('setup').getByRole('heading', { name: /Bước 3/ })).toBeVisible()
   await page.getByRole('button', { name: 'Mở Google Flow' }).click()
-  await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual(['chrome://extensions', 'https://labs.google/fx/tools/flow'])
+  await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual(['https://labs.google/fx/tools/flow'])
   await expect(page.getByRole('alert')).toHaveCount(0)
   await app.close()
   ;({ app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0', TOOLFLOW_FAKE_CHROME: '0' }))
   await page.getByRole('button', { name: 'Kết nối' }).click()
-  await expect(step('Chrome tìm thấy')).toHaveAttribute('data-done', 'false')
-  await page.getByRole('button', { name: 'Mở Google Flow' }).click()
-  await expect(page.getByRole('alert')).toContainText('Không tìm thấy Google Chrome')
-  expect(await app.evaluate(() => (globalThis as unknown as { __toolflowChrome: string[] }).__toolflowChrome)).toEqual([])
+  await expect(page.getByTestId('setup').getByRole('heading', { name: /Bước 1/ })).toBeVisible()
+  await expect(page.getByTestId('setup')).toContainText('Không tìm thấy Google Chrome')
+})
+
+test('Kết nối: with the extension linked and a single Flow tab the guide is done and the tab is used without a click', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_GRANT: '0', TOOLFLOW_FAKE_CONNECTED: '1' })
+  await page.getByRole('button', { name: 'Kết nối' }).click()
+  await expect(page.getByTestId('setup')).toContainText('Đã sẵn sàng — ToolFlow đã nối với Google Flow', { timeout: 15_000 }) // the app's tab loop picks the tab
+  await expect(page.getByText('Đang dùng', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Dùng tab này' })).toHaveCount(0)
 })
 
 // ---- notices, Hẹn giờ chạy, tray, credit ----
