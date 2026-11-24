@@ -1,6 +1,7 @@
 // Node canvas drawn like TobyFlow's editor (always dark): a header, a floating tool column, a dotted canvas, a block picker, a form
 // under a Tạo ảnh node and a right panel (Cấu hình / Kết quả / Trợ giúp). The graph is only a way to describe batches; main compiles
 // it (src/main/workflow.ts) and runs every "Tạo ảnh Flow" node as a normal batch.
+import { MAX_TABS, addTab, closeTab, type Tabs } from '../wf-tabs'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Background, BackgroundVariant, BaseEdge, Controls, Handle, Position, ReactFlow, addEdge, getBezierPath, useEdgesState, useInternalNode, useNodesState, useStore, useViewport, type Connection, type Edge, type EdgeProps, type Node, type NodeProps, type ReactFlowInstance } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -301,10 +302,46 @@ function Picker({ at, kinds, hint, onPick, onClose, box }: { at: PickAt; kinds: 
   )
 }
 
-// the canvas survives a visit to another screen: mid-run the user goes to Hàng đợi (or to Flow to click Gửi) and comes back
-let keep: { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null; hist?: { past: string[]; future: string[]; cur: string } } = { nodes: [], edges: [], vars: [], name: '', runId: null }
+// every tab's canvas survives a visit to another screen (mid-run the user goes to Hàng đợi, or to Flow to click Gửi) and a switch to another tab
+type Keep = { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null; running?: boolean; hist?: { past: string[]; future: string[]; cur: string } }
+const blank = (): Keep => ({ nodes: [], edges: [], vars: [], name: '', runId: null })
+let tabs: Tabs = { ids: ['t1'], active: 't1' }
+const keeps: Record<string, Keep> = { t1: blank() }
+let nextTab = 2
 
 export default function Workflow({ s }: { s: Session }): React.JSX.Element {
+  const [, bump] = useState(0)
+  const [live, setLive] = useState<Record<string, boolean>>({})
+  const poll = (): void => {
+    for (const id of tabs.ids) { const rid = keeps[id].runId; if (rid && id !== tabs.active) void window.api.workflowRun(rid).then((r: RunView | null) => setLive((l) => (l[id] === (r?.status === 'running') ? l : { ...l, [id]: r?.status === 'running' }))) }
+    bump((n) => n + 1) // the active tab's name and run come from the canvas, which writes them after each render
+  }
+  useEffect(() => { const t = setInterval(poll, 500); return () => clearInterval(t) }, [])
+  const busy = (id: string): boolean => (id === tabs.active ? !!keeps[id].running : live[id] ?? !!keeps[id].running)
+  const go = (t: Tabs): void => { tabs = t; poll() }
+  return (
+    <section className="wf wf-host">
+      <div className="wf-tabs" role="tablist" aria-label="Các workflow đang mở">
+        {tabs.ids.map((id) => {
+          const nm = keeps[id].name.trim() || 'Workflow mới', on = id === tabs.active, run = busy(id)
+          return (
+            <div key={id} className={`wf-tab${on ? ' on' : ''}`}>
+              <button role="tab" aria-selected={on} className="wf-tab-main" title={nm} onClick={() => go({ ...tabs, active: id })}>
+                {run && <span className="wf-tab-dot" aria-label="Đang chạy" />}<span className="wf-tab-name">{nm}</span>
+              </button>
+              {tabs.ids.length > 1 && <button className="wf-tab-x" aria-label={`Đóng tab ${nm}`} disabled={run} title={run ? 'Đang chạy — dừng workflow trước khi đóng' : 'Đóng tab'} onClick={() => { delete keeps[id]; go(closeTab(tabs, id)) }}>×</button>}
+            </div>
+          )
+        })}
+        <button className="wf-tab-add" aria-label="Thêm tab workflow" title="Thêm tab workflow" disabled={tabs.ids.length >= MAX_TABS} onClick={() => { const id = `t${nextTab++}`; keeps[id] = blank(); go(addTab(tabs, id)) }}>+</button>
+      </div>
+      <Canvas key={tabs.active} s={s} tabId={tabs.active} />
+    </section>
+  )
+}
+
+function Canvas({ s, tabId }: { s: Session; tabId: string }): React.JSX.Element {
+  const keep = keeps[tabId]
   const [nodes, setNodes, onNodesChange] = useNodesState<WNode>(keep.nodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(keep.edges)
   const [vars, setVars] = useState<Var[]>(keep.vars)
@@ -323,7 +360,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const [tab, setTab] = useState<{ id: string; tab: 'cfg' | 'res' | 'help' } | null>(null)
   const rf = useRef<ReactFlowInstance<WNode, Edge> | null>(null)
   const wrap = useRef<HTMLDivElement>(null), pickBox = useRef<HTMLDivElement>(null), pointer = useRef<{ x: number; y: number } | null>(null)
-  useEffect(() => { keep = { nodes, edges, vars, name, runId, hist: hist.current } })
+  useEffect(() => { keeps[tabId] = { nodes, edges, vars, name, runId, running, hist: hist.current } })
   const list = (): Promise<void> => window.api.listWorkflows().then(setSaved)
   useEffect(() => { void list() }, [])
   useEffect(() => { // a bulk run: its counts, and the canvas follows the run in flight
