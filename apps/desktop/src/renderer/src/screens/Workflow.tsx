@@ -321,7 +321,7 @@ export default function Workflow({ s }: { s: Session }): React.JSX.Element {
   const go = (t: Tabs): void => { tabs = t; poll() }
   return (
     <section className="wf wf-host">
-      <div className="wf-tabs" role="tablist" aria-label="Các workflow đang mở">
+      <div className="wf-tabbar" role="tablist" aria-label="Các workflow đang mở">
         {tabs.ids.map((id) => {
           const nm = keeps[id].name.trim() || 'Workflow mới', on = id === tabs.active, run = busy(id)
           return (

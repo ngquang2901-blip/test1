@@ -15,11 +15,20 @@ function Setup({ s, picked }: { s: Session; picked: boolean }): React.JSX.Elemen
   const [copied, setCopied] = useState<'page' | 'dir' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const dir = s.extDir ?? null
+  const [auto, setAuto] = useState<'running' | 'ok' | string | null>(null) // string: the failure code
   const openFlow = (): void => { setError(null); void window.api.openChrome('flow').catch((e: Error) => setError(clean(e.message))) }
+  const runAuto = (): void => { setAuto('running'); void window.api.autoConnect().then((r: { ok: boolean; code?: string }) => setAuto(r.ok ? 'ok' : r.code ?? 'AUTO_SCRIPT_ERROR'), (e: Error) => setAuto(clean(e.message))) }
   const steps: { title: string; done: boolean; body: React.JSX.Element }[] = [
     { title: 'Cài Google Chrome', done: s.chromeFound === true, body: <p>Không tìm thấy Google Chrome trên máy này. Hãy cài Chrome từ google.com/chrome, rồi quay lại đây — app tự nhận ra.</p> },
     { title: 'Thêm tiện ích ToolFlow vào Chrome (làm một lần)', done: s.connected === true, body: (
       <>
+        <div className="auto-connect">
+          <p>ToolFlow tự làm hết: đóng Chrome, mở lại, thêm tiện ích rồi mở Google Flow (khoảng 20 giây). Các tab đang mở sẽ được mở lại.</p>
+          <div className="toolbar"><button className="primary" disabled={auto === 'running'} onClick={runAuto}>{auto === 'running' ? 'Đang kết nối… đừng bấm vào Chrome' : 'Kết nối tự động'}</button></div>
+          {auto === 'ok' && <p className="setup-ready">✓ Đã thêm tiện ích vào Chrome</p>}
+          {auto && auto !== 'running' && auto !== 'ok' && <p role="alert" className="notice">{hintOf(auto) ?? `Chưa tự làm xong (mã ${auto}). Làm theo các bước bên dưới`}</p>}
+          <p className="muted small-text">Hoặc tự làm theo các bước:</p>
+        </div>
         {s.oldExt && <p role="alert" className="notice" data-testid="old-ext">Chrome vẫn chạy tiện ích ToolFlow bản cũ nên app không nhận. Chép địa chỉ trang tiện ích (bên dưới), dán vào Chrome, tìm <b>ToolFlow Connector</b> và bấm nút tải lại (↻) — hoặc tắt hẳn Chrome rồi mở lại.</p>}
         <ol className="steps">
           <li>Mở Chrome, bấm vào thanh địa chỉ, bấm Ctrl+V rồi Enter.
@@ -38,7 +47,8 @@ function Setup({ s, picked }: { s: Session; picked: boolean }): React.JSX.Elemen
       </>) },
     { title: 'Mở một dự án Google Flow', done: s.tabs.some((t) => !!t.projectId), body: (
       <>
-        <p>Nếu Chrome đang mở, hãy đóng hết các cửa sổ Chrome trước, rồi bấm nút dưới đây (chỉ cần một lần) để Flow vẫn chạy khi Chrome bị che. Sau đó mở một dự án.</p>
+        {auto === 'ok' ? <p>Chrome đã mở sẵn Google Flow. Đăng nhập Google nếu được hỏi, rồi mở (hoặc tạo) một dự án.</p>
+          : <p>Nếu Chrome đang mở, hãy đóng hết các cửa sổ Chrome trước, rồi bấm nút dưới đây (chỉ cần một lần) để Flow vẫn chạy khi Chrome bị che. Sau đó mở một dự án.</p>}
         <div className="toolbar"><button className="primary" onClick={openFlow}>Mở Google Flow</button></div>
         {error && <p role="alert" className="notice">{hintOf(error) ?? `Lỗi ${error}`}</p>}
       </>) },

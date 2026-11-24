@@ -29,6 +29,7 @@ const api = {
   useTabs: call('useTabs'),
   openExtensionFolder: call('openExtensionFolder'),
   openChrome: call('openChrome'),
+  autoConnect: call('autoConnect'),
   forgetTabs: call('forgetTabs'),
   listWorkflows: call('listWorkflows'),
   saveWorkflow: call('saveWorkflow'),
