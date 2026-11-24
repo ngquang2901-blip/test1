@@ -80,7 +80,7 @@ export function moveNoClobber(src: string, want: string): string {
 
 // ---------- state machine (docs/app/06 §6) ----------
 export type DlRow = { id: string; attempt_id: string; media_id: string; planned_name: string; state: 'intent' | 'started' | 'completed' | 'failed' | 'needs_review'; handle: string | null; actual_name: string | null; bytes: number | null; error_code: string | null; created_at: number; updated_at: number }
-export type DlArgs = { attemptId: string; mediaId: string; tab: string; explicit?: boolean; batchLabel: string; at: number; index: number; prompt: string; tz: string; withPrompt?: boolean; kind?: 'image' | 'video' } // kind: what the output is (default image); the file must be that
+export type DlArgs = { attemptId: string; mediaId: string; tab: string; others?: string[]; explicit?: boolean; batchLabel: string; at: number; index: number; prompt: string; tz: string; withPrompt?: boolean; kind?: 'image' | 'video' } // kind: what the output is (default image); the file must be that
 export type DlEnv = { root: string; now(): number; sleep(ms: number): Promise<void>; budgetMs?: number; onChange?(): void }
 const BUDGET_MS = 120_000
 const TMP_DIR = 'ToolFlow-tmp'
@@ -190,6 +190,10 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
     sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` })
     // Flow fetches a finished video's address about 0.6 s after the poll that reports it (measured); "not found" started nothing, so one more ask is safe
     if (!sent.ok && sent.code === 'NOT_FOUND' && a.kind === 'video') { await env.sleep(3000); sent = await drv.fetchMedia(a.tab, { mediaId: a.mediaId, filename: `${prefix}.bin` }) }
+    for (const t of a.others ?? []) { // several tabs on one project: a video's address is known only in the page that made it (measured with 2 tabs)
+      if (sent.ok || sent.code !== 'NOT_FOUND') break
+      sent = await drv.fetchMedia(t, { mediaId: a.mediaId, filename: `${prefix}.bin` })
+    }
   } catch (e) {
     if (!(e instanceof ConnectorError)) return set({ state: 'failed', error_code: 'DOWNLOAD_REFUSED' }) // the extension refused the request: nothing was started
     set({ state: 'needs_review', error_code: 'DOWNLOAD_ACK_LOST' }) // the transfer may have started: look before anything else
@@ -202,7 +206,7 @@ export async function requestDownload(db: Db, drv: DlDriver, a: DlArgs, env: DlE
 }
 
 // ---------- batch / retry (what the IPC calls) ----------
-export type DownloaderOptions = { db: Db; driver: DlDriver; root: string; tz: string; now(): number; sleep?(ms: number): Promise<void>; budgetMs?: number; tab(batchId: string): string | null | Promise<string | null>; onChange?(batchId: string): void } // tab: the browser tab that shows the batch's outputs (it may throw its own coded error)
+export type DownloaderOptions = { db: Db; driver: DlDriver; root: string; tz: string; now(): number; sleep?(ms: number): Promise<void>; budgetMs?: number; tab(batchId: string): string | string[] | null | Promise<string | string[] | null>; onChange?(batchId: string): void } // tab: the browser tab that shows the batch's outputs (it may throw its own coded error)
 const WORKERS = 2
 
 export function createDownloader(o: DownloaderOptions) {
@@ -220,11 +224,12 @@ export function createDownloader(o: DownloaderOptions) {
   }
   const stateOf = (x: Out): string | undefined => (o.db.prepare('select state from download where attempt_id=? and media_id=?').get(x.attemptId, x.mediaId) as { state: string } | undefined)?.state
 
+  const tabsOf = async (b: string): Promise<string[]> => { const t = await o.tab(b); return Array.isArray(t) ? t : t ? [t] : [] } // first: the batch's own tab
   const run = (x: Out, explicit: boolean): Promise<DlRow> => {
     const key = `${x.attemptId}:${x.mediaId}`
     const have = inflight.get(key)
     if (have) return have
-    const p = (async () => { const tab = await o.tab(x.batchId); if (!tab) throw coded('NO_PROJECT_TAB'); return tab })().then((tab) => requestDownload(o.db, o.driver, { attemptId: x.attemptId, mediaId: x.mediaId, tab, explicit, batchLabel: x.batchId.slice(0, 8), at: x.at, index: x.index, prompt: x.prompt, tz: o.tz, kind: x.kind },
+    const p = (async () => { const ts = await tabsOf(x.batchId); if (!ts.length) throw coded('NO_PROJECT_TAB'); return ts })().then(([tab, ...others]) => requestDownload(o.db, o.driver, { attemptId: x.attemptId, mediaId: x.mediaId, tab: tab!, others, explicit, batchLabel: x.batchId.slice(0, 8), at: x.at, index: x.index, prompt: x.prompt, tz: o.tz, kind: x.kind },
       { root: o.root, now: o.now, sleep, budgetMs: o.budgetMs, onChange: () => o.onChange?.(x.batchId) })).finally(() => inflight.delete(key))
     inflight.set(key, p)
     return p
@@ -234,7 +239,7 @@ export function createDownloader(o: DownloaderOptions) {
     /** Every output of the batch that is not completed; failed ones are retried, needs_review ones are only reconciled. At most 2 at a time. */
     async batch(batchId: string): Promise<void> {
       const todo = outputsOf(batchId).filter((x) => stateOf(x) !== 'completed')
-      if (todo.length && !(await o.tab(batchId))) throw coded('NO_PROJECT_TAB')
+      if (todo.length && !(await tabsOf(batchId)).length) throw coded('NO_PROJECT_TAB')
       let next = 0
       const worker = async (): Promise<void> => {
         for (let x = todo[next++]; x; x = todo[next++]) await run(x, false).catch((e) => console.error('download', (e as { code?: string }).code ?? 'INTERNAL_ERROR'))

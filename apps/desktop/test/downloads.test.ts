@@ -433,6 +433,25 @@ test('downloadBatch: every output, at most 2 at a time, three PNG files on disk'
   expect(b.fake.ledger.fetches).toBe(3)
 })
 
+test('several Flow tabs on one project: an output the first tab does not know is fetched from the tab that made it (2 tabs live: half the videos failed DOWNLOAD_NOT_FOUND)', async () => {
+  const r = rig([])
+  const ids = ['3f2b9c1e-1111-4222-8333-444455556660', '3f2b9c1e-1111-4222-8333-444455556661']
+  const { batchId } = enqueueBatch(r.db, { commandId: 'c1', kind: 'image', projectId: 'p', settings: {}, prompts: ['a', 'b'], refs: [[], []], mode: 'auto' })
+  const atts = r.db.prepare('select a.id id from item i join attempt a on a.id=i.attempt_id where i.batch_id=? order by i.ord').all(batchId) as { id: string }[]
+  atts.forEach((a, i) => r.db.prepare("update attempt set state_json=json_set(state_json,'$.outputs',json(?)) where id=?").run(JSON.stringify([{ mediaId: ids[i] }]), a.id))
+  const asked: string[] = []
+  const driver: DlDriver = { // t1 knows the first output, t2 the second
+    async fetchMedia(t, p) { asked.push(`${t}:${p.mediaId.slice(-1)}`); return (t === 't1') === p.mediaId.endsWith('0') ? r.fake.fetchMedia(t, p) : { ok: false, code: 'NOT_FOUND' } },
+    downloads: (q) => r.fake.downloads(q),
+  }
+  const dl = createDownloader({ db: r.db, driver, root: r.root, tz: 'UTC', now: r.env.now, sleep: r.env.sleep, tab: () => ['t1', 't2'] })
+  await dl.batch(batchId)
+  expect(rows(r.db).map((x) => x.state)).toEqual(['completed', 'completed'])
+  expect(asked.sort()).toEqual(['t1:0', 't1:1', 't2:1'])
+  const none = createDownloader({ db: r.db, driver, root: r.root, tz: 'UTC', now: r.env.now, sleep: r.env.sleep, tab: () => [] })
+  await expect(none.retry(atts[0].id, ids[0])).rejects.toMatchObject({ code: 'NO_PROJECT_TAB' })
+})
+
 test('the same output requested twice at once makes one transfer', async () => {
   const b = batchRig([], 1)
   await Promise.all([b.dl.retry(b.atts[0].id, b.ids[0]), b.dl.retry(b.atts[0].id, b.ids[0]), b.dl.batch(b.batchId)])
