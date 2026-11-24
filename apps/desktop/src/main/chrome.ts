@@ -34,3 +34,21 @@ export function launchChrome(exe: string, url: string, run = spawn): void {
   c.on('error', (e) => console.error('chrome launch', (e as { code?: string }).code ?? 'ERROR')) // an unhandled spawn error would end the main process
   c.unref()
 }
+
+/** Adds CHROME_FLAGS to every Chrome shortcut in `dirs` (desktop, taskbar, Start menu) that lacks it, so a Chrome the user starts
+ *  himself also keeps running while covered. Run at every app start: a Chrome update can rewrite its shortcuts. Returns how many changed. */
+export function flagChromeShortcuts(o: { dirs: string[]; list(dir: string): string[]; read(file: string): { target: string; args: string }; write(file: string, args: string): void }): number {
+  let n = 0
+  for (const d of o.dirs) {
+    let files: string[] = []
+    try { files = o.list(d) } catch { continue } // folder absent
+    for (const f of files) {
+      try {
+        const l = o.read(f)
+        if (!/(^|\\)chrome\.exe$/i.test(l.target) || CHROME_FLAGS.every((x) => l.args.includes(x))) continue
+        o.write(f, [...CHROME_FLAGS, l.args].join(' ').trim()); n++
+      } catch { /* not readable or not ours to write (a machine-wide Start menu entry without admin rights) */ }
+    }
+  }
+  return n
+}

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, session as electronSession, shell, Tray } from 'electron'
 import { basename, dirname, join } from 'path'
 import { randomUUID } from 'crypto'
-import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import extManifest from '../../../extension/manifest.json'
@@ -34,7 +34,7 @@ import { startConnectorServer } from './connector/server'
 import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
-import { findChrome, launchChrome } from './chrome'
+import { findChrome, flagChromeShortcuts, launchChrome } from './chrome'
 import { createWebUi } from './web-ui'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
@@ -413,6 +413,17 @@ if (!app.requestSingleInstanceLock()) {
     tray.on('click', showWindow)
     try { await boot(() => win) } catch (e) { console.error('boot failed', errorCode(e)) } // the window must still appear
     win = createWindow()
+    if (!FAKE && process.platform === 'win32') { // a covered Chrome keeps running only when it started with CHROME_FLAGS: also when the user starts it himself
+      const env = process.env, start = 'Microsoft\\Windows\\Start Menu\\Programs'
+      const dirs = [app.getPath('desktop'), `${env.PUBLIC}\\Desktop`, `${env.APPDATA}\\Microsoft\\Internet Explorer\\Quick Launch`, `${env.APPDATA}\\${start}`, `${env.ProgramData}\\${start}`]
+      const n = flagChromeShortcuts({
+        dirs,
+        list: (d) => (readdirSync(d, { recursive: true }) as string[]).filter((f) => /\.lnk$/i.test(f)).map((f) => join(d, f)),
+        read: (f) => { const l = shell.readShortcutLink(f); return { target: l.target, args: l.args ?? '' } },
+        write: (f, args) => { if (!shell.writeShortcutLink(f, 'update', { ...shell.readShortcutLink(f), args })) throw new Error('not written') }, // every other field kept
+      })
+      if (n) console.log('chrome shortcuts flagged', n)
+    }
   })
 }
 
