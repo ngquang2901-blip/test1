@@ -713,16 +713,16 @@ legend + * { clear: both; }
 /* workflow tabs (Chrome-like strip above the canvas) */
 .wf-host { display: flex; flex-direction: column; }
 .wf-host > .wf { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; }
-.wf-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 3px 12px 0; background: var(--wf-tool); overflow-x: auto; flex: none; }
-.wf-tab { display: flex; align-items: center; max-width: 200px; min-width: 90px; border-radius: 8px 8px 0 0; background: transparent; color: var(--ink-2); }
-.wf-tab:hover { background: var(--hover); }
-.wf-tab.on { background: var(--wf-head); color: var(--ink); }
-.wf-tab-main { all: unset; flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; cursor: pointer; font-size: 13px; }
-.wf-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wf-tab-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--wf-run); }
-.wf-tab-x, .wf-tab-add { all: unset; cursor: pointer; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: var(--ink-2); font-size: 16px; line-height: 1; }
-.wf-tab-x { margin-right: 6px; }
-.wf-tab-x:hover:not(:disabled), .wf-tab-add:hover:not(:disabled) { background: var(--active); color: var(--ink); }
-.wf-tab-x:disabled, .wf-tab-add:disabled { opacity: .35; cursor: not-allowed; }
-.wf-tab-main:focus-visible, .wf-tab-x:focus-visible, .wf-tab-add:focus-visible { outline: 2px solid var(--blue); }
-.wf-tab-add { margin: 0 0 3px 4px; }
+.wf-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 3px 12px 0; background: var(--wf-tool); overflow-x: auto; flex: none; }
+.wf-tabbar .wf-tab { display: flex; align-items: center; max-width: 200px; min-width: 90px; border-radius: 8px 8px 0 0; background: transparent; color: var(--ink-2); }
+.wf-tabbar .wf-tab:hover { background: var(--hover); }
+.wf-tabbar .wf-tab.on { background: var(--wf-head); color: var(--ink); }
+.wf-tabbar .wf-tab-main { all: unset; flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; cursor: pointer; font-size: 13px; }
+.wf-tabbar .wf-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-tabbar .wf-tab-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--wf-run); }
+.wf-tabbar .wf-tab-x, .wf-tabbar .wf-tab-add { all: unset; cursor: pointer; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); font-size: 20px; font-weight: 600; line-height: 1; }
+.wf-tabbar .wf-tab-x { margin-right: 6px; }
+.wf-tabbar .wf-tab-x:hover:not(:disabled), .wf-tabbar .wf-tab-add:hover:not(:disabled) { background: var(--active); color: var(--ink); }
+.wf-tabbar .wf-tab-x:disabled, .wf-tabbar .wf-tab-add:disabled { opacity: .35; cursor: not-allowed; }
+.wf-tabbar .wf-tab-main:focus-visible, .wf-tabbar .wf-tab-x:focus-visible, .wf-tabbar .wf-tab-add:focus-visible { outline: 2px solid var(--blue); }
+.wf-tabbar .wf-tab-add { margin: 0 0 3px 4px; width: 28px; height: 28px; font-size: 24px; background: var(--hover); }
