@@ -309,6 +309,8 @@ tr[data-tone='wait'] td { background: var(--blue-wash); }
 .guide .now h3 { font-size: 18px; margin: 0 0 8px; }
 .guide .now .steps { gap: 12px; }
 .setup-ready { color: var(--green-ink); font-weight: 600; margin: 0; }
+.auto-connect { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.auto-connect p { margin: 0; }
 .path code { overflow-wrap: anywhere; }
 
 .icon-btn { all: unset; cursor: pointer; display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r); color: var(--ink-2); }

@@ -34,7 +34,8 @@ import { startConnectorServer } from './connector/server'
 import { EXT_ID } from './connector/ext-id'
 import type { FlowDriver } from './driver'
 import { createGrants, tabStatus, type Grants } from './tabs'
-import { findChrome, flagChromeShortcuts, launchChrome } from './chrome'
+import { CHROME_FLAGS, findChrome, flagChromeShortcuts, launchChrome } from './chrome'
+import { createAutoConnect, type AutoResult } from './auto-connect'
 import { createWebUi } from './web-ui'
 
 if (process.env.TOOLFLOW_USER_DATA) app.setPath('userData', process.env.TOOLFLOW_USER_DATA) // before anything reads userData (R52)
@@ -146,6 +147,13 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     if (FAKE) chromeOpened.push(url); else launchChrome(chromeExe, url)
     return true
   }
+  // 'Kết nối tự động': the extension folder goes into the user's own Chrome by a script (FAKE: TOOLFLOW_FAKE_AUTOCONNECT=ok|<code>, no program run)
+  const autoConnect = FAKE
+    ? async (): Promise<AutoResult> => { const r = process.env.TOOLFLOW_FAKE_AUTOCONNECT ?? 'ok'; await new Promise((x) => setTimeout(x, 300)); return r === 'ok' ? { ok: true } : { ok: false, code: r } }
+    : createAutoConnect({
+      script: join(app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources'), 'auto-connect', 'auto-connect.ps1'),
+      ext: join(userData, 'extension'), flags: CHROME_FLAGS, chrome: () => (chromeExe = findChrome()), connected: () => connected?.() ?? false, busy: () => busy(), profileDir: process.env.TOOLFLOW_AUTOCONNECT_PROFILE,
+    }).start
   const email = async (): Promise<string | null> => { const t = grants.granted()[0]; return t ? (await driver.ping(t)).email : null }
   const emails = async (): Promise<string[]> => [...new Set((await grants.list().catch(() => [])).filter((t) => grants.has(t.tabId)).map((t) => t.email).filter((e): e is string => !!e))]
   // ToolFlow's screens inside another app (web-ui.ts): the same handlers and events as the window, while MCP is on.
@@ -222,7 +230,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   updates.start()
   const h = createHandlers({
     updates,
-    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => shell.showItemInFolder(join(userData, 'extension')), openChrome, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
+    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => shell.showItemInFolder(join(userData, 'extension')), openChrome, autoConnect, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
       const im = nativeImage.createFromBuffer(file)
       return im.isEmpty() || im.getSize().width <= 640 ? null : im.resize({ width: 640, quality: 'good' }).toJPEG(82)

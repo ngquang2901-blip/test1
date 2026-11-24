@@ -28,7 +28,7 @@ export type Emit = ((entity: 'batch', id: string) => void) & { revision(): numbe
 export type Deps = {
   db: Db; runner: Runner; grants: Pick<Grants, 'use'>; projects(): string[] | Promise<string[]>; clock: { now(): number }; // projects: distinct projects of the granted tabs
   email(): Promise<string | null>; emails?(): Promise<string[]>; session(): Promise<object>; pickPaths(): Promise<string[]>; getDraft(): Draft; saveDraft(d: Draft): void; emit: Emit; // emails: every account of the granted tabs (absent ⇒ just email())
-  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; openChrome?(url: string): boolean; forgetTabs?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>; // openChrome: false = no Chrome found
+  downloader: Pick<Downloader, 'batch' | 'retry' | 'file'>; reveal(path: string): void; openExtensionFolder?(): void; openChrome?(url: string): boolean; autoConnect?(): Promise<{ ok: boolean; code?: string }>; forgetTabs?(): void; updates?: Pick<Updates, 'get' | 'check' | 'install'>; // openChrome: false = no Chrome found
   thumb(file: Buffer): Buffer | null; // a small JPEG of an image file, null when it is small already or cannot be decoded
   trash?(path: string): Promise<void>; // Kết quả's Xoá: a saved file goes to the Recycle Bin (shell.trashItem), never deleted for good
   pickFolder?(): Promise<string | null>; // Kết quả's Xuất file: the folder the user picks, null = cancelled
@@ -287,6 +287,7 @@ export function createHandlers(d: Deps) {
       const url = CHROME_PAGES[oneOf(a, 'extensions', 'flow')];
       if (!d.openChrome?.(url)) throw Object.assign(new Error('CHROME_NOT_FOUND'), { code: 'CHROME_NOT_FOUND' });
     },
+    async autoConnect() { return d.autoConnect ? d.autoConnect() : { ok: false, code: 'CHROME_NOT_FOUND' }; }, // 'Kết nối tự động': a result, not a throw, so the screen shows the code's hint
     async forgetTabs() { d.forgetTabs?.(); }, // 'Quên các tab đã nhớ': no tab is chosen again by itself after this
     async useTabs(a: unknown) { // validates against the last listing; remembered by account + project
       if (Array.isArray(a) && a.length > d.runner.caps().tabs) throw Object.assign(new Error('TOO_MANY_TABS'), { code: 'TOO_MANY_TABS' }); // a tab over the speed cap would never run, and its project's part of a batch would wait forever

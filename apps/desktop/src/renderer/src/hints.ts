@@ -123,6 +123,10 @@ export const HINTS: Record<string, string> = {
   INVALID_ARGS: 'Dữ liệu gửi đi không hợp lệ hoặc quá dài (ví dụ danh sách prompt quá 1 MB). Rút ngắn lại rồi thử lại',
   // app
   CONNECTOR_LOST: 'Mất kết nối với extension. Mở lại tab Flow, kiểm tra ở màn Kết nối rồi bấm Tiếp tục',
+  AUTO_CHROME_WONT_CLOSE: 'Chrome chưa đóng được (có thể đang hỏi “Rời khỏi trang này?” hoặc đang tải file). Xử lý câu hỏi đó hoặc tự đóng Chrome, rồi bấm Kết nối tự động lần nữa',
+  AUTO_NOT_CONNECTED: 'Đã thêm tiện ích vào Chrome nhưng nó chưa nối với app. Bấm Kết nối tự động lần nữa; vẫn vậy thì làm theo các bước dưới',
+  AUTO_RUNNING: 'Đang kết nối tự động, đợi xong lượt này',
+  AUTO_CHROME_NOT_STARTED: 'Chrome không mở lại được. Tự mở Chrome rồi bấm Kết nối tự động lần nữa',
   CHROME_NOT_FOUND: 'Không tìm thấy Google Chrome trên máy này. Cài Chrome (google.com/chrome) rồi bấm lại, hoặc tự mở Chrome và làm theo các bước dưới',
   ILLEGAL_TRANSITION: 'Trạng thái lượt này không hợp lệ. Xem lịch sử lượt trong Chi tiết rồi báo người bảo trì',
   STORAGE_UNAVAILABLE: 'Không ghi được dữ liệu của app (đầy ổ đĩa hoặc thiếu quyền). Giải phóng chỗ rồi bấm Tiếp tục',
