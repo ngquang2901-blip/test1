@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { findChrome, launchChrome } from '../src/main/chrome'
+import { findChrome, launchChrome, flagChromeShortcuts } from '../src/main/chrome'
 
 const REG = (path: string) => `\r\nHKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\chrome.exe\r\n    (Default)    REG_SZ    ${path}\r\n\r\n`
 const none = (): string => { throw new Error('key not found') }
@@ -24,4 +24,26 @@ test('launchChrome starts Chrome with window occlusion off, then the page', () =
   const seen: string[][] = []
   launchChrome('C:\\c\\chrome.exe', 'https://labs.google/fx/tools/flow', ((_e: string, a: string[]) => { seen.push(a); return { on() {}, unref() {} } }) as never)
   expect(seen).toEqual([['--disable-features=CalculateNativeWinOcclusion', 'https://labs.google/fx/tools/flow']])
+})
+
+test('flagChromeShortcuts: every Chrome shortcut gets the switch once, others and already-flagged ones are left alone; one that cannot be written does not stop the rest', () => {
+  const links: Record<string, { target: string; args?: string }> = {
+    'D/Google Chrome.lnk': { target: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' },
+    'D/Quang - Chrome.lnk': { target: 'C:\\Program Files\\Google\\Chrome\\Application\\CHROME.EXE', args: '--profile-directory=Default' },
+    'D/Brave.lnk': { target: 'C:\\Brave\\brave.exe' },
+    'S/Chrome.lnk': { target: 'C:\\c\\chrome.exe', args: '--disable-features=CalculateNativeWinOcclusion' },
+    'P/Chrome.lnk': { target: 'C:\\c\\chrome.exe' },
+  }
+  const written: Array<[string, string]> = []
+  const n = flagChromeShortcuts({
+    dirs: ['D', 'S', 'P', 'gone'],
+    list: (d) => { if (d === 'gone') throw new Error('ENOENT'); return Object.keys(links).filter((f) => f.startsWith(d + '/')) },
+    read: (f) => ({ target: links[f].target, args: links[f].args ?? '' }),
+    write: (f, args) => { if (f.startsWith('P/')) throw new Error('EPERM'); written.push([f, args]) },
+  })
+  expect(written).toEqual([
+    ['D/Google Chrome.lnk', '--disable-features=CalculateNativeWinOcclusion'],
+    ['D/Quang - Chrome.lnk', '--disable-features=CalculateNativeWinOcclusion --profile-directory=Default'],
+  ])
+  expect(n).toBe(2)
 })
