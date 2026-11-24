@@ -222,7 +222,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
   updates.start()
   const h = createHandlers({
     updates,
-    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => void shell.openPath(join(userData, 'extension')), openChrome, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
+    db, runner, clock, emit, email, emails, grants, downloader, openExtensionFolder: () => shell.showItemInFolder(join(userData, 'extension')), openChrome, forgetTabs: () => grants.forget(), reveal: (p) => shell.showItemInFolder(p),
     thumb(file) { // PNG/JPEG decode everywhere; a format Electron cannot decode (WEBP on some builds) comes back empty and the full file is shown
       const im = nativeImage.createFromBuffer(file)
       return im.isEmpty() || im.getSize().width <= 640 ? null : im.resize({ width: 640, quality: 'good' }).toJPEG(82)
