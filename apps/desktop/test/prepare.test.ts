@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest'
+import { test, expect, vi } from 'vitest'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -182,9 +182,8 @@ test('comboQualified: exact match per kind only', () => {
 })
 
 // ---- runner: combo gate (AC-03) and scripted driver failures ----
-function rig(settings: object, fail: { prepare?: string[]; check?: string[] } = {}) {
+function rig(settings: object, fail: { prepare?: string[]; check?: string[] } = {}, clock: { now(): number } = { now: () => Date.now() }) {
   const db = openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'))
-  const clock = { now: () => Date.now() }
   const fake = createFakeDriver(['image-ok', 'image-ok'], fail)
   const { batchId } = enqueueBatch(db, { commandId: 'c', kind: 'image', projectId: 'p', settings, mode: 'auto', prompts: ['a'], refs: [[]] })
   const runner = createRunner({ db, driver: fake, clock, tabs: ['t1'], speed: 'default', autoAllowed: () => true, combos: FAKE_COMBOS })
@@ -232,7 +231,7 @@ test('fake driver scripted prepare failure ⇒ prep_failed (no click); check fai
   await a.runner.tick()
   expect(a.fake.ledger).toMatchObject({ prepares: 1, checks: 0, clicks: 0 })
   expect(a.state().error).toMatchObject({ code: 'PROMPT_MISMATCH' })
-  for (const code of ['SETTINGS_MISMATCH', 'COMPOSER_NOT_CLEAR']) {
+  for (const code of ['COMPOSER_NOT_CLEAR']) {
     const t = rig({ combo: DEFAULT_COMBO }, { prepare: [code] })
     await t.runner.tick()
     expect([t.fake.ledger.clicks, t.state().error.code]).toEqual([0, code])
@@ -242,6 +241,29 @@ test('fake driver scripted prepare failure ⇒ prep_failed (no click); check fai
     await t.runner.tick()
     expect([t.fake.ledger.clicks, t.runner.lastError(t.batchId)]).toEqual([0, code])
   }
+})
+
+test('settings Flow does not take: prepared once more 10 s later, then the batch pauses with the prompt kept (never failed, nothing sent); Tiếp tục prepares it again', async () => {
+  const clock = { now: () => Date.now() }; vi.useFakeTimers({ toFake: ['Date'] }) // the fake page stamps its ping with Date.now too
+  const t = rig({ combo: DEFAULT_COMBO }, { prepare: ['SETTINGS_MISMATCH', 'SETTINGS_MISMATCH'] }, clock)
+  const status = () => (t.db.prepare('select status from batch').get() as { status: string }).status
+  await t.runner.tick()
+  expect([t.fake.ledger.prepares, t.state().item, status()]).toEqual([1, 'preparing', 'running'])
+  vi.advanceTimersByTime(9_000); await t.runner.tick()
+  expect(t.fake.ledger.prepares).toBe(1) // waits
+  vi.advanceTimersByTime(1_000); await t.runner.tick()
+  expect([t.fake.ledger.prepares, t.state().item, status(), t.runner.lastError(t.batchId), t.fake.ledger.clicks]).toEqual([2, 'preparing', 'paused', 'SETTINGS_MISMATCH', 0])
+  t.runner.resume(t.batchId); await t.runner.tick()
+  expect([t.fake.ledger.prepares, t.fake.ledger.clicks]).toEqual([3, 1])
+  vi.useRealTimers()
+})
+
+test('settings that take on the second try go on by themselves', async () => {
+  const clock = { now: () => Date.now() }; vi.useFakeTimers({ toFake: ['Date'] }) // the fake page stamps its ping with Date.now too
+  const t = rig({ combo: DEFAULT_COMBO }, { prepare: ['SETTINGS_MISMATCH'] }, clock)
+  await t.runner.tick(); vi.advanceTimersByTime(10_000); await t.runner.tick()
+  expect([t.fake.ledger.prepares, t.fake.ledger.clicks, t.runner.lastError(t.batchId)]).toEqual([2, 1, null])
+  vi.useRealTimers()
 })
 
 const PRESENT = { present: { editor: true, submit: true }, path: '/p' }

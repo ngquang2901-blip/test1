@@ -12,7 +12,8 @@ import { CLICK_MS, RECONCILE_MS, runReconcile, unblock } from './reconcile';
 const SEND_DEADLINE_MS = 30_000; // a click whose request the observer never reports is uncertain after this (04 Q-09)
 const GENERATING_DEADLINE_MS = 20 * 60_000; // an accepted video with no final poll by then: needs review (07 §3: a limit of watching, not proof); a poll that still comes settles it
 const RESPONSE_DEADLINE_MS = 120_000; // sent recorded but no response by then: uncertain (blocks the project, reconcile later), never resent
-const BEAT_MS = 5_000; // while a response is awaited the tab is pinged at most this often
+const BEAT_MS = 5_000;
+const PREP_AGAIN_MS = 10_000; // while a response is awaited the tab is pinged at most this often
 const coded = (code: string) => Object.assign(new Error(code), { code });
 
 type Kind = 'image' | 'video';
@@ -73,6 +74,7 @@ export function createRunner(o: {
   const fenced = new Set<string>(); // fenced since the last click there: a stale armed tracker may remain, disarm before the next click
   const rearm = new Set<string>(); // fenced while the user was to send here: the armed tracker still stamps the old epoch
   const clicking = new Set<string>(); // attempts whose driver.click has not returned
+  const prepAgain = new Map<string, number>(); // attempt -> when its settings may be tried again (after one SETTINGS_MISMATCH)
   const paused = new Map<string, string | null>(); // authoritative even when the DB write failed; flushed each tick
   // shortcut: only video answers carry the balance (payload [1]); an image receipt has none, read it from an image answer once one is captured with it
   const credit = (tab: string, c: unknown) => { if (typeof c === 'number') try { o.onCredits?.(tab, c); } catch { /* a notice must never stop the runner */ } };
@@ -227,6 +229,10 @@ export function createRunner(o: {
     };
     const p = await driver.prepare(tab, { prompt: i.prompt, kind: i.kind, settings, refIds: JSON.parse(i.refs), projectId: i.project });
     if (gone()) return;
+    if (!p.ok && p.code === 'SETTINGS_MISMATCH') { // nothing typed or sent yet: one more try a moment later (seen live: a transient refusal failed two CSV rows), then the batch pauses with the prompt kept
+      if (prepAgain.has(id)) { prepAgain.delete(id); pause(i.batch, p.code); } else prepAgain.set(id, clock.now() + PREP_AGAIN_MS);
+      return;
+    }
     if (!p.ok) { apply(id, { type: 'prep_failed', error: { code: p.code, admission: p.code === 'REF_UPLOAD_UNCERTAIN' ? 'pause' : 'continue' } }); return; } // a ref upload that may have happened waits for the user, no retry
     if (halted()) return;
     const chk = await driver.checkBeforeClick(tab, i.project, JSON.parse(i.refs));
@@ -278,7 +284,7 @@ export function createRunner(o: {
       const c = attempts(b.id).map((a) => ({ id: a.id, s: JSON.parse(a.j) as AttemptState })).find((a) => a.s.item === 'queued' || a.s.item === 'preparing');
       if (!c) continue; // nothing left to dispatch: the next batch may start (D-04)
       const i = info(c.id);
-      const retry = c.s.retryAt !== null && c.s.retryAt > clock.now();
+      const retry = (c.s.retryAt !== null && c.s.retryAt > clock.now()) || (prepAgain.get(c.id) ?? 0) > clock.now();
       const blocked = db.prepare('select 1 from target_block where project_id=?').get(b.p);
       if (blocked) continue; // that project waits for its reconcile; other projects go on (D-04)
       if (retry || inFlight()[i.kind] >= caps[i.kind]) return; // this batch owns admission; backoff/cap holds it
