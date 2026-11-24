@@ -75,7 +75,7 @@ const tmpDb = () => openDb(join(mkdtempSync(join(tmpdir(), 'tf-')), 't.db'));
 
 test('a granted tab is remembered: after a restart (new tab id, same account and project) it is granted again by itself and marked so', async () => {
   const db = tmpDb();
-  const a = remembering(db, [tab({ tabId: 'x:1' })]);
+  const a = remembering(db, [tab({ tabId: 'x:1' }), tab({ tabId: 'x:2', projectId: V })]); // two ok tabs: the app does not choose
   await a.g.list(); a.g.use(['x:1']);
   expect(a.g.isAuto('x:1')).toBe(false); // the user's own click
   const b = remembering(db, [tab({ tabId: 'y:9', email: null }), tab({ tabId: 'y:7' })]); // Chrome restarted: other ids, one tab not logged in yet
@@ -111,11 +111,11 @@ test('the latest choice replaces the remembered set; un-granting forgets; "Quên
   a.show([tab({ tabId: '1' }), tab({ tabId: '2', projectId: V })]); await a.g.list();
   expect(a.g.granted()).toEqual([]);
   a.g.use(['1']); // remembered again: the next instance would pick tab 8
-  const b = remembering(db, [tab({ tabId: '8' })]);
+  const b = remembering(db, [tab({ tabId: '8' }), tab({ tabId: '9', projectId: V })]);
   b.g.forget();
   await b.g.list();
   expect(b.g.granted()).toEqual([]);
-  const c = remembering(db, [tab({ tabId: '8' })]); // and after the next restart too
+  const c = remembering(db, [tab({ tabId: '8' }), tab({ tabId: '9', projectId: V })]); // and after the next restart too
   await c.g.list();
   expect([c.g.granted(), c.g.remembered()]).toEqual([[], 0]);
 });
@@ -129,4 +129,23 @@ test('B2: forProject picks the granted tab showing that project, else the first 
   expect(r.g.forProject(U)).toBe('1');
   expect(r.g.forProject('nope')).toBe('1');
   expect(r.g.forProject(null)).toBe('1');
+});
+
+test('the only ok tab is granted by itself (marked auto, not remembered); two ok tabs stay the user\'s choice; no mem or no cap: nothing', async () => {
+  const db = tmpDb();
+  const a = remembering(db, [tab({ tabId: '1' }), tab({ tabId: '2', email: null })]);
+  await a.g.list();
+  expect(a.g.granted()).toEqual(['1']);
+  expect(a.g.isAuto('1')).toBe(true);
+  expect(a.g.remembered()).toBe(0);
+  expect(db.prepare('select count(*) n from remembered_tab').get()).toEqual({ n: 0 });
+  const b = remembering(db, [tab({ tabId: '1' }), tab({ tabId: '2', projectId: V })]);
+  await b.g.list();
+  expect(b.g.granted()).toEqual([]);
+  const c = remembering(db, [tab({ tabId: '1' })], 0);
+  await c.g.list();
+  expect(c.g.granted()).toEqual([]);
+  const d = rig([tab({ tabId: '1' })]);
+  await d.g.list();
+  expect(d.g.granted()).toEqual([]);
 });

@@ -7,41 +7,51 @@ const WHY: Record<string, string> = { no_project: 'Mở một dự án', no_logi
 
 const clean = (m: string): string => m.replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
 
-/** What is done already (live ticks), buttons that open the right page in Chrome (main finds Chrome and holds the addresses),
- * and while the extension is not linked the by-hand steps: Chrome only takes an unpacked extension by hand (no store listing). */
+const copy = (text: string, done: () => void): void => { void navigator.clipboard.writeText(text).then(done) }
+
+/** One step at a time, advanced by the live session state. Chrome only takes an unpacked extension by hand (no store listing),
+ * and never opens a chrome:// page for another program, so the address is copied for the user to paste. */
 function Setup({ s, picked }: { s: Session; picked: boolean }): React.JSX.Element {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<'page' | 'dir' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const dir = s.extDir ?? null
-  const open = (page: 'extensions' | 'flow'): void => { setError(null); void window.api.openChrome(page).catch((e: Error) => setError(clean(e.message))) }
-  const checks: [string, boolean][] = [['Chrome tìm thấy', s.chromeFound === true], ['Extension đã nối', s.connected === true], ['Có tab Flow', s.tabs.length > 0], ['Đã mở dự án', s.tabs.some((t) => !!t.projectId)], ['Đã chọn tab', picked]]
-  return (
-    <div className="panel setup" data-testid="setup">
-      <div className="panel-head"><h3>{s.connected ? 'Kết nối Chrome' : 'Cài extension vào Chrome (làm một lần)'}</h3><span className="muted small-text">App tự nối khi xong, không cần khởi động lại</span></div>
-      <div className="panel-body">
-        <ul className="checks" aria-label="Các bước kết nối">
-          {checks.map(([label, done]) => <li key={label} data-done={done}><span role="img" aria-label={done ? 'xong' : 'chưa xong'}>{done ? '✓' : '○'}</span>{label}</li>)}
-        </ul>
-        <div className="toolbar">
-          <button className="small" onClick={() => open('extensions')}>Mở trang tiện ích trong Chrome</button>
-          <button className="small" onClick={() => open('flow')}>Mở Google Flow</button>
-        </div>
-        {error && <p role="alert" className="notice">{hintOf(error) ?? `Lỗi ${error}`}</p>}
-        {s.oldExt && s.connected !== true && <p role="alert" className="notice" data-testid="old-ext">Chrome vẫn chạy tiện ích ToolFlow bản cũ nên app không nhận. Bấm <b>Mở trang tiện ích trong Chrome</b>, tìm <b>ToolFlow Connector</b> và bấm nút tải lại (↻) — hoặc tắt hẳn Chrome rồi mở lại.</p>}
-      </div>
-      {s.connected !== true && (
-        <ol className="panel-body steps">
-          <li>Mở Chrome bằng hồ sơ có tài khoản Google dùng Flow: bấm <b>Mở trang tiện ích trong Chrome</b> ở trên (hoặc gõ <code>chrome://extensions</code> vào thanh địa chỉ rồi Enter).</li>
-          <li>Bật <b>Developer mode</b> (Chế độ dành cho nhà phát triển) ở góc trên bên phải.</li>
-          <li>Bấm <b>Load unpacked</b> (Tải tiện ích đã giải nén) rồi chọn thư mục này:
+  const openFlow = (): void => { setError(null); void window.api.openChrome('flow').catch((e: Error) => setError(clean(e.message))) }
+  const steps: { title: string; done: boolean; body: React.JSX.Element }[] = [
+    { title: 'Cài Google Chrome', done: s.chromeFound === true, body: <p>Không tìm thấy Google Chrome trên máy này. Hãy cài Chrome từ google.com/chrome, rồi quay lại đây — app tự nhận ra.</p> },
+    { title: 'Thêm tiện ích ToolFlow vào Chrome (làm một lần)', done: s.connected === true, body: (
+      <>
+        {s.oldExt && <p role="alert" className="notice" data-testid="old-ext">Chrome vẫn chạy tiện ích ToolFlow bản cũ nên app không nhận. Chép địa chỉ trang tiện ích (bên dưới), dán vào Chrome, tìm <b>ToolFlow Connector</b> và bấm nút tải lại (↻) — hoặc tắt hẳn Chrome rồi mở lại.</p>}
+        <ol className="steps">
+          <li>Mở Chrome, bấm vào thanh địa chỉ, bấm Ctrl+V rồi Enter.
+            <div className="toolbar"><button className="small" onClick={() => copy('chrome://extensions', () => setCopied('page'))}>{copied === 'page' ? 'Đã chép' : 'Chép địa chỉ trang tiện ích'}</button></div>
+          </li>
+          <li>Bật <b>Chế độ dành cho nhà phát triển</b> (Developer mode) ở góc trên bên phải.</li>
+          <li>Bấm <b>Mở thư mục tiện ích</b>, rồi kéo thư mục <b>extension</b> thả vào trang Chrome. Hoặc bấm <b>Tải tiện ích đã giải nén</b> (Load unpacked) và chọn thư mục đó.
             <div className="toolbar path">
               <code>{dir ?? '—'}</code>
-              <button className="small" disabled={!dir} onClick={() => { if (dir) void navigator.clipboard.writeText(dir).then(() => setCopied(true)) }}>{copied ? 'Đã chép' : 'Chép đường dẫn'}</button>
-              <button className="small" onClick={() => void window.api.openExtensionFolder()}>Mở thư mục</button>
+              <button className="small" disabled={!dir} onClick={() => { if (dir) copy(dir, () => setCopied('dir')) }}>{copied === 'dir' ? 'Đã chép' : 'Chép đường dẫn'}</button>
+              <button className="small" onClick={() => void window.api.openExtensionFolder()}>Mở thư mục tiện ích</button>
             </div>
           </li>
-          <li>Bấm <b>Mở Google Flow</b>, vào một dự án. Sau vài giây, mục dưới đây chuyển sang <b>Đã kết nối</b> và tab Flow hiện ra để bấm <b>Dùng tab này</b>.</li>
-          <li className="muted">Dùng nhiều tài khoản: làm lại bước 1–3 trong từng hồ sơ Chrome.</li>
+        </ol>
+        <p className="muted small-text">Xong là app tự nối, không cần khởi động lại. Dùng nhiều tài khoản: làm lại trong từng hồ sơ Chrome.</p>
+      </>) },
+    { title: 'Mở một dự án Google Flow', done: s.tabs.some((t) => !!t.projectId), body: (
+      <>
+        <p>Nếu Chrome đang mở, hãy đóng hết các cửa sổ Chrome trước, rồi bấm nút dưới đây (chỉ cần một lần) để Flow vẫn chạy khi Chrome bị che. Sau đó mở một dự án.</p>
+        <div className="toolbar"><button className="primary" onClick={openFlow}>Mở Google Flow</button></div>
+        {error && <p role="alert" className="notice">{hintOf(error) ?? `Lỗi ${error}`}</p>}
+      </>) },
+    { title: 'Chọn tab Flow', done: picked, body: <p>Chỉ có một tab Flow thì app tự chọn. Có nhiều tab thì bấm <b>Dùng tab này</b> ở tab muốn dùng (danh sách bên dưới).</p> },
+  ]
+  const cur = steps.findIndex((x) => !x.done)
+  return (
+    <div className="panel setup" data-testid="setup">
+      {cur < 0 ? <p className="panel-body setup-ready">✓ Đã sẵn sàng — ToolFlow đã nối với Google Flow</p> : (
+        <ol className="panel-body guide" aria-label="Các bước kết nối">
+          {steps.map((x, i) => i < cur ? <li key={x.title} className="past">✓ {x.title}</li>
+            : i > cur ? <li key={x.title} className="next">{i + 1}. {x.title}</li>
+            : <li key={x.title} className="now" aria-current="step"><h3>Bước {i + 1}: {x.title}</h3>{x.body}</li>)}
         </ol>
       )}
     </div>

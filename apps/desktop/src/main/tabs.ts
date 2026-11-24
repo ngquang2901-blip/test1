@@ -28,6 +28,7 @@ export function createGrants(driver: Pick<FlowDriver, 'listTabs'>, runner: Pick<
         if (keep.length >= (mem?.cap() ?? 0) || !pairs.has(key(t)) || keep.some((id) => key(tabOf(id)) === key(t))) continue;
         keep.push(t.tabId); auto.add(t.tabId);
       }
+      if (!keep.length && ok.length === 1 && (mem?.cap() ?? 0) > 0) { keep.push(ok[0].tabId); auto.add(ok[0].tabId); } // the only Flow tab needs no click; not remembered, the rule repeats by itself
       set(keep); // every listing, even unchanged: the runner lets a batch that lost its tab go on once the tab answers again
       return last;
     },
