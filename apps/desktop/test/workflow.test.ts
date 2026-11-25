@@ -12,7 +12,7 @@ const CHAIN: Graph = parseGraph({
   edges: [{ from: 't1', to: 'g1' }, { from: 'img', to: 'g1' }, { from: 'g1', to: 'g2' }, { from: 't2', to: 'g2' }, { from: 'g2', to: 'dl' }],
 })
 
-function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; frameFails?: boolean; late?: boolean; statusOf?: (b: string) => string } = {}) {
+function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; frameFails?: boolean; late?: boolean; statusOf?: (b: string) => string; lanes?: number } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'tf-wf-')), file = join(dir, 'out.toolflow.json'), dialogs: string[] = []
   const db = openDb(join(dir, 't.db'))
   db.prepare("insert into asset(id,path,sha256,bytes,mime,name,created_at) values('a1','/x/a.png','h',3,'image/png','a.png',1)").run()
@@ -29,6 +29,7 @@ function rig(o: { missing?: string[]; blocked?: boolean; saveFails?: boolean; fr
     lastFrame: async (p) => { calls.push(`frame ${p}`); if (o.frameFails) throw Object.assign(new Error('FFMPEG_FAILED'), { code: 'FFMPEG_FAILED' }); return `${p}.last.png` },
     merge: async (files, name) => { calls.push(`merge ${files.join(',')} ${name}`); return `/dl/${name}` },
     savePath: async (suggested) => { dialogs.push(suggested); return file }, openPath: async () => file,
+    ...(o.lanes ? { lanes: () => o.lanes! } : {}),
   })
   const wf = all.handlers
   const wait = async (runId: string): Promise<string> => { for (let i = 0; i < 200; i++) { const r = await wf.workflowRun(runId); if (r!.status !== 'running') return r!.status; await new Promise((r) => setTimeout(r, 5)) } return 'timeout' }
@@ -529,4 +530,40 @@ test('bulk run: a row that cannot become a prompt is named before anything is se
   expect(await bulkDone(s, bulkId)).toMatchObject({ status: 'stopped', total: 3 })
   expect(s.enq).toHaveLength(1)
   expect(s.calls).toContain('stop b1')
+})
+
+test('bulk run on several Flow tabs: as many rows run at once as there are tabs, the next row starts when one ends, progress lists every run in flight, Dừng stops them all', async () => {
+  const done = new Set<string>()
+  const r = rig({ lanes: 2, statusOf: (b) => (done.has(b) ? 'completed' : 'running') })
+  await r.wf.saveWorkflow({ name: 'SP', graph: VARS })
+  const { bulkId } = await r.wf.runWorkflowBulk({ name: 'SP', prompts: ['a', 'b', 'c', 'd'], mode: 'auto' })
+  await new Promise((x) => setTimeout(x, 30))
+  expect(r.enq.map((e) => e.text)).toEqual(['ảnh a trên nền trắng', 'ảnh b trên nền trắng']) // two lanes: rows 1 and 2 at once, row 3 waits
+  let b = await r.wf.workflowBulk(bulkId!)
+  expect(b!.runIds).toHaveLength(2)
+  expect(b!.batchIds.sort()).toEqual(['b1', 'b2'])
+  done.add('b2') // row 2 ends first: row 3 takes its lane
+  for (let i = 0; i < 100 && r.enq.length < 3; i++) await new Promise((x) => setTimeout(x, 5))
+  expect(r.enq.map((e) => e.text).slice(2)).toEqual(['ảnh c trên nền trắng'])
+  b = await r.wf.workflowBulk(bulkId!)
+  expect([b!.done, b!.runIds!.length]).toEqual([1, 2])
+  await r.wf.stopWorkflowBulk(bulkId!)
+  expect(r.calls.filter((c) => c.startsWith('stop')).sort()).toEqual(['stop b1', 'stop b3']) // both runs in flight, not only the last one
+  done.add('b1'); done.add('b3')
+  expect(await bulkDone(r, bulkId)).toMatchObject({ status: 'stopped', total: 4, done: 1 })
+  expect(r.enq).toHaveLength(3) // row 4 never started
+})
+
+test('bulk run: never more lanes than rows; one tab (the default) keeps rows one after another', async () => {
+  const r = rig({ lanes: 4 })
+  await r.wf.saveWorkflow({ name: 'SP', graph: VARS })
+  expect(await bulkDone(r, (await r.wf.runWorkflowBulk({ name: 'SP', prompts: ['a', 'b'], mode: 'auto' })).bulkId)).toMatchObject({ status: 'done', done: 2 })
+  const one = new Set<string>()
+  const s = rig({ statusOf: (b) => (one.has(b) ? 'completed' : 'running') }) // no lanes given: 1
+  await s.wf.saveWorkflow({ name: 'SP', graph: VARS })
+  const { bulkId } = await s.wf.runWorkflowBulk({ name: 'SP', prompts: ['a', 'b'], mode: 'auto' })
+  await new Promise((x) => setTimeout(x, 30))
+  expect(s.enq).toHaveLength(1)
+  one.add('b1'); one.add('b2')
+  expect(await bulkDone(s, bulkId)).toMatchObject({ status: 'done', done: 2 })
 })

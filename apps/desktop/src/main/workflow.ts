@@ -23,7 +23,7 @@ export type Step = { node: string; kind: 'image' | 'video'; prompts: string; ima
 export type NodeRun = { state: 'waiting' | 'running' | 'done' | 'failed' | 'skipped' | 'bypassed' | 'stopped'; code?: string; batchIds: string[]; assets?: (string | null)[]; blocked?: boolean; file?: string } // file: a Ghép video node's saved video
 /** A Ghép video node: the video steps wired into it, in wire order (their clips are joined in that order, each step's prompts in order). */
 export type Merge = { node: string; inputs: string[] }
-type Bulk = { id: string; name: string; status: 'running' | 'done' | 'stopped'; stop: boolean; total: number; done: number; failed: number; runId: string | null; batchIds: string[] }
+type Bulk = { id: string; name: string; status: 'running' | 'done' | 'stopped'; stop: boolean; total: number; done: number; failed: number; runId: string | null; runIds: string[]; batchIds: string[] } // runIds: the runs in flight, runId: the newest of them
 
 /** What runs, as the canvas makes it: every Text node with its {biến} filled in, every Bảng CSV with its template filled per
  * row (one prompt per line). A node that cannot be filled keeps the error code of the filler (EMPTY_VAR, CSV_EMPTY_CELL...). */
@@ -183,6 +183,7 @@ export type WfDeps = {
   reveal?(path: string): void // shows a file in the OS file manager
   marker?: string; attention?(title: string, body: string): void // marker: a file naming the runs in progress, so a run cut off by a quit is told at the next start
   savePath(suggested: string): Promise<string | null>; openPath(): Promise<string | null> // the OS file dialogs (null = cancelled)
+  lanes?(): number // how many rows of a bulk run at once: the Flow tabs in use (absent: 1, one row after another)
 }
 
 export function createWorkflows(d: WfDeps) {
@@ -322,7 +323,7 @@ export function createWorkflows(d: WfDeps) {
         if (p.errors.length) return { errors: p.errors }
         return { runId: launch(p, mode, typeof o!.name === 'string' ? o!.name.trim() : '').run.id }
       },
-      /** Many whole runs of one saved workflow, one after another: each row fills the workflow's {biến} (prompts: the bot's
+      /** Many whole runs of one saved workflow, as many at once as Flow tabs are in use (else one after another): each row fills the workflow's {biến} (prompts: the bot's
        * shortcut for a workflow with one {biến}). Every row is checked before anything is sent; a bad row names itself. */
       async runWorkflowBulk(a: unknown) {
         const o = a as { name?: unknown; rows?: unknown; prompts?: unknown; mode?: unknown } | null
@@ -343,33 +344,34 @@ export function createWorkflows(d: WfDeps) {
         const plans = rows.map((r) => checked(fillGraph(w.g, { ...(w.g.vars ?? {}), ...r })))
         const errors = plans.flatMap((p, i) => p.errors.map((e) => ({ row: i + 1, ...e })))
         if (errors.length) return { errors }
-        const bulk: Bulk = { id: randomUUID(), name: w.name, status: 'running', stop: false, total: rows.length, done: 0, failed: 0, runId: null, batchIds: [] }
+        const bulk: Bulk = { id: randomUUID(), name: w.name, status: 'running', stop: false, total: rows.length, done: 0, failed: 0, runId: null, runIds: [], batchIds: [] }
         for (const [id, b] of bulks) if (b.status !== 'running' && bulks.size >= 20) bulks.delete(id)
         bulks.set(bulk.id, bulk)
-        void (async () => {
-          for (const p of plans) {
-            if (bulk.stop) break
-            const { run, done } = launch(p, mode, w.name)
-            bulk.runId = run.id
+        let next = 0
+        const lane = async (): Promise<void> => { // each lane takes the next row when its run ends; the runner spreads their batches over the tabs
+          while (!bulk.stop && next < plans.length) {
+            const { run, done } = launch(plans[next++], mode, w.name)
+            bulk.runIds.push(run.id); bulk.runId = run.id
             await done
+            bulk.runIds = bulk.runIds.filter((x) => x !== run.id)
             bulk.batchIds.push(...Object.values(run.nodes).flatMap((n) => n.batchIds)) // kept here: finished runs get pruned from runs
             if (run.status === 'done') bulk.done++; else if (run.status === 'failed') bulk.failed++
           }
-          bulk.status = bulk.stop ? 'stopped' : 'done'
-        })()
+        }
+        const lanes = Math.max(1, Math.min(Math.floor(d.lanes?.() ?? 1), plans.length)) // shortcut: counted once at the start; a tab added mid-bulk is used by the next bulk
+        void Promise.all(Array.from({ length: lanes }, lane)).then(() => { bulk.status = bulk.stop ? 'stopped' : 'done' })
         return { bulkId: bulk.id, total: bulk.total }
       },
       async workflowBulk(a: unknown) { // progress: runs done / failed of the total, and the run in flight (for its nodes)
         const b = bulks.get(a as string)
-        const live = b?.status === 'running' && b.runId ? Object.values(runs.get(b.runId)?.nodes ?? {}).flatMap((n) => n.batchIds) : []
-        return b ? { status: b.status, name: b.name, total: b.total, done: b.done, failed: b.failed, runId: b.runId, batchIds: [...b.batchIds, ...live] } : null
+        const live = b ? b.runIds.flatMap((id) => Object.values(runs.get(id)?.nodes ?? {}).flatMap((n) => n.batchIds)) : []
+        return b ? { status: b.status, name: b.name, total: b.total, done: b.done, failed: b.failed, runId: b.runId, runIds: [...b.runIds], batchIds: [...b.batchIds, ...live] } : null
       },
-      async stopWorkflowBulk(a: unknown) { // no new run starts; the run in flight is stopped like the canvas's Dừng
+      async stopWorkflowBulk(a: unknown) { // no new run starts; every run in flight is stopped like the canvas's Dừng
         const b = bulks.get(a as string)
         if (!b || b.status !== 'running') return
         b.stop = true
-        const run = b.runId ? runs.get(b.runId) : undefined
-        if (run?.status === 'running') { run.stop = true; for (const n of Object.values(run.nodes)) if (n.state === 'running') for (const id of n.batchIds) await d.stop(id) }
+        for (const run of [...b.runIds].map((id) => runs.get(id))) if (run?.status === 'running') { run.stop = true; for (const n of Object.values(run.nodes)) if (n.state === 'running') for (const id of n.batchIds) await d.stop(id) }
       },
       async stopWorkflow(a: unknown) { // no new node starts; the node that is running has its batches stopped like the Dừng button
         const run = runs.get(a as string)

@@ -294,6 +294,7 @@ async function boot(win: () => BrowserWindow | undefined): Promise<void> {
     dir: process.env.TOOLFLOW_WF_DIR ?? (FAKE || process.env.TOOLFLOW_USER_DATA ? join(userData, 'workflows') : join(app.getPath('documents'), 'ToolFlow', 'workflows')),
     marker: join(userData, 'wf-running.json'), attention: (title, body) => notifier.notify({ kind: 'attention', batchId: null, title, body }),
     savePath: (name) => wfDialog(name), openPath: () => wfDialog(null),
+    lanes: () => Math.min(grants.granted().length, runner.caps().tabs), // a CSV runs as many rows at once as Flow tabs are in use
     db, now: () => clock.now(), enqueue: (a) => h.enqueueBatch(a), start: (b) => h.startBatch(b), stop: (b) => h.stopBatch(b), download: (b) => h.downloadBatch(b),
     status: (b) => batchStatus(db, b), register: (p) => registerAsset(db, p, clock.now()).id,
     // FAKE: the fake's clips are 24-byte headers ffmpeg cannot read, so a 1x1 frame and the clips' bytes back to back stand in
