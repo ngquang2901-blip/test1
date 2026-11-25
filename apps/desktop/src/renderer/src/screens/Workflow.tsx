@@ -790,9 +790,11 @@ function Canvas({ s, tabId }: { s: Session; tabId: string }): React.JSX.Element 
             {running && prog.length > 0 && <div className="wf-prog" aria-label="Tiến độ chạy"><span className="num">{fin} / {prog.length}</span><i><b style={{ width: `${(fin / prog.length) * 100}%` }} /></i></div>}
             {picker && <Picker at={picker} box={pickBox} kinds={pickable} hint={fromNode && outPort(fromNode.type!, fromNode.data)} onPick={(k) => pickIt(k)} onClose={() => setPicker(null)} />}
             {!nodes.length && (
-              <div className="wf-empty">
-                <p>Mỗi khối là một bước. Bấm + (hoặc phím N, hoặc chuột phải vào nền) để thêm khối. Kéo từ chấm tròn bên phải của khối này sang chấm bên trái của khối kia để nối; thả dây ra chỗ trống hoặc bấm vào chấm bên phải để chọn khối nối tiếp.</p>
+              <div className="wf-empty" role="group" aria-label="Bắt đầu nhanh">
+                <b className="wf-empty-h">Bắt đầu từ một mẫu có sẵn</b>
+                <div className="wf-empty-picks">{TEMPLATES.slice(0, 4).map((t) => <button key={t.name} onClick={() => { open(t); setMsg('Đã mở mẫu. Sửa prompt trong các ô Text rồi bấm Chạy workflow') }}>{t.name}</button>)}</div>
                 <button className="primary" onClick={starter}>Tạo chuỗi mẫu: Text → Tạo ảnh → Tự tải về</button>
+                <p>Hoặc tự ghép: bấm + để thêm khối, rồi kéo từ chấm tròn bên phải của khối này sang khối kế tiếp.</p>
               </div>
             )}
           </div>

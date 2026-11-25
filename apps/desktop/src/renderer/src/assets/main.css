@@ -397,6 +397,12 @@ tr[data-tone='wait'] td { background: var(--blue-wash); }
 .wf-empty { position: absolute; inset: 0; z-index: 4; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 0 70px; text-align: center; pointer-events: none; }
 .wf-empty p { max-width: 50ch; margin: 0; color: var(--ink-2); }
 .wf-empty button { pointer-events: auto; }
+.wf-empty-h { font-size: 17px; color: var(--ink); }
+.wf-empty-picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 560px; }
+.wf-empty-picks button { min-height: 40px; }
+.mo-next { display: grid; justify-items: start; gap: 10px; }
+.mo-next .mo-sub { font-weight: 600; }
+.mo-auto .mo-illo { translate: 0 calc(34 * var(--u)); } /* room for the next-step button above the drawing */
 /* canvas: dots, zoom buttons bottom-left, progress top-centre */
 .wf .react-flow { --xy-background-color: var(--wf-canvas); --xy-background-pattern-color: var(--wf-dot); --xy-edge-stroke: var(--wf-node-line); --xy-connectionline-stroke: rgb(140 140 160 / .85); --xy-connectionline-stroke-width: 2.5; }
 .wf .react-flow__controls { padding: 4px; gap: 2px; background: var(--wf-tool); border: 1px solid var(--wf-tool-line); border-radius: 8px; box-shadow: none; }
