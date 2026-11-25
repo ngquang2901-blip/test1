@@ -97,6 +97,9 @@ export default function Overview({ batches, s, go }: { batches: Batch[]; s: Sess
   const gem = s?.gemTabs ?? 0
   const chrome = s && (s.fake || s.connected === true) ? 1 : 0
   const usedSites = [flowTabs, gpt, gem].filter((n) => n > 0).length
+  const step = !((s?.fake ? s.connected !== false : s?.connected === true) && flowTabs > 0) ? { text: 'Bước 1/2: nối ToolFlow với Google Flow (làm một lần).', btn: 'Bắt đầu kết nối', to: 'Kết nối' as const }
+    : !live.length ? { text: 'Bước 2/2: tạo ảnh đầu tiên từ một mẫu có sẵn.', btn: 'Tạo ảnh đầu tiên', to: 'Workflow' as const }
+      : { text: 'Đã sẵn sàng. Chạy một workflow khi bạn cần.', btn: 'Tới Workflow', to: 'Workflow' as const }
   const searchNow = (): void => { go('Kết quả'); setTimeout(() => document.querySelector<HTMLInputElement>('input[aria-label="Tìm prompt hoặc lô"]')?.focus(), 80) }
 
   return (
@@ -128,7 +131,7 @@ export default function Overview({ batches, s, go }: { batches: Batch[]; s: Sess
         <div className="mo-card mo-auto" role="group" aria-label="Tự động hoá">
           <div className="mo-copy">
             <h3 className="mo-h"><span className="g">Tự động</span> việc của bạn.<br />Tập trung vào điều quan trọng.</h3>
-            <p className="mo-sub">Gửi cả lô prompt một lần, ToolFlow gửi từng dòng và gom kết quả.</p>
+            <div className="mo-next" role="group" aria-label="Bước tiếp theo"><p className="mo-sub">{step.text}</p><button className="primary" onClick={() => go(step.to)}>{step.btn}</button></div>
           </div>
           <div className="mo-illo" aria-hidden="true">
             <div className="mo-win mo-back"><div className="mo-bar"><i /><i /><i /></div><div className="mo-body"><span /></div></div>

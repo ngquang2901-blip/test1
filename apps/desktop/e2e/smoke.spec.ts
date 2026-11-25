@@ -195,6 +195,23 @@ test('Workflow: opened while auto was off, it sends by itself once auto is turne
   await expect(manual).toBeChecked()
 })
 
+test('Tổng quan tells a beginner the next step (connect, then a first image) and Workflow offers the ready-made workflows on the empty canvas', async () => {
+  let { app, page } = await launch(tmp(), '', { TOOLFLOW_FAKE_CONNECTED: '0', HOME_SCREEN: '1' })
+  const next = page.getByRole('group', { name: 'Bước tiếp theo' })
+  await expect(next).toContainText('nối ToolFlow với Google Flow')
+  await next.getByRole('button', { name: 'Bắt đầu kết nối' }).click()
+  await expect(page.getByTestId('setup')).toBeVisible()
+  await app.close()
+  ;({ app, page } = await launch(tmp(), '', { HOME_SCREEN: '1' }))
+  await page.getByRole('button', { name: 'Tổng quan', exact: true }).click()
+  await page.getByRole('group', { name: 'Bước tiếp theo' }).getByRole('button', { name: 'Tạo ảnh đầu tiên' }).click()
+  const empty = page.getByRole('group', { name: 'Bắt đầu nhanh' })
+  await expect(empty.getByRole('button')).toHaveCount(5) // 4 ready-made workflows + the starter chain
+  await empty.getByRole('button', { name: 'Ảnh hàng loạt từ danh sách prompt' }).click()
+  await expect(page.getByTestId('wf-generate')).toHaveCount(1)
+  await expect(empty).toHaveCount(0)
+})
+
 test('history survives restart', async () => {
   const dir = tmp()
   let { app, page } = await launch(dir, 'no-request,image-ok')
