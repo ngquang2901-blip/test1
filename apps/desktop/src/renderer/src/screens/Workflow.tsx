@@ -353,7 +353,7 @@ function Canvas({ s, tabId }: { s: Session; tabId: string }): React.JSX.Element 
   const [saved, setSaved] = useState<Saved[]>([])
   const [mode, setMode] = useState<'auto' | 'manual'>(s.autoEnabled ? 'auto' : 'manual')
   const [msg, setMsg] = useState('')
-  const [bulk, setBulk] = useState<{ id: string; status: string; total: number; done: number; failed: number; runId: string | null } | null>(null)
+  const [bulk, setBulk] = useState<{ id: string; status: string; total: number; done: number; failed: number; runId: string | null; runIds?: string[] } | null>(null)
   const [preview, setPreview] = useState<Plan | null>(null)
   const [picker, setPicker] = useState<PickAt | null>(null)
   const [wide, setWide] = useState<string | null>(null) // a Tạo ảnh node whose form was moved from the popup to the right panel
@@ -795,7 +795,7 @@ function Canvas({ s, tabId }: { s: Session; tabId: string }): React.JSX.Element 
             )}
           </div>
           <p className="wf-foot" role="status" data-testid="wf-status">
-            {msg || (bulk ? `Hàng loạt: ${bulk.done + bulk.failed} / ${bulk.total} lượt${bulk.failed ? `, ${bulk.failed} lượt lỗi` : ''}${{ running: ' · đang chạy', done: ' · đã xong', stopped: ' · đã dừng' }[bulk.status] ?? ''}` : run ? { running: 'Đang chạy, theo dõi từng lượt ở Hàng đợi', done: 'Workflow đã chạy xong', failed: 'Workflow chạy xong, có node lỗi (xem dòng đỏ)', stopped: 'Workflow đã dừng' }[run.status] : !s.autoEnabled ? 'Tự bấm đang tắt (bật ở Cài đặt): bạn bấm Gửi trong Flow cho từng prompt' : '')}
+            {msg || (bulk ? `Hàng loạt: ${bulk.done + bulk.failed} / ${bulk.total} lượt${bulk.failed ? `, ${bulk.failed} lượt lỗi` : ''}${{ running: ' · đang chạy', done: ' · đã xong', stopped: ' · đã dừng' }[bulk.status] ?? ''}${bulk.status === 'running' && (bulk.runIds?.length ?? 0) > 1 ? ` · ${bulk.runIds!.length} lượt chạy cùng lúc` : ''}` : run ? { running: 'Đang chạy, theo dõi từng lượt ở Hàng đợi', done: 'Workflow đã chạy xong', failed: 'Workflow chạy xong, có node lỗi (xem dòng đỏ)', stopped: 'Workflow đã dừng' }[run.status] : !s.autoEnabled ? 'Tự bấm đang tắt (bật ở Cài đặt): bạn bấm Gửi trong Flow cho từng prompt' : '')}
           </p>
         </div>
         <aside className="wf-side nokey" aria-label="Cấu hình" hidden={!panel}>{side()}</aside>
