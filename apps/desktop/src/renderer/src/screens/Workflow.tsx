@@ -303,7 +303,7 @@ function Picker({ at, kinds, hint, onPick, onClose, box }: { at: PickAt; kinds: 
 }
 
 // every tab's canvas survives a visit to another screen (mid-run the user goes to Hàng đợi, or to Flow to click Gửi) and a switch to another tab
-type Keep = { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null; running?: boolean; hist?: { past: string[]; future: string[]; cur: string } }
+type Keep = { nodes: WNode[]; edges: Edge[]; vars: Var[]; name: string; runId: string | null; running?: boolean; pick?: 'auto' | 'manual'; hist?: { past: string[]; future: string[]; cur: string } }
 const blank = (): Keep => ({ nodes: [], edges: [], vars: [], name: '', runId: null })
 let tabs: Tabs = { ids: ['t1'], active: 't1' }
 const keeps: Record<string, Keep> = { t1: blank() }
@@ -351,7 +351,9 @@ function Canvas({ s, tabId }: { s: Session; tabId: string }): React.JSX.Element 
   const [run, setRun] = useState<RunView | null>(null)
   const [errs, setErrs] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState<Saved[]>([])
-  const [mode, setMode] = useState<'auto' | 'manual'>(s.autoEnabled ? 'auto' : 'manual')
+  const [pick, setPick] = useState(keep.pick) // a choice made by hand; none: follow Tự bấm, which can turn on while this canvas is open (Chrome tells the account after the app started)
+  const mode: 'auto' | 'manual' = s.autoEnabled ? pick ?? 'auto' : 'manual'
+  const setMode = (m: 'auto' | 'manual'): void => { keep.pick = m; setPick(m) }
   const [msg, setMsg] = useState('')
   const [bulk, setBulk] = useState<{ id: string; status: string; total: number; done: number; failed: number; runId: string | null; runIds?: string[] } | null>(null)
   const [preview, setPreview] = useState<Plan | null>(null)
@@ -360,7 +362,7 @@ function Canvas({ s, tabId }: { s: Session; tabId: string }): React.JSX.Element 
   const [tab, setTab] = useState<{ id: string; tab: 'cfg' | 'res' | 'help' } | null>(null)
   const rf = useRef<ReactFlowInstance<WNode, Edge> | null>(null)
   const wrap = useRef<HTMLDivElement>(null), pickBox = useRef<HTMLDivElement>(null), pointer = useRef<{ x: number; y: number } | null>(null)
-  useEffect(() => { keeps[tabId] = { nodes, edges, vars, name, runId, running, hist: hist.current } })
+  useEffect(() => { keeps[tabId] = { nodes, edges, vars, name, runId, running, pick, hist: hist.current } })
   const list = (): Promise<void> => window.api.listWorkflows().then(setSaved)
   useEffect(() => { void list() }, [])
   useEffect(() => { // a bulk run: its counts, and the canvas follows the run in flight

@@ -179,6 +179,22 @@ test('auto needs warning ack', async () => {
   await expect(page.getByText('Auto: bật')).toBeVisible()
 })
 
+test('Workflow: opened while auto was off, it sends by itself once auto is turned on (no stuck "Thủ công"); a Thủ công picked by hand is kept', async () => {
+  const { page } = await launch(tmp(), '', { TOOLFLOW_FAKE_AUTO: '0' })
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  const auto = page.getByRole('radio', { name: 'Tự động' }), manual = page.getByRole('radio', { name: 'Thủ công' })
+  await expect(manual).toBeChecked()
+  await expect(page.getByText('Tự bấm đang tắt')).toBeVisible()
+  // auto turns on while the canvas stays open (the app opened before Chrome told it the account)
+  await page.evaluate(() => (window as unknown as { api: { enableAuto(a: unknown): Promise<void> } }).api.enableAuto({ ack: true }))
+  await expect(auto).toBeChecked()
+  await expect(page.getByText('Tự bấm đang tắt')).toHaveCount(0)
+  await manual.check()
+  await page.getByRole('button', { name: 'Cài đặt' }).click()
+  await page.getByRole('button', { name: 'Workflow', exact: true }).click()
+  await expect(manual).toBeChecked()
+})
+
 test('history survives restart', async () => {
   const dir = tmp()
   let { app, page } = await launch(dir, 'no-request,image-ok')
